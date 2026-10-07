@@ -1,0 +1,236 @@
+{
+  "document_type": "planning_contract_not_runtime_asset",
+  "schema_version": 1,
+  "source_url": "https://t4cfantasy.com/Bible/Classic/MonsterWeaknesses.php",
+  "source_baseline": "T4C Fantasy Classic guide; historical patch unspecified",
+  "retrieved_date": "2026-10-07",
+  "enemies": [
+    {
+      "id": "Enemy.BrownRat",
+      "display_name": "Brown Rat",
+      "source_floors": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "source_floor_status": "verified_for_source",
+      "prototype_floors": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "prototype_placement_note": null,
+      "presentation_family": "Rat",
+      "boss": false,
+      "required_numeric_data_status": "unresolved",
+      "hp": null,
+      "damage": null,
+      "xp_reward": null,
+      "loot_table": null
+    },
+    {
+      "id": "Enemy.Bat",
+      "display_name": "Bat",
+      "source_floors": [
+        1,
+        2
+      ],
+      "source_floor_status": "verified_for_source",
+      "prototype_floors": [
+        1,
+        2
+      ],
+      "prototype_placement_note": null,
+      "presentation_family": "Bat",
+      "boss": false,
+      "required_numeric_data_status": "unresolved",
+      "hp": null,
+      "damage": null,
+      "xp_reward": null,
+      "loot_table": null
+    },
+    {
+      "id": "Enemy.DungeonBat",
+      "display_name": "Dungeon Bat",
+      "source_floors": [],
+      "source_floor_status": "unresolved",
+      "prototype_floors": [
+        2
+      ],
+      "prototype_placement_note": "B2 selected as temporary design choice; source names temple without a floor",
+      "presentation_family": "Bat",
+      "boss": false,
+      "required_numeric_data_status": "unresolved",
+      "hp": null,
+      "damage": null,
+      "xp_reward": null,
+      "loot_table": null
+    },
+    {
+      "id": "Enemy.GreenSlime",
+      "display_name": "Green Slime",
+      "source_floors": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "source_floor_status": "verified_for_source",
+      "prototype_floors": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "prototype_placement_note": null,
+      "presentation_family": "Slime",
+      "boss": false,
+      "required_numeric_data_status": "unresolved",
+      "hp": null,
+      "damage": null,
+      "xp_reward": null,
+      "loot_table": null
+    },
+    {
+      "id": "Enemy.GiantBat",
+      "display_name": "Giant Bat",
+      "source_floors": [
+        2,
+        3,
+        4
+      ],
+      "source_floor_status": "verified_for_source",
+      "prototype_floors": [
+        2,
+        3,
+        4
+      ],
+      "prototype_placement_note": null,
+      "presentation_family": "Bat",
+      "boss": false,
+      "required_numeric_data_status": "unresolved",
+      "hp": null,
+      "damage": null,
+      "xp_reward": null,
+      "loot_table": null
+    },
+    {
+      "id": "Enemy.UndeadBat",
+      "display_name": "Undead Bat",
+      "source_floors": [
+        2
+      ],
+      "source_floor_status": "verified_for_source",
+      "prototype_floors": [
+        2
+      ],
+      "prototype_placement_note": null,
+      "presentation_family": "Bat",
+      "boss": false,
+      "required_numeric_data_status": "unresolved",
+      "hp": null,
+      "damage": null,
+      "xp_reward": null,
+      "loot_table": null
+    },
+    {
+      "id": "Enemy.GiantSpider",
+      "display_name": "Giant Spider",
+      "source_floors": [
+        2
+      ],
+      "source_floor_status": "verified_for_source",
+      "prototype_floors": [
+        2
+      ],
+      "prototype_placement_note": null,
+      "presentation_family": "Spider",
+      "boss": false,
+      "required_numeric_data_status": "unresolved",
+      "hp": null,
+      "damage": null,
+      "xp_reward": null,
+      "loot_table": null
+    },
+    {
+      "id": "Enemy.Goblin",
+      "display_name": "Goblin",
+      "source_floors": [
+        3
+      ],
+      "source_floor_status": "verified_for_source",
+      "prototype_floors": [
+        3
+      ],
+      "prototype_placement_note": null,
+      "presentation_family": "Goblin",
+      "boss": false,
+      "required_numeric_data_status": "unresolved",
+      "hp": null,
+      "damage": null,
+      "xp_reward": null,
+      "loot_table": null
+    },
+    {
+      "id": "Enemy.GoblinWarrior",
+      "display_name": "Goblin Warrior",
+      "source_floors": [
+        3
+      ],
+      "source_floor_status": "verified_for_source",
+      "prototype_floors": [
+        3
+      ],
+      "prototype_placement_note": null,
+      "presentation_family": "Goblin",
+      "boss": false,
+      "required_numeric_data_status": "unresolved",
+      "hp": null,
+      "damage": null,
+      "xp_reward": null,
+      "loot_table": null
+    },
+    {
+      "id": "Enemy.Atrocity",
+      "display_name": "Atrocity",
+      "source_floors": [
+        3,
+        4
+      ],
+      "source_floor_status": "verified_for_source",
+      "prototype_floors": [
+        3,
+        4
+      ],
+      "prototype_placement_note": null,
+      "presentation_family": "Atrocity",
+      "boss": false,
+      "required_numeric_data_status": "unresolved",
+      "hp": null,
+      "damage": null,
+      "xp_reward": null,
+      "loot_table": null
+    },
+    {
+      "id": "Enemy.Balork",
+      "display_name": "Balork",
+      "source_floors": [
+        4
+      ],
+      "source_floor_status": "verified_for_source",
+      "prototype_floors": [
+        4
+      ],
+      "prototype_placement_note": null,
+      "presentation_family": "Demon",
+      "boss": true,
+      "required_numeric_data_status": "unresolved",
+      "hp": null,
+      "damage": null,
+      "xp_reward": null,
+      "loot_table": null
+    }
+  ]
+}

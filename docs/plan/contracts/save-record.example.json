@@ -1,0 +1,58 @@
+{
+  "document_type": "illustrative_incomplete_record_not_loadable",
+  "schema_version": 1,
+  "character_id": "00000000-0000-4000-8000-000000000001",
+  "ruleset_id": "LH_Prototype_v1",
+  "ruleset_revision": 1,
+  "content_revision": "example",
+  "transaction_sequence": 0,
+  "character": {
+    "display_name": "Example",
+    "appearance_id": "Appearance.HumanStarter01",
+    "creation": {
+      "question_answers": [],
+      "accepted_attributes": {
+        "Strength": null,
+        "Endurance": null,
+        "Agility": null,
+        "Intelligence": null,
+        "Wisdom": null
+      },
+      "roll_version": null
+    },
+    "earned_level": 1,
+    "xp_balance": 0,
+    "xp_debt": 0,
+    "unspent_attribute_points": null,
+    "unspent_skill_points": null,
+    "earned_base_health": null,
+    "earned_base_mana": null,
+    "current_health": null,
+    "current_mana": null,
+    "growth_awards": [],
+    "inventory": [],
+    "equipment": {
+      "quiver": null
+    },
+    "learned_skills": {},
+    "learned_spells": [],
+    "gold": null,
+    "mana_regen_fractional_seconds": 0,
+    "base_attributes": {
+      "Strength": null,
+      "Endurance": null,
+      "Agility": null,
+      "Intelligence": null,
+      "Wisdom": null
+    }
+  },
+  "world": {
+    "active_map": "L_LighthavenTempleDistrict",
+    "entrance_id": "Temple.SafeSpawn",
+    "area_states": {},
+    "unique_claims": [],
+    "quest_states": {},
+    "boss_states": {}
+  },
+  "rng_state": null
+}

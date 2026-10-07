@@ -1,0 +1,54 @@
+{
+  "document_type": "planning_contract_not_runtime_asset",
+  "ruleset_id": "LH_Prototype_v1",
+  "canonical_attributes": [
+    "Strength",
+    "Endurance",
+    "Agility",
+    "Intelligence",
+    "Wisdom"
+  ],
+  "source_supported_constants": {
+    "attribute_points_per_level": 5,
+    "skill_points_per_level": 15,
+    "source_url": "https://support.t4c.com/knowledgebase.php?article=12"
+  },
+  "prototype_tuning": {
+    "walk_cm_per_sec": 220,
+    "run_cm_per_sec": 450,
+    "ordinary_respawn_seconds": 120,
+    "respawn_clock": "loaded_area_unpaused_simulation",
+    "offline_time_advances_world": false,
+    "boss_respawn": false,
+    "death_penalty": "none_during_initial_development",
+    "starting_melee_item_candidate": "Item.RustedDirk",
+    "starting_kit_status": "provisional",
+    "mana_regen_amount": 1,
+    "mana_regen_interval_seconds": 5,
+    "mana_regen_clock": "alive_unpaused_simulation_no_offline_accrual",
+    "mana_potion_use_at_full": "reject_without_consuming",
+    "resource_overheal": "clamp_to_max"
+  },
+  "unresolved_parity_fields": [
+    "creation_roll_distribution",
+    "initial_health_mana_skills_gold",
+    "growth_formula_and_award_timing",
+    "experience_curve",
+    "hit_damage_armor_resistance_attack_speed",
+    "monster_stats_rewards_drop_weights",
+    "trainer_price_scaling",
+    "historical_death_loss_denominators"
+  ],
+  "no_level_loss": true,
+  "multiplayer_implemented": false,
+  "source_supported_candidates": {
+    "bow": "Item.AshwoodFlatbow",
+    "quiver": "Item.WoodenArrows",
+    "quiver_consumption": "unlimited",
+    "requires_bow_and_quiver": true,
+    "mana_potion_restore": 25,
+    "mana_potion_gold_price": 50,
+    "mana_potion_vendor": "NPC.Fali",
+    "source_register": "research/character-rules-evidence.md R16-R22"
+  }
+}

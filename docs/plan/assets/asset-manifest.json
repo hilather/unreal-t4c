@@ -1,0 +1,633 @@
+{
+  "schema_version": 1,
+  "prepared_date": "2026-10-07",
+  "description": "Downloaded visual references and generated concept images for the Lighthaven planning package",
+  "reference_image_count": 32,
+  "generated_concept_count": 3,
+  "assets": [
+    {
+      "id": "deep-dungeon-creatures-concept",
+      "path": "assets/concepts/deep-dungeon-creatures-concept.png",
+      "sha256": "e240da0d8658136e392575c35d6ade47c463d1b111bf9106d735ac5fe126e067",
+      "bytes": 2328691,
+      "dimensions_px": [
+        1536,
+        1024
+      ],
+      "generated_date": "2026-10-07",
+      "generation_method": "built-in image-generation tool",
+      "prompt_record": "assets/concepts/prompts.md",
+      "usage": "reference-derived concept art, not layout authority",
+      "runtime_ready": false,
+      "provenance_note": "Derived from downloaded T4C references; not a claim of cleared underlying rights"
+    },
+    {
+      "id": "starter-characters-and-creatures-concept",
+      "path": "assets/concepts/starter-characters-and-creatures-concept.png",
+      "sha256": "ae15931d0de54d4ee520bf37c4c8c230638d624b9be52831fe5dc012fda0ee64",
+      "bytes": 2096523,
+      "dimensions_px": [
+        1774,
+        887
+      ],
+      "generated_date": "2026-10-07",
+      "generation_method": "built-in image-generation tool",
+      "prompt_record": "assets/concepts/prompts.md",
+      "usage": "reference-derived concept art, not layout authority",
+      "runtime_ready": false,
+      "provenance_note": "Derived from downloaded T4C references; not a claim of cleared underlying rights"
+    },
+    {
+      "id": "temple-and-basement-concept",
+      "path": "assets/concepts/temple-and-basement-concept.png",
+      "sha256": "9abe9bae0d85b7f114c2bb7e883a6c5ac44cf3abfe3200779537becc7040266c",
+      "bytes": 2913991,
+      "dimensions_px": [
+        1983,
+        793
+      ],
+      "generated_date": "2026-10-07",
+      "generation_method": "built-in image-generation tool",
+      "prompt_record": "assets/concepts/prompts.md",
+      "usage": "reference-derived concept art, not layout authority",
+      "runtime_ready": false,
+      "provenance_note": "Derived from downloaded T4C references; not a claim of cleared underlying rights"
+    },
+    {
+      "id": "archer-reference",
+      "path": "assets/references/characters/archer-reference.png",
+      "sha256": "e4f4bd837de75d6f3bdd6c6fdb46c96b894c5cee72c055e15cb1e252466fcfd3",
+      "bytes": 1895125,
+      "dimensions_px": [
+        960,
+        1200
+      ],
+      "source_url": "https://www.d4o.de/en/images/game-infos/first-steps/class-archer.png",
+      "subject_type": "Modern promotional illustration",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://www.d4o.de/en/game-infos/first-steps/"
+    },
+    {
+      "id": "character-creation-reference",
+      "path": "assets/references/characters/character-creation-reference.png",
+      "sha256": "a6f0a9f3040e4f34d28bd0235d6a052ed7ced1221e97859e7088680000cb748a",
+      "bytes": 2044831,
+      "dimensions_px": [
+        1536,
+        768
+      ],
+      "source_url": "https://www.d4o.de/en/images/game-infos/first-steps/character-creation.png",
+      "subject_type": "Modern promotional illustration",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://www.d4o.de/en/game-infos/first-steps/"
+    },
+    {
+      "id": "human-female-1",
+      "path": "assets/references/characters/human-female-1.png",
+      "sha256": "be5ba1f52a9a217a198b0266ea3b61bbd58494cac406be5005d95675ab9a56ff",
+      "bytes": 3933,
+      "dimensions_px": [
+        79,
+        79
+      ],
+      "source_url": "https://t4cfantasy.com/images/items/Misc/Puppet/HumanFemale1.png",
+      "subject_type": "Classic player direction",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MiscImages.php"
+    },
+    {
+      "id": "human-female-2",
+      "path": "assets/references/characters/human-female-2.png",
+      "sha256": "e57eff9da81adbd8c6bd7e5fb1ed3e50037c52c07c6ddea5114e5aabcb94f460",
+      "bytes": 3803,
+      "dimensions_px": [
+        79,
+        79
+      ],
+      "source_url": "https://t4cfantasy.com/images/items/Misc/Puppet/HumanFemale2.png",
+      "subject_type": "Classic player direction",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MiscImages.php"
+    },
+    {
+      "id": "human-female-3",
+      "path": "assets/references/characters/human-female-3.png",
+      "sha256": "632fcbdd26a23bbfc7071b81d0f294b667c6d2ce4d4a507c8e2b26acc5f88b53",
+      "bytes": 3568,
+      "dimensions_px": [
+        79,
+        79
+      ],
+      "source_url": "https://t4cfantasy.com/images/items/Misc/Puppet/HumanFemale3.png",
+      "subject_type": "Classic player direction",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MiscImages.php"
+    },
+    {
+      "id": "human-female-4",
+      "path": "assets/references/characters/human-female-4.png",
+      "sha256": "31b71d4f42e768103b4d8f9a7f9a47bca388072106b9a8b0d6e0e567a3e2f0a1",
+      "bytes": 3641,
+      "dimensions_px": [
+        79,
+        79
+      ],
+      "source_url": "https://t4cfantasy.com/images/items/Misc/Puppet/HumanFemale4.png",
+      "subject_type": "Classic player direction",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MiscImages.php"
+    },
+    {
+      "id": "human-female-5",
+      "path": "assets/references/characters/human-female-5.png",
+      "sha256": "57925a7ed73d738d65a9575ca402149bd549e0829c2fde18f006e1a8a76c51ba",
+      "bytes": 3640,
+      "dimensions_px": [
+        79,
+        79
+      ],
+      "source_url": "https://t4cfantasy.com/images/items/Misc/Puppet/HumanFemale5.png",
+      "subject_type": "Classic player direction",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MiscImages.php"
+    },
+    {
+      "id": "human-female-6",
+      "path": "assets/references/characters/human-female-6.png",
+      "sha256": "280e8aae53ace2902315379c9172f42e19f049caac1366076c926c558608e508",
+      "bytes": 3620,
+      "dimensions_px": [
+        79,
+        79
+      ],
+      "source_url": "https://t4cfantasy.com/images/items/Misc/Puppet/HumanFemale6.png",
+      "subject_type": "Classic player direction",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MiscImages.php"
+    },
+    {
+      "id": "human-female-7",
+      "path": "assets/references/characters/human-female-7.png",
+      "sha256": "e5107cd223d5103f3d795dd4065251e82905a608d0bf7b5d12c959c9235bdc39",
+      "bytes": 3533,
+      "dimensions_px": [
+        79,
+        79
+      ],
+      "source_url": "https://t4cfantasy.com/images/items/Misc/Puppet/HumanFemale7.png",
+      "subject_type": "Classic player direction",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MiscImages.php"
+    },
+    {
+      "id": "human-female-8",
+      "path": "assets/references/characters/human-female-8.png",
+      "sha256": "7ca1ac4fc3802fec3f0f6925f490c1ce8378c2a7a0be93a2fb0a5a0704bc5158",
+      "bytes": 3808,
+      "dimensions_px": [
+        79,
+        79
+      ],
+      "source_url": "https://t4cfantasy.com/images/items/Misc/Puppet/HumanFemale8.png",
+      "subject_type": "Classic player direction",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MiscImages.php"
+    },
+    {
+      "id": "human-male-1",
+      "path": "assets/references/characters/human-male-1.png",
+      "sha256": "d0ce716005d9a1fef355677225d502a97965f52a147a348c93224a1e82250e66",
+      "bytes": 4325,
+      "dimensions_px": [
+        79,
+        79
+      ],
+      "source_url": "https://t4cfantasy.com/images/items/Misc/Puppet/HumanMale1.png",
+      "subject_type": "Classic player direction",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MiscImages.php"
+    },
+    {
+      "id": "human-male-2",
+      "path": "assets/references/characters/human-male-2.png",
+      "sha256": "d77d7f3ec7040ce08ad778260db93b78fffec56911fe081f1f22fea0165f5dd4",
+      "bytes": 4209,
+      "dimensions_px": [
+        79,
+        79
+      ],
+      "source_url": "https://t4cfantasy.com/images/items/Misc/Puppet/HumanMale2.png",
+      "subject_type": "Classic player direction",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MiscImages.php"
+    },
+    {
+      "id": "human-male-3",
+      "path": "assets/references/characters/human-male-3.png",
+      "sha256": "ccf043cc011f6850381f50eaa271a037f2b2455e193f94cb9ff2dfd332540302",
+      "bytes": 3859,
+      "dimensions_px": [
+        79,
+        79
+      ],
+      "source_url": "https://t4cfantasy.com/images/items/Misc/Puppet/HumanMale3.png",
+      "subject_type": "Classic player direction",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MiscImages.php"
+    },
+    {
+      "id": "human-male-4",
+      "path": "assets/references/characters/human-male-4.png",
+      "sha256": "4303dc0fda1ee2512eeb7baf1368d3513461b006e6f9e17dd7475b800d5b40d7",
+      "bytes": 3905,
+      "dimensions_px": [
+        79,
+        79
+      ],
+      "source_url": "https://t4cfantasy.com/images/items/Misc/Puppet/HumanMale4.png",
+      "subject_type": "Classic player direction",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MiscImages.php"
+    },
+    {
+      "id": "human-male-5",
+      "path": "assets/references/characters/human-male-5.png",
+      "sha256": "6612f791cc605806eb3333a196e51d8ff44e10f08c700219146c6f6ccdfeae6b",
+      "bytes": 3955,
+      "dimensions_px": [
+        79,
+        79
+      ],
+      "source_url": "https://t4cfantasy.com/images/items/Misc/Puppet/HumanMale5.png",
+      "subject_type": "Classic player direction",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MiscImages.php"
+    },
+    {
+      "id": "human-male-6",
+      "path": "assets/references/characters/human-male-6.png",
+      "sha256": "5e0c577936801f26058edd81da49e0a8fe74945d1218de821b4ee09daf33fece",
+      "bytes": 3865,
+      "dimensions_px": [
+        79,
+        79
+      ],
+      "source_url": "https://t4cfantasy.com/images/items/Misc/Puppet/HumanMale6.png",
+      "subject_type": "Classic player direction",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MiscImages.php"
+    },
+    {
+      "id": "human-male-7",
+      "path": "assets/references/characters/human-male-7.png",
+      "sha256": "9c4a0dfa6f2fbd1ba0e9bde2dfb591e1c970f06eb7fff6e043d1f52700368722",
+      "bytes": 3980,
+      "dimensions_px": [
+        79,
+        79
+      ],
+      "source_url": "https://t4cfantasy.com/images/items/Misc/Puppet/HumanMale7.png",
+      "subject_type": "Classic player direction",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MiscImages.php"
+    },
+    {
+      "id": "human-male-8",
+      "path": "assets/references/characters/human-male-8.png",
+      "sha256": "71fd44e799ceff8be37281a276456b5cd25b6a74d507e48301c3071c166ef351",
+      "bytes": 4335,
+      "dimensions_px": [
+        79,
+        79
+      ],
+      "source_url": "https://t4cfantasy.com/images/items/Misc/Puppet/HumanMale8.png",
+      "subject_type": "Classic player direction",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MiscImages.php"
+    },
+    {
+      "id": "mage-reference",
+      "path": "assets/references/characters/mage-reference.png",
+      "sha256": "028315ae5aff47b0441f903673d043e17273fb8232cb8078dab884562fcd0e0b",
+      "bytes": 2024351,
+      "dimensions_px": [
+        960,
+        1200
+      ],
+      "source_url": "https://www.d4o.de/en/images/game-infos/first-steps/class-mage.png",
+      "subject_type": "Modern promotional illustration",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://www.d4o.de/en/game-infos/first-steps/"
+    },
+    {
+      "id": "warrior-reference",
+      "path": "assets/references/characters/warrior-reference.png",
+      "sha256": "927cc3b42c89c0666e7ac46816d440f95c0be09ebb412174180672159eb715f9",
+      "bytes": 1973468,
+      "dimensions_px": [
+        960,
+        1200
+      ],
+      "source_url": "https://www.d4o.de/en/images/game-infos/first-steps/class-warrior.png",
+      "subject_type": "Modern promotional illustration",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://www.d4o.de/en/game-infos/first-steps/"
+    },
+    {
+      "id": "LHDungeon1",
+      "path": "assets/references/maps/LHDungeon1.png",
+      "sha256": "8a47f31fa2936256816742def2e5e8ae274ddde24e10afabff751319320b2154",
+      "bytes": 116292,
+      "dimensions_px": [
+        1399,
+        845
+      ],
+      "source_url": "https://t4cfantasy.com/images/maps/i1arakas/LHDungeon1.png",
+      "subject_type": "host-published map reference",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/maps.php"
+    },
+    {
+      "id": "LHDungeon2",
+      "path": "assets/references/maps/LHDungeon2.png",
+      "sha256": "9de7aec45987fdc770cf926f44419b9fcacb4948380988c88c5cae747adc2a30",
+      "bytes": 195376,
+      "dimensions_px": [
+        1999,
+        1141
+      ],
+      "source_url": "https://t4cfantasy.com/images/maps/i1arakas/LHDungeon2.png",
+      "subject_type": "host-published map reference",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/maps.php"
+    },
+    {
+      "id": "LHDungeon3",
+      "path": "assets/references/maps/LHDungeon3.png",
+      "sha256": "3f2d3b479fc7ce3c919d0651c7f46d885954e36064bf3ed51377a203d0b2e356",
+      "bytes": 254425,
+      "dimensions_px": [
+        1757,
+        1226
+      ],
+      "source_url": "https://t4cfantasy.com/images/maps/i1arakas/LHDungeon3.png",
+      "subject_type": "host-published map reference",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/maps.php"
+    },
+    {
+      "id": "LHDungeon4Classic",
+      "path": "assets/references/maps/LHDungeon4Classic.png",
+      "sha256": "fb910477978b37739436314ca7b3d5bbcc5f51e147c23be585650a1bfda7eeea",
+      "bytes": 86949,
+      "dimensions_px": [
+        1230,
+        804
+      ],
+      "source_url": "https://t4cfantasy.com/images/maps/i1arakas/LHDungeon4Classic.png",
+      "subject_type": "host-published map reference",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/maps.php"
+    },
+    {
+      "id": "LighthavenClassic",
+      "path": "assets/references/maps/LighthavenClassic.png",
+      "sha256": "e93af7ea22e3c03c5e072ecbb18d4bb4704c9e438917afbbb980372cc0f25e49",
+      "bytes": 1921764,
+      "dimensions_px": [
+        2705,
+        1848
+      ],
+      "source_url": "https://t4cfantasy.com/images/maps/i1arakas/LighthavenClassic.png",
+      "subject_type": "host-published map reference",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/maps.php"
+    },
+    {
+      "id": "atrocity-family",
+      "path": "assets/references/monsters/atrocity-family.jpg",
+      "sha256": "75f986cab98afa79d06670e3da337e037caa776ab3d01d23a2a41e40e54fa1db",
+      "bytes": 3492,
+      "dimensions_px": [
+        200,
+        200
+      ],
+      "source_url": "https://t4cfantasy.com/images/skins/app20026.jpg",
+      "subject_type": "Classic creature reference",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MonsterImages.php"
+    },
+    {
+      "id": "balork-demon-family",
+      "path": "assets/references/monsters/balork-demon-family.jpg",
+      "sha256": "2ad920b3262f553f24eaf9055857af4956ed09bd2380fcf787d0c3138bda6c34",
+      "bytes": 10042,
+      "dimensions_px": [
+        200,
+        200
+      ],
+      "source_url": "https://t4cfantasy.com/images/skins/app20013.jpg",
+      "subject_type": "Classic creature reference",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MonsterImages.php"
+    },
+    {
+      "id": "bat-family",
+      "path": "assets/references/monsters/bat-family.jpg",
+      "sha256": "07342b83d90d817721aa4019fe1c52ab6bd471a2b4a441af72e327456a751422",
+      "bytes": 1979,
+      "dimensions_px": [
+        200,
+        200
+      ],
+      "source_url": "https://t4cfantasy.com/images/skins/app20002.jpg",
+      "subject_type": "Classic creature reference",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MonsterImages.php"
+    },
+    {
+      "id": "giant-spider-family",
+      "path": "assets/references/monsters/giant-spider-family.jpg",
+      "sha256": "bad56d3db69cd60264c5f199a5dc9d7ddcec9ca2be9c3f4ae6ba51dd63e929a9",
+      "bytes": 2786,
+      "dimensions_px": [
+        200,
+        200
+      ],
+      "source_url": "https://t4cfantasy.com/images/skins/app20007.jpg",
+      "subject_type": "Classic creature reference",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MonsterImages.php"
+    },
+    {
+      "id": "goblin-family",
+      "path": "assets/references/monsters/goblin-family.jpg",
+      "sha256": "2001df469a22bbf9a3278a74e26f82ec50d7775a7da6961a762f3d4443031563",
+      "bytes": 2918,
+      "dimensions_px": [
+        200,
+        200
+      ],
+      "source_url": "https://t4cfantasy.com/images/skins/app20001.jpg",
+      "subject_type": "Classic creature reference",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MonsterImages.php"
+    },
+    {
+      "id": "green-slime-family",
+      "path": "assets/references/monsters/green-slime-family.jpg",
+      "sha256": "066beea2894b513bf5eda55254d4dea852f781aedb542b2ce81944a6c1bca66a",
+      "bytes": 2650,
+      "dimensions_px": [
+        200,
+        200
+      ],
+      "source_url": "https://t4cfantasy.com/images/skins/app20005.jpg",
+      "subject_type": "Classic creature reference",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MonsterImages.php"
+    },
+    {
+      "id": "rat-family",
+      "path": "assets/references/monsters/rat-family.jpg",
+      "sha256": "6f48c5b80027de7921be60d248fadc2da31b070558216bf26161ebbde75a5b2a",
+      "bytes": 1558,
+      "dimensions_px": [
+        200,
+        200
+      ],
+      "source_url": "https://t4cfantasy.com/images/skins/app20003.jpg",
+      "subject_type": "Classic creature reference",
+      "retrieved_date": "2026-10-07",
+      "usage": "visual reference and prototype evaluation",
+      "reuse_permission": "not_established",
+      "runtime_ready": false,
+      "original_bytes_preserved": true,
+      "source_page_url": "https://t4cfantasy.com/Bible/Classic/MonsterImages.php"
+    }
+  ]
+}
