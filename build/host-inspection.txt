@@ -1,0 +1,261 @@
+$ hostname
+brewtop
+[exit 0]
+
+$ cat /etc/os-release
+NAME="Omarchy"
+PRETTY_NAME="Omarchy"
+ID=omarchy
+ID_LIKE=arch
+BUILD_ID="4.0.4"
+VERSION_ID="4.0.4"
+ANSI_COLOR="38;2;158;206;106"
+HOME_URL="https://omarchy.org/"
+DOCUMENTATION_URL="https://learn.omacom.io/2/the-omarchy-manual"
+SUPPORT_URL="https://discord.gg/tXFUdasqhY"
+BUG_REPORT_URL="https://github.com/basecamp/omarchy/issues"
+LOGO=omarchy
+[exit 0]
+
+$ uname -a
+Linux brewtop 7.2.5-3-omarchy #1 SMP PREEMPT_DYNAMIC Mon, 14 Sep 2026 19:55:01 +0000 x86_64 GNU/Linux
+[exit 0]
+
+$ lscpu
+Architecture:                            x86_64
+CPU op-mode(s):                          32-bit, 64-bit
+Address sizes:                           39 bits physical, 48 bits virtual
+Byte Order:                              Little Endian
+CPU(s):                                  12
+On-line CPU(s) list:                     0-11
+Vendor ID:                               GenuineIntel
+Model name:                              Intel(R) Core(TM) i7-8750H CPU @ 2.20GHz
+CPU family:                              6
+Model:                                   158
+Thread(s) per core:                      2
+Core(s) per socket:                      6
+Socket(s):                               1
+Stepping:                                10
+Microcode version:                       0xfa
+CPU(s) scaling MHz:                      95%
+CPU max MHz:                             4100.0000
+CPU min MHz:                             800.0000
+BogoMIPS:                                4399.99
+Flags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch cpuid_fault epb pti ssbd ibrs ibpb stibp tpr_shadow flexpriority ept vpid ept_ad fsgsbase tsc_adjust sgx bmi1 avx2 smep bmi2 erms invpcid mpx rdseed adx smap clflushopt intel_pt xsaveopt xsavec xgetbv1 xsaves dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp vnmi sgx_lc md_clear flush_l1d arch_capabilities
+Virtualization:                          VT-x
+L1d cache:                               192 KiB (6 instances)
+L1i cache:                               192 KiB (6 instances)
+L2 cache:                                1.5 MiB (6 instances)
+L3 cache:                                9 MiB (1 instance)
+NUMA node(s):                            1
+NUMA node0 CPU(s):                       0-11
+Vulnerability Gather data sampling:      Mitigation; Microcode
+Vulnerability Ghostwrite:                Not affected
+Vulnerability Indirect target selection: Not affected
+Vulnerability Itlb multihit:             KVM: Mitigation: Split huge pages
+Vulnerability L1tf:                      Mitigation; PTE Inversion; VMX conditional cache flushes, SMT vulnerable
+Vulnerability Mds:                       Mitigation; Clear CPU buffers; SMT vulnerable
+Vulnerability Meltdown:                  Mitigation; PTI
+Vulnerability Mmio stale data:           Mitigation; Clear CPU buffers; SMT vulnerable
+Vulnerability Old microcode:             Not affected
+Vulnerability Reg file data sampling:    Not affected
+Vulnerability Retbleed:                  Mitigation; IBRS
+Vulnerability Spec rstack overflow:      Not affected
+Vulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl
+Vulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:                Mitigation; IBRS; IBPB conditional; STIBP conditional; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected
+Vulnerability Srbds:                     Mitigation; Microcode
+Vulnerability Tsa:                       Not affected
+Vulnerability Tsx async abort:           Not affected
+Vulnerability Vmscape:                   Mitigation; IBPB before exit to userspace
+[exit 0]
+
+$ free -h
+               total        used        free      shared  buff/cache   available
+Mem:            62Gi        17Gi       2.5Gi       764Mi        46Gi        44Gi
+Swap:          124Gi        17Gi       107Gi
+[exit 0]
+
+$ df -hT / /home /opt /tmp
+Filesystem         Type   Size  Used Avail Use% Mounted on
+/dev/mapper/root   btrfs  952G  734G  217G  78% /
+/dev/mapper/root   btrfs  952G  734G  217G  78% /home
+/dev/mapper/root   btrfs  952G  734G  217G  78% /
+herdr-farm-private tmpfs   32G   92K   32G   1% /tmp
+[exit 0]
+
+$ lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINTS
+NAME          SIZE FSTYPE      MOUNTPOINTS
+sda             0B             
+zram0        62.3G swap        [SWAP]
+nvme0n1     953.9G             
+├─nvme0n1p1     2G vfat        /boot
+└─nvme0n1p2 951.9G crypto_LUKS 
+[exit 0]
+
+$ lspci -nn
+00:00.0 Host bridge [0600]: Intel Corporation 8th/9th Gen Core Processor Host Bridge / DRAM Registers [8086:3ec4] (rev 07)
+00:01.0 PCI bridge [0604]: Intel Corporation 6th-10th Gen Core Processor PCIe Controller (x16) [8086:1901] (rev 07)
+00:02.0 VGA compatible controller [0300]: Intel Corporation CoffeeLake-H GT2 [UHD Graphics 630] [8086:3e9b]
+00:04.0 Signal processing controller [1180]: Intel Corporation Xeon E3-1200 v5/E3-1500 v5/6th Gen Core Processor Thermal Subsystem [8086:1903] (rev 07)
+00:08.0 System peripheral [0880]: Intel Corporation Xeon E3-1200 v5/v6 / E3-1500 v5 / 6th/7th/8th Gen Core Processor Gaussian Mixture Model [8086:1911]
+00:12.0 Signal processing controller [1180]: Intel Corporation 300/C240 Series Chipset Family Thermal Subsystem [8086:a379] (rev 10)
+00:14.0 USB controller [0c03]: Intel Corporation 300/C240 Series Chipset Family USB 3.1 xHCI [8086:a36d] (rev 10)
+00:14.2 RAM memory [0500]: Intel Corporation 300/C240 Series Chipset Family Shared SRAM [8086:a36f] (rev 10)
+00:14.3 Network controller [0280]: Intel Corporation 300/C240 Series Chipset Family CNVi Wi-Fi [8086:a370] (rev 10)
+00:15.0 Serial bus controller [0c80]: Intel Corporation 300/C240 Series Chipset Family I2C Controller #0 [8086:a368] (rev 10)
+00:16.0 Communication controller [0780]: Intel Corporation 300/C240 Series Chipset Family HECI #1 [8086:a360] (rev 10)
+00:1b.0 PCI bridge [0604]: Intel Corporation 300/C240 Series Chipset Family PCIe Root Port #17 [8086:a340] (rev f0)
+00:1b.4 PCI bridge [0604]: Intel Corporation 300/C240 Series Chipset Family PCIe Root Port #21 [8086:a32c] (rev f0)
+00:1d.0 PCI bridge [0604]: Intel Corporation 300/C240 Series Chipset Family PCIe Root Port #9 [8086:a330] (rev f0)
+00:1e.0 Communication controller [0780]: Intel Corporation 300/C240 Series Chipset Family UART #0 [8086:a328] (rev 10)
+00:1f.0 ISA bridge [0601]: Intel Corporation CM246 Chipset LPC/eSPI Controller [8086:a30e] (rev 10)
+00:1f.3 Audio device [0403]: Intel Corporation 300/C240 Series Chipset Family HD Audio [8086:a348] (rev 10)
+00:1f.4 SMBus [0c05]: Intel Corporation 300/C240 Series Chipset Family SMBus [8086:a323] (rev 10)
+00:1f.5 Serial bus controller [0c80]: Intel Corporation 300/C240 Series Chipset Family SPI (Flash) Controller [8086:a324] (rev 10)
+00:1f.6 Ethernet controller [0200]: Intel Corporation Ethernet Connection (7) I219-V [8086:15bc] (rev 10)
+01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GP107M [GeForce GTX 1050 Ti Mobile] [10de:1c8c] (rev a1)
+01:00.1 Audio device [0403]: NVIDIA Corporation GP107GL High Definition Audio Controller [10de:0fb9] (rev a1)
+04:00.0 PCI bridge [0604]: Intel Corporation JHL7540 Thunderbolt 3 Bridge [Titan Ridge 4C 2018] [8086:15ea] (rev 06)
+05:00.0 PCI bridge [0604]: Intel Corporation JHL7540 Thunderbolt 3 Bridge [Titan Ridge 4C 2018] [8086:15ea] (rev 06)
+05:01.0 PCI bridge [0604]: Intel Corporation JHL7540 Thunderbolt 3 Bridge [Titan Ridge 4C 2018] [8086:15ea] (rev 06)
+05:02.0 PCI bridge [0604]: Intel Corporation JHL7540 Thunderbolt 3 Bridge [Titan Ridge 4C 2018] [8086:15ea] (rev 06)
+05:04.0 PCI bridge [0604]: Intel Corporation JHL7540 Thunderbolt 3 Bridge [Titan Ridge 4C 2018] [8086:15ea] (rev 06)
+06:00.0 System peripheral [0880]: Intel Corporation JHL7540 Thunderbolt 3 NHI [Titan Ridge 4C 2018] [8086:15eb] (rev 06)
+3a:00.0 USB controller [0c03]: Intel Corporation JHL7540 Thunderbolt 3 USB Controller [Titan Ridge 4C 2018] [8086:15ec] (rev 06)
+71:00.0 Non-Volatile memory controller [0108]: Intel Corporation SSD 660P Series [8086:f1a8] (rev 03)
+[exit 0]
+
+$ nvidia-smi
+NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.
+
+[exit 9]
+
+$ vulkaninfo --summary
+/bin/sh: line 1: vulkaninfo: command not found
+[exit 127]
+
+$ ls -l /dev/dri
+ls: cannot access '/dev/dri': No such file or directory
+[exit 2]
+
+$ ldconfig -p | rg -i "vulkan|libGLX_nvidia"
+	libvulkan_intel_hasvk.so (libc6,x86-64) => /usr/lib/libvulkan_intel_hasvk.so
+	libvulkan_intel.so (libc6,x86-64) => /usr/lib/libvulkan_intel.so
+	libvulkan.so.1 (libc6,x86-64) => /usr/lib/libvulkan.so.1
+	libvulkan.so (libc6,x86-64) => /usr/lib/libvulkan.so
+	libgstvulkan-1.0.so.0 (libc6,x86-64) => /usr/lib/libgstvulkan-1.0.so.0
+	libgstvulkan-1.0.so (libc6,x86-64) => /usr/lib/libgstvulkan-1.0.so
+	libGLX_nvidia.so.0 (libc6,x86-64) => /usr/lib/libGLX_nvidia.so.0
+	libGLX_nvidia.so.0 (libc6) => /usr/lib32/libGLX_nvidia.so.0
+	libGLX_nvidia.so (libc6,x86-64) => /usr/lib/libGLX_nvidia.so
+	libGLX_nvidia.so (libc6) => /usr/lib32/libGLX_nvidia.so
+[exit 0]
+
+$ ls /usr/share/vulkan/icd.d /etc/vulkan/icd.d
+ls: cannot access '/etc/vulkan/icd.d': No such file or directory
+/usr/share/vulkan/icd.d:
+intel_hasvk_icd.json
+intel_icd.json
+nvidia_icd.json
+[exit 2]
+
+$ clang --version
+clang version 22.1.8
+Target: x86_64-pc-linux-gnu
+Thread model: posix
+InstalledDir: /usr/bin
+[exit 0]
+
+$ gcc --version
+gcc (GCC) 16.2.1 20260810
+Copyright (C) 2026 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+[exit 0]
+
+$ dotnet --info
+
+Host:
+  Version:      10.0.11
+  Architecture: x64
+  Commit:       e2f47b0110
+  RID:          arch-x64
+
+.NET SDKs installed:
+  No SDKs were found.
+
+.NET runtimes installed:
+  Microsoft.NETCore.App 10.0.11 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+
+Other architectures found:
+  None
+
+Environment variables:
+  Not set
+
+global.json file:
+  Not found
+
+Learn more:
+  https://aka.ms/dotnet/info
+
+Download .NET:
+  https://aka.ms/dotnet/download
+[exit 0]
+
+$ cmake --version
+/bin/sh: line 1: cmake: command not found
+[exit 127]
+
+$ python3 --version
+Python 3.14.7
+[exit 0]
+
+$ git --version
+git version 2.55.0
+[exit 0]
+
+$ git lfs version
+git: 'lfs' is not a git command. See 'git --help'.
+
+The most similar command is
+	refs
+[exit 1]
+
+$ command -v UnrealEditor UnrealEditor-Cmd UE4Editor wine wine64 proton steam
+[exit 1]
+
+$ ls -ld /opt /opt/* /home/brewerm/.config/Epic /home/brewerm/.local/share/Steam /home/brewerm/.steam
+ls: cannot access '/home/brewerm/.config/Epic': No such file or directory
+ls: cannot access '/home/brewerm/.local/share/Steam': No such file or directory
+ls: cannot access '/home/brewerm/.steam': No such file or directory
+drwxr-xr-x 1 nobody nobody  52 Oct  2 07:07 /opt
+drwxr-xr-x 1 nobody nobody 600 Sep 15 10:27 /opt/Grok Bot
+drwx--x--x 1 nobody nobody  12 Oct  2 07:07 /opt/containerd
+drwxr-xr-x 1 nobody nobody   0 Sep 15 08:59 /opt/packages
+[exit 2]
+
+$ find / -type d \( -path /proc -o -path /sys -o -path /dev \) -prune -o \( -iname "UnrealEditor*" -o -iname "UE_5*" -o -iname "UnrealEngine" -o -iname "proton" -o -iname "proton-*" \) -print 2>/tmp/w0-02-find-errors
+[exit 1]
+
+$ wc -l /tmp/w0-02-find-errors
+671 /tmp/w0-02-find-errors
+[exit 0]
+
+$ head -12 /tmp/w0-02-find-errors
+find: ‘/home/brewerm/.cache/herdr-test-tmp/accept-default/.tmpmSwPfK/root/demo/.git-quarantine/attempt-2e6717d628a347dca93fc5e21a3f273f48fe80180fc12b41aa4e972c0cac12e2/repo-00/work/work’: Permission denied
+find: ‘/home/brewerm/.cache/herdr-test-tmp/accept-default/.tmpUAYqHp/root/demo/.git-quarantine/attempt-6bd139d6e3543d0ca5c6635a5b7e8b50d617eb618d62c9f43215dd84e26ea556/repo-00/work/work’: Permission denied
+find: ‘/home/brewerm/.cache/herdr-test-tmp/accept-default/.tmpmImquf/root/demo/.git-quarantine/attempt-a3d414a0a17ea6f58a0d6299b11dd58056258c0e129eb4d7f2d7cdb5e9e641b9/repo-00/work/work’: Permission denied
+find: ‘/home/brewerm/.cache/herdr-test-tmp/accept-default/.tmpH6BGao/root/demo/.git-quarantine/attempt-dde226ab9c8e19113181655a592d28e4b9a2eb428d116adce06f8fd3f3bfea84/repo-00/work/work’: Permission denied
+find: ‘/home/brewerm/.cache/herdr-test-tmp/accept-default/.tmpfafsmi/root/demo/.git-quarantine/attempt-17a923460ff835732592d557773a1666bb1d93a638c37c1406d8376c263181f2/repo-00/work/work’: Permission denied
+find: ‘/home/brewerm/.cache/herdr-test-tmp/accept-default/.tmpO2X5Yl/root/demo/.git-quarantine/attempt-a04885033b4d401f837968e08fac6a6076bca05989524e8db084340be90f96e8/repo-00/work/work’: Permission denied
+find: ‘/home/brewerm/.cache/herdr-test-tmp/accept-default/.tmpC7ksye/root/demo/.git-quarantine/attempt-f1c4b9b3721392044c818607aedce3aadd5a58e7674cc5f187b38258402cb95d/repo-00/work/work’: Permission denied
+find: ‘/home/brewerm/.cache/herdr-test-tmp/accept-default/.tmpnpaaBn/root/demo/.git-quarantine/attempt-196ca6d1fb6abd55dd0651ec36afcdcbb3b421d004bca76c3fda69f1d2cdaffa/repo-00/work/work’: Permission denied
+find: ‘/home/brewerm/.cache/herdr-test-tmp/accept-default/.tmpnpaaBn/root/demo/.git-quarantine/attempt-b17320acb596d13de16bde9ac34cc09bd91756f743b5d14a6667de27fa643697/repo-00/work/work’: Permission denied
+find: ‘/home/brewerm/.cache/herdr-test-tmp/accept-default/.tmpHaZapb/root/demo/.git-quarantine/attempt-6c86522d9c6ba1dca7274f4d28f2533f1dbd2c2a74950f02734b2f8d26392149/repo-00/work/work’: Permission denied
+find: ‘/home/brewerm/.cache/herdr-test-tmp/accept-default/.tmpKa9qGo/root/demo/.git-quarantine/attempt-dd75a1c48807190ff5fd22b0628fe38f3f9b8f6c67850358ca5deafea002b704/repo-00/work/work’: Permission denied
+find: ‘/home/brewerm/.cache/herdr-test-tmp/accept-default/.tmpnjKnp2/root/demo/.git-quarantine/attempt-17c8f4be27a831988008dbc5ebc9dce69f7ad2b2cafa8efd7e3918df0e4dea31/repo-00/work/work’: Permission denied
+[exit 0]
+

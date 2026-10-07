@@ -1,0 +1,13 @@
+# Inactive draft: coordinator adopts at repository root after LFS setup.
+*.uasset filter=lfs diff=lfs merge=lfs -text lockable
+*.umap filter=lfs diff=lfs merge=lfs -text lockable
+art-source/**/*.blend filter=lfs diff=lfs merge=lfs -text lockable
+art-source/**/*.fbx filter=lfs diff=lfs merge=lfs -text lockable
+art-source/**/*.psd filter=lfs diff=lfs merge=lfs -text lockable
+art-source/**/*.tga filter=lfs diff=lfs merge=lfs -text lockable
+art-source/**/*.exr filter=lfs diff=lfs merge=lfs -text lockable
+art-source/**/*.png filter=lfs diff=lfs merge=lfs -text lockable
+art-source/**/*.tif filter=lfs diff=lfs merge=lfs -text lockable
+art-source/**/*.tiff filter=lfs diff=lfs merge=lfs -text lockable
+art-source/**/*.wav filter=lfs diff=lfs merge=lfs -text lockable
+# Add exact approved paths for other large binary sources; no size selector.
