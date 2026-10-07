@@ -86,11 +86,11 @@ herdr-farm-private tmpfs   32G   92K   32G   1% /tmp
 
 $ lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINTS
 NAME          SIZE FSTYPE      MOUNTPOINTS
-sda             0B             
+sda             0B
 zram0        62.3G swap        [SWAP]
-nvme0n1     953.9G             
+nvme0n1     953.9G
 ├─nvme0n1p1     2G vfat        /boot
-└─nvme0n1p2 951.9G crypto_LUKS 
+└─nvme0n1p2 951.9G crypto_LUKS
 [exit 0]
 
 $ lspci -nn
@@ -258,4 +258,3 @@ find: ‘/home/brewerm/.cache/herdr-test-tmp/accept-default/.tmpHaZapb/root/demo
 find: ‘/home/brewerm/.cache/herdr-test-tmp/accept-default/.tmpKa9qGo/root/demo/.git-quarantine/attempt-dd75a1c48807190ff5fd22b0628fe38f3f9b8f6c67850358ca5deafea002b704/repo-00/work/work’: Permission denied
 find: ‘/home/brewerm/.cache/herdr-test-tmp/accept-default/.tmpnjKnp2/root/demo/.git-quarantine/attempt-17c8f4be27a831988008dbc5ebc9dce69f7ad2b2cafa8efd7e3918df0e4dea31/repo-00/work/work’: Permission denied
 [exit 0]
-
