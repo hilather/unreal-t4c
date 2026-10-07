@@ -33,7 +33,7 @@ The four-floor sequence is source-supported; precise landing anchors and histori
 
 ## Eleven-definition floor coverage
 
-Source_url for every row: **S3**, source_baseline **T4C Fantasy Classic Monster Weaknesses, patch unspecified**, retrieved_date **2026-10-07**. C = confirmed placement within selected source; P = provisional project placement; — = no selected placement, **not proof of universal absence**. Each ID remains independent even if visual families overlap. Source spawn counts/positions, HP, damage, XP, loot, aggro, resistances and timing are all **missing: null** for every enemy. Do not fill gaps with skeletons, zombies, mummies or Neerya's tarantula.
+Source_url for every row: **S3**, source_baseline **T4C Fantasy Classic Monster Weaknesses, patch unspecified**, retrieved_date **2026-10-07**. C = confirmed placement within selected source; P = provisional project placement; — = no selected placement, **not proof of universal absence**. Each ID remains independent even if visual families overlap. Floor placements below retain their original secondary-source statuses. Bible source spawn counts/positions, XP-column semantics, loot probabilities, aggro/resistances and ordinary timing remain **missing: null**. Bible HP/level/melee damage and listed loot are now recorded in the monster-data table below; they do not establish floor placement. Do not fill gaps with skeletons, zombies, mummies or Neerya's tarantula.
 
 | Definition | B1 | B2 | B3 | B4 | status | notes |
 |---|---|---|---|---|---|---|
@@ -47,9 +47,45 @@ Source_url for every row: **S3**, source_baseline **T4C Fantasy Classic Monster 
 | Enemy.Goblin | — | — | C | — | confirmed | Separate from Goblin Warrior. |
 | Enemy.GoblinWarrior | — | — | C | — | confirmed | Shared presentation family does not merge stats/rewards. |
 | Enemy.Atrocity | — | — | C | C | confirmed | Separate definition. |
-| Enemy.Balork | — | — | — | C | confirmed | B4 source placement; exact arena anchor needs M4 visual check; numeric rewards null. |
+| Enemy.Balork | — | — | — | C | confirmed | B4 confirmed by Bible classic drops.html and live Monster1 (retrieved2026-10-07); exact arena anchor needs M4 visual check; XP reward semantics/gold null. |
 
 Floor coverage from this matrix: B1 rat/bat/slime; B2 rat/bat/slime/Giant Bat/Undead Bat/Giant Spider plus **provisional Dungeon Bat**; B3 rat/slime/Giant Bat/Goblin/Goblin Warrior/Atrocity; B4 rat/slime/Giant Bat/Atrocity/Balork. Roster parity cannot be claimed with unresolved Dungeon Bat placement.
+
+## Bible roster / monster-data reconciliation (R-02)
+
+
+XP +1/+50/+100 are confirmed **printed columns**; their meaning and unconditional reward remain missing. Damage is melee-only, distinct from spell damage. Gold below is live-era evidence; no classic gold column was captured. Loot lists are membership, not probabilities; dash means no listed drop, not proven empty loot. Basement floor locations remain missing in the Bible except Balork.
+
+| Monster | Level | HP | XP +1 / +50 / +100 (semantics missing) | Classic melee min–max | Live melee min–max | status | source_url | retrieved_date |
+|---|---|---|---|---|---|---|---|---|
+| Brown Rat | 1 | 27 | 45 / 42 / 42 | 4–5 | 2–5 | disputed | https://web.archive.org/web/20020202144834/http://www.t4cbible.com:80/monster.html; https://www.t4cbible.com/Monster | 2026-10-07 |
+| Bat | 1 | 27 | 42 / 37 / 32 | 4–5 | 2–5 | disputed | https://web.archive.org/web/20020202144834/http://www.t4cbible.com:80/monster.html; https://www.t4cbible.com/Monster | 2026-10-07 |
+| Dungeon Bat | 2 | 41 | 75 / 69 / 68 | 3–7 | 3–7 | confirmed | https://web.archive.org/web/20020202144834/http://www.t4cbible.com:80/monster.html; https://www.t4cbible.com/Monster | 2026-10-07 |
+| Green Slime | 2 | 41 | 74 / 69 / 68 | 4–7 | 3–7 | disputed | https://web.archive.org/web/20020202144834/http://www.t4cbible.com:80/monster.html; https://www.t4cbible.com/Monster | 2026-10-07 |
+| Giant Bat | 3 | 55 | 107 / 94 / 93 | 4–8 | 4–8 | confirmed | https://web.archive.org/web/20020202144834/http://www.t4cbible.com:80/monster.html; https://www.t4cbible.com/Monster | 2026-10-07 |
+| Undead Bat | 3 | 55 | 94 / 93 / 93 | 4–7 | 4–8 | disputed | https://web.archive.org/web/20020202144834/http://www.t4cbible.com:80/monster.html; https://www.t4cbible.com/Monster | 2026-10-07 |
+| Giant Spider | 4 | 69 | 146 / 124 / 122 | 4–10 | 4–10 | confirmed | https://web.archive.org/web/20020202144834/http://www.t4cbible.com:80/monster.html; https://www.t4cbible.com/Monster | 2026-10-07 |
+| Goblin | 5 | 84 | 192 / 161 / 157 | 5–12 | 5–12 | confirmed | https://web.archive.org/web/20020202144834/http://www.t4cbible.com:80/monster.html; https://www.t4cbible.com/Monster | 2026-10-07 |
+| Goblin Warrior | 12 | 199 | 706 / 527 / 499 | 10–23 | 10–23 | confirmed | https://web.archive.org/web/20020202144834/http://www.t4cbible.com:80/monster.html; https://www.t4cbible.com/Monster | 2026-10-07 |
+| Atrocity | 5 | 84 | 231 / 161 / 157 | 5–12 | 5–12 | confirmed | https://web.archive.org/web/20020202144834/http://www.t4cbible.com:80/monster.html; https://www.t4cbible.com/Monster | 2026-10-07 |
+| Balork [+karma] | 15 | 508 | 2025 / 1553 / 1452 | 13–29 | 13–29 | confirmed | https://web.archive.org/web/20020202144834/http://www.t4cbible.com:80/monster.html; https://www.t4cbible.com/Monster | 2026-10-07 |
+
+| Monster | Classic listed loot | Live listed loot | Live gold | Bible location | Respawn | status | source_url | retrieved_date |
+|---|---|---|---|---|---|---|---|---|
+| Brown Rat | Torch | Torch | 1-5 | | | confirmed | https://web.archive.org/web/20011014151611/http://www.t4cbible.com:80/drops.html; https://www.t4cbible.com/Monster1 | 2026-10-07 |
+| Bat | Torch, Light Heal | Torch, Light Heal | 1-5 | | | confirmed | https://web.archive.org/web/20011014151611/http://www.t4cbible.com:80/drops.html; https://www.t4cbible.com/Monster1 | 2026-10-07 |
+| Dungeon Bat | - | - | 3-11 | | | confirmed | https://web.archive.org/web/20011014151611/http://www.t4cbible.com:80/drops.html; https://www.t4cbible.com/Monster1 | 2026-10-07 |
+| Giant Bat | - | - | 5-16 | | | confirmed | https://web.archive.org/web/20011014151611/http://www.t4cbible.com:80/drops.html; https://www.t4cbible.com/Monster1 | 2026-10-07 |
+| Undead Bat | Decaying Bat Wings | Decaying Bat Wings | 5-16 | | | confirmed | https://web.archive.org/web/20011014151611/http://www.t4cbible.com:80/drops.html; https://www.t4cbible.com/Monster1 | 2026-10-07 |
+| Giant Spider | Torch, Light Heal | Torch, Light Heal | 7-22 | | | confirmed | https://web.archive.org/web/20011014151611/http://www.t4cbible.com:80/drops.html; https://www.t4cbible.com/Monster1 | 2026-10-07 |
+| Green Slime | - | - | 3-11 | | | confirmed | https://web.archive.org/web/20011014151611/http://www.t4cbible.com:80/drops.html; https://www.t4cbible.com/Monster1 | 2026-10-07 |
+| Goblin | Goblin Leather Armor, Light Heal, Iron Ring | Goblin Leather Armor (dr), Light Heal, Iron Ring, Heal Pot | 8-27 | | | disputed | https://web.archive.org/web/20011014151611/http://www.t4cbible.com:80/drops.html; https://www.t4cbible.com/Monster1 | 2026-10-07 |
+| Goblin Warrior | Goblin Blade (dr), Iron Key, Light Heal | Goblin Blade (r), Iron Key (dr), Light Heal | 21-66 | | | disputed | https://web.archive.org/web/20011014151611/http://www.t4cbible.com:80/drops.html; https://www.t4cbible.com/Monster1 | 2026-10-07 |
+| Atrocity | Light Heal | Light Heal, Iron Key | 8-27 | | | disputed | https://web.archive.org/web/20011014151611/http://www.t4cbible.com:80/drops.html; https://www.t4cbible.com/Monster1 | 2026-10-07 |
+| Balork | Flowing Black Robe (dr), Light Heal; boss-table location: AR LH Temple Dungeon Level 4 | Flowing Black Robe (dr), Light Heal | (blank) | AR LH Temple Dungeon Level 4 | 15:00 | confirmed | https://web.archive.org/web/20011014151611/http://www.t4cbible.com:80/drops.html; https://www.t4cbible.com/Monster1 | 2026-10-07 |
+
+Balork: **confirmed** Temple Dungeon Level4, Flowing Black Robe (demi rare) and Light Heal; live respawn15:00 (15 minutes), gold **missing** (blank). Timer origin, pause/offline behavior and drop probabilities are missing. Permanent defeat remains a separate campaign prototype. Rarity labels dr/r/vr have no recovered numeric probabilities.
+
 
 ## Required town and basement services
 
