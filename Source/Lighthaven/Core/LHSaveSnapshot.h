@@ -267,4 +267,3 @@ struct LIGHTHAVEN_API FLHSaveSnapshot
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHWorldRecord World;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHSessionRecord Session;
 };
-

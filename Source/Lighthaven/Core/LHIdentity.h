@@ -72,4 +72,3 @@ struct LIGHTHAVEN_API FLHSpawnLifeId
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FGuid SpawnSlot;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) int64 LifeGeneration = 0;
 };
-

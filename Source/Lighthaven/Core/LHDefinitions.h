@@ -194,4 +194,3 @@ public:
 protected:
     virtual FName PrimaryType() const override { return FName(TEXT("Area")); }
 };
-

@@ -107,4 +107,3 @@ struct LIGHTHAVEN_API FLHGrowthAward
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHRulesetRef Ruleset;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) TArray<FLHRngState> RollInputs;
 };
-
