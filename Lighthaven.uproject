@@ -1,0 +1,41 @@
+{
+  "_DraftComment": "// DRAFT schema rev 1 — NOT COMPILED (no Unreal Engine installed); integrator review pending",
+  "FileVersion": 3,
+  "EngineAssociation": "5.8",
+  "Category": "",
+  "Description": "Lighthaven schema rev 1 draft; UE 5.8.3 proposed, not compiled.",
+  "Modules": [
+    {
+      "Name": "Lighthaven",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    },
+    {
+      "Name": "LighthavenEditor",
+      "Type": "Editor",
+      "LoadingPhase": "PostEngineInit"
+    },
+    {
+      "Name": "LighthavenTests",
+      "Type": "Editor",
+      "LoadingPhase": "PostEngineInit"
+    }
+  ],
+  "Plugins": [
+    {
+      "Name": "GameplayAbilities",
+      "Enabled": true
+    },
+    {
+      "Name": "EnhancedInput",
+      "Enabled": true
+    },
+    {
+      "Name": "DataValidation",
+      "Enabled": true,
+      "TargetAllowList": [
+        "Editor"
+      ]
+    }
+  ]
+}
