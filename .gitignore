@@ -1,0 +1,21 @@
+# Unreal generated files (including plugin output)
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+# Local build configuration and artifacts
+/build/local.env
+/build/logs/
+/build/output/
+# Generated IDE files
+.vs/
+.vscode/
+.idea/
+*.sln
+*.suo
+*.user
+*.VC.db
+*.VC.opendb
+*.code-workspace
+*.xcodeproj/
+*.xcworkspace/
