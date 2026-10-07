@@ -72,7 +72,7 @@ Source/Lighthaven.Target.cs    Win64 game target, runtime module only
 Source/LighthavenEditor.Target.cs  editor target, all three modules
 Content/Lighthaven/            Maps, Data, Characters, Environment, Input, UI, Audio, Tests
 Config/
-art-source/                   approved editable art
+artsource/                   approved editable art
 reference/                    provenance/reference only, excluded from cooking
 build/                        toolchain/release documentation
 ```
@@ -81,7 +81,7 @@ Enable `GameplayAbilities`, `EnhancedInput`, and editor-only `DataValidation`; u
 
 ## Git LFS proposal
 
-[Draft attributes](gitattributes.proposed) are deliberately inactive under `build/`. Coordinator should adopt at root only after Git LFS installation on all writers/build machines and confirmation of remote LFS storage/quota and lock API. All `.uasset`/`.umap` are LFS + lockable; selected binary source-art formats under `art-source/` follow the same policy. JSON, C++, INI, Markdown and manifests stay ordinary Git. Generated Binaries/Intermediate/Saved/DDC and packaged output should be ignored by integrator-owned configuration.
+[Draft attributes](gitattributes.proposed) are deliberately inactive under `build/`. Coordinator should adopt at root only after Git LFS installation on all writers/build machines and confirmation of remote LFS storage/quota and lock API. All `.uasset`/`.umap` are LFS + lockable; selected binary source-art formats under `artsource/` follow the same policy. JSON, C++, INI, Markdown and manifests stay ordinary Git. Generated Binaries/Intermediate/Saved/DDC and packaged output should be ignored by integrator-owned configuration.
 
 Git attributes cannot select by file size ([Git LFS FAQ](https://github.com/git-lfs/git-lfs/blob/main/docs/man/git-lfs-faq.adoc)). Draft extension rules intentionally include small files in those source-art families; add explicit paths for other approved large binary sources. Do not migrate history or import plan images in this task. The reference/concept PNGs remain at `/home/brewerm/Downloads/lighthaven-unreal-design-and-agent-waves/lighthaven-plan/assets/` until coordinator approves the art/LFS route; references are not runtime assets. One writer per binary remains mandatory even if remote locking is unavailable. After authorized setup, verify fresh-clone LFS fetch/checkout/fsck and lock behavior; none ran here.
 
