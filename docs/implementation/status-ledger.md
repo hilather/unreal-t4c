@@ -68,4 +68,4 @@ Open (Windows phase): Unreal writes project `Build/` (e.g. Build/Linux/FileOpenO
 
 | Task | Status | Profile | Owned paths / binary assets | Notes |
 |---|---|---|---|---|
-| V-03 UI visual style guide | active | codex-astra | docs/implementation/ui/style/ | Tokens, typography, iconography, controller glyph policy, widget states from approved V-02/A-01/A-02; consumable by W2-03 C++ widgets |
+| V-03 UI visual style guide | integrated (first pass) | codex-astra | docs/implementation/ui/style/ | Tokens, typography, iconography, controller glyph policy, widget states from approved V-02/A-01/A-02; consumable by W2-03 C++ widgets |
