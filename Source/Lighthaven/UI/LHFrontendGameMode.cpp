@@ -38,8 +38,7 @@ void ALHFrontendController::ShowScreen()
     if (!GetWorld() || !GetWorld()->GetGameViewport() || !Presenter) return;
     SAssignNew(Screen,SLHFrontendWidget).Presenter(Presenter.Get());
     GetWorld()->GetGameViewport()->AddViewportWidgetContent(Screen.ToSharedRef(),100);
-    bShowMouseCursor = true;
-    FInputModeUIOnly Mode; Mode.SetWidgetToFocus(Screen); Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock); SetInputMode(Mode);
+    EstablishFrontendInput();
     Screen->Open(ELHUIScreen::Frontend);
     ContextScreen = ELHUIScreen::Settings; Tick(0);
 }
@@ -64,5 +63,24 @@ void ALHFrontendController::EndPlay(const EEndPlayReason::Type Reason)
     {
         S->RemoveMappingContext(InputConfig->Context(ELHInputContext::UI)); S->RemoveMappingContext(InputConfig->Context(ELHInputContext::Creation));
     }
+    FInputModeGameOnly Mode; Mode.SetConsumeCaptureMouseDown(false); SetInputMode(Mode);
+    if (auto* Viewport=GetWorld()?GetWorld()->GetGameViewport():nullptr)
+    {
+        Viewport->SetIgnoreInput(false);
+        Viewport->SetMouseCaptureMode(EMouseCaptureMode::CaptureDuringMouseDown);
+        Viewport->SetMouseLockMode(EMouseLockMode::LockOnCapture);
+    }
     Screen.Reset(); Presenter.Reset(); LiveOwner.Reset(); Super::EndPlay(Reason);
+}
+
+void ALHFrontendController::EstablishFrontendInput()
+{
+    bShowMouseCursor=true;
+    FInputModeUIOnly Mode; Mode.SetWidgetToFocus(Screen); Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock); SetInputMode(Mode);
+    if (auto* Viewport=GetWorld()?GetWorld()->GetGameViewport():nullptr)
+    {
+        Viewport->SetIgnoreInput(true);
+        Viewport->SetMouseCaptureMode(EMouseCaptureMode::NoCapture);
+        Viewport->SetMouseLockMode(EMouseLockMode::DoNotLock);
+    }
 }

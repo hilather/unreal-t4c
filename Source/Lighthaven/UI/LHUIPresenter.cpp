@@ -16,7 +16,7 @@ void FLHUIPresenter::Open(ELHUIScreen S)
     {
     case ELHUIScreen::Frontend: Controls = {"New", "Continue", "Characters", "Settings", "Quit"}; break;
     case ELHUIScreen::Characters: Controls = {"Profiles", "Details", "Recovery", "Continue", "Back"}; break;
-    case ELHUIScreen::Creation: Controls = {"Name", "Appearance", "Question1", "Question2", "Question3", "Question4", "Roll", "Reroll", "Review", "Confirm", "Back"}; break;
+    case ELHUIScreen::Creation: Controls = {"Name", "Body", "Hair", "Skin", "Outfit", "Question1", "Question2", "Question3", "Question4", "Roll", "Reroll", "Review", "Confirm", "Back"}; break;
     case ELHUIScreen::CharacterSheet: Controls = {"CharacterTab", "InventoryTab", "Strength", "Endurance", "Agility", "Intelligence", "Wisdom", "Details", "Reset", "Confirm", "Back"}; break;
     case ELHUIScreen::Inventory: Controls = {"CharacterTab", "InventoryTab", "Items", "Head", "Torso", "MainHand", "OffHand", "Legs", "Feet", "Accessory", "Quiver", "Details", "Equip", "Unequip", "Confirm", "Back"}; break;
     case ELHUIScreen::Settings: Controls = {"Volume", "Controls", "Apply", "Revert", "Back"}; break;
@@ -30,7 +30,23 @@ void FLHUIPresenter::Open(ELHUIScreen S)
         if (Index != INDEX_NONE) Focus = Index;
     }
 }
-void FLHUIPresenter::MoveFocus(int32 Delta) { Focus = FMath::Clamp(Focus + Delta, 0, Controls.Num() - 1); }
+void FLHUIPresenter::MoveFocus(int32 Delta)
+{
+    const int32 Direction=Delta<0?-1:1;
+    Focus=FMath::Clamp(Focus+Delta,0,Controls.Num()-1);
+    while (Controls.IsValidIndex(Focus) && !IsControlEnabled(Controls[Focus]))
+    {
+        const int32 Next=Focus+Direction;
+        if (!Controls.IsValidIndex(Next)) break;
+        Focus=Next;
+    }
+}
+bool FLHUIPresenter::IsControlEnabled(FName Id) const
+{
+    if (Id!="Continue" || ActiveScreen!=ELHUIScreen::Characters) return true;
+    const auto* Profile=ProfileView.FindByPredicate([this](const auto& V){ return V.Id.Value==SelectedProfile.Value; });
+    return !Profile || Profile->bCanContinue;
+}
 FName FLHUIPresenter::FocusedControl() const { return Controls.IsValidIndex(Focus) ? Controls[Focus] : NAME_None; }
 void FLHUIPresenter::Refresh() { View = Read.Snapshot(); ProfileView = Read.Profiles(); }
 bool FLHUIPresenter::EditCreation(FString N, TArray<FLHContentId> A, TArray<FLHQuestionAnswer> Q)
@@ -46,6 +62,7 @@ void FLHUIPresenter::Roll(bool bReroll)
     Preview = Read.Preview(DisplayName, AppearanceIds, QuestionAnswers, bReroll);
     bPending = false;
     Message = Preview.bLegal ? FString() : TEXT("Unavailable: creation requires authoritative legal review.");
+    if (!Preview.bLegal) for (const auto& E:Preview.FieldErrors) Message += TEXT("\n")+E.Key.ToString()+TEXT(": ")+E.Value;
 }
 FLHCommandResult FLHUIPresenter::Unavailable(ELHCommandReason R) const
 {
@@ -89,13 +106,13 @@ FLHCommandResult FLHUIPresenter::Equip(const FLHEntityId& Item, ELHEquipmentSlot
     FLHEquipItemRequest R; R.Request.Epoch = View.Session.RequestEpoch; R.Request.Value = FGuid::NewGuid(); R.Item = Item; R.Slot = Slot; R.bUnequip = bUnequip;
     bPending = true; const auto Result = Commands.Execute(R); Apply(Result); return Result;
 }
-void FLHUIPresenter::SelectProfile(FLHCharacterId Id) { if (!bPending) SelectedProfile = Id; }
+void FLHUIPresenter::SelectProfile(FLHCharacterId Id) { if (!bPending) { SelectedProfile = Id; ClearSelectionError(); MoveFocus(0); } }
 bool FLHUIPresenter::Continue(bool bAcknowledgeRecovery)
 {
     if (bPending) return false;
     Refresh();
     const auto* Profile = ProfileView.FindByPredicate([this](const auto& P) { return P.Id.Value == SelectedProfile.Value; });
-    if (!SelectedProfile.Value.IsValid() || !Profile || !Profile->bCanContinue) { Message = TEXT("Unavailable: select a validated character."); return false; }
+    if (!SelectedProfile.Value.IsValid() || !Profile || !Profile->bCanContinue) { Message = Profile && !Profile->bCanContinue ? TEXT("Unreadable: ")+Profile->Status : TEXT("Unavailable: select a validated character."); return false; }
     if (Profile->bRequiresRecoveryAcknowledgment && !bAcknowledgeRecovery)
     { Message = TEXT("Recovery: acknowledge loading the earlier save before continuing."); return false; }
     bPending = true; Message = Session.Continue(SelectedProfile, bAcknowledgeRecovery); bPending = false;

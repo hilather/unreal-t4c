@@ -48,13 +48,14 @@ private:
     TArray<FLHContentId> Appearance;
     TArray<FLHQuestionAnswer> Answers;
     FLHAttributeBlock Allocation;
-    int32 ProfileIndex = INDEX_NONE, ItemIndex = INDEX_NONE, AppearanceIndex = INDEX_NONE;
+    int32 ProfileIndex = INDEX_NONE, ItemIndex = INDEX_NONE;
     ELHEquipmentSlot Slot = ELHEquipmentSlot::Unspecified;
     FLHEntityId SelectedItem;
-    bool bUnequip = false, bSubmitted = false, bRecovery = false, bModalConfirm = false;
+    bool bUnequip = false, bRecovery = false, bModalConfirm = false;
     bool bStickNeutral = true;
     FVector2D Stick = FVector2D::ZeroVector;
     FName ModalAction;
+    FName SubmittedAction;
     FString LocalMessage;
     int32 Letter = 0;
     FName KeyboardFocus = "AppendLetter";

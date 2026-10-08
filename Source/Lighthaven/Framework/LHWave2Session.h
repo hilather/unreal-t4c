@@ -17,6 +17,7 @@ public:
     const FString& Status() const { return Message; }
     FString OwnerStatus() const override { return Message; }
     bool BeginCreation() override;
+    void ClearSelectionError() override;
     FString RetryPersistence() override;
     TFunction<void()> Travel;
     TFunction<void()> Exit;

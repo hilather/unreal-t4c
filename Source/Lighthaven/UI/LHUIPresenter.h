@@ -33,6 +33,7 @@ class LIGHTHAVEN_API ILHUIReadOwner
 public:
     virtual ~ILHUIReadOwner() = default;
     virtual FString OwnerStatus() const { return {}; }
+    virtual void ClearSelectionError() {}
     virtual bool BeginCreation() { return true; }
     virtual FLHSaveSnapshot Snapshot() const = 0;
     virtual TArray<FLHUIProfile> Profiles() const = 0;
@@ -87,6 +88,8 @@ public:
     FLHCommandResult Allocate(const FLHAttributeBlock& Deltas);
     FLHCommandResult Equip(const FLHEntityId& Item, ELHEquipmentSlot Slot, bool bUnequip);
     void SelectProfile(FLHCharacterId Id);
+    bool IsControlEnabled(FName Id) const;
+    void ClearSelectionError() { Message.Empty(); Read.ClearSelectionError(); }
     bool Continue(bool bAcknowledgeRecovery);
     bool Quit();
     bool ResumeGameplay() { return Session.ResumeGameplay(); }

@@ -9,6 +9,12 @@
 #include "Abilities/LHAttributeSet.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/LocalPlayer.h"
+#include "Engine/GameInstance.h"
+#include "EnhancedInputSubsystems.h"
+#include "UI/LHUIWidgetHarness.h"
+#include "UI/LHFrontendGameMode.h"
 #if WITH_DEV_AUTOMATION_TESTS
 namespace LHWave2TestsPrivate
 {
@@ -168,7 +174,10 @@ bool FLHWave2SaveFailure::RunTest(const FString&)
     TestEqual(TEXT("Failed save cannot travel"),Travels,0); TestTrue(TEXT("Failure visible in presenter"),Runtime.UI->Error().Contains(TEXT("Save failed")));
     Runtime.UI->ConfirmCreation(); Runtime.Flush(); TestEqual(TEXT("Repeated confirm no duplicate write"),Disk->Writes,1);
     TestEqual(TEXT("Identity retained"),Runtime.Session->Snapshot().Header.CharacterId.Value,Committed.Header.CharacterId.Value);
-    Runtime.UI->Quit(); TestEqual(TEXT("Failed durability blocks quit"),Exits,0);
+    const auto Widget=ILHUIWidgetHarness::Create(*Runtime.UI);
+    Widget->Open(ELHUIScreen::Creation);
+    Widget->Activate("Quit"); Widget->Key(ELHUITestKey::Down,false); Widget->Key(ELHUITestKey::South,false);
+    TestEqual(TEXT("Failed durability blocks quit"),Exits,0);
     Disk->bFail=false; Runtime.UI->RetryPersistence(); TestEqual(TEXT("Confirmed quit completes only after retry durability"),Exits,1);
     TestEqual(TEXT("Quit takes precedence over initial entry"),Travels,0);
     TestEqual(TEXT("Retry same identity"),Runtime.Session->Snapshot().Header.CharacterId.Value,Committed.Header.CharacterId.Value);
@@ -207,6 +216,59 @@ bool FLHWave2ReadbackFailure::RunTest(const FString&)
     TestEqual(TEXT("Committed identity retained"),Saved.Header.CharacterId.Value,Initial.Header.CharacterId.Value);
     Runtime.Session->Bind(Runtime.State); Runtime.UI->Allocate(Points()); Runtime.Flush();
     TestEqual(TEXT("Next authority command advances from durable high-water"),Runtime.Session->Snapshot().Header.TransactionSequence,Saved.Header.TransactionSequence+1);
+    return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2WidgetQuit,"Lighthaven.Integration.Wave2.WidgetCreationFailureQuitRetry",LHWave2TestsPrivate::Flags)
+bool FLHWave2WidgetQuit::RunTest(const FString&)
+{
+    using namespace LHWave2TestsPrivate;
+    auto Disk=MakeShared<FStorage>(); Disk->bFail=true; FRuntime R(Disk); int32 Travels=0,Exits=0;
+    R.Session->Travel=[&](){++Travels;}; R.Session->Exit=[&](){++Exits;};
+    const auto W=ILHUIWidgetHarness::Create(*R.UI); W->Open(ELHUIScreen::Creation); W->EditName(TEXT("Charlie"));
+    W->Activate("Roll");
+    for (FName Category:{"Body","Hair","Skin","Outfit"})
+    {
+        TestTrue(TEXT("missing category visible in roll error"),R.UI->Error().Contains(Category.ToString()));
+        TestTrue(TEXT("category has a separate control"),W->HasControl(Category));
+    }
+    for (FName Category:{"Body","Hair","Skin","Outfit"}) W->Activate(Category);
+    for (FName Question:{"Question1","Question2","Question3","Question4"}) W->Activate(Question);
+    W->Activate("Roll"); TestTrue(TEXT("category form gets authoritative legal roll"),R.UI->CreationPreview().bLegal);
+    W->Activate("Confirm"); W->Key(ELHUITestKey::Down,false); W->Key(ELHUITestKey::South,false); R.Flush();
+    TestTrue(TEXT("first-save failure avoids retained-generation claim"),R.UI->Error().Contains(TEXT("no saved generation")) && !R.UI->Error().Contains(TEXT("previous generation retained")));
+    W->Activate("Quit"); W->Key(ELHUITestKey::Down,false); W->Key(ELHUITestKey::South,false);
+    TestEqual(TEXT("failed durability still blocks quit"),Exits,0);
+    Disk->bFail=false; W->Activate("RetrySave");
+    TestEqual(TEXT("same widget accepted creation then confirmed quit exits on retry"),Exits,1);
+    TestEqual(TEXT("confirmed quit suppresses creation travel"),Travels,0);
+    return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2InputHandoff,"Lighthaven.Integration.Wave2.GameplayInputHandoff",LHWave2TestsPrivate::Flags)
+bool FLHWave2InputHandoff::RunTest(const FString&)
+{
+    using namespace LHWave2TestsPrivate;
+    auto Disk=MakeShared<FStorage>(); FRuntime R(Disk);
+    auto* Viewport=NewObject<UGameViewportClient>();
+    auto* Context=GEngine->GetWorldContextFromWorld(R.World); Context->GameViewport=Viewport;
+    // Headless automation has no SViewport: exercise both controllers' runtime
+    // input application seams against the same viewport and local subsystem.
+    auto* Instance=NewObject<UGameInstance>(GEngine);
+    auto* Local=NewObject<ULocalPlayer>(Instance); Local->PlayerAdded(Viewport,0);
+    R.Controller->Player=Local; Local->PlayerController=R.Controller;
+    auto* Frontend=R.World->SpawnActor<ALHFrontendController>();
+    Frontend->EstablishFrontendInput();
+    TestTrue(TEXT("frontend UI-only ignores gameplay input"),Viewport->IgnoreInput());
+    R.Controller->EstablishGameplayInput();
+    TestFalse(TEXT("gameplay handoff restores viewport input"),Viewport->IgnoreInput());
+    auto* Input=Local->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+    TestNotNull(TEXT("local enhanced input subsystem"),Input);
+    if (Input) TestTrue(TEXT("Gameplay mapping context installed"),Input->HasMappingContext(R.Controller->InputConfig->Context(ELHInputContext::Gameplay)));
+    Frontend->EstablishFrontendInput(); R.Controller->Possess(R.World->SpawnActor<ALHCharacter>());
+    TestFalse(TEXT("possession also restores viewport input"),Viewport->IgnoreInput());
+    TestTrue(TEXT("pointer remains visible for selection"),R.Controller->bShowMouseCursor);
+    Frontend->EstablishFrontendInput(); Frontend->EndPlay(EEndPlayReason::LevelTransition);
+    TestFalse(TEXT("frontend handoff restores defaults"),Viewport->IgnoreInput());
+    R.Controller->Player=nullptr; Local->PlayerController=nullptr; Local->PlayerRemoved(); Context->GameViewport=nullptr;
     return true;
 }
 #endif

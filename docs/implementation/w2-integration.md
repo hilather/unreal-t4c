@@ -240,3 +240,48 @@ Exit **0**, wall time **232.132 seconds**; both editor and game reported
 `library/build-time.txt`. `git diff --check` passed. Native tests, editor launch,
 package and play were not run in this root worker; the previously reported
 64 pass / 1 fail and package launch are coordinator evidence for the base only.
+
+## W2-05 — G2 gameplay input / UI candidate
+
+Base: d02fee1d215e4db7df438661260aa9c4059732c6. Contract revision 1.
+Only assigned UI, Framework, Persistence wording, UI/Integration test and two
+implementation-document paths changed. No Core schema, binary asset, mechanics
+value, renderer or W2-06 launch-hang behavior changed.
+
+Gameplay startup/possession now applies GameOnly and resets the persistent
+viewport's IgnoreInput flag; frontend teardown restores defaults. Journal pause
+and UIOnly transitions retain existing movement-release gating. Creation's modal
+latch is scoped by action, so a subsequent confirmed Quit reaches the existing
+pending-exit owner and takes precedence over creation travel on successful retry.
+Unreadable Continue is visibly disabled, skipped by focus and refuses activation.
+Appearance choices are separate named categories with missing-category feedback.
+Selection/acknowledgment changes clear stale profile errors without hiding save
+failures. First-save failure wording no longer claims a prior generation exists.
+
+Added native test candidates:
+- Lighthaven.Integration.Wave2.GameplayInputHandoff
+- Lighthaven.Integration.Wave2.WidgetCreationFailureQuitRetry
+- Lighthaven.UI.UnreadableContinueAndStaleErrors
+
+Existing WidgetRejectedFieldsAndDuplicateSubmit now additionally confirms Quit
+after accepted creation. Existing SaveFailureRetry additionally submits Quit through
+the widget; all prior assertions remain. GameplayInputHandoff uses controller seams
+with a real viewport client but no attached Slate viewport; actual window focus,
+mouse capture, travel and gamepad behavior require host play evidence.
+
+Automation/editor/cook/package/play NOT RUN: id -u returned 0; Unreal refuses root
+execution. Coordinator must run `bash build/run-tests.sh Lighthaven` as the normal
+host user, preserve exact pass/fail lines, then repeat G2 failed items 4/5/7/8 and
+appearance/recovery minors in a new Linux package. Windows remains deferred.
+Build observation is recorded below and in the attempt report; this candidate does
+not establish that G2 has passed.
+
+W2-05 final-source build actually run:
+`UE_ROOT=/home/brewerm/Downloads/unreal bash build/build-linux.sh --game`.
+Exit **0**; editor `Result: Succeeded`, total execution **74.11 seconds**;
+game `Result: Succeeded`, total execution **145.27 seconds**. Combined wall time
+approximately **220.8 seconds** (build-log creation to final write).
+`git diff --check` exited 0. Evidence in this attempt's output:
+`library/build-final.log` and `library/checks.txt`. An earlier build was interrupted
+with exit 130 after source edits overlapped generated-header compilation; it is
+not validation of the final source. Native automation is compiled, not run.

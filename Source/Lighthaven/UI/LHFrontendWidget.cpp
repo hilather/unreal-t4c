@@ -47,7 +47,10 @@ void SLHFrontendWidget::Open(ELHUIScreen Screen)
 {
     if (HasAllocation() && (P->Screen() == ELHUIScreen::CharacterSheet || P->Screen() == ELHUIScreen::Inventory) && Screen != P->Screen())
     { NextScreen = Screen; Modal("Discard"); return; }
-    P->Open(Screen); LocalMessage.Empty(); ModalAction = NAME_None; Build(); Focus();
+    const auto PreviousScreen=P->Screen();
+    P->Open(Screen);
+    if (PreviousScreen!=P->Screen()) { SubmittedAction=NAME_None; Appearance=P->AppearanceInput(); Answers=P->AnswerInput(); }
+    LocalMessage.Empty(); ModalAction = NAME_None; Build(); Focus();
 }
 FText SLHFrontendWidget::Summary() const
 {
@@ -93,7 +96,13 @@ FText SLHFrontendWidget::Label(FName Id) const
     FString S = Id.ToString();
     if (Id == "Profiles") S = P->Profiles().IsValidIndex(ProfileIndex) ? P->Profiles()[ProfileIndex].Name + TEXT(" | Selected") : TEXT("Select character: no selection (left/right)");
     if (Id == "Recovery") S = bRecovery ? TEXT("Recovery acknowledged | Selected") : TEXT("Acknowledge earlier save recovery");
-    if (Id == "Appearance") S = Appearance.IsEmpty() ? TEXT("Appearance: select owner option (left/right)") : TEXT("Appearance: ") + Appearance[0].Value.ToString();
+    if (Id=="Body" || Id=="Hair" || Id=="Skin" || Id=="Outfit")
+    {
+        const FString Prefix=TEXT("Presentation.Player.")+Id.ToString()+TEXT(".");
+        const auto* Choice=Appearance.FindByPredicate([&](const FLHContentId& A){return A.Value.ToString().StartsWith(Prefix);});
+        S=Id.ToString()+TEXT(": ")+(Choice?Choice->Value.ToString().RightChop(Prefix.Len()):TEXT("Missing — select (left/right)"));
+    }
+    if (Id=="Continue" && !P->IsControlEnabled(Id)) S=TEXT("Continue unavailable: selected character has no readable save generation.");
     if (Id.ToString().StartsWith(TEXT("Question")))
     {
         int32 I = FCString::Atoi(*Id.ToString().Right(1)) - 1;
@@ -134,7 +143,7 @@ void SLHFrontendWidget::AddControl(FName Id)
     }
     else
     {
-        W = SNew(SButton).ButtonStyle(&ButtonStyle).IsFocusable(true)
+        W = SNew(SButton).ButtonStyle(&ButtonStyle).IsFocusable(true).IsEnabled_Lambda([this,Id]() { return P->IsControlEnabled(Id); })
             .OnClicked_Lambda([this,Id]() { Activate(Id); return FReply::Handled(); })
             [ SNew(STextBlock).Text_Lambda([this,Id]() { return Label(Id); })
                 .ColorAndOpacity(Style.TextPrimary).Font(Font(Style.Control)).AutoWrapText(true) ];
@@ -144,7 +153,7 @@ void SLHFrontendWidget::AddControl(FName Id)
     if (Id == "Name") Group->AddSlot().AutoWidth().VAlign(VAlign_Center).Padding(Style.ControlInset)
         [SNew(STextBlock).Text_Lambda([this]() { return FText::FromString(P->FocusedControl() == "Name" ? TEXT("> Name") : TEXT("Name")); }).Font(Font(Style.Control)).ColorAndOpacity(Style.TextPrimary)];
     Group->AddSlot().FillWidth(1)[W.ToSharedRef()];
-    if (Id == "Profiles" || Id == "Appearance" || Id == "Items" || Id.ToString().StartsWith(TEXT("Question")) || Attribute(Allocation,Id))
+    if (Id == "Profiles" || (Id=="Body" || Id=="Hair" || Id=="Skin" || Id=="Outfit") || Id == "Items" || Id.ToString().StartsWith(TEXT("Question")) || Attribute(Allocation,Id))
     {
         for (int32 D : {-1,1}) Group->AddSlot().AutoWidth().Padding(Style.RowGap,0)
             [SNew(SButton).ButtonStyle(&ButtonStyle).IsFocusable(false).OnClicked_Lambda([this,Id,D]() { Adjust(Id,D); return FReply::Handled(); })
@@ -225,28 +234,28 @@ void SLHFrontendWidget::Navigate(int32 Delta)
 }
 void SLHFrontendWidget::EditName(const FString& Name)
 {
-    P->EditCreation(Name,Appearance,Answers); bSubmitted = false;
+    P->EditCreation(Name,Appearance,Answers); SubmittedAction = NAME_None;
     if (NameField && NameField->GetText().ToString() != P->NameInput()) NameField->SetText(FText::FromString(P->NameInput()));
 }
 FString SLHFrontendWidget::FieldName() const { return NameField.IsValid() ? NameField->GetText().ToString() : P->NameInput(); }
-void SLHFrontendWidget::StageCreation() { P->EditCreation(P->NameInput(),Appearance,Answers); bSubmitted = false; }
+void SLHFrontendWidget::StageCreation() { P->EditCreation(P->NameInput(),Appearance,Answers); SubmittedAction = NAME_None; }
 void SLHFrontendWidget::Adjust(FName Id, int32 D)
 {
     if (Id == "Profiles")
     {
         const auto& V = P->Profiles(); if (V.IsEmpty()) return;
-        ProfileIndex = FMath::Clamp(ProfileIndex+D,0,V.Num()-1); P->SelectProfile(V[ProfileIndex].Id); bRecovery = false; bSubmitted = false;
+        ProfileIndex = FMath::Clamp(ProfileIndex+D,0,V.Num()-1); P->SelectProfile(V[ProfileIndex].Id); LocalMessage.Empty(); bRecovery = false; SubmittedAction = NAME_None;
     }
-    else if (Id == "Appearance")
+    else if ((Id=="Body" || Id=="Hair" || Id=="Skin" || Id=="Outfit"))
     {
-        const auto C = P->AppearanceCatalog(); if (C.IsEmpty()) { LocalMessage = TEXT("Unavailable: appearance catalog missing."); return; }
-        AppearanceIndex = FMath::Clamp(AppearanceIndex+D,0,C.Num()-1);
-        // Preserve one option per category (catalog IDs use Presentation.Player.Category.Option).
-        const FString Choice = C[AppearanceIndex].Value.ToString();
-        const int32 Separator = Choice.Find(TEXT("."),ESearchCase::CaseSensitive,ESearchDir::FromEnd);
-        const FString Key = Separator == INDEX_NONE ? Choice : Choice.Left(Separator);
-        Appearance.RemoveAll([&Key](const FLHContentId& A) { return A.Value.ToString().StartsWith(Key + TEXT(".")); });
-        Appearance.Add(C[AppearanceIndex]); StageCreation();
+        TArray<FLHContentId> C;
+        const FString Prefix=TEXT("Presentation.Player.")+Id.ToString()+TEXT(".");
+        for (const auto& Option:P->AppearanceCatalog()) if (Option.Value.ToString().StartsWith(Prefix)) C.Add(Option);
+        if (C.IsEmpty()) { LocalMessage=TEXT("Unavailable: ")+Id.ToString()+TEXT(" catalog missing."); return; }
+        int32 Index=C.IndexOfByPredicate([this](const FLHContentId& Option){return Appearance.ContainsByPredicate([&](const FLHContentId& A){return A.Value==Option.Value;});});
+        Index=FMath::Clamp(Index+D,0,C.Num()-1);
+        Appearance.RemoveAll([&](const FLHContentId& A){return A.Value.ToString().StartsWith(Prefix);});
+        Appearance.Add(C[Index]); StageCreation();
     }
     else if (Id.ToString().StartsWith(TEXT("Question")))
     {
@@ -260,19 +269,19 @@ void SLHFrontendWidget::Adjust(FName Id, int32 D)
     {
         if (D > 0 && A->Value < TNumericLimits<int64>::Max()) ++A->Value;
         else if (D < 0 && A->Value > 0) --A->Value;
-        bSubmitted = false;
+        SubmittedAction = NAME_None;
     }
     else if (Id == "Items")
     {
         const auto& Items = P->Snapshot().Character.Inventory; if (Items.IsEmpty()) return;
-        ItemIndex = FMath::Clamp(ItemIndex+D,0,Items.Num()-1); SelectedItem = Items[ItemIndex].Id; bUnequip = false; bSubmitted = false;
+        ItemIndex = FMath::Clamp(ItemIndex+D,0,Items.Num()-1); SelectedItem = Items[ItemIndex].Id; bUnequip = false; SubmittedAction = NAME_None;
     }
 }
 void SLHFrontendWidget::Modal(FName Action) { ModalAction = Action; bModalConfirm = false; Build(); Focus(); }
 void SLHFrontendWidget::Submit()
 {
     const FName Action = ModalAction; ModalAction = NAME_None;
-    if (bModalConfirm && !bSubmitted)
+    if (bModalConfirm && (Action == "Quit" || Action == "Discard" || SubmittedAction != Action))
     {
         if (Action == "Confirm")
         {
@@ -280,22 +289,22 @@ void SLHFrontendWidget::Submit()
             if (P->Screen() == ELHUIScreen::Creation) R = P->ConfirmCreation();
             else if (P->Screen() == ELHUIScreen::CharacterSheet) R = P->Allocate(Allocation);
             else R = P->Equip(SelectedItem,Slot,bUnequip);
-            bSubmitted = R.Disposition == ELHCommandDisposition::Accepted;
-            if (bSubmitted)
+            SubmittedAction = R.Disposition == ELHCommandDisposition::Accepted ? Action : NAME_None;
+            if (SubmittedAction == Action)
             {
                 LocalMessage = TEXT("Accepted. Await owner durability/transition.");
                 if (P->Screen() == ELHUIScreen::CharacterSheet)
                     for (FName Id : {"Strength", "Endurance", "Agility", "Intelligence", "Wisdom"}) Attribute(Allocation,Id)->Value = 0;
             }
         }
-        else if (Action == "Continue") bSubmitted = P->Continue(bRecovery);
-        else if (Action == "Quit") bSubmitted = P->Quit();
+        else if (Action == "Continue") SubmittedAction = P->Continue(bRecovery) ? Action : NAME_None;
+        else if (Action == "Quit") P->Quit();
         else if (Action == "Discard")
         {
             for (FName Id : {"Strength", "Endurance", "Agility", "Intelligence", "Wisdom"}) Attribute(Allocation,Id)->Value = 0;
             if (P->Screen() == ELHUIScreen::Creation)
             { Appearance.Empty(); Answers.Empty(); P->EditCreation(TEXT(""),{},{}); }
-            bSubmitted = false;
+            SubmittedAction = NAME_None;
             const ELHUIScreen Destination = NextScreen.Get(ELHUIScreen::Frontend); NextScreen.Reset();
             Open(Destination); return;
         }
@@ -304,6 +313,7 @@ void SLHFrontendWidget::Submit()
 }
 void SLHFrontendWidget::Activate(FName Id)
 {
+    if (!P->IsControlEnabled(Id)) return;
     if (ModalAction == "Keyboard") { Keyboard(KeyboardFocus); return; }
     if (IsModal()) { Submit(); return; }
     const int32 I = P->FocusOrder().IndexOfByKey(Id); if (I != INDEX_NONE) P->MoveFocus(I - P->FocusOrder().IndexOfByKey(P->FocusedControl()));
@@ -315,7 +325,7 @@ void SLHFrontendWidget::Activate(FName Id)
     else if (Id == "CharacterTab") Open(ELHUIScreen::CharacterSheet);
     else if (Id == "InventoryTab") Open(ELHUIScreen::Inventory);
     else if (Id == "Back") Back();
-    else if (Id == "Recovery") { bRecovery = !bRecovery; bSubmitted = false; }
+    else if (Id == "Recovery") { bRecovery = !bRecovery; SubmittedAction = NAME_None; P->ClearSelectionError(); LocalMessage.Empty(); }
     else if (Id == "Roll" || Id == "Reroll" || Id == "Review") { P->Roll(Id == "Reroll"); }
     else if (Id == "Confirm")
     {
@@ -332,26 +342,26 @@ void SLHFrontendWidget::Activate(FName Id)
         LocalMessage = Review.Summary;
         if (P->Screen() == ELHUIScreen::CharacterSheet && !HasAllocation())
         { Review.bLegal = false; LocalMessage = TEXT("Unavailable: add at least one pending point."); }
-        if (Review.bLegal && !bSubmitted) Modal(Id);
+        if (Review.bLegal && SubmittedAction != Id) Modal(Id);
     }
     else if (Id == "Continue" || Id == "Quit") Modal(Id);
-    else if (Id == "Profiles" || Id == "Appearance" || Id == "Items" || Id.ToString().StartsWith(TEXT("Question")) || Attribute(Allocation,Id)) Adjust(Id,1);
+    else if (Id == "Profiles" || (Id=="Body" || Id=="Hair" || Id=="Skin" || Id=="Outfit") || Id == "Items" || Id.ToString().StartsWith(TEXT("Question")) || Attribute(Allocation,Id)) Adjust(Id,1);
     else if (Id == "Equip")
     {
         const auto& Items = P->Snapshot().Character.Inventory;
-        if (Items.IsValidIndex(ItemIndex)) { SelectedItem = Items[ItemIndex].Id; bUnequip = false; bSubmitted = false; }
+        if (Items.IsValidIndex(ItemIndex)) { SelectedItem = Items[ItemIndex].Id; bUnequip = false; SubmittedAction = NAME_None; }
         LocalMessage = TEXT("Equip selected inventory item into selected slot. Confirm to review.");
     }
     else if (Id == "Unequip")
     {
         const auto* Binding = P->Snapshot().Character.Equipment.FindByPredicate([this](const auto& B) { return B.Slot == Slot; });
-        if (Binding) { SelectedItem = Binding->Item; bUnequip = true; bSubmitted = false; }
+        if (Binding) { SelectedItem = Binding->Item; bUnequip = true; SubmittedAction = NAME_None; }
         else { SelectedItem = {}; LocalMessage = TEXT("Unavailable: selected equipment slot is empty."); }
     }
     else if (Id == "Reset")
     {
         for (FName A : {"Strength", "Endurance", "Agility", "Intelligence", "Wisdom"}) Attribute(Allocation,A)->Value = 0;
-        bSubmitted = false;
+        SubmittedAction = NAME_None;
     }
     else if (Id == "Details") LocalMessage = TEXT("Details: owner-provided rules and provenance only. Missing derived values and eligibility are Unknown.");
     else
@@ -359,7 +369,7 @@ void SLHFrontendWidget::Activate(FName Id)
         static const TMap<FName,ELHEquipmentSlot> Slots = {{"Head",ELHEquipmentSlot::Head},{"Torso",ELHEquipmentSlot::Torso},{"MainHand",ELHEquipmentSlot::MainHand},{"OffHand",ELHEquipmentSlot::OffHand},{"Legs",ELHEquipmentSlot::Legs},{"Feet",ELHEquipmentSlot::Feet},{"Accessory",ELHEquipmentSlot::Accessory},{"Quiver",ELHEquipmentSlot::Quiver}};
         if (const auto* S = Slots.Find(Id))
         {
-            Slot = *S; bSubmitted = false;
+            Slot = *S; SubmittedAction = NAME_None;
             if (ItemIndex == INDEX_NONE)
             {
                 const auto* Binding = P->Snapshot().Character.Equipment.FindByPredicate([this](const auto& B) { return B.Slot == Slot; });
