@@ -21,7 +21,7 @@ the lowercase form.
 | V-02 UI wireframes | active | codex-astra | docs/implementation/ui/ | |
 | R-02 rules ledger rebased on T4C Bible | integrated | codex-sol | rules-ledger.md, world-ledger.md, ruleset-bible-v1.md | Baseline = classic Vircom-era T4C Bible (2001–2006 snapshots). 88 ledger rows confirmed; conflicts kept disputed |
 | W1-02b Bible data adapter (band/table models) | planned | codex-sol | Source/Lighthaven/Rules/ | After G0 compiles: load ruleset-bible-v1.md tables (growth bands, XP table) |
-| G0-L first Linux build/test/package | blocked | codex-sol | Source/, Config/, build/ | Engine extraction incomplete (110k of 300k files) |
+| G0-L first Linux build/test/package | blocked → G0-L2 | codex-sol | Source/, Config/, build/ | Engine at /home/brewerm/mnt/ue5.8.3 (read-only ratarmount). Toolchain clang 20.1.8 OK; UHT OK (26 s). C++ compile blocked: UBA cache defaulted to worker HOME (read-only). G0-L2 sets a project-local UBA root |
 | W1-02 rules code (uncompiled until engine) | integrated, NOT compiled | codex-sol | Source/Lighthaven/Rules/, Source/LighthavenTests/Rules/, rules-implementation.md | 7 Automation fixtures (Lighthaven.Rules.*). Integrator requests in rules-implementation.md (Build.cs include path, debt convention, rounding). Production data mostly Unresolved until T4C Bible rebase |
 | G0 | blocked | n/a | n/a | Linux: needs UE 5.8.3 Linux install + Epic v26 clang toolchain; git-lfs installed and .gitattributes adopted (f5d2135); UE 5.8.3 Linux zip downloading (owner). Windows part deferred (owner, 2026-10-07) |
 
