@@ -63,3 +63,9 @@ Open (Windows phase): Unreal writes project `Build/` (e.g. Build/Linux/FileOpenO
 1. Push approved. Matt pushed `main` (ee9f9fb plus the LFS maps) to github.com/hilather/unreal-t4c; `origin/main` tracks it. **The repository is public**: never commit secrets, credentials or unlicensed binaries; reference images stay out of the repo (no commercial licence established).
 2. Wave 2 starts now, in parallel with Matt's remaining G1 hand checks (bugs 2–4 re-check, GUI nav build). W2-01..W2-03 launch one at a time; W2-04 after W2-01..03 are merged and host-tested. Any G1 hand-check failure comes back as a Wave 1 fix.
 3. Art direction for A-01/A-02/V-02 is **not yet approved** (Matt reviewing). No work may treat those specs as approved direction until he signs off.
+
+**Matt decision 2026-10-08 07:28 ET (relayed by Shepherd):** A-01 (creatures), A-02 (player + environment kit) and V-02 (UI wireframes) art direction is **approved as a first pass** ("looks fine as a first start"), open to revision later. The astra visuals lane resumes: one visuals worker at a time, staggered with Wave 2 launches.
+
+| Task | Status | Profile | Owned paths / binary assets | Notes |
+|---|---|---|---|---|
+| V-03 UI visual style guide | active | codex-astra | docs/implementation/ui/style/ | Tokens, typography, iconography, controller glyph policy, widget states from approved V-02/A-01/A-02; consumable by W2-03 C++ widgets |
