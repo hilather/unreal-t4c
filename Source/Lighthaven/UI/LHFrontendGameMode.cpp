@@ -1,29 +1,16 @@
 #include "UI/LHFrontendGameMode.h"
 #include "UI/LHFrontendWidget.h"
+#include "Framework/LHSessionSubsystem.h"
+#include "Framework/LHPlayerState.h"
 #include "Input/LHInputConfig.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/GameViewportClient.h"
 #include "Framework/Application/SlateApplication.h"
 
-// Explicit unavailable bootstrap, not an authority or playable fixture. Owned adapters replace it.
-class FLHUnavailableUIOwner : public ILHCommandHandler, public ILHUIReadOwner, public ILHUISessionOwner
-{
-public:
-#define REJECT(T) FLHCommandResult Execute(const T&) override { FLHCommandResult R; R.Reason = ELHCommandReason::UnresolvedRules; return R; }
-    REJECT(FLHCreateCharacterRequest) REJECT(FLHAllocateAttributePointsRequest) REJECT(FLHTrainSkillRequest)
-    REJECT(FLHLearnSpellRequest) REJECT(FLHBuyItemRequest) REJECT(FLHSellItemRequest) REJECT(FLHEquipItemRequest)
-    REJECT(FLHUseAbilityRequest) REJECT(FLHInteractRequest) REJECT(FLHTakeLootRequest) REJECT(FLHRequestTravelRequest)
-#undef REJECT
-    FLHSaveSnapshot Snapshot() const override { return {}; }
-    TArray<FLHUIProfile> Profiles() const override { return {}; }
-    TArray<FLHContentId> AppearanceCatalog() const override { return {}; }
-    FLHUICreationPreview Preview(const FString&,const TArray<FLHContentId>&,const TArray<FLHQuestionAnswer>&,bool) override { return {}; }
-    FString Continue(FLHCharacterId,bool) override { return TEXT("Unavailable: local save owner has not been connected."); }
-    FString RequestExit() override { FPlatformMisc::RequestExit(false); return {}; }
-};
 ALHFrontendGameMode::ALHFrontendGameMode()
 {
+    PlayerStateClass = ALHPlayerState::StaticClass();
     PlayerControllerClass = ALHFrontendController::StaticClass(); DefaultPawnClass = nullptr;
 }
 void ALHFrontendController::BeginPlay()
@@ -33,8 +20,9 @@ void ALHFrontendController::BeginPlay()
     InputConfig = NewObject<ULHInputConfig>(this); InputConfig->Initialize();
     if (!Presenter)
     {
-        UnavailableOwner = MakeShared<FLHUnavailableUIOwner>();
-        Presenter = MakeShared<FLHUIPresenter>(*UnavailableOwner,*UnavailableOwner,*UnavailableOwner);
+        LiveOwner=GetGameInstance()->GetSubsystem<ULHSessionSubsystem>()->Session();
+        if (!LiveOwner || !LiveOwner->Bind(GetPlayerState<ALHPlayerState>())) return;
+        Presenter = MakeShared<FLHUIPresenter>(*LiveOwner,*LiveOwner,*LiveOwner);
     }
     ShowScreen();
 }
@@ -42,7 +30,7 @@ void ALHFrontendController::InstallPresenter(TSharedPtr<FLHUIPresenter> InPresen
 {
     if (!InPresenter || (Presenter && Presenter->IsPending())) return;
     if (Screen && GetWorld() && GetWorld()->GetGameViewport()) GetWorld()->GetGameViewport()->RemoveViewportWidgetContent(Screen.ToSharedRef());
-    Screen.Reset(); Presenter = MoveTemp(InPresenter); UnavailableOwner.Reset();
+    Screen.Reset(); Presenter = MoveTemp(InPresenter); LiveOwner.Reset();
     if (HasActorBegunPlay()) ShowScreen();
 }
 void ALHFrontendController::ShowScreen()
@@ -58,6 +46,8 @@ void ALHFrontendController::ShowScreen()
 void ALHFrontendController::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
+    if (LiveOwner) LiveOwner->Flush();
+    if (Presenter) Presenter->Refresh();
     if (!Presenter || !InputConfig || !GetLocalPlayer() || ContextScreen == Presenter->Screen()) return;
     if (auto* S = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
     {
@@ -74,5 +64,5 @@ void ALHFrontendController::EndPlay(const EEndPlayReason::Type Reason)
     {
         S->RemoveMappingContext(InputConfig->Context(ELHInputContext::UI)); S->RemoveMappingContext(InputConfig->Context(ELHInputContext::Creation));
     }
-    Screen.Reset(); Presenter.Reset(); UnavailableOwner.Reset(); Super::EndPlay(Reason);
+    Screen.Reset(); Presenter.Reset(); LiveOwner.Reset(); Super::EndPlay(Reason);
 }

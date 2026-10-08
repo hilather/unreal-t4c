@@ -1,4 +1,6 @@
 #include "Framework/LHPlayerController.h"
+#include "Framework/LHSessionSubsystem.h"
+#include "UI/LHFrontendWidget.h"
 #include "Framework/LHCharacter.h"
 #include "Framework/LHPlayerState.h"
 #include "Framework/LHEnemyCharacter.h"
@@ -15,7 +17,7 @@
 #include "Misc/CoreDelegates.h"
 #include "UnrealClient.h"
 #include "InputKeyEventArgs.h"
-ALHPlayerController::ALHPlayerController() { bShowMouseCursor=true; }
+ALHPlayerController::ALHPlayerController() { bShowMouseCursor=true; PrimaryActorTick.bTickEvenWhenPaused=true; bShouldPerformFullTickWhenPaused=true; }
 void ALHPlayerController::BeginPlay()
 {
     Super::BeginPlay();
@@ -25,6 +27,9 @@ void ALHPlayerController::BeginPlay()
 }
 void ALHPlayerController::EndPlay(const EEndPlayReason::Type Reason)
 {
+    CloseJournal();
+    if (LiveSession) LiveSession->Resume=nullptr;
+    JournalPresenter.Reset(); LiveSession.Reset();
     FCoreDelegates::ApplicationWillDeactivateDelegate.Remove(DeactivateHandle);
     FCoreDelegates::ApplicationHasReactivatedDelegate.Remove(ReactivateHandle);
     if (auto* State=GetPlayerState<ALHPlayerState>()) State->ClearAvatar();
@@ -36,7 +41,17 @@ void ALHPlayerController::OnPossess(APawn* Pawn)
     Super::OnPossess(Pawn);
     if (auto* State=GetPlayerState<ALHPlayerState>())
     {
-        LHDevCombat::InitializeForMap(State->GetCombatComponent(), Pawn);
+        auto* Subsystem=GetGameInstance()?GetGameInstance()->GetSubsystem<ULHSessionSubsystem>():nullptr;
+        auto Session=Subsystem?Subsystem->Session():nullptr;
+        if (Session && Session->HasCharacter())
+        {
+            // Bind reconstructs canonical authority and GAS before actor info. Never run the dev resource fixture here.
+            if (!Session->Bind(State)) return;
+            LiveSession=Session; LiveSession->bInGameplay=true;
+            LiveSession->Resume=[this]() { bCloseJournalRequested=true; };
+            JournalPresenter=MakeShared<FLHUIPresenter>(*Session,*Session,*Session);
+        }
+        else LHDevCombat::InitializeForMap(State->GetCombatComponent(), Pawn);
         State->InitializeAvatar(Pawn);
     }
     ClearHeldMovement();
@@ -120,6 +135,9 @@ void ALHPlayerController::SetControlContext(ELHInputContext Context)
 void ALHPlayerController::PlayerTick(float DeltaSeconds)
 {
     Super::PlayerTick(DeltaSeconds);
+    if (bCloseJournalRequested) { bCloseJournalRequested=false; CloseJournal(); }
+    if (LiveSession) LiveSession->Flush();
+    if (JournalPresenter) JournalPresenter->Refresh();
     if (!HasLiveMovementAvatar()) { ClearHeldMovement(); return; }
     auto* V=GetWorld() ? GetWorld()->GetGameViewport() : nullptr;
     // Slate viewport keyboard focus can be valid while SDL native foreground
@@ -225,6 +243,7 @@ bool ALHPlayerController::SelectTarget(AActor* Target)
 }
 ELHCommandReason ALHPlayerController::RequestSelectedAttack()
 {
+    if (LiveSession) return ELHCommandReason::UnresolvedRules; // Movement entry has no canonical combat settlement owner yet.
     if (ActiveContext!=ELHInputContext::Gameplay) return ELHCommandReason::InvalidRequest;
     auto* State=GetPlayerState<ALHPlayerState>();
     auto* Enemy=Cast<ALHEnemyCharacter>(SelectedTarget.Get());
@@ -241,7 +260,25 @@ ELHCommandReason ALHPlayerController::RequestSelectedAttack()
 void ALHPlayerController::Attack() { RequestSelectedAttack(); }
 // Wave 2+: intent notification only, no interaction transaction exists yet.
 void ALHPlayerController::Interact() { if (!SelectedTarget.IsValid()) Cycle(1); if (ActiveContext==ELHInputContext::Gameplay && ValidTarget(SelectedTarget.Get())) OnInteractRequested.Broadcast(SelectedTarget.Get()); }
-void ALHPlayerController::OpenScreen(FName Screen) { SetControlContext(ELHInputContext::UI); OnScreenRequested.Broadcast(Screen); }
+void ALHPlayerController::OpenScreen(FName Screen)
+{
+    SetControlContext(ELHInputContext::UI); OnScreenRequested.Broadcast(Screen);
+    if (!JournalPresenter || !GetWorld()->GetGameViewport()) return;
+    if (GetPlayerState<ALHPlayerState>()->GetCombatComponent()->IsActionPending()) return;
+    if (!JournalWidget)
+    {
+        SAssignNew(JournalWidget,SLHFrontendWidget).Presenter(JournalPresenter.Get());
+        GetWorld()->GetGameViewport()->AddViewportWidgetContent(JournalWidget.ToSharedRef(),100);
+    }
+    JournalWidget->Open(Screen==TEXT("Inventory")?ELHUIScreen::Inventory:ELHUIScreen::CharacterSheet);
+    SetPause(true);
+    FInputModeUIOnly Mode; Mode.SetWidgetToFocus(JournalWidget); SetInputMode(Mode);
+}
+void ALHPlayerController::CloseJournal()
+{
+    if (JournalWidget && GetWorld() && GetWorld()->GetGameViewport()) GetWorld()->GetGameViewport()->RemoveViewportWidgetContent(JournalWidget.ToSharedRef());
+    JournalWidget.Reset(); SetPause(false); FInputModeGameOnly Mode; SetInputMode(Mode); SetControlContext(ELHInputContext::Gameplay);
+}
 void ALHPlayerController::OpenCharacter() { OpenScreen("Character"); }
 void ALHPlayerController::OpenInventory() { OpenScreen("Inventory"); }
 void ALHPlayerController::PauseMenu() { OpenScreen("Pause"); }

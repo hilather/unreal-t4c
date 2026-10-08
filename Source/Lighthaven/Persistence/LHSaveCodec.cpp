@@ -428,3 +428,74 @@ bool LHSave::EnemyLifeRewardId(const FGuid& Run,const FLHSpawnLifeId& Life,FLHRe
 }
 FLHRewardId LHSave::GrowthId(const FGuid& Run,const FLHCharacterId& Character,int64 ToLevel)
 { FLHRewardId Reward; FLHSaveError Error; GrowthRewardId(Run,Character,ToLevel,Reward,Error); return Reward; }
+
+TArray<uint8> LHSave::CanonicalValue(FString Value, FLHSaveError& Error)
+{
+    Error={}; LHSaveCodecPrivate::FWire Wire(Error); LHSaveCodecPrivate::Visit(Wire,Value);
+    return Wire.Ok()?MoveTemp(Wire.Output):TArray<uint8>();
+}
+TArray<uint8> LHSave::CanonicalValue(FName Value, FLHSaveError& Error)
+{
+    Error={}; LHSaveCodecPrivate::FWire Wire(Error); LHSaveCodecPrivate::Visit(Wire,Value);
+    return Wire.Ok()?MoveTemp(Wire.Output):TArray<uint8>();
+}
+TArray<uint8> LHSave::CanonicalValue(int32 Value, FLHSaveError& Error)
+{
+    Error={}; LHSaveCodecPrivate::FWire Wire(Error); LHSaveCodecPrivate::Visit(Wire,Value);
+    return Wire.Ok()?MoveTemp(Wire.Output):TArray<uint8>();
+}
+TArray<uint8> LHSave::CanonicalValue(int64 Value, FLHSaveError& Error)
+{
+    Error={}; LHSaveCodecPrivate::FWire Wire(Error); LHSaveCodecPrivate::Visit(Wire,Value);
+    return Wire.Ok()?MoveTemp(Wire.Output):TArray<uint8>();
+}
+TArray<uint8> LHSave::CanonicalValue(bool Value, FLHSaveError& Error)
+{
+    Error={}; LHSaveCodecPrivate::FWire Wire(Error); LHSaveCodecPrivate::Visit(Wire,Value);
+    return Wire.Ok()?MoveTemp(Wire.Output):TArray<uint8>();
+}
+TArray<uint8> LHSave::CanonicalValue(FLHInteger Value, FLHSaveError& Error)
+{
+    Error={}; LHSaveCodecPrivate::FWire Wire(Error); LHSaveCodecPrivate::Visit(Wire,Value);
+    return Wire.Ok()?MoveTemp(Wire.Output):TArray<uint8>();
+}
+TArray<uint8> LHSave::CanonicalValue(FLHNumber Value, FLHSaveError& Error)
+{
+    Error={}; LHSaveCodecPrivate::FWire Wire(Error); LHSaveCodecPrivate::Visit(Wire,Value);
+    return Wire.Ok()?MoveTemp(Wire.Output):TArray<uint8>();
+}
+TArray<uint8> LHSave::CanonicalValue(FLHContentId Value, FLHSaveError& Error)
+{
+    Error={}; LHSaveCodecPrivate::FWire Wire(Error); LHSaveCodecPrivate::Visit(Wire,Value);
+    return Wire.Ok()?MoveTemp(Wire.Output):TArray<uint8>();
+}
+TArray<uint8> LHSave::CanonicalValue(FLHAttributeBlock Value, FLHSaveError& Error)
+{
+    Error={}; LHSaveCodecPrivate::FWire Wire(Error); LHSaveCodecPrivate::Visit(Wire,Value);
+    return Wire.Ok()?MoveTemp(Wire.Output):TArray<uint8>();
+}
+TArray<uint8> LHSave::CanonicalValue(FLHQuestionAnswer Value, FLHSaveError& Error)
+{
+    Error={}; LHSaveCodecPrivate::FWire Wire(Error); LHSaveCodecPrivate::Visit(Wire,Value);
+    return Wire.Ok()?MoveTemp(Wire.Output):TArray<uint8>();
+}
+TArray<uint8> LHSave::CanonicalValue(FLHFieldProvenance Value, FLHSaveError& Error)
+{
+    Error={}; LHSaveCodecPrivate::FWire Wire(Error); LHSaveCodecPrivate::Visit(Wire,Value);
+    return Wire.Ok()?MoveTemp(Wire.Output):TArray<uint8>();
+}
+TArray<uint8> LHSave::CanonicalValue(FLHMechanicalField Value, FLHSaveError& Error)
+{
+    Error={}; LHSaveCodecPrivate::FWire Wire(Error); LHSaveCodecPrivate::Visit(Wire,Value);
+    return Wire.Ok()?MoveTemp(Wire.Output):TArray<uint8>();
+}
+TArray<uint8> LHSave::CanonicalValue(FTransform Value, FLHSaveError& Error)
+{
+    Error={}; LHSaveCodecPrivate::FWire Wire(Error); LHSaveCodecPrivate::Visit(Wire,Value);
+    return Wire.Ok()?MoveTemp(Wire.Output):TArray<uint8>();
+}
+TArray<uint8> LHSave::CanonicalValue(ELHEquipmentSlot Value, FLHSaveError& Error)
+{
+    Error={}; LHSaveCodecPrivate::FWire Wire(Error); LHSaveCodecPrivate::Visit(Wire,Value);
+    return Wire.Ok()?MoveTemp(Wire.Output):TArray<uint8>();
+}
