@@ -72,3 +72,10 @@ remain stale, engine/compositor recovery still requires the click workaround.
 Evidence: Engine/Source/Runtime/Engine/Private/Slate/SceneViewport.cpp HasFocus,
 IsForegroundWindow; ApplicationCore/Private/Linux/LinuxWindow.cpp
 IsForegroundWindow; LinuxApplication.cpp mouse-down ActivateWindow path.
+
+G1-FIX3b source follow-up: UE 5.8.3 transient input tests must mark their
+controller local explicitly: with no NetDriver/ULocalPlayer, IsLocalController
+returns false and CharacterMovement consumes input without ControlledCharacterMove.
+This fixture correction does not alter the runtime focus mitigation. Normal-user
+Wayland/X11 verification remains pending; see g1-fix3.md. Gamepad G1 checks are
+UNTESTED and not a blocker (Matt, 2026-10-08 06:02 ET).

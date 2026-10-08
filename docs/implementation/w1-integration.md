@@ -78,7 +78,7 @@ release gating. Headless fixtures do not exercise hardware input or rendering.
    release and re-press (hold D through attack completion and key repeats; no
    movement may resume). Left stick must return below 0.2 then deflect again.
    Camera middle-drag and wheel remain functional.
-3. Repeat with left stick/L3, RB/LB cycling, R3 cancellation and right trigger
+3. **UNTESTED — not a G1 blocker** (Matt, 2026-10-08 06:02 ET). Repeat with left stick/L3, RB/LB cycling, R3 cancellation and right trigger
    attack; test right-stick camera and D-pad zoom. Verify keyboard and gamepad
    both reach the same authority result. Observe request reasons and one timed
    hit/damage log per accepted attack, no damage from animation rate, 3 s cooldown,
@@ -92,7 +92,8 @@ release gating. Headless fixtures do not exercise hardware input or rendering.
 5. In Dev_Movement, test door and corridor both ways, 30-degree ramp ascent and
    descent, steep 60-degree ramp rejection, each stair and landing, and low
    ceiling/boom collision. Check walk/run diagonals, min/max zoom and orbit/pitch
-   limits with both devices at 720p and 1080p. Wall/roof fading is not implemented.
+   limits with keyboard/mouse at 720p and 1080p. Gamepad coverage is **UNTESTED**
+   and not a G1 blocker; retain it for a later gate. Wall/roof fading is not implemented.
 6. Cook/package both maps on Linux, launch the archive and confirm Dev_Combat
    startup and identical controls. Windows validation remains deferred.
 
@@ -168,3 +169,8 @@ and remaining Wayland uncertainty. Regenerate maps for revised LOS fixtures.
 the archive with each map, including Dev_Movement, to verify package coverage.
 AndroidFileServer is explicitly disabled because Android deployment is unused.
 G1 still requires host test/play/package evidence; no new gate pass is claimed.
+
+G1-FIX3b: gamepad portions of items 2–5 are UNTESTED and not a G1 blocker
+(Matt decision 2026-10-08 06:02 ET). G1 requires the G1-FIX3 bugs fixed and
+verified on the host. See [g1-fix3.md](g1-fix3.md) for itemized evidence and
+remaining normal-user automation, focus and LOS checks.

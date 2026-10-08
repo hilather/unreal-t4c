@@ -55,6 +55,9 @@ struct FFixture
         // No game mode or world ticking is needed: avatar initialization and impacts are explicit below.
         FActorSpawnParameters Spawn; Spawn.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
         Controller = World->SpawnActor<ALHPlayerController>();
+        // No LocalPlayer/NetDriver exists here. UE 5.8.3 otherwise classifies
+        // this controller as remote and skips ControlledCharacterMove.
+        Controller->SetAsLocalPlayerController();
         State = World->SpawnActor<ALHPlayerState>();
         Controller->SetPlayerState(State);
         Source = World->SpawnActor<ALHCharacter>(FVector::ZeroVector, FRotator::ZeroRotator, Spawn);
@@ -277,7 +280,11 @@ bool FLHHeldMovementAttack::RunTest(const FString&)
         TestTrue(TEXT("Pawn stays stopped"), F.Game.Source->GetActorLocation().Equals(Stopped,0.01f));
     }
     F.Key(IE_Released); F.Tick(); F.Key(IE_Pressed); F.Tick();
+    TestTrue(TEXT("Fixture pawn is locally controlled"), F.Game.Source->IsLocallyControlled());
     TestFalse(TEXT("Release then press resumes mapped movement"), F.Game.Controller->GetHeldMovement().IsNearlyZero());
+    // Bound input dispatch/acceleration latency without replacing physical input
+    // or weakening the requirement that a fresh press changes pawn position.
+    for (int32 I=0; I<5 && F.Game.Source->GetActorLocation().Equals(Stopped,0.01f); ++I) F.Tick();
     TestFalse(TEXT("Fresh press moves pawn"), F.Game.Source->GetActorLocation().Equals(Stopped,0.01f));
     return true;
 }
