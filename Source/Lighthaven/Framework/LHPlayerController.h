@@ -24,6 +24,8 @@ public:
     virtual void OnUnPossess() override;
     UFUNCTION(BlueprintCallable) void SetControlContext(ELHInputContext Context);
     UFUNCTION(BlueprintCallable) void ClearHeldMovement();
+    // Shared startup/possession/resume seam; keeps the existing release gate.
+    void EstablishGameplayInput();
     UFUNCTION(BlueprintPure) AActor* GetSelectedTarget() const { return SelectedTarget.Get(); }
     // Native transient-world intent seam; canonical command IDs/replay remain future work.
     UFUNCTION(BlueprintCallable) bool SelectTarget(AActor* Target);

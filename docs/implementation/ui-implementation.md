@@ -35,3 +35,44 @@ Build/check observations and exact timings are recorded in the attempt report. `
 Known remaining work: live owner bindings/durability/transition, settings execution, richer item/answer labels and provenance reading views, stage-by-stage question presentation, initial kit preview, owner-validated slot filtering, inventory paging/filter controls and exact V-02 pane layout. These are documented limitations of this native candidate; acceptance/gate decisions remain with coordinator/host evidence.
 
 Final-source observation: `UE_ROOT=/home/brewerm/Downloads/unreal bash build/build-linux.sh --game` exited **0**, wall time **39 s**. Editor: `Result: Succeeded`, `Total execution time: 17.59 seconds`; game: `Result: Succeeded`, `Total execution time: 21.74 seconds`. `bash -n build/generate-frontend-map.sh` and `git diff --check` exited 0. Running the map script as uid 0 exited 1 with `Unreal refuses to run as root; run on the host as a normal user`, before invoking the editor. Automation tests are compiled, not observed as passed in this worker.
+
+## W2-05 — G2 input and frontend fixes
+
+The gameplay controller now establishes GameOnly input at BeginPlay, on possession
+when no journal is open, and on journal close. The persistent viewport is explicitly
+allowed input even if its Slate viewport is not ready. The cursor stays visible for
+selection, initial capture clicks reach gameplay, and capture during mouse-down
+supports middle-drag orbit. Frontend teardown restores viewport defaults and removes
+its UI/Creation mappings. Existing held-key/neutral-stick release gates remain in
+SetControlContext; journal opening still uses UIOnly and pauses simulation.
+
+Modal duplicate suppression records the submitted action, rather than blocking all
+subsequent modal actions. Quit always reaches the session owner, including after
+accepted creation and failed durability. The existing session pending-exit policy
+wins over initial creation travel when RetrySave succeeds. Allocation/equipment and
+creation duplicate protection remains; switching screens clears the widget action
+latch, while the presenter retains its accepted creation receipt.
+
+For a selected unreadable profile, Continue has a disabled Slate button, skips
+keyboard/gamepad focus traversal, refuses programmatic activation, and explains
+that no readable save generation exists. Profile status still displays the concrete
+read error. Selecting a profile or changing recovery acknowledgment clears obsolete
+profile/recovery errors; save failures remain visible until successful durability.
+
+Creation now has Body, Hair, Skin and Outfit controls, each displaying its current
+choice or Missing. Left/right, D-pad and the existing neutral-stick navigation
+select within each category; Face remains authority-supplied. The session's preview
+reports missing categories by name, and the presenter includes these field errors
+in its roll error. This is presentation guidance; authoritative creation validation
+still decides legality. First-ever save failures say no saved generation exists yet;
+only a write with a prior readable generation says previous generation retained.
+
+Regression tests use native automation and the existing opaque Slate harness.
+GameplayInputHandoff exercises both controllers' runtime input application seams
+against one real UGameViewportClient with a local Enhanced Input subsystem, without
+an attached SViewport. WidgetCreationFailureQuitRetry uses the same widget for
+creation acceptance, first-save failure, confirmed Quit and successful RetrySave.
+UnreadableContinueAndStaleErrors covers disabled activation/traversal and clearing.
+These are compiled checks, not observed automation passes; uid 0 prevents Unreal
+execution in this worker. Physical gamepad, window capture and packaged travel must
+be checked on the normal-user host. See w2-integration.md for build evidence.

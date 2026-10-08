@@ -11,7 +11,8 @@ struct FOwners : ILHCommandHandler, ILHUIReadOwner, ILHUISessionOwner
 {
     FLHSaveSnapshot State;
     FLHCreateCharacterRequest Last;
-    int32 Creates = 0, Loads = 0, Allocates = 0, Equips = 0;
+    int32 Creates = 0, Loads = 0, Allocates = 0, Equips = 0, Exits = 0;
+    bool bReadable = true;
     FLHAttributeBlock LastAllocation;
     FLHEquipItemRequest LastEquipment;
     bool bAccept = false;
@@ -50,14 +51,14 @@ struct FOwners : ILHCommandHandler, ILHUIReadOwner, ILHUISessionOwner
     TArray<FLHUIProfile> Profiles() const override
     {
         FLHUIProfile P; P.Id = State.Header.CharacterId; P.Name = TEXT("Existing");
-        P.bCanContinue = true; P.bRequiresRecoveryAcknowledgment = true; return {P};
+        P.bCanContinue = bReadable; P.bRequiresRecoveryAcknowledgment = true; return {P};
     }
     TArray<FLHContentId> AppearanceCatalog() const override { return {}; }
     FLHUICreationPreview Preview(const FString&, const TArray<FLHContentId>&,
         const TArray<FLHQuestionAnswer>& Answers, bool) override
     { FLHUICreationPreview P; P.Record.QuestionAnswers = Answers; P.Token = FGuid::NewGuid(); P.bLegal = true; return P; }
     FString Continue(FLHCharacterId, bool) override { ++Loads; return {}; }
-    FString RequestExit() override { return TEXT("Storage unavailable"); }
+    FString RequestExit() override { ++Exits; return TEXT("Storage unavailable"); }
 };
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHUIFormTest, "Lighthaven.UI.RejectionPreservesFormAndDuplicateConfirm", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -164,6 +165,8 @@ bool FLHUIWidgetSubmitTest::RunTest(const FString&)
     O.bAccept = true; Pad(W,ELHUITestKey::South); Pad(W,ELHUITestKey::Down); Pad(W,ELHUITestKey::South);
     Pad(W,ELHUITestKey::South,true); Pad(W,ELHUITestKey::South);
     TestEqual(TEXT("accepted duplicate confirm submits once"),O.Creates,2);
+    W->Activate("Quit"); Pad(W,ELHUITestKey::Down); Pad(W,ELHUITestKey::South);
+    TestEqual(TEXT("creation latch cannot swallow confirmed quit"),O.Exits,1);
     return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHUIWidgetAllocationTest,"Lighthaven.UI.WidgetAllocationEquipmentAndRecovery",EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -194,6 +197,25 @@ bool FLHUIWidgetAllocationTest::RunTest(const FString&)
     Recovery->Activate("Recovery"); Recovery->Activate("Continue"); Pad(Recovery,ELHUITestKey::Down); Pad(Recovery,ELHUITestKey::South);
     Recovery->Activate("Continue"); Pad(Recovery,ELHUITestKey::Down); Pad(Recovery,ELHUITestKey::South);
     TestEqual(TEXT("acknowledged continue duplicate suppressed"),O.Loads,1);
+    return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHUIUnreadableFocusTest,"Lighthaven.UI.UnreadableContinueAndStaleErrors",EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FLHUIUnreadableFocusTest::RunTest(const FString&)
+{
+    FOwners O; O.State.Header.CharacterId.Value=FGuid::NewGuid(); O.bReadable=false;
+    FLHUIPresenter P(O,O,O); const auto W=ILHUIWidgetHarness::Create(P);
+    W->Open(ELHUIScreen::Characters); W->Activate("Profiles");
+    TestFalse(TEXT("unreadable Continue disabled"),P.IsControlEnabled("Continue"));
+    for (int32 I=0; I<P.FocusOrder().Num(); ++I)
+    { TestTrue(TEXT("unreadable Continue skipped by navigation"),P.FocusedControl()!="Continue"); Pad(W,ELHUITestKey::Down); }
+    W->Activate("Continue"); TestFalse(TEXT("disabled activation cannot open review"),W->IsModal());
+    TestEqual(TEXT("disabled activation never loads"),O.Loads,0);
+    O.bReadable=true; P.Refresh(); W->Activate("Continue");
+    Pad(W,ELHUITestKey::Down); Pad(W,ELHUITestKey::South);
+    TestTrue(TEXT("unacknowledged recovery shows error"),!P.Error().IsEmpty());
+    W->Activate("Recovery"); TestTrue(TEXT("acknowledgment clears stale error"),P.Error().IsEmpty());
+    P.Continue(false); P.SelectProfile(O.State.Header.CharacterId);
+    TestTrue(TEXT("selection clears stale error"),P.Error().IsEmpty());
     return true;
 }
 #endif

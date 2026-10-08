@@ -121,7 +121,7 @@ bool FLHSaveStore::Start(const FLHCharacterId& Character, FLHSaveError& Error)
     State.Pending.Reset(); const uint64 Serial=++State.Serial;
     const FString ExpectedDigest=LHSave::Sha256(Bytes);
     TWeakPtr<FLHSaveStore> Weak=AsShared();
-    Storage->Write(Character.Value,Slot,MoveTemp(Bytes),[Weak,Character,Serial,Slot,Sequence,Pending,Compatibility,ExpectedDigest](bool Success)
+    Storage->Write(Character.Value,Slot,MoveTemp(Bytes),[Weak,Character,Serial,Slot,Sequence,Pending,Compatibility,ExpectedDigest,Previous](bool Success)
     {
         auto Self=Weak.Pin(); if (!Self) return;
         check(IsInGameThread());
@@ -139,7 +139,7 @@ bool FLHSaveStore::Start(const FLHCharacterId& Character, FLHSaveError& Error)
         if (!Success)
         {
             if (!Current->Pending) { Current->Pending=Pending; Current->Compatibility=Compatibility; }
-            if (CompletionError.Reason==ELHSaveReason::None) CompletionError={ELHSaveReason::IoFailure,TEXT("Progress not safely saved; previous generation retained")};
+            if (CompletionError.Reason==ELHSaveReason::None) CompletionError={ELHSaveReason::IoFailure,Previous>0 ? TEXT("Progress not safely saved; previous generation retained") : TEXT("Progress not safely saved; no saved generation exists yet")};
             Self->Emit(ELHSaveEventKind::Failed,Character,Sequence,CompletionError);
             return; // No automatic infinite retry on a failed device.
         }

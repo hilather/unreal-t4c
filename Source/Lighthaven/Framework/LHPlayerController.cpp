@@ -23,7 +23,7 @@ void ALHPlayerController::BeginPlay()
     Super::BeginPlay();
     DeactivateHandle=FCoreDelegates::ApplicationWillDeactivateDelegate.AddUObject(this,&ALHPlayerController::ApplicationDeactivated);
     ReactivateHandle=FCoreDelegates::ApplicationHasReactivatedDelegate.AddUObject(this,&ALHPlayerController::ApplicationReactivated);
-    SetControlContext(ActiveContext);
+    EstablishGameplayInput();
 }
 void ALHPlayerController::EndPlay(const EEndPlayReason::Type Reason)
 {
@@ -39,6 +39,7 @@ void ALHPlayerController::EndPlay(const EEndPlayReason::Type Reason)
 void ALHPlayerController::OnPossess(APawn* Pawn)
 {
     Super::OnPossess(Pawn);
+    if (!JournalWidget) EstablishGameplayInput();
     if (auto* State=GetPlayerState<ALHPlayerState>())
     {
         auto* Subsystem=GetGameInstance()?GetGameInstance()->GetSubsystem<ULHSessionSubsystem>():nullptr;
@@ -277,7 +278,7 @@ void ALHPlayerController::OpenScreen(FName Screen)
 void ALHPlayerController::CloseJournal()
 {
     if (JournalWidget && GetWorld() && GetWorld()->GetGameViewport()) GetWorld()->GetGameViewport()->RemoveViewportWidgetContent(JournalWidget.ToSharedRef());
-    JournalWidget.Reset(); SetPause(false); FInputModeGameOnly Mode; SetInputMode(Mode); SetControlContext(ELHInputContext::Gameplay);
+    JournalWidget.Reset(); SetPause(false); EstablishGameplayInput();
 }
 void ALHPlayerController::OpenCharacter() { OpenScreen("Character"); }
 void ALHPlayerController::OpenInventory() { OpenScreen("Inventory"); }
@@ -285,3 +286,17 @@ void ALHPlayerController::PauseMenu() { OpenScreen("Pause"); }
 void ALHPlayerController::Navigate(const FInputActionValue& V) { const auto D=V.Get<FVector2D>(); OnMenuInput.Broadcast(FMath::Abs(D.Y)>FMath::Abs(D.X) ? (D.Y>0 ? "Up" : "Down") : (D.X>0 ? "Right" : "Left")); }
 void ALHPlayerController::Confirm() { OnMenuInput.Broadcast("Confirm"); }
 void ALHPlayerController::Back() { OnMenuInput.Broadcast("Back"); }
+
+void ALHPlayerController::EstablishGameplayInput()
+{
+    FInputModeGameOnly Mode; Mode.SetConsumeCaptureMouseDown(false); SetInputMode(Mode);
+    bShowMouseCursor=true;
+    // The viewport survives map travel. Reset it even before a Slate viewport is ready.
+    if (auto* Viewport=GetWorld()?GetWorld()->GetGameViewport():nullptr)
+    {
+        Viewport->SetIgnoreInput(false);
+        Viewport->SetMouseCaptureMode(EMouseCaptureMode::CaptureDuringMouseDown);
+        Viewport->SetMouseLockMode(EMouseLockMode::LockOnCapture);
+    }
+    SetControlContext(ELHInputContext::Gameplay);
+}

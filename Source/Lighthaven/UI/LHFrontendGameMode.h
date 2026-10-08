@@ -12,6 +12,7 @@ class LIGHTHAVEN_API ALHFrontendController : public APlayerController
 public:
     // Integrator installs owner-bound adapters. No mock data or save mutation in this controller.
     void InstallPresenter(TSharedPtr<FLHUIPresenter> Presenter);
+    void EstablishFrontendInput();
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type Reason) override;
     virtual void Tick(float DeltaSeconds) override;

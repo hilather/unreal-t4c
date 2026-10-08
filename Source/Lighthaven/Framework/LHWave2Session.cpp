@@ -104,6 +104,13 @@ TArray<FLHUIQuestion> FLHWave2Session::QuestionCatalog() const
 FLHUICreationPreview FLHWave2Session::Preview(const FString& Name,const TArray<FLHContentId>& Appearance,const TArray<FLHQuestionAnswer>& Answers,bool)
 {
     FLHUICreationPreview R;
+    for (const TCHAR* Category:{TEXT("Body"),TEXT("Hair"),TEXT("Skin"),TEXT("Outfit")})
+    {
+        const FString Prefix=FString(TEXT("Presentation.Player."))+Category+TEXT(".");
+        if (!Appearance.ContainsByPredicate([&](const FLHContentId& Id){return Id.Value.ToString().StartsWith(Prefix);}))
+            R.FieldErrors.Add(FName(Category),TEXT("Select an appearance choice."));
+    }
+    if (!R.FieldErrors.IsEmpty()) return R;
     if (IsBlocked() || !Authority()) return R;
     FLHCharacterPreview V; if (Authority()->Preview(Answers,V)!=ELHCommandReason::None) return R;
     // Validate on a detached copy. Review cannot publish a command or save.
@@ -218,4 +225,10 @@ FString FLHWave2Session::RetryPersistence()
     bAwaitingSave=true; AwaitedSequence=Complete.Header.TransactionSequence; FLHSaveError E;
     if (!Saves->Retry(Complete.Header.CharacterId,E)) { bAwaitingSave=false; Message=TEXT("Save retry failed: ")+E.Detail; }
     return Message;
+}
+
+void FLHWave2Session::ClearSelectionError()
+{
+    // Save failures remain visible until durability succeeds. Profile errors live on each row.
+    if (Message.StartsWith(TEXT("Unreadable:")) || Message.StartsWith(TEXT("Recovery:"))) Message.Empty();
 }
