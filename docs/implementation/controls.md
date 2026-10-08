@@ -27,7 +27,7 @@ Movement uses CharacterMovement and normalized analog input in camera-yaw space;
 
 Targets opt into `ILHControlTarget` and provide authoritative alive and reachable answers; absent/unknown providers fail closed. Candidate requires a valid actor distinct from avatar, inclusive range and unobstructed avatar-center→target-center Visibility trace (first hit may be target). Mouse additionally requires first cursor hit. Reachable means provider-approved navigational accessibility; this is not inferred from distance/line of sight. Cycle sorts by distance then actor path for deterministic session-local ties, wraps both directions, acquires nearest on Next when selection is missing; Previous from missing chooses last. Dead, obstructed, unreachable, destroyed or out-of-range targets are excluded and selection revalidated each tick and request. Actors/paths are transient presentation references, never save identities. Integrator must translate target to canonical stable ID and revalidate in authority.
 
-`OnAttackRequested` / `OnInteractRequested` submit intent only. They do not apply effects, assign abilities, mint canonical requests or modify HP/XP. `OnScreenRequested` changes to UI first; session/UI owner must pause simulation, focus the screen and explicitly restore Gameplay via `SetControlContext` when safe. `OnMenuInput` routes navigation/Confirm/Back. Clearing consumes pending movement input, zeros held axes, flushes pressed keys and stops CharacterMovement. Every context change, application deactivation and unpossess clears; foreground-window polling handles viewport loss. Remapping ignores pressed boolean keys until release; a separate neutral-axis check gates movement (stick neutral threshold 0.2, Prototype). Host must check PIE/standalone viewport behavior and release gating with a real controller.
+`OnAttackRequested` / `OnInteractRequested` submit intent only. They do not apply effects, assign abilities, mint canonical requests or modify HP/XP. `OnScreenRequested` changes to UI first; session/UI owner must pause simulation, focus the screen and explicitly restore Gameplay via `SetControlContext` when safe. `OnMenuInput` routes navigation/Confirm/Back. Clearing consumes pending movement input, zeros held axes and stops CharacterMovement while retaining physical PlayerInput state. Every context change, application deactivation and unpossess clears; foreground-window polling handles viewport loss. Remapping ignores pressed boolean keys until release; a separate neutral-axis check gates movement (stick neutral threshold 0.2, Prototype). Host must check PIE/standalone viewport behavior and release gating with a real controller.
 
 ## Integrator requests
 
@@ -43,3 +43,39 @@ Dev_Movement: measure walk/run, diagonal speed, slopes, stairs, door clearances,
 Hold movement and attack while opening each menu, switching Creation/UI/Gameplay, alt-tabbing, losing viewport focus, unpossessing, pausing/resuming and changing device. Reenter with buttons still held; require release before movement/action. Test target death/removal, blocked line of sight, exact range edge, provider-unreachable candidates, equal-distance cycling/wrap, cursor ground click, and attack/interact validity changing between selection and submission. No selection auto-walk or damage should occur.
 
 Coordinator command: `bash build/run-tests.sh Lighthaven.Controls`. Expected native tests: `InputConfigParity`, `ContextClearsMovement`, `TargetOrderAndFilter` under `Lighthaven.Controls`. Pure state tests cover the movement state used by context switch, not actual viewport/CharacterMovement behavior. No editor/tests executed by root worker; host execution and manual checks remain necessary.
+
+## G1-FIX3 release and focus handling
+
+Attack/context clears retain raw key/axis state. A zero semantic action (including
+opposing keys or canceled mappings) cannot unlock movement while WASD is down
+or the left stick exceeds the Prototype 0.2 neutral threshold. Engine-requested
+focus flushing records held movement keys/axes until actual release/neutral input
+events; repeat events cannot unlock them. If released outside the application and
+no release event is delivered, press and release that key once after returning.
+Pending-action movement events clear axes and reinstate release gating.
+
+QA on Hyprland/Wayland at 0f1a975 reported native IsForegroundWindow remained
+false until a click. Local UE 5.8.3 source shows FSceneViewport::IsForegroundWindow
+ delegates to FLinuxWindow, which compares LinuxApplication's current active
+window; LinuxApplication activates that window on mouse-down. This is consistent
+with stale engine/SDL activation bookkeeping, amplified by the project's sole
+native-foreground gate. This worker cannot reproduce a compositor session, so
+the underlying Wayland event defect is not conclusively isolated.
+
+The controller now accepts Slate viewport keyboard focus OR native foreground
+status, bounded by application deactivation/reactivation delegates. Reactivation
+reinstalls the current input context with held-button suppression. It never
+forces OS focus or synthesizes clicks. Missing viewports are permitted only for
+transient input-test worlds. Host must repeat workspace/alt-tab checks on Wayland
+and X11; Windows remains deferred. If Slate focus and application activation also
+remain stale, engine/compositor recovery still requires the click workaround.
+Evidence: Engine/Source/Runtime/Engine/Private/Slate/SceneViewport.cpp HasFocus,
+IsForegroundWindow; ApplicationCore/Private/Linux/LinuxWindow.cpp
+IsForegroundWindow; LinuxApplication.cpp mouse-down ActivateWindow path.
+
+G1-FIX3b source follow-up: UE 5.8.3 transient input tests must mark their
+controller local explicitly: with no NetDriver/ULocalPlayer, IsLocalController
+returns false and CharacterMovement consumes input without ControlledCharacterMove.
+This fixture correction does not alter the runtime focus mitigation. Normal-user
+Wayland/X11 verification remains pending; see g1-fix3.md. Gamepad G1 checks are
+UNTESTED and not a blocker (Matt, 2026-10-08 06:02 ET).

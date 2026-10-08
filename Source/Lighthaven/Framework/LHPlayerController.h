@@ -18,6 +18,8 @@ public:
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type Reason) override;
     virtual void PlayerTick(float DeltaSeconds) override;
+    virtual void FlushPressedKeys() override;
+    virtual bool InputKey(const FInputKeyEventArgs& Params) override;
     virtual void OnPossess(APawn* Pawn) override;
     virtual void OnUnPossess() override;
     UFUNCTION(BlueprintCallable) void SetControlContext(ELHInputContext Context);
@@ -42,6 +44,12 @@ private:
     LHControls::FMovementState Movement;
     TWeakObjectPtr<AActor> SelectedTarget;
     FDelegateHandle DeactivateHandle;
+    FDelegateHandle ReactivateHandle;
+    bool bApplicationActive=true;
+    TSet<FKey> FlushedMovementKeys;
+    void ApplicationDeactivated();
+    void ApplicationReactivated();
+    bool MovementInputsReleased() const;
     bool bHadFocus=true;
     bool bAwaitMoveRelease=true;
     bool HasLiveMovementAvatar() const;

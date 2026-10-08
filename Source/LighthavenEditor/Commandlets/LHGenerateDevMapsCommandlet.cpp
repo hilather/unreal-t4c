@@ -133,11 +133,13 @@ struct FRoom
     }
     void Combat()
     {
-        Shape(TEXT("LOSPillar"), FVector(-500,500,200), FVector(180,180,400), FRotator::ZeroRotator, true, true);
+        Shape(TEXT("LOSPillar"), FVector(600,910,200), FVector(60,60,400), FRotator::ZeroRotator, true, true);
         // Distances from player floor origin (-1600,0,0), NOT authoritative attack ranges.
         Target(TEXT("TargetMelee"), FVector(-1450,0,0), TEXT("LH.Dev.DistanceCm.150"), TEXT("LH.Dev.Slot.Melee"));
         Target(TEXT("TargetMid"), FVector(-1000,0,0), TEXT("LH.Dev.DistanceCm.600"), TEXT("LH.Dev.Slot.Mid"));
         Target(TEXT("TargetLong"), FVector(0,0,0), TEXT("LH.Dev.DistanceCm.1600"), TEXT("LH.Dev.Slot.Long"));
+        Actor<ATargetPoint>(TEXT("LOSBlockedPosition"), FVector(600,820,0));
+        Actor<ATargetPoint>(TEXT("LOSClearPosition"), FVector(760,1000,0));
         Target(TEXT("TargetLOS"), FVector(600,1000,0), TEXT("LH.Dev.LOS"), TEXT("LH.Dev.Slot.LOS"));
     }
 };

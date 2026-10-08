@@ -4,8 +4,8 @@ Linux first on brewtop; Windows packaging and launch are deferred by the owner.
 Both Linux targets built in G0-L2. The coordinator reports all seven
 `Lighthaven.Rules.*` tests passed on the host (`result host-check`); this worker
 has not independently run them. See `docs/implementation/g0-linux-report.md`.
-The temporary startup and cooked map is the engine-provided `/Engine/Maps/Entry`.
-There are no authored project maps; package and launch evidence is still required.
+G1 startup is `/Game/Lighthaven/Maps/Dev_Combat`. The default explicit cook set
+is Dev_Combat plus Dev_Movement; regenerate both maps before packaging.
 
 ## Setup
 
@@ -65,14 +65,15 @@ audit; its Windows-primary recommendation predates the Linux-first decision.
    bash build/run-tests.sh
    bash build/run-tests.sh Lighthaven.Rules
    ```
-5. Package the configured temporary engine map with its explicit long package name:
+5. Package both G1 maps (default), or supply an explicit replacement map list:
    ```bash
+   bash build/package-linux.sh
+   bash build/package-linux.sh /Game/Lighthaven/Maps/Dev_Combat /Game/Lighthaven/Maps/Dev_Movement
    bash build/package-linux.sh /Engine/Maps/Entry
    ```
-   `Config/DefaultEngine.ini` selects Entry for game and editor startup;
-   `Config/DefaultGame.ini` includes it in MapsToCook; the script selects `-platform=Linux`.
-   A future project map must be created by the editor and have matching startup
-   and cook settings before replacing this temporary map.
+   Each argument must start with `/Game/` or `/Engine/`, without `.umap`,
+   whitespace or `+`. The script joins validated arguments into UAT `-map=A+B`;
+   this explicit list replaces MapsToCook. Startup settings are separate.
 6. Locate the game launcher in the printed archive directory, launch it from
    outside the editor on Linux, observe the intended map and a clean exit.
    Capture logs, exact executable path/hash and observed behavior. Cooking an
@@ -97,7 +98,7 @@ prove the original Windows delivery requirements or full gameplay acceptance.
   closed. SuccessWithWarnings also fails conservatively for review. The report
   format and command completion behavior need confirmation against UE 5.8.3.
   Headless tests do not establish rendering, controller or world traversal.
-- `package-linux.sh /Game/.../Map` or `/Engine/Maps/...`: invokes Linux Development BuildCookRun with
+- `package-linux.sh [explicit-map ...]`: invokes Linux Development BuildCookRun with
   build, cook, stage, pak, package and archive. UAT success establishes its
   reported pipeline outcome; manually launching the archive remains required.
 
