@@ -81,3 +81,4 @@ Open (Windows phase): Unreal writes project `Build/` (e.g. Build/Linux/FileOpenO
 
 Host test status (2026-10-08, main incl. W2-01/02/03): 56/56 Lighthaven Automation tests pass. Conventions: file-local helpers in file-unique namespaces (unity safety); never pass a TArray element to the same array's Add/Insert.
 | W2-01d canonical command digest (D04) + reward IDs (D06) | active | codex-sol | Source/Lighthaven/Persistence/, LighthavenTests/Persistence/ | W2-04 found W2-01 exposes only save Encode/Decode/Validate/Sha256; the character authority needs RequestDigest/GrowthId callbacks (test-only stand-ins today). Coordinator's W2-04 brief wrongly assumed W2-01 provided them |
+| A-04 graybox lighting and readability guide | active | codex-astra | docs/implementation/art/lighting/ | Wave 3 prep: light levels, torch placement, roof/wall occlusion for the elevated camera, landmark lighting per floor |
