@@ -1,12 +1,19 @@
-# W0-03 native contracts — schema revision 1 draft
+# Native contracts — schema revision 1 frozen (2026-10-08)
 
-**DRAFT, NOT COMPILED. Integrator review and freeze pending.** UE 5.8.3 Linux is not installed. No build, UHT, editor, native Automation, save round trip, cook, package or gameplay result is asserted. G0 remains blocked. Linux first and Windows deferred follow the owner decision in the status ledger, superseding the original plan's immediate Windows target.
+The integrator accepted D01–D17 in [schema-rev1-freeze.md](schema-rev1-freeze.md). S-02 applies the six accepted Core changes below. The native layout is marked rev 1 frozen as directed; the coordinator must still confirm the full host Automation suite before recording G0's schema requirement as complete. This document makes no gate, package or play claim. Linux first; Windows checks remain deferred.
 
-This is a translation of architecture §§3–7 and the planning examples, informed by the W0-01 rules/world ledgers. It supplies declarations and module boilerplate only. No formulas, GAS execution, validators, serialization, command processing, UI or AI are implemented. The illustrative JSON save is not loadable and is not an exact wire format; its null values remain unresolved in native records.
+1. `FLHRulesetRef.HashAlgorithm`: FName, default None; published rulesets require SHA256.
+2. `FLHRequestId.Epoch` and `FLHSessionRecord.RequestEpoch`: invalid GUID defaults. Authority requires epoch match and positive receipt sequence; retention follows D06.
+3. `FLHCreateCharacterRequest.PreviewToken`: invalid GUID default. `ELHLootTransferKind` is Unspecified/Item/Gold; loot Kind defaults Unspecified. A pure Core payload helper rejects unspecified kind, invalid item/gold sentinel combinations and unresolved/nonpositive quantity. Authority checks and settlement remain future work.
+4. `ULHAbilityDefinition.ExecutionClass`: soft UGameplayAbility class; `ImpactSeconds`: unresolved FLHNumber by default.
+5. `ULHDefinition.PresentationId`: default None; Visual retained as pre-freeze fallback. `ULHPresentationDefinition` derives from UPrimaryDataAsset, stores Id and soft UObject Visual, and fixes primary type to Presentation.
+6. Cooldown/effect records gain invalid entity Owner; save header gains PayloadCodec default None (required codec LHCanonicalBinary1). No animation/recovery state is serialized.
+
+Core header banners now identify the frozen revision. Codec/hash vectors, limits, RNG adapter/history, epoch/token/reward authority, owner-scoped restore and presentation delegates belong to Wave 2/4. Declarations and payload validation do not implement those behaviours. Illustrative JSON is not a loadable save or exact wire format. The accepted decision document governs the semantic invariants; the original W0-03 rationale below is retained as historical context where it describes unresolved implementation work.
 
 ## Files and ownership
 
-`Source/Lighthaven/Core/LHIdentity.h`, `LHValues.h`, `LHDefinitions.h`, `LHSaveSnapshot.h`, and `LHCommands.h` are the canonical native draft. Shared header changes remain with W0-03 integrator until freeze. Public module dependencies cover these declarations and proposed GAS/input seams; editor-only DataValidation dependencies live in LighthavenEditor. LighthavenTests is an empty editor module, not a claim that tests exist. The game target loads only Lighthaven. No server target exists.
+`Source/Lighthaven/Core/LHIdentity.h`, `LHValues.h`, `LHDefinitions.h`, `LHSaveSnapshot.h`, and `LHCommands.h` are the canonical frozen native layout. Subsequent shared header changes require integrator review. Public module dependencies cover these declarations and proposed GAS/input seams; editor-only DataValidation dependencies live in LighthavenEditor. LighthavenTests is the editor Automation module, including the S-02 Core schema fixtures. The game target loads only Lighthaven. No server target exists.
 
 The `.uproject` has EngineAssociation `5.8`, runtime/editor/editor-test modules, GameplayAbilities and EnhancedInput enabled, and DataValidation limited to Editor targets. JSON forbids literal comments: the first `_DraftComment` member carries the required draft warning while preserving JSON syntax. Unknown-member acceptance and plugin descriptor compatibility need actual UE validation. Build/IncludeOrder settings use `Latest` from the pinned installation; replace with explicit supported enumerators during integrator build validation. No version upgrade is authorized. No Config, map, binary asset, ledger or toolchain file is changed.
 
@@ -21,7 +28,7 @@ The `.uproject` has EngineAssociation `5.8`, runtime/editor/editor-test modules,
 | FLHEntityId | Stable instance key; W2-02/W3/W4-01/04 | Run GUID + area + instance GUID, persisted across unload/load; never array offset, actor label or pointer. Newly duplicated authored objects get fresh instance IDs. |
 | FLHSpawnLifeId | Encounter life key; W4-01/04 | Area + authored SpawnSlot GUID + nonnegative generation. Zero means initial life. Increment exactly once on permitted respawn; never on reload. |
 | FLHRewardId | Claim key; W2-02/W4-04/05 | Mint once per source life/objective and reward purpose, persist before publishing reward. Reapplying the same ID is harmless. A shared boss death/dialogue unique purpose resolves to the same claim. GUID creation alone does not establish this invariant; reward owner enforces mapping. |
-| FLHRequestId | Local intent idempotency key; W2-02/03, W4-07 | Fresh GUID for a new intent, retained for retries. Identical ID/payload returns original result; differing payload rejects. |
+| FLHRequestId | Local intent idempotency key; W2-02/03, W4-07 | Fresh GUID plus current authority-issued Epoch for a new intent, retained for retries. Identical ID/payload returns original result; differing payload rejects. |
 | ELHProvenanceStatus | Research status; W1-02/W4 data/editor validators | Missing default; Confirmed means documented only for named baseline. VerifiedT4C reserved for genuinely verified baseline evidence, never assigned automatically to ledger rows. Disputed/Modernized/Prototype preserved distinctly. |
 | FLHFieldProvenance | Field-level evidence; W0-03/W1-02/W4 | FieldPath, source URL/baseline/date, status, recorded value and notes. Empty URL permits authored tuning; notes identify choice. ISO retrieval date is inherited, not a fresh fetch. Contradictory entries may coexist for one path. |
 | ELHValueResolution | Presence, separate from provenance; all consumers | Unresolved never interpreted as zero; a known zero must explicitly be Resolved with provenance. |
@@ -81,7 +88,7 @@ Visual and execution references are soft; packaged-cook inclusion remains an Ass
 
 Proposed XP convention: ExperienceBalance is nonnegative retained progress; ExperienceDebt is a separate nonnegative deficit. New XP pays debt first, then progresses balance; earned level never decreases and debt recovery does not award points. Exact threshold/penalty conversion awaits rules owner and integrator. This avoids encoding the same deficit twice using both a negative balance and positive debt.
 
-Architecture envelope fields extend the incomplete planning example. JSON `null` ↔ Unresolved, resolved zero ↔ explicit Resolved(0). World active map/entrance normalize to Character.ActiveEntrance with area registry resolving map; fractional mana/RNG normalize to Session. No conflicting copies are maintained. Transport/codec is not specified by this draft.
+Architecture envelope fields extend the incomplete planning example. JSON `null` ↔ Unresolved, resolved zero ↔ explicit Resolved(0). World active map/entrance normalize to Character.ActiveEntrance with area registry resolving map; fractional mana/RNG normalize to Session. No conflicting copies are maintained. The accepted D04 specifies canonical codec bytes; implementation remains W2-01.
 
 W2-01 must implement bounded parsing/counts/bytes, checksum canonicalization, schema migrations, A/B generations, newest-valid fallback, one in-flight save and visible failures. Proposed saves occur only after completed commands/actions; cooldowns and approved effects persist. Restore definitions/migrate → initialize base/earned state → inventory/equipment → durable effects → clamp resources → enable simulation. Travel saves source checkpoint before loading, validates destination then saves arrival; crash/failure restores source. Death settles once and commits checkpoint before respawn. None of these behaviors have been implemented or tested here.
 
@@ -102,10 +109,10 @@ Reward retention: ordinary kill claim lives in encounter/corpse records; permane
 | FLHEquipItemRequest | Owned instance/slot and unequip flag; W2-02 | Legal slot/prerequisites, quiver rules, atomic swap; unequip uses same seam. |
 | FLHUseAbilityRequest | Definition and stable target; W1-03/W4-03 | Life state, knowledge/equipment, resource/cooldown/range/LOS, cancellation/impact policy. Activation+ImpactIndex dedup belongs to later ability layer. |
 | FLHInteractRequest | Stable object and topic; W3/W4-05 | Valid target, proximity, topic/quest state, no direct UI rewards. |
-| FLHTakeLootRequest | Container, item and quantity; W4-04 | Source contents, ownership/capacity, intact rejection; gold-only pickup sentinel policy still needs freeze. |
+| FLHTakeLootRequest | Container, item and quantity; W4-04 | Source contents, ownership/capacity, intact rejection; explicit Item/Gold kind and positive resolved quantity; Gold requires the default item sentinel. |
 | FLHRequestTravelRequest | Portal and expected destination; W3-04 | Resolve authoritative portal edge, validate destination and life/action state, source/arrival checkpoint durability. Never travel rewards. |
 
-Usage example (not compiled): submit `FLHLearnSpellRequest` with fresh Request GUID, Trainer's stable entity ID and `Spell.FireDart` to the owner-bound handler. Handle rejected `InsufficientGold` with no deductions; retry an identical payload with the same ID after an uncertain response. A new purchase/learning intent uses a new ID. No request lets the UI choose reward quantity, vendor price or acting owner.
+Conceptual usage example: submit `FLHLearnSpellRequest` with fresh Request GUID and current Epoch, Trainer's stable entity ID and `Spell.FireDart` to the owner-bound handler. Handle rejected `InsufficientGold` with no deductions; retry an identical payload with the same ID after an uncertain response. A new purchase/learning intent uses a new ID. No request lets the UI choose reward quantity, vendor price or acting owner.
 
 ## Proposed shared gameplay tags
 
@@ -140,9 +147,9 @@ Tags classify runtime facts; they do not replace stable content IDs or persisten
 
 No new gameplay tuning values are introduced. Structural constants such as schema revision 1, initial life generation 0 and invalid sentinels describe format/identity. A shipping-content validator must reject unresolved required mechanics and unresolved mandatory references; reviewed prototypes must explicitly resolve with Prototype evidence. Such validators remain W0 integrator/W1/W4 work.
 
-## Integrator decisions needed
+## Historical W0-03 decision checklist (resolved by S-01 acceptance; implementation pending)
 
-1. Review/freeze native revision 1; run actual UHT/C++ build under UE 5.8.3 Linux. Verify descriptor unknown member, Editor TargetAllowList, plugins, generated reflection, module dependencies and BuildSettings enumerators. Engine install remains prerequisite, Windows checks deferred.
+1. Review/freeze native revision 1; run actual UHT/C++ build under UE 5.8.3 Linux. Verify descriptor unknown member, Editor TargetAllowList, plugins, generated reflection, module dependencies and BuildSettings enumerators. Engine installation is available; Windows checks remain deferred.
 2. Freeze canonical names/prefixes, ruleset alias and primary type mapping, area/entrance/slot/entity/run IDs and cross-area instance policy. Validate duplication and map references before cook.
 3. Freeze hash algorithms/canonical bytes, payload checksum, byte/count/growth/RNG/diagnostic limits, revisions/migrations and GUID reward-purpose mapping. Decide bounded replay/ordinary-reward retention without losing idempotency.
 4. Approve XP balance/debt normalization, policy vocabularies and concrete fields/units replacing generic definition shell parameters. Freeze explicit no-requirement versus missing interpretation and status access discipline.
@@ -150,4 +157,4 @@ No new gameplay tuning values are introduced. Structural constants such as schem
 6. Decide creation roll authorization representation (validated local preview token or regeneration check); draft caller values are never authority. Freeze gold-only loot semantics, quantity validation, and maximum counters/overflow rejection.
 7. Reconcile pending W0-04 visual evidence; freeze portal pairing/landing transforms only after traces and real traversal. Update coordinator-owned status/toolchain ledger after review; these paths were not edited here.
 
-Next work: coordinator reviews and freezes or requests corrections; after UE 5.8.3 Linux provisioning, compile/UHT and native contract/save fixtures before opening dependent Wave 1/2 implementation. This document is evidence candidate material, not a gate pass.
+Next work: coordinator runs the full host Lighthaven Automation suite and records the freeze requirement after review. Wave 2/4 owners implement the accepted accompanying behaviours and their validation; no gate pass is asserted here.

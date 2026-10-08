@@ -1,4 +1,4 @@
-// DRAFT schema rev 1 — NOT COMPILED (no Unreal Engine installed); integrator review pending
+// Schema revision 1 (frozen 2026-10-08, see docs/implementation/schema-rev1-freeze.md)
 #pragma once
 
 #include "CoreMinimal.h"
@@ -17,6 +17,7 @@ USTRUCT(BlueprintType)
 struct LIGHTHAVEN_API FLHRequestId
 {
     GENERATED_BODY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FGuid Epoch;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FGuid Value;
 };
 

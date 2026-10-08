@@ -1,4 +1,4 @@
-// DRAFT schema rev 1 — NOT COMPILED (no Unreal Engine installed); integrator review pending
+// Schema revision 1 (frozen 2026-10-08, see docs/implementation/schema-rev1-freeze.md)
 #pragma once
 
 #include "CoreMinimal.h"
@@ -77,6 +77,7 @@ struct LIGHTHAVEN_API FLHRulesetRef
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHContentId Id;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) int32 Revision = 0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FString ContentHash;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FName HashAlgorithm = NAME_None;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) ELHMigrationPolicy MigrationPolicy = ELHMigrationPolicy::Reject;
 };
 

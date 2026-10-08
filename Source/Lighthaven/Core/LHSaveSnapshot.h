@@ -1,4 +1,4 @@
-// DRAFT schema rev 1 — NOT COMPILED (no Unreal Engine installed); integrator review pending
+// Schema revision 1 (frozen 2026-10-08, see docs/implementation/schema-rev1-freeze.md)
 #pragma once
 
 #include "CoreMinimal.h"
@@ -199,6 +199,7 @@ USTRUCT(BlueprintType)
 struct LIGHTHAVEN_API FLHCooldownRecord
 {
     GENERATED_BODY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHEntityId Owner;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHContentId Ability;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHNumber RemainingSeconds;
 };
@@ -208,6 +209,7 @@ USTRUCT(BlueprintType)
 struct LIGHTHAVEN_API FLHDurableEffectRecord
 {
     GENERATED_BODY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHEntityId Owner;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHContentId Effect;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHEntityId Source;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHNumber RemainingSeconds;
@@ -230,6 +232,7 @@ USTRUCT(BlueprintType)
 struct LIGHTHAVEN_API FLHSessionRecord
 {
     GENERATED_BODY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FGuid RequestEpoch;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) TArray<FLHRngState> GameplayRng;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHNumber ManaRegenFractionalSeconds;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) ELHEffectSavePolicy EffectPolicy = ELHEffectSavePolicy::Unresolved;
@@ -254,6 +257,7 @@ struct LIGHTHAVEN_API FLHSaveHeader
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHCharacterId CharacterId;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) int64 PayloadLengthBytes = 0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FName ChecksumAlgorithm = NAME_None;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FName PayloadCodec = NAME_None;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FString PayloadChecksum;
 };
 

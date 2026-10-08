@@ -1,4 +1,4 @@
-// DRAFT schema rev 1 — NOT COMPILED (no Unreal Engine installed); integrator review pending
+// Schema revision 1 (frozen 2026-10-08, see docs/implementation/schema-rev1-freeze.md)
 #pragma once
 
 #include "CoreMinimal.h"
@@ -8,6 +8,7 @@
 #include "LHDefinitions.generated.h"
 
 class UWorld;
+class UGameplayAbility;
 
 UENUM(BlueprintType)
 enum class ELHEquipmentSlot : uint8
@@ -87,11 +88,24 @@ class LIGHTHAVEN_API ULHDefinition : public UPrimaryDataAsset
     GENERATED_BODY()
 public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly) FLHContentId Id;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly) FLHContentId PresentationId;
     UPROPERTY(EditAnywhere, BlueprintReadOnly) TArray<FLHFieldProvenance> FieldProvenance;
+    // Deprecated authoring-only fallback for pre-freeze fixtures.
     UPROPERTY(EditAnywhere, BlueprintReadOnly) TSoftObjectPtr<UObject> Visual;
     virtual FPrimaryAssetId GetPrimaryAssetId() const override { return FPrimaryAssetId(PrimaryType(), Id.Value); }
 protected:
     virtual FName PrimaryType() const PURE_VIRTUAL(ULHDefinition::PrimaryType, return NAME_None;);
+};
+
+// Cosmetic binding, separate from mechanical definitions.
+UCLASS(BlueprintType)
+class LIGHTHAVEN_API ULHPresentationDefinition : public UPrimaryDataAsset
+{
+    GENERATED_BODY()
+public:
+    UPROPERTY(EditAnywhere, BlueprintReadOnly) FLHContentId Id;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly) TSoftObjectPtr<UObject> Visual;
+    virtual FPrimaryAssetId GetPrimaryAssetId() const override { return FPrimaryAssetId(FName(TEXT("Presentation")), Id.Value); }
 };
 
 UCLASS(BlueprintType)
@@ -131,7 +145,8 @@ class LIGHTHAVEN_API ULHAbilityDefinition : public ULHDefinition
     GENERATED_BODY()
 public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly) FLHEligibility Eligibility;
-    UPROPERTY(EditAnywhere, BlueprintReadOnly) TSoftClassPtr<UObject> ExecutionClass;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly) TSoftClassPtr<UGameplayAbility> ExecutionClass;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly) FLHNumber ImpactSeconds;
     UPROPERTY(EditAnywhere, BlueprintReadOnly) FLHInteger LearningSkillPoints;
     UPROPERTY(EditAnywhere, BlueprintReadOnly) FLHInteger LearningGold;
     UPROPERTY(EditAnywhere, BlueprintReadOnly) FLHNumber ManaCost;

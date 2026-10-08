@@ -1,4 +1,4 @@
-// DRAFT schema rev 1 — NOT COMPILED (no Unreal Engine installed); integrator review pending
+// Schema revision 1 (frozen 2026-10-08, see docs/implementation/schema-rev1-freeze.md)
 #pragma once
 
 #include "CoreMinimal.h"
@@ -38,6 +38,7 @@ struct LIGHTHAVEN_API FLHCreateCharacterRequest
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FString DisplayName;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) TArray<FLHContentId> AppearanceIds;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHCreationRecord Creation;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FGuid PreviewToken;
 };
 
 // Owner resolved from interface context, never from caller identity. Inputs are intents, not trusted state.
@@ -123,11 +124,18 @@ struct LIGHTHAVEN_API FLHInteractRequest
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHContentId Topic;
 };
 
+UENUM(BlueprintType)
+enum class ELHLootTransferKind : uint8
+{
+    Unspecified, Item, Gold
+};
+
 // Owner resolved from interface context, never from caller identity. Inputs are intents, not trusted state.
 USTRUCT(BlueprintType)
 struct LIGHTHAVEN_API FLHTakeLootRequest
 {
     GENERATED_BODY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) ELHLootTransferKind Kind = ELHLootTransferKind::Unspecified;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHRequestId Request;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHEntityId Container;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHEntityId Item;
@@ -143,6 +151,26 @@ struct LIGHTHAVEN_API FLHRequestTravelRequest
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHEntityId Portal;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHEntranceId Destination;
 };
+
+// Pure payload validation only; authority must still validate source ownership,
+// available quantity, capacity, overflow and atomic settlement.
+inline ELHCommandReason LHValidateLootTransferPayload(const FLHTakeLootRequest& Request)
+{
+    if (Request.Quantity.Resolution != ELHValueResolution::Resolved || Request.Quantity.Value <= 0)
+        return ELHCommandReason::InvalidRequest;
+    const FLHEntityId& Item = Request.Item;
+    switch (Request.Kind)
+    {
+    case ELHLootTransferKind::Item:
+        return Item.RunId.IsValid() && !Item.Area.Content.Value.IsNone() && Item.InstanceId.IsValid()
+            ? ELHCommandReason::None : ELHCommandReason::InvalidRequest;
+    case ELHLootTransferKind::Gold:
+        return !Item.RunId.IsValid() && Item.Area.Content.Value.IsNone() && !Item.InstanceId.IsValid()
+            ? ELHCommandReason::None : ELHCommandReason::InvalidRequest;
+    default:
+        return ELHCommandReason::InvalidRequest;
+    }
+}
 
 // Native synchronous game-thread seam; one implementation owned by the local authority.
 // No bus, transport, actor lookup, mutation implementation or Blueprint bypass is supplied here.
