@@ -47,3 +47,10 @@ Host test status (2026-10-08, main incl. W1-01): editor+game build OK; 22/22 Lig
 Binary asset locks: Content/Lighthaven/Maps/Dev_Movement.umap and Dev_Combat.umap are generated only by build/generate-dev-maps.sh (W1-04 commandlet); never hand-edit.
 
 Host test status (2026-10-08, main incl. S-02): 30/30 Lighthaven Automation tests pass (13 Rules, 8 Abilities, 3 Controls, 4 Integration, 2 Core.Schema).
+
+| Task | Status | Profile | Owned paths / binary assets | Notes |
+|---|---|---|---|---|
+| W2-01 persistence | planned, **held for G1** | codex-sol | Source/Lighthaven/Persistence/, LighthavenTests/Persistence/ | Brief ready (coordinator scratch/wave2). Launch after Matt's G1 play check |
+| W2-02 character | planned, **held for G1** | codex-sol | Source/Lighthaven/Character/, LighthavenTests/Character/ | Brief ready |
+| W2-03 frontend/character UI | planned, **held for G1** | codex-sol | Source/Lighthaven/UI/, LighthavenTests/UI/, frontend map commandlet | Brief ready; L_Frontend generated on host |
+| W2-04 Wave 2 integration | planned (after W2-01..03) | codex-sol | Framework/, Config/, LighthavenTests/Integration/ | Brief ready; produces G2 checklist |
