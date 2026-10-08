@@ -19,3 +19,6 @@ DerivedDataCache/
 *.code-workspace
 *.xcodeproj/
 *.xcworkspace/
+
+# UAT cooker file-order logs (generated)
+/Build/Linux/FileOpenOrder/
