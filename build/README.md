@@ -1,9 +1,10 @@
 # Linux build and G0 preparation
 
 Linux first on brewtop; Windows packaging and launch are deferred by the owner.
-These helpers are written but have not run against Unreal Engine. G0 remains
-blocked until the real checks below produce evidence. Source contracts are still
-drafts; there are currently no native tests or authored maps.
+The G0-L editor build reached successful UHT on UE 5.8.3, then stopped at a
+sandbox-denied UBA cache write before C++ compilation. G0 remains blocked; see
+`docs/implementation/g0-linux-report.md`. Source contracts remain drafts; native
+Automation fixtures exist but have not run, and there are no authored maps.
 
 ## Setup
 
@@ -88,8 +89,16 @@ prove the original Windows delivery requirements or full gameplay acceptance.
   build, cook, stage, pak, package and archive. UAT success establishes its
   reported pipeline outcome; manually launching the archive remains required.
 
-Build/package logs live under unique Saved/Logs directories. Automation uses a
+Build logs live under unique ignored build/logs directories; package logs live
+under unique Saved/Logs directories. Automation uses a
 fresh Saved/Automation.* directory per run, so stale reports cannot pass a new
 run. Packages are archived under unique build/output/Linux-* directories.
 All are ignored by Git. Pipelines preserve engine command failure status.
 Scripts neither manufacture assets nor edit shared source/config/ledgers.
+
+Installed-engine builds default an unset `XDG_CONFIG_HOME` to
+`Saved/BuildEnvironment/config`, creating it before UBT starts. This prevents
+.NET ApplicationData from resolving relative to a read-only engine when the
+worker has no user config directory. This does not redirect UBA's separate
+default `~/.epic/UnrealBuildAccelerator` cache; G0-L stopped when that path was
+denied by the sandbox. No full build result is established by the config fix.

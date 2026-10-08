@@ -2,9 +2,23 @@
 
 Inspection date: 2026-10-07. Base: `5ab4515797f7588968661fdaa0ee34def799f5a0`. Contract revision 1. Scope: `build/` only; no binary assets owned. This is a read-only host audit and proposed configuration, not a compiled project.
 
-**G0: BLOCKED.** No accessible Unreal editor/engine, Epic native SDK, Windows build machine/toolchain, or C++ project is available. No compile, editor, import, Automation test, cook, package, executable launch or play check ran. Schema revision 1 still requires integrator approval. The coordinator must carry this blocked status into the shared ledger; that ledger is outside this worker's ownership.
+**Historical W0-02 result: G0 BLOCKED at that inspection.** No accessible Unreal editor/engine, Epic native SDK, Windows build machine/toolchain, or C++ project was available then. No compile, editor, import, Automation test, cook, package, executable launch or play check ran. Schema revision 1 still requires integrator approval. The coordinator must carry this blocked status into the shared ledger; that ledger is outside this worker's ownership.
 
-## Observed host
+## G0-L observed update — 2026-10-07 Toronto / 2026-10-08 UTC
+
+**Linux G0 remains blocked; Windows packaging/launch deferred.** Engine and native SDK are now accessible. The editor build reached successful UHT, then failed before C++ actions because the sandbox denies the default UBA cache directory. This supersedes the old engine-absence finding below, not the historical audit evidence.
+
+- Engine: read-only FUSE mount `/home/brewerm/mnt/ue5.8.3`; `Build.version` reports **5.8.3, CL 58210709**, compatible CL 55116800, `++UE5+Release-5.8`, promoted installed build. Both `Engine/Binaries/Linux/UnrealEditor` and `UnrealEditor-Cmd` exist and are executable. Neither editor executable was launched. Archive checksum not measured.
+- Bundled SDK: `Engine/Extras/ThirdPartyNotUE/SDKs/HostLinux/Linux_x64/v26_clang-20.1.8-rockylinux8/x86_64-unknown-linux-gnu`, including `bin`, `include`, `lib`, `lib64`, `usr`. Compiler executed: clang **20.1.8**, LLVM revision `87f0227cb60147a26a1eeb4fb06e3b505e9c7261`. UBT selected this SDK, bundled libc++, llvm-ar 20.1.8 and ISPC 1.24.0.
+- Host: brewtop, x86_64 Linux `7.2.5-3-omarchy`; UBT observed 6 physical / 12 logical cores and selected 6 parallel processes. `git lfs version` returned 3.8.0. Graphics were not re-probed or tested in this attempt.
+- First exact command: `UE_ROOT=/home/brewerm/mnt/ue5.8.3 bash build/build-linux.sh`; exit **134**, with `System.IO.IOException: Read-only file system : '/home/brewerm/mnt/ue5.8.3/Epic'`. Installed UBT resolves .NET ApplicationData plus `Epic`; absent user config caused an engine-relative path. Retry used an existing project-local XDG config directory, with no engine/system writes.
+- Retry: `XDG_CONFIG_HOME="$PWD/Saved/BuildEnvironment/config" UE_ROOT=/home/brewerm/mnt/ue5.8.3 bash build/build-linux.sh`; exit **6**. UBT reported `UHT processed LighthavenEditor in 26.4897962 seconds (12 generated files written)`, then `Using Unreal Build Accelerator local executor to run 15 action(s)` and `IOException: Read-only file system : '/home/brewerm/.herdr-farm-homes/codex-sol/.epic'`. UBT total execution time **81.33 seconds**. No successful C++ compile/link is established.
+- Stop checkpoint: default UBA root is `/home/brewerm/.herdr-farm-homes/codex-sol/.epic/UnrealBuildAccelerator`; parent creation is denied. No attempt was made to bypass the sandbox, change HOME, install anything, or write engine files. Engine source exposes `UBA_ROOT`/RootDir selection; a subsequent authorized build task can choose its allowed cache policy. It has not been tested here.
+- Changes: build environment defaults unset XDG_CONFIG_HOME to project-local `Saved/BuildEnvironment/config`; editor/game build logs now go to ignored `build/logs/`. Existing explicit XDG_CONFIG_HOME remains respected. Tests, game build, map creation, cook, package and packaged launch were **not run** after the hard blocker.
+
+Full logs: ignored `build/logs/g0-editor-console.log`, `g0-editor-xdg-console.log`, `g0-ubt.log`, `g0-trace.uba`; copies accompany the attempt's output `library/`. See [G0-L handoff](../docs/implementation/g0-linux-report.md). Coordinator must update its owned status ledger and retain schema revision 1 as unfrozen pending compile and decisions.
+
+## Historical observed host
 
 Exact probe commands, full output and exit statuses are in [host-inspection.txt](host-inspection.txt). Negative results describe this isolated worker's visible filesystem/device namespace, not proof about inaccessible host locations.
 
