@@ -219,6 +219,14 @@ LH_TEST(FLHPersistenceBounds,"BoundsBeforeAllocation")
     auto S=Fixture(); TArray<uint8> Bytes; FLHSaveError Error; FLHSaveSnapshot Loaded; FLHSaveDecodeStats Stats;
     if (!TestTrue(TEXT("Encode fixture"),LHSave::Encode(S,Bytes,Error))) return false;
     const auto Original=Bytes;
+    auto NulName=S; NulName.Character.DisplayName.AppendChar(0); NulName.Character.DisplayName+=TEXT("hidden");
+    TestFalse(TEXT("Embedded NUL character name encode rejects"),LHSave::Encode(NulName,Bytes,Error));
+    TestTrue(TEXT("Embedded NUL character name reason"),Error.Reason==ELHSaveReason::Malformed);
+    auto NulDiagnostic=S; FString Diagnostic=TEXT("visible"); Diagnostic.AppendChar(0); Diagnostic+=TEXT("hidden");
+    NulDiagnostic.Session.Diagnostics.Add(Diagnostic);
+    TestFalse(TEXT("Embedded NUL diagnostic encode rejects"),LHSave::Encode(NulDiagnostic,Bytes,Error));
+    TestTrue(TEXT("Embedded NUL diagnostic reason"),Error.Reason==ELHSaveReason::Malformed);
+    Bytes=Original;
     SetU32(Bytes,6,LHSave::MaxHeaderBytes+1);
     TestFalse(TEXT("Oversize header"),LHSave::Decode(Bytes,S.Header.CharacterId,Compatibility(S),Loaded,Error,&Stats));
     TestTrue(TEXT("Header oversize reason"),Error.Reason==ELHSaveReason::Oversize); TestFalse(TEXT("No payload allocation"),Stats.bPayloadAllocationStarted);

@@ -171,7 +171,9 @@ bool LHSave::Validate(const FLHSaveSnapshot& S, FLHSaveError& E)
     int32 DiagnosticBytes=0;
     for (const auto& D:S.Session.Diagnostics)
     {
-        FTCHARToUTF8 U(*D); if (U.Length()>512 || U.Length()>32768-DiagnosticBytes) { E={ELHSaveReason::Oversize,TEXT("Diagnostic byte limit")}; return false; }
+        for (int32 I=0; I<D.Len(); ++I)
+            if (D[I]==0) { E={ELHSaveReason::Malformed,TEXT("Embedded NUL in diagnostic")}; return false; }
+        FTCHARToUTF8 U(*D,D.Len()); if (U.Length()>512 || U.Length()>32768-DiagnosticBytes) { E={ELHSaveReason::Oversize,TEXT("Diagnostic byte limit")}; return false; }
         DiagnosticBytes+=U.Length();
     }
     return true;

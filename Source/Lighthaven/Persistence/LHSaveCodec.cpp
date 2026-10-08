@@ -88,6 +88,10 @@ struct FWire
             for (int32 I=0; I<V.Len(); ++I)
             {
                 const uint32 C=static_cast<uint32>(V[I]);
+                // Even explicit-length conversion can stop at NUL on some platforms.
+                // Check the native storage before conversion so suffixes cannot disappear.
+                if (C==0)
+                { Fail(ELHSaveReason::Malformed,TEXT("Embedded NUL in string")); return; }
                 if constexpr (sizeof(TCHAR)==2)
                 {
                     if (C>=0xd800 && C<=0xdbff)
