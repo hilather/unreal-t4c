@@ -3,6 +3,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Input/LHInputConfig.h"
 #include "Input/LHTargeting.h"
+#include "Core/LHCommands.h"
 #include "LHPlayerController.generated.h"
 struct FInputActionValue;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLHControlRequest, AActor*, Target);
@@ -17,16 +18,24 @@ public:
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type Reason) override;
     virtual void PlayerTick(float DeltaSeconds) override;
+    virtual void OnPossess(APawn* Pawn) override;
     virtual void OnUnPossess() override;
     UFUNCTION(BlueprintCallable) void SetControlContext(ELHInputContext Context);
     UFUNCTION(BlueprintCallable) void ClearHeldMovement();
     UFUNCTION(BlueprintPure) AActor* GetSelectedTarget() const { return SelectedTarget.Get(); }
-    // Explicit unconnected seams: integrator binds these to authority, converting actor to stable ID.
+    // Native transient-world intent seam; canonical command IDs/replay remain future work.
+    UFUNCTION(BlueprintCallable) bool SelectTarget(AActor* Target);
+    UFUNCTION(BlueprintCallable) void CycleTarget(int32 Direction) { Cycle(Direction); }
+    UFUNCTION(BlueprintCallable) ELHCommandReason RequestSelectedAttack();
+    FVector2D GetHeldMovement() const { return Movement.Held; }
+    // Semantic movement ingress shared by Enhanced Input and integration tests.
+    void SubmitMovement(FVector2D Axis);
+    // Notification only: listeners must not implement a second damage path.
     UPROPERTY(BlueprintAssignable) FLHControlRequest OnAttackRequested;
     UPROPERTY(BlueprintAssignable) FLHControlRequest OnInteractRequested;
     UPROPERTY(BlueprintAssignable) FLHScreenRequest OnScreenRequested;
     UPROPERTY(BlueprintAssignable) FLHScreenRequest OnMenuInput;
-    UPROPERTY(EditAnywhere, Category="Prototype") float SelectionRange=2000.f;
+    UPROPERTY(EditAnywhere, Category="Prototype") float SelectionRange=200.f;
     UPROPERTY(Transient) TObjectPtr<ULHInputConfig> InputConfig;
 private:
     ELHInputContext ActiveContext=ELHInputContext::Gameplay;

@@ -4,6 +4,7 @@
 #include "AbilitySystemInterface.h"
 #include "LHPlayerState.generated.h"
 class ULHCombatComponent;
+struct FLHHitIdentity;
 UCLASS()
 class LIGHTHAVEN_API ALHPlayerState : public APlayerState, public IAbilitySystemInterface
 {
@@ -15,5 +16,6 @@ public:
     void InitializeAvatar(APawn* Avatar);
     void ClearAvatar();
 private:
+    void HandleAvatarDeath(const FLHHitIdentity& Identity);
     UPROPERTY(VisibleAnywhere) TObjectPtr<ULHCombatComponent> Combat;
 };

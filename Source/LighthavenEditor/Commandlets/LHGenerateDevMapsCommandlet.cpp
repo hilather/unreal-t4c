@@ -1,5 +1,8 @@
 #include "LHGenerateDevMapsCommandlet.h"
 #include "Editor.h"
+#include "Framework/LHGameMode.h"
+#include "Framework/LHEnemyCharacter.h"
+#include "Components/CapsuleComponent.h"
 #include "FileHelpers.h"
 #include "ActorFactories/ActorFactory.h"
 #include "Builders/CubeBuilder.h"
@@ -74,10 +77,7 @@ struct FRoom
             Builder->X = 4000; Builder->Y = 3000; Builder->Z = 1200;
             UActorFactory::CreateBrushForVolumeActor(Nav, Builder);
         }
-        // Parallel W1-03 integration: no hard dependency on an unavailable runtime class.
-        UClass* Mode = FSoftClassPath(TEXT("/Script/Lighthaven.LHGameMode")).TryLoadClass<AGameModeBase>();
-        if (Mode) World->GetWorldSettings()->DefaultGameMode = Mode;
-        else UE_LOG(LogTemp, Warning, TEXT("LHGameMode unavailable; using configured/engine GameMode fallback"));
+        World->GetWorldSettings()->DefaultGameMode = ALHGameMode::StaticClass();
     }
 
     void Movement()
@@ -121,6 +121,13 @@ struct FRoom
         {
             Marker->Tags.Append({FName(TEXT("LH.Dev.DummySpawn")), FName(DistanceTag), FName(SlotTag)});
         }
+        const FString DummyName = FString(Name) + TEXT("Dummy");
+        const float HalfHeight = GetDefault<ALHEnemyCharacter>()->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+        if (auto* Dummy = Actor<ALHEnemyCharacter>(*DummyName, Position + FVector(0,0,HalfHeight)))
+            Dummy->Tags.Add(TEXT("LH.Dev.CombatFixture"));
+        // Visible capsule-sized ruler; no extra blocking/damage actor.
+        Shape(*(DummyName + TEXT("Visual")), Position + FVector(0,0,HalfHeight),
+            FVector(68,68,HalfHeight*2), FRotator::ZeroRotator, false, true);
         const FString VisualName = FString(Name) + TEXT("Ruler");
         Shape(*VisualName, FVector(Position.X,Position.Y,2), FVector(70,70,4), FRotator::ZeroRotator, false, true);
     }

@@ -1,5 +1,9 @@
 #include "Framework/LHPlayerController.h"
 #include "Framework/LHCharacter.h"
+#include "Framework/LHPlayerState.h"
+#include "Framework/LHEnemyCharacter.h"
+#include "Framework/LHDevCombatFixture.h"
+#include "Abilities/LHCombatComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
@@ -20,10 +24,25 @@ void ALHPlayerController::BeginPlay()
 void ALHPlayerController::EndPlay(const EEndPlayReason::Type Reason)
 {
     FCoreDelegates::ApplicationWillDeactivateDelegate.Remove(DeactivateHandle);
+    if (auto* State=GetPlayerState<ALHPlayerState>()) State->ClearAvatar();
     ClearHeldMovement();
     Super::EndPlay(Reason);
 }
-void ALHPlayerController::OnUnPossess() { ClearHeldMovement(); SelectedTarget.Reset(); Super::OnUnPossess(); }
+void ALHPlayerController::OnPossess(APawn* Pawn)
+{
+    Super::OnPossess(Pawn);
+    if (auto* State=GetPlayerState<ALHPlayerState>())
+    {
+        LHDevCombat::InitializeForMap(State->GetCombatComponent(), Pawn);
+        State->InitializeAvatar(Pawn);
+    }
+    ClearHeldMovement();
+}
+void ALHPlayerController::OnUnPossess()
+{
+    if (auto* State=GetPlayerState<ALHPlayerState>()) State->ClearAvatar();
+    ClearHeldMovement(); SelectedTarget.Reset(); Super::OnUnPossess();
+}
 void ALHPlayerController::SetupInputComponent()
 {
     Super::SetupInputComponent();
@@ -72,12 +91,20 @@ void ALHPlayerController::PlayerTick(float DeltaSeconds)
     if (SelectedTarget.IsValid() && !ValidTarget(SelectedTarget.Get())) SelectedTarget.Reset();
     if (ActiveContext==ELHInputContext::Gameplay) if (auto* C=Cast<ALHCharacter>(GetPawn()))
     {
+        auto* State=GetPlayerState<ALHPlayerState>();
+        if (State && State->GetCombatComponent()->IsActionPending()) { C->ConsumeMovementInputVector(); return; }
         const FRotator Yaw(0,C->CameraYaw(),0);
         C->AddMovementInput(Yaw.Vector(),Movement.Held.Y);
         C->AddMovementInput(FRotationMatrix(Yaw).GetUnitAxis(EAxis::Y),Movement.Held.X);
     }
 }
-void ALHPlayerController::Move(const FInputActionValue& V) { if (bHadFocus && !bAwaitMoveRelease && ActiveContext==ELHInputContext::Gameplay) Movement.Held=V.Get<FVector2D>().GetClampedToMaxSize(1); }
+void ALHPlayerController::Move(const FInputActionValue& V) { SubmitMovement(V.Get<FVector2D>()); }
+void ALHPlayerController::SubmitMovement(FVector2D Axis)
+{
+    if (Axis.IsNearlyZero()) bAwaitMoveRelease=false;
+    if (bHadFocus && !bAwaitMoveRelease && ActiveContext==ELHInputContext::Gameplay)
+        Movement.Held=Axis.GetClampedToMaxSize(1);
+}
 void ALHPlayerController::StopMove(const FInputActionValue&) { Movement.Clear(); }
 void ALHPlayerController::Look(const FInputActionValue& V)
 {
@@ -95,8 +122,24 @@ void ALHPlayerController::Zoom(const FInputActionValue& V) { if (!bHadFocus || A
 void ALHPlayerController::ToggleRun() { if (auto* C=Cast<ALHCharacter>(GetPawn())) C->ToggleRun(); }
 bool ALHPlayerController::ValidTarget(AActor* A) const
 {
-    if (!IsValid(A) || A==GetPawn() || !GetPawn() || !A->Implements<ULHControlTarget>()) return false;
-    if (!ILHControlTarget::Execute_IsControlTargetAlive(A) || !ILHControlTarget::Execute_IsControlTargetReachable(A,GetPawn())) return false;
+    if (!IsValid(A) || A==GetPawn() || !GetPawn()) return false;
+    if (auto* Enemy=Cast<ALHEnemyCharacter>(A))
+    {
+        auto* State=GetPlayerState<ALHPlayerState>();
+        if (!State) return false;
+        // Reuse authority's life/range/LOS checks. Temporary action/resource rejection
+        // does not remove a selectable target; submission still validates everything.
+        const auto Reason=State->GetCombatComponent()->ValidateAttack(Enemy->GetCombatComponent());
+        if (Reason!=ELHCommandReason::None && Reason!=ELHCommandReason::ActiveAction &&
+            Reason!=ELHCommandReason::Cooldown && Reason!=ELHCommandReason::InsufficientMana) return false;
+        if (!Enemy->GetCombatComponent()->IsAlive()) return false;
+
+    }
+    else
+    {
+        if (!A->Implements<ULHControlTarget>()) return false;
+        if (!ILHControlTarget::Execute_IsControlTargetAlive(A) || !ILHControlTarget::Execute_IsControlTargetReachable(A,GetPawn())) return false;
+    }
     if (FVector::DistSquared(A->GetActorLocation(),GetPawn()->GetActorLocation())>FMath::Square(SelectionRange)) return false;
     FHitResult Hit; FCollisionQueryParams Params; Params.AddIgnoredActor(GetPawn());
     const bool Blocked=GetWorld()->LineTraceSingleByChannel(Hit,GetPawn()->GetActorLocation(),A->GetActorLocation(),ECC_Visibility,Params);
@@ -124,7 +167,24 @@ void ALHPlayerController::SelectMouse()
     FHitResult Hit; GetHitResultUnderCursor(ECC_Visibility,false,Hit);
     SelectedTarget=ValidTarget(Hit.GetActor()) ? Hit.GetActor() : nullptr;
 }
-void ALHPlayerController::Attack() { if (ActiveContext==ELHInputContext::Gameplay && ValidTarget(SelectedTarget.Get())) OnAttackRequested.Broadcast(SelectedTarget.Get()); }
+bool ALHPlayerController::SelectTarget(AActor* Target)
+{
+    SelectedTarget=ActiveContext==ELHInputContext::Gameplay && ValidTarget(Target) ? Target : nullptr;
+    return SelectedTarget.IsValid();
+}
+ELHCommandReason ALHPlayerController::RequestSelectedAttack()
+{
+    if (ActiveContext!=ELHInputContext::Gameplay) return ELHCommandReason::InvalidRequest;
+    auto* State=GetPlayerState<ALHPlayerState>();
+    auto* Enemy=Cast<ALHEnemyCharacter>(SelectedTarget.Get());
+    if (!State || !Enemy) return ELHCommandReason::NotFound;
+    const auto Reason=State->GetCombatComponent()->RequestBasicAttack(Enemy->GetCombatComponent());
+    UE_LOG(LogTemp, Display, TEXT("LH attack request: %s"), *StaticEnum<ELHCommandReason>()->GetNameStringByValue(static_cast<int64>(Reason)));
+    if (Reason==ELHCommandReason::None) { ClearHeldMovement(); OnAttackRequested.Broadcast(Enemy); }
+    return Reason;
+}
+void ALHPlayerController::Attack() { RequestSelectedAttack(); }
+// Wave 2+: intent notification only, no interaction transaction exists yet.
 void ALHPlayerController::Interact() { if (!SelectedTarget.IsValid()) Cycle(1); if (ActiveContext==ELHInputContext::Gameplay && ValidTarget(SelectedTarget.Get())) OnInteractRequested.Broadcast(SelectedTarget.Get()); }
 void ALHPlayerController::OpenScreen(FName Screen) { SetControlContext(ELHInputContext::UI); OnScreenRequested.Broadcast(Screen); }
 void ALHPlayerController::OpenCharacter() { OpenScreen("Character"); }

@@ -1,15 +1,17 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "AbilitySystemInterface.h"
 #include "LHCharacter.generated.h"
 class USpringArmComponent;
 class UCameraComponent;
 UCLASS()
-class LIGHTHAVEN_API ALHCharacter : public ACharacter
+class LIGHTHAVEN_API ALHCharacter : public ACharacter, public IAbilitySystemInterface
 {
     GENERATED_BODY()
 public:
     ALHCharacter();
+    virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
     void ToggleRun();
     void RotateCamera(FVector2D Delta);
     void ZoomCamera(float Delta);

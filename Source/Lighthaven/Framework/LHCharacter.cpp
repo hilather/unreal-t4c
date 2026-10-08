@@ -1,4 +1,5 @@
 #include "Framework/LHCharacter.h"
+#include "Framework/LHPlayerState.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -31,3 +32,9 @@ void ALHCharacter::RotateCamera(FVector2D Delta)
 }
 void ALHCharacter::ZoomCamera(float Delta) { CameraBoom->TargetArmLength=FMath::Clamp(CameraBoom->TargetArmLength-Delta*100.f,900.f,1800.f); }
 float ALHCharacter::CameraYaw() const { return CameraBoom->GetComponentRotation().Yaw; }
+
+UAbilitySystemComponent* ALHCharacter::GetAbilitySystemComponent() const
+{
+    const auto* State = GetPlayerState<ALHPlayerState>();
+    return State ? State->GetAbilitySystemComponent() : nullptr;
+}
