@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-labelledby="title desc"><title id="title">LIGHTHAVEN / Colour and type</title><desc id="desc">V-03 first-pass proposal · inherited V-02 palette · static design specimen, not a game capture</desc>
+<style>text{font-family:"Source Sans 3","Liberation Sans",sans-serif}path,line,polyline,polygon{stroke-linecap:round;stroke-linejoin:round}</style>
+<rect x="0" y="0" width="1920" height="1080" rx="0" fill="#171717"/>
+<text x="72" y="108" font-size="48" font-weight="700" fill="#F2F2F2" data-bg="#171717">LIGHTHAVEN / Colour and type</text>
+<text x="72" y="150" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#171717">V-03 first-pass proposal · inherited V-02 palette · static design specimen, not a game capture</text>
+<rect x="73.5" y="175.5" width="573" height="717" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<rect x="673.5" y="175.5" width="1173" height="717" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="96" y="228" font-size="36" font-weight="700" fill="#F2F2F2" data-bg="#242424">Opaque sRGB palette</text>
+<rect x="97.5" y="259.5" width="45" height="45" rx="3" fill="#171717" stroke="#909090" stroke-width="3"/>
+<text x="168" y="281" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Background / ink</text>
+<text x="168" y="315" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">#171717</text>
+<rect x="97.5" y="334.5" width="45" height="45" rx="3" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="168" y="356" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Surface / panel</text>
+<text x="168" y="390" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">#242424</text>
+<rect x="97.5" y="409.5" width="45" height="45" rx="3" fill="#333333" stroke="#909090" stroke-width="3"/>
+<text x="168" y="431" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Raised</text>
+<text x="168" y="465" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">#333333</text>
+<rect x="97.5" y="484.5" width="45" height="45" rx="3" fill="#F2F2F2" stroke="#909090" stroke-width="3"/>
+<text x="168" y="506" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Primary text</text>
+<text x="168" y="540" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">#F2F2F2</text>
+<rect x="97.5" y="559.5" width="45" height="45" rx="3" fill="#C4C4C4" stroke="#909090" stroke-width="3"/>
+<text x="168" y="581" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Secondary / disabled</text>
+<text x="168" y="615" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">#C4C4C4</text>
+<rect x="97.5" y="634.5" width="45" height="45" rx="3" fill="#909090" stroke="#909090" stroke-width="3"/>
+<text x="168" y="656" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Edge (not text)</text>
+<text x="168" y="690" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">#909090</text>
+<rect x="97.5" y="709.5" width="45" height="45" rx="3" fill="#E9BF79" stroke="#909090" stroke-width="3"/>
+<text x="168" y="731" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Amber / focus</text>
+<text x="168" y="765" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">#E9BF79</text>
+<rect x="97.5" y="784.5" width="45" height="45" rx="3" fill="#A9C4CC" stroke="#909090" stroke-width="3"/>
+<text x="168" y="806" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Cool / information</text>
+<text x="168" y="840" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">#A9C4CC</text>
+<text x="696" y="240" font-size="48" font-weight="700" fill="#F2F2F2" data-bg="#242424">Begin your journey</text>
+<text x="696" y="282" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">Title 48/60 → 32/40 px at 720p</text>
+<text x="696" y="348" font-size="36" font-weight="700" fill="#F2F2F2" data-bg="#242424">Character and equipment</text>
+<text x="696" y="390" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">Section 36/48 → 24/32 px at 720p</text>
+<text x="696" y="456" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Appearance does not change attributes.</text>
+<text x="696" y="498" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">Body 30/42 → 20/28 px · requirements keep this size</text>
+<text x="696" y="552" font-size="24" font-weight="400" fill="#E9BF79" data-bg="#242424">Prototype · supporting metadata, never smaller than 24/16 px</text>
+<path d="M696 582 L1824 582" fill="none" stroke="#909090" stroke-width="3"/>
+<g transform="translate(696 618) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M5 5H31V21L18 32L5 21ZM18 10V25"/></g>
+<text x="744" y="646" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Health (HP)</text>
+<text x="1116" y="646" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">Fill specimen only</text>
+<rect x="745.5" y="664.5" width="597" height="9" rx="0" fill="#171717" stroke="#909090" stroke-width="3"/>
+<rect x="747" y="666" width="354" height="6" rx="0" fill="#C4C4C4"/>
+<text x="1392" y="648" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">Label outside fill</text>
+<g transform="translate(696 708) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M18 3L30 18L18 33L6 18Z"/></g>
+<text x="744" y="736" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Mana (MP)</text>
+<text x="1116" y="736" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">Fill specimen only</text>
+<rect x="745.5" y="754.5" width="597" height="9" rx="0" fill="#171717" stroke="#909090" stroke-width="3"/>
+<rect x="747" y="756" width="354" height="6" rx="0" fill="#A9C4CC"/>
+<text x="1392" y="738" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">Label outside fill</text>
+<g transform="translate(696 798) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M5 32V24H11V32M15 32V16H21V32M25 32V6H31V32"/></g>
+<text x="744" y="826" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Experience (XP)</text>
+<text x="1116" y="826" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">Fill specimen only</text>
+<rect x="745.5" y="844.5" width="597" height="9" rx="0" fill="#171717" stroke="#909090" stroke-width="3"/>
+<rect x="747" y="846" width="354" height="6" rx="0" fill="#E9BF79"/>
+<text x="1392" y="828" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">Label outside fill</text>
+<text x="96" y="936" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#171717">All text pairs ≥ 4.5:1 · minimum measured 6.89:1 · controls and focus ≥ 3:1</text>
+<rect x="73.5" y="955.5" width="1773" height="69" rx="6" fill="#333333" stroke="#909090" stroke-width="3"/>
+<text x="96" y="1000" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#333333">Readability first: full-opacity panels, stable type sizes, words alongside status shapes.</text>
+</svg>

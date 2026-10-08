@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-labelledby="title desc"><title id="title">LIGHTHAVEN / Widget states</title><desc id="desc">Independent component examples · multiple focus rings shown for comparison · no runtime state claimed</desc>
+<style>text{font-family:"Source Sans 3","Liberation Sans",sans-serif}path,line,polyline,polygon{stroke-linecap:round;stroke-linejoin:round}</style>
+<rect x="0" y="0" width="1920" height="1080" rx="0" fill="#171717"/>
+<text x="72" y="108" font-size="48" font-weight="700" fill="#F2F2F2" data-bg="#171717">LIGHTHAVEN / Widget states</text>
+<text x="72" y="150" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#171717">Independent component examples · multiple focus rings shown for comparison · no runtime state claimed</text>
+<rect x="73.5" y="175.5" width="573" height="717" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="96" y="228" font-size="36" font-weight="700" fill="#F2F2F2" data-bg="#242424">State recipes</text>
+<rect x="673.5" y="175.5" width="573" height="717" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="696" y="228" font-size="36" font-weight="700" fill="#F2F2F2" data-bg="#242424">Fields and adjustments</text>
+<rect x="1273.5" y="175.5" width="573" height="717" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="1296" y="228" font-size="36" font-weight="700" fill="#F2F2F2" data-bg="#242424">Slots and help</text>
+<rect x="97.5" y="259.5" width="525" height="69" rx="6" fill="#333333" stroke="#909090" stroke-width="3"/>
+<text x="156" y="304" font-size="30" font-weight="600" fill="#F2F2F2" data-bg="#333333">Normal — Continue</text>
+<rect x="97.5" y="343.5" width="525" height="69" rx="6" fill="#333333" stroke="#C4C4C4" stroke-width="3"/>
+<text x="156" y="388" font-size="30" font-weight="600" fill="#F2F2F2" data-bg="#333333">Hover — Continue</text>
+<rect x="97.5" y="427.5" width="525" height="69" rx="6" fill="#333333" stroke="#909090" stroke-width="3"/>
+<rect x="88.5" y="418.5" width="543" height="87" rx="12" fill="none" stroke="#E9BF79" stroke-width="3"/>
+<g transform="translate(108 444.0) scale(1)" fill="none" stroke="#E9BF79" stroke-width="3"><path d="M12 6L24 18L12 30"/></g>
+<text x="156" y="472" font-size="30" font-weight="600" fill="#F2F2F2" data-bg="#333333">Focused — Continue</text>
+<rect x="97.5" y="511.5" width="525" height="69" rx="6" fill="#171717" stroke="#909090" stroke-width="3"/>
+<rect x="102" y="516" width="516" height="60" rx="3" fill="none" stroke="#909090" stroke-width="3"/>
+<text x="156" y="556" font-size="30" font-weight="600" fill="#F2F2F2" data-bg="#171717">Pressed — Continue</text>
+<rect x="97.5" y="595.5" width="525" height="69" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(108 612) scale(1)" fill="none" stroke="#C4C4C4" stroke-width="3"><circle cx="18" cy="18" r="14"/><path d="M8 28L28 8"/></g>
+<text x="156" y="640" font-size="30" font-weight="600" fill="#C4C4C4" data-bg="#242424">Unavailable — Continue</text>
+<rect x="97.5" y="679.5" width="525" height="69" rx="6" fill="#333333" stroke="#E9BF79" stroke-width="3"/>
+<g transform="translate(108 696) scale(1)" fill="none" stroke="#E9BF79" stroke-width="3"><path d="M11 3H25L33 11V25L25 33H11L3 25V11Z"/><path d="M18 10V21M18 26V27"/></g>
+<text x="156" y="724" font-size="30" font-weight="600" fill="#F2F2F2" data-bg="#333333">Error — Retry</text>
+<rect x="97.5" y="763.5" width="525" height="69" rx="6" fill="#333333" stroke="#909090" stroke-width="3"/>
+<g transform="translate(108 780) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M5 18L14 27L31 8"/></g>
+<text x="156" y="808" font-size="30" font-weight="600" fill="#F2F2F2" data-bg="#333333">Selected — Answer</text>
+<text x="696" y="264" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">Selected list row</text>
+<rect x="697.5" y="283.5" width="525" height="69" rx="6" fill="#333333" stroke="#909090" stroke-width="3"/>
+<g transform="translate(708 300) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M5 18L14 27L31 8"/></g>
+<text x="756" y="328" font-size="30" font-weight="600" fill="#F2F2F2" data-bg="#333333">Selected — Character</text>
+<text x="696" y="402" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">Active tab retains selection</text>
+<rect x="697.5" y="421.5" width="525" height="69" rx="6" fill="#333333" stroke="#909090" stroke-width="3"/>
+<rect x="688.5" y="412.5" width="543" height="87" rx="12" fill="none" stroke="#E9BF79" stroke-width="3"/>
+<g transform="translate(708 438.0) scale(1)" fill="none" stroke="#E9BF79" stroke-width="3"><path d="M12 6L24 18L12 30"/></g>
+<text x="756" y="466" font-size="30" font-weight="600" fill="#F2F2F2" data-bg="#333333">Character — Selected</text>
+<path d="M720 486 L1200 486" fill="none" stroke="#F2F2F2" stroke-width="3"/>
+<g transform="translate(1176 438) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M5 18L14 27L31 8"/></g>
+<text x="696" y="540" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">Name — error from validator</text>
+<rect x="697.5" y="559.5" width="525" height="69" rx="6" fill="#333333" stroke="#E9BF79" stroke-width="3"/>
+<g transform="translate(708 576) scale(1)" fill="none" stroke="#E9BF79" stroke-width="3"><path d="M11 3H25L33 11V25L25 33H11L3 25V11Z"/><path d="M18 10V21M18 26V27"/></g>
+<text x="756" y="604" font-size="30" font-weight="600" fill="#F2F2F2" data-bg="#333333">Name retained</text>
+<g transform="translate(708 642) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M5 18L14 27L31 8"/></g>
+<text x="756" y="672" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Master — Adjusting</text>
+<rect x="709.5" y="697.5" width="321" height="9" rx="0" fill="#171717" stroke="#909090" stroke-width="3"/>
+<rect x="711" y="699" width="156" height="6" rx="0" fill="#A9C4CC"/>
+<rect x="859.5" y="691.5" width="21" height="21" rx="0" fill="#A9C4CC" stroke="#F2F2F2" stroke-width="3"/>
+<text x="1056" y="712" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">Preview</text>
+<text x="696" y="768" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">Stat stepper — staged only</text>
+<rect x="697.5" y="787.5" width="525" height="69" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="756" y="832" font-size="30" font-weight="600" fill="#F2F2F2" data-bg="#242424">Strength</text>
+<rect x="937.5" y="787.5" width="69" height="69" rx="6" fill="#333333" stroke="#909090" stroke-width="3"/>
+<text x="960" y="832" font-size="30" font-weight="600" fill="#F2F2F2" data-bg="#333333">−</text>
+<text x="1020" y="832" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Pending</text>
+<rect x="1153.5" y="787.5" width="69" height="69" rx="6" fill="#333333" stroke="#909090" stroke-width="3"/>
+<text x="1176" y="832" font-size="30" font-weight="600" fill="#F2F2F2" data-bg="#333333">+</text>
+<text x="1296" y="264" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">Focused and selected slot</text>
+<rect x="1297.5" y="283.5" width="525" height="69" rx="6" fill="#333333" stroke="#909090" stroke-width="3"/>
+<rect x="1288.5" y="274.5" width="543" height="87" rx="12" fill="none" stroke="#E9BF79" stroke-width="3"/>
+<g transform="translate(1308 300.0) scale(1)" fill="none" stroke="#E9BF79" stroke-width="3"><path d="M12 6L24 18L12 30"/></g>
+<text x="1356" y="328" font-size="30" font-weight="600" fill="#F2F2F2" data-bg="#333333">Quiver — Selected</text>
+<g transform="translate(1776 300) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M5 18L14 27L31 8"/></g>
+<g transform="translate(1308 390) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M7 15H29L25 33H11ZM13 15V3M23 15V3M9 5L13 9L17 5M19 5L23 9L27 5"/></g>
+<g transform="translate(1356 390) scale(1)" fill="none" stroke="#A9C4CC" stroke-width="3"><path d="M5 18L14 27L31 8"/></g>
+<text x="1416" y="417" font-size="30" font-weight="500" fill="#A9C4CC" data-bg="#242424">Equipped</text>
+<text x="1296" y="468" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#242424">Unlimited only when resolved</text>
+<rect x="1297.5" y="511.5" width="525" height="69" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(1308 528) scale(1)" fill="none" stroke="#C4C4C4" stroke-width="3"><circle cx="18" cy="18" r="14"/><path d="M8 28L28 8"/></g>
+<text x="1356" y="556" font-size="30" font-weight="600" fill="#C4C4C4" data-bg="#242424">Use — Unavailable</text>
+<rect x="1297.5" y="613.5" width="525" height="153" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(1308 630) scale(1)" fill="none" stroke="#A9C4CC" stroke-width="3"><circle cx="18" cy="18" r="14"/><path d="M18 16V27M18 9V10"/></g>
+<text x="1356" y="660" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Help stays readable.</text>
+<text x="1320" y="708" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Requirements also live</text>
+<text x="1320" y="750" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">in focusable Details.</text>
+<rect x="1297.5" y="799.5" width="525" height="69" rx="6" fill="#333333" stroke="#909090" stroke-width="3"/>
+<g transform="translate(1308 816) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M6 4H30M6 32H30M9 4V10L27 26V32M27 4V10L9 26V32"/></g>
+<text x="1356" y="844" font-size="30" font-weight="600" fill="#F2F2F2" data-bg="#333333">Saving…</text>
+<text x="96" y="936" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#171717">Focus remains visible with selection, errors and unavailable actions. Hover never commits a choice.</text>
+<rect x="73.5" y="955.5" width="1773" height="69" rx="6" fill="#333333" stroke="#909090" stroke-width="3"/>
+<g transform="translate(96 972) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="30" cy="18" r="3"/><circle cx="18" cy="30" r="3" fill="#F2F2F2"/></g>
+<text x="144" y="1000" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#333333">South — Confirm</text>
+<g transform="translate(504 972) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="30" cy="18" r="3" fill="#F2F2F2"/><circle cx="18" cy="30" r="3"/></g>
+<text x="552" y="1000" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#333333">East — Back</text>
+<g transform="translate(864 972) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><circle cx="18" cy="6" r="3" fill="#F2F2F2"/><circle cx="6" cy="18" r="3"/><circle cx="30" cy="18" r="3"/><circle cx="18" cy="30" r="3"/></g>
+<text x="912" y="1000" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#333333">North — Details</text>
+</svg>

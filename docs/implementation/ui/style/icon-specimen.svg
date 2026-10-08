@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-labelledby="title desc"><title id="title">LIGHTHAVEN / Geometric placeholders</title><desc id="desc">36 px design box · 3 px stroke · 24 px / 2 px at 720p · labels carry meaning · no third-party artwork</desc>
+<style>text{font-family:"Source Sans 3","Liberation Sans",sans-serif}path,line,polyline,polygon{stroke-linecap:round;stroke-linejoin:round}</style>
+<rect x="0" y="0" width="1920" height="1080" rx="0" fill="#171717"/>
+<text x="72" y="108" font-size="48" font-weight="700" fill="#F2F2F2" data-bg="#171717">LIGHTHAVEN / Geometric placeholders</text>
+<text x="72" y="150" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#171717">36 px design box · 3 px stroke · 24 px / 2 px at 720p · labels carry meaning · no third-party artwork</text>
+<rect x="73.5" y="175.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(96 192) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M12 18H24"/><rect x="4" y="8" width="8" height="20"/><rect x="24" y="8" width="8" height="20"/></g>
+<text x="96" y="276" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Strength</text>
+<rect x="373.5" y="175.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(396 192) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M5 5H31V21L18 32L5 21ZM18 10V25"/></g>
+<text x="396" y="276" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Endurance</text>
+<rect x="673.5" y="175.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(696 192) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M5 6L17 18L5 30M19 6L31 18L19 30"/></g>
+<text x="696" y="276" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Agility</text>
+<rect x="973.5" y="175.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(996 192) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M18 9L4 5V27L18 31L32 27V5L18 9V31"/></g>
+<text x="996" y="276" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Intelligence</text>
+<rect x="1273.5" y="175.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(1296 192) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M3 18L10 10L18 7L26 10L33 18L26 26L18 29L10 26Z"/><circle cx="18" cy="18" r="5"/></g>
+<text x="1296" y="276" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Wisdom</text>
+<rect x="1573.5" y="175.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(1596 192) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><rect x="4" y="4" width="28" height="28"/><path d="M9 26H15V20H21V14H27V9"/></g>
+<text x="1596" y="276" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Skill (generic)</text>
+<rect x="73.5" y="331.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(96 348) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M18 3L24 12L18 25L12 12ZM8 25H28M18 25V33"/></g>
+<text x="96" y="432" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Main Hand</text>
+<rect x="373.5" y="331.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(396 348) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><circle cx="18" cy="18" r="14"/><circle cx="18" cy="18" r="4"/></g>
+<text x="396" y="432" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Off Hand</text>
+<rect x="673.5" y="331.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(696 348) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M7 15H29L25 33H11ZM13 15V3M23 15V3M9 5L13 9L17 5M19 5L23 9L27 5"/></g>
+<text x="696" y="432" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Quiver</text>
+<rect x="973.5" y="331.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(996 348) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M6 25V17L9 9L18 5L27 9L30 17V25M3 25H33M13 25V30H23V25"/></g>
+<text x="996" y="432" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Head</text>
+<rect x="1273.5" y="331.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(1296 348) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M12 4L6 9L3 18L10 21V32H26V21L33 18L30 9L24 4L21 9H15Z"/></g>
+<text x="1296" y="432" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Torso</text>
+<rect x="1573.5" y="331.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(1596 348) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M7 4H29L31 32H21L18 16L15 32H5Z"/></g>
+<text x="1596" y="432" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Legs</text>
+<rect x="73.5" y="487.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(96 504) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M8 4H21V20L31 25V32H5V24L8 21ZM5 27H30"/></g>
+<text x="96" y="588" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Feet</text>
+<rect x="373.5" y="487.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(396 504) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M5 4L18 18L31 4M18 18L27 25L18 33L9 25Z"/></g>
+<text x="396" y="588" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Accessory</text>
+<rect x="673.5" y="487.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(696 504) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><circle cx="18" cy="18" r="14"/><path d="M18 6L21 15L30 18L21 21L18 30L15 21L6 18L15 15Z"/></g>
+<text x="696" y="588" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Spell (generic)</text>
+<rect x="973.5" y="487.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(996 504) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><circle cx="18" cy="18" r="6"/><path d="M18 3V7M18 29V33M3 18H7M29 18H33"/></g>
+<text x="996" y="588" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Light</text>
+<rect x="1273.5" y="487.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(1296 504) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M6 8L32 18L6 28L13 18ZM3 11H7M3 25H7"/></g>
+<text x="1296" y="588" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Fire Dart</text>
+<rect x="1573.5" y="487.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(1596 504) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M3 15L6 25L14 31H22L30 25L33 15M6 25L9 19L14 22M30 25L27 19L22 22M18 20V4M13 9L18 4L23 9"/></g>
+<text x="1596" y="588" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Heal Light</text>
+<rect x="73.5" y="643.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(96 660) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M4 27L11 6L28 10L33 26L19 32ZM11 6L19 21L28 10M4 27L19 21L19 32M19 21L33 26"/></g>
+<text x="96" y="744" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Stone Shard</text>
+<rect x="373.5" y="643.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(396 660) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><path d="M3 6H28L32 10H8M6 16H26L29 20H11M10 26H22L25 30H15"/></g>
+<text x="396" y="744" font-size="30" font-weight="500" fill="#F2F2F2" data-bg="#242424">Dust Devil</text>
+<rect x="673.5" y="643.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(696 660) scale(1)" fill="none" stroke="#E9BF79" stroke-width="3"><path d="M12 6L24 18L12 30"/></g>
+<text x="696" y="744" font-size="30" font-weight="500" fill="#E9BF79" data-bg="#242424">Focus</text>
+<rect x="973.5" y="643.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(996 660) scale(1)" fill="none" stroke="#E9BF79" stroke-width="3"><path d="M18 3L33 31H3Z"/><path d="M18 12V21M18 26V27"/></g>
+<text x="996" y="744" font-size="30" font-weight="500" fill="#E9BF79" data-bg="#242424">Warning</text>
+<rect x="1273.5" y="643.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(1296 660) scale(1)" fill="none" stroke="#E9BF79" stroke-width="3"><path d="M11 3H25L33 11V25L25 33H11L3 25V11Z"/><path d="M18 10V21M18 26V27"/></g>
+<text x="1296" y="744" font-size="30" font-weight="500" fill="#E9BF79" data-bg="#242424">Error</text>
+<rect x="1573.5" y="643.5" width="273" height="129" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<g transform="translate(1596 660) scale(1)" fill="none" stroke="#A9C4CC" stroke-width="3"><path d="M5 18L14 27L31 8"/></g>
+<text x="1596" y="744" font-size="30" font-weight="500" fill="#A9C4CC" data-bg="#242424">Success</text>
+<rect x="73.5" y="811.5" width="1773" height="213" rx="6" fill="#333333" stroke="#909090" stroke-width="3"/>
+<text x="96" y="858" font-size="36" font-weight="700" fill="#F2F2F2" data-bg="#333333">Generic input prompts — position plus name plus action</text>
+<g transform="translate(96 888) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="30" cy="18" r="3"/><circle cx="18" cy="30" r="3" fill="#F2F2F2"/></g>
+<text x="144" y="918" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#333333">South — Confirm</text>
+<g transform="translate(528 888) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="30" cy="18" r="3" fill="#F2F2F2"/><circle cx="18" cy="30" r="3"/></g>
+<text x="576" y="918" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#333333">East — Back</text>
+<g transform="translate(960 888) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3" fill="#F2F2F2"/><circle cx="30" cy="18" r="3"/><circle cx="18" cy="30" r="3"/></g>
+<text x="1008" y="918" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#333333">West — Filter</text>
+<g transform="translate(1392 888) scale(1)" fill="none" stroke="#F2F2F2" stroke-width="3"><circle cx="18" cy="6" r="3" fill="#F2F2F2"/><circle cx="6" cy="18" r="3"/><circle cx="30" cy="18" r="3"/><circle cx="18" cy="30" r="3"/></g>
+<text x="1440" y="918" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#333333">North — Details</text>
+<text x="96" y="984" font-size="24" font-weight="400" fill="#C4C4C4" data-bg="#333333">Logical names: Presentation.UI.Icon.&lt;Group&gt;.&lt;Name&gt; · proposals only · definition and save IDs stay unchanged.</text>
+</svg>
