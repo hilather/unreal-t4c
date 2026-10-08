@@ -5,6 +5,8 @@
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "UObject/UObjectGlobals.h"
+#include "TimerManager.h"
+#include "CoreGlobals.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 namespace
@@ -28,7 +30,7 @@ struct FFixture
     ALHEnemyCharacter* Target;
     ULHCombatComponent* Attacker;
     ULHCombatComponent* Defender;
-    FFixture()
+    FFixture(bool bZeroCooldown = false)
     {
         const FName WorldName = MakeUniqueObjectName(nullptr, UWorld::StaticClass(), TEXT("LHCombatTestWorld"),
             EUniqueObjectNameOptions::GloballyUnique);
@@ -65,7 +67,7 @@ struct FFixture
         Config.Eligibility.MinimumLevel = Integer(0);
         auto& A = Config.Eligibility.MinimumAttributes;
         A.Strength = Integer(0); A.Endurance = Integer(0); A.Agility = Integer(0); A.Intelligence = Integer(0); A.Wisdom = Integer(0);
-        Config.ManaCost = Number(2); Config.CooldownSeconds = Number(3); Config.ImpactSeconds = Number(1);
+        Config.ManaCost = Number(2); Config.CooldownSeconds = Number(bZeroCooldown ? 0 : 3); Config.ImpactSeconds = Number(1);
         Config.RangeCm = Number(200); Config.WeaponMinimum = Number(10); Config.WeaponMaximum = Number(10);
         Attacker->ConfigureAttack(Config, {});
         Attacker->SetCombatRandomState(FRandomStream(123));
@@ -163,6 +165,118 @@ bool FLHImpactRangeTest::RunTest(const FString&)
     TestFalse(TEXT("Cancelled callback rejected"), F.Attacker->ResolveImpact(Id));
     TestEqual(TEXT("Committed cost retained"), F.Attacker->GetCombatAttributes()->GetMana(), 8.f);
     TestTrue(TEXT("Committed cooldown retained"), F.Attacker->GetRemainingCooldown() > 0);
+    return true;
+}
+// Drive TimerManager, including timers created re-entrantly during publication.
+namespace
+{
+void AdvanceImpactTimer(UWorld* World, float Seconds)
+{
+    TGuardValue<uint64> Frame(GFrameCounter, GFrameCounter+1);
+    World->GetTimerManager().Tick(Seconds);
+}
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHReentrantReplacementTest, "Lighthaven.Abilities.ImpactReplacement", Flags)
+bool FLHReentrantReplacementTest::RunTest(const FString&)
+{
+    FFixture F(true);
+    int32 Impacts=0;
+    FLHHitIdentity First, Replacement;
+    F.Attacker->OnImpact.AddLambda([&](const FLHHitIdentity& Id, const LH::Rules::FCombatResult&)
+    {
+        ++Impacts;
+        if (Impacts != 1) return;
+        TestTrue(TEXT("First publication retains original identity"), Id==First);
+        F.Attacker->CancelAllAbilities();
+        TestTrue(TEXT("Replacement accepted inside listener"), F.Attacker->RequestBasicAttack(F.Defender)==ELHCommandReason::None);
+        Replacement=F.Attacker->GetPendingIdentity();
+        TestTrue(TEXT("Published identity survives pending overwrite"), Id==First);
+    });
+    F.World->GetTimerManager().Tick(0.f);
+    TestTrue(TEXT("First accepted"), F.Attacker->RequestBasicAttack(F.Defender)==ELHCommandReason::None);
+    First=F.Attacker->GetPendingIdentity();
+    AdvanceImpactTimer(F.World, 1.1f);
+    TestEqual(TEXT("First damage once"), F.Defender->GetCombatAttributes()->GetHealth(), 90.f);
+    TestEqual(TEXT("Both committed costs survive"), F.Attacker->GetCombatAttributes()->GetMana(), 6.f);
+    TestTrue(TEXT("Replacement pending survives old callback"), F.Attacker->IsActionPending());
+    TestTrue(TEXT("Replacement identity survives"), F.Attacker->GetPendingIdentity()==Replacement && !(First==Replacement));
+    TestFalse(TEXT("Old duplicate rejected"), F.Attacker->ResolveImpact(First));
+    AdvanceImpactTimer(F.World, 0.5f);
+    TestEqual(TEXT("Replacement not early"), Impacts, 1);
+    AdvanceImpactTimer(F.World, 0.6f);
+    TestEqual(TEXT("Replacement timer survives"), Impacts, 2);
+    TestEqual(TEXT("Exactly one damage per activation"), F.Defender->GetCombatAttributes()->GetHealth(), 80.f);
+    TestFalse(TEXT("Replacement finished"), F.Attacker->IsActionPending());
+    TestFalse(TEXT("Replacement duplicate rejected"), F.Attacker->ResolveImpact(Replacement));
+    AdvanceImpactTimer(F.World, 2.f);
+    TestEqual(TEXT("No extra timer hits"), Impacts, 2);
+    return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHReentrantCancelTest, "Lighthaven.Abilities.ImpactCancelWithoutReplacement", Flags)
+bool FLHReentrantCancelTest::RunTest(const FString&)
+{
+    FFixture F(true); int32 Impacts=0;
+    F.Attacker->OnImpact.AddLambda([&](const FLHHitIdentity&, const LH::Rules::FCombatResult&)
+    {
+        ++Impacts; F.Attacker->CancelAllAbilities();
+    });
+    F.World->GetTimerManager().Tick(0.f);
+    TestTrue(TEXT("Accepted"), F.Attacker->RequestBasicAttack(F.Defender)==ELHCommandReason::None);
+    const auto Id=F.Attacker->GetPendingIdentity();
+    AdvanceImpactTimer(F.World, 1.1f);
+    TestFalse(TEXT("Cancelled action cleared"), F.Attacker->IsActionPending());
+    TestEqual(TEXT("Cost retained"), F.Attacker->GetCombatAttributes()->GetMana(), 8.f);
+    TestFalse(TEXT("Duplicate rejected"), F.Attacker->ResolveImpact(Id));
+    AdvanceImpactTimer(F.World, 2.f);
+    TestEqual(TEXT("One publication"), Impacts, 1);
+    TestEqual(TEXT("One damage"), F.Defender->GetCombatAttributes()->GetHealth(), 90.f);
+    return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeathReplacementTest, "Lighthaven.Abilities.TargetDeathReplacement", Flags)
+bool FLHDeathReplacementTest::RunTest(const FString&)
+{
+    FFixture F(true); int32 Impacts=0, Deaths=0;
+    // A second initialized live target is needed; attacking the dead life must reject.
+    FActorSpawnParameters Spawn; Spawn.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+    auto* Next=F.World->SpawnActor<ALHEnemyCharacter>(FVector(0,100,0), FRotator::ZeroRotator, Spawn);
+    auto* NextCombat=Next->GetCombatComponent();
+    NextCombat->SetNumericAttributeBase(ULHAttributeSet::GetMaxHealthAttribute(), 100);
+    NextCombat->SetNumericAttributeBase(ULHAttributeSet::GetHealthAttribute(), 100);
+    Next->InitializeAfterRestore();
+    F.Defender->SetNumericAttributeBase(ULHAttributeSet::GetHealthAttribute(), 10);
+    FLHHitIdentity First, Replacement;
+    F.Defender->OnDeath.AddLambda([&](const FLHHitIdentity& Id)
+    {
+        ++Deaths;
+        TestTrue(TEXT("Death identity is first activation"), Id==First);
+        F.Attacker->CancelAllAbilities();
+        TestTrue(TEXT("Death listener replacement accepted"), F.Attacker->RequestBasicAttack(NextCombat)==ELHCommandReason::None);
+        Replacement=F.Attacker->GetPendingIdentity();
+        TestTrue(TEXT("Death identity survives replacement"), Id==First);
+    });
+    F.Attacker->OnImpact.AddLambda([&](const FLHHitIdentity& Id, const LH::Rules::FCombatResult&)
+    {
+        ++Impacts;
+        TestTrue(TEXT("Publication owns correct activation"), Id==(Impacts==1 ? First : Replacement));
+    });
+    F.World->GetTimerManager().Tick(0.f);
+    TestTrue(TEXT("First accepted"), F.Attacker->RequestBasicAttack(F.Defender)==ELHCommandReason::None);
+    First=F.Attacker->GetPendingIdentity();
+    AdvanceImpactTimer(F.World, 1.1f);
+    TestEqual(TEXT("One death"), Deaths, 1);
+    TestEqual(TEXT("Lethal first damage"), F.Defender->GetCombatAttributes()->GetHealth(), 0.f);
+    TestTrue(TEXT("Replacement pending"), F.Attacker->IsActionPending() && F.Attacker->GetPendingIdentity()==Replacement);
+    TestEqual(TEXT("Both costs retained"), F.Attacker->GetCombatAttributes()->GetMana(), 6.f);
+    TestEqual(TEXT("Next target untouched before timer"), NextCombat->GetCombatAttributes()->GetHealth(), 100.f);
+    AdvanceImpactTimer(F.World, 1.1f);
+    TestEqual(TEXT("Both publications"), Impacts, 2);
+    TestEqual(TEXT("Next damage once"), NextCombat->GetCombatAttributes()->GetHealth(), 90.f);
+    TestFalse(TEXT("Replacement finished"), F.Attacker->IsActionPending());
+    TestFalse(TEXT("Old duplicate rejected"), F.Attacker->ResolveImpact(First));
+    TestFalse(TEXT("Replacement duplicate rejected"), F.Attacker->ResolveImpact(Replacement));
+    AdvanceImpactTimer(F.World, 2.f);
+    TestEqual(TEXT("No extra publications"), Impacts, 2);
+    NextCombat->ClearCombatAvatar(); Next->Destroy();
     return true;
 }
 #endif

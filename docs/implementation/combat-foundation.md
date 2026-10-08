@@ -54,3 +54,22 @@ At every test's scope exit the destructor clears both combat avatars (cancelling
 Host runtime confirmation remains required: the worker runs as UID 0, which Unreal refuses, and the task forbids running Automation here. Coordinator should run `bash build/run-tests.sh Lighthaven` as a normal host user and confirm all six tests finish and repeated fixture setup does not crash. Timer-driven impact and rendered gameplay are still outside this fixture's coverage.
 
 Observed W1-03c validation: `UE_ROOT=/home/brewerm/Downloads/unreal bash build/build-linux.sh --game` exited **0** against installed UE **5.8.3**. LighthavenEditor reported **Result: Succeeded**, UBT execution time **131.79 seconds**, including `Compile LHCombatTests.cpp`; Lighthaven reported **Result: Succeeded**, **151.19 seconds**. UBA logged unsuccessful action-result store tasks, but both targets compiled and linked. Evidence is this attempt's `library/build.log`. `git diff --check` passed; a static comparison against base confirmed all six test bodies/assertions unchanged. No Automation/runtime result is claimed.
+
+## G1-FIX re-entrant impact ownership
+
+The native timer callback snapshots its activation serial, GAS activation fields and
+impact identity before publishing damage/death/impact listeners. A listener may
+cancel and immediately commit another attack on this InstancedPerActor object;
+the resumed callback ends only its original still-active serial. EndAbility checks
+the current handle/actor info and GAS end validity before clearing shared timer or
+pending state. Immediate replacement was retained instead of rejecting requests
+during publication, so existing synchronous listener semantics remain available.
+
+New timer-driven regressions are `Lighthaven.Abilities.ImpactReplacement`,
+`ImpactCancelWithoutReplacement` and `TargetDeathReplacement`. They check
+committed costs, pending identity, replacement timer delivery, original publication
+identity, one damage per activation, and duplicate rejection. The death variant
+replaces onto a second live target. The zero-second cooldown used to expose
+re-entrancy is explicitly synthetic Prototype tuning, not a production change.
+Existing tests and assertions remain in place. Runtime execution is reserved for
+the non-root host; see the G1-FIX report for compilation evidence.
