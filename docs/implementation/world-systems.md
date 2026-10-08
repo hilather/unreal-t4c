@@ -210,3 +210,46 @@ build success. Static source agreement checks found all 77 aliases/enemies/ancho
 matching the layouts and all 85 authored spawn/portal GUIDs distinct. Whitespace
 and owned-path checks are recorded in `library/checks.txt`. No Automation/editor/
 commandlet/package/play or G3 pass is inferred from these observations.
+
+## W3-04b — World test outer and canonical spelling
+
+D02 requires ASCII case-sensitive canonical registry spelling; `contracts-v1.md`
+likewise requires validators to enforce canonical FName spelling. World area and
+entrance equality now explicitly uses `FString::Equals(..., ESearchCase::CaseSensitive)`:
+both FName equality and FString operator equality ignore case. Portal lookup uses
+the corrected area lookup. Spawn marker resolution, placed-spawn validation and
+saved encounter validation also compare enemy definition spelling explicitly.
+Core layouts are unchanged. GUID spawn/portal identities retain their existing
+exact comparisons.
+
+`AreaHydrationAndHighWater` now holds a GameInstance whose outer is GEngine and
+creates the area subsystem under that GameInstance. The isolated fixture calls
+Initialize with a subsystem collection and Deinitialize after its assertions;
+it does not initialize a world or unrelated game-instance subsystems. All existing
+assertions remain, including `Wrong casing fails`. Additional assertions reject
+incorrect entrance/portal-area/state-area and saved spawn-definition spelling.
+The remaining World tests contain no other subsystem NewObject calls.
+
+This comparison validates the spelling available from FName::ToString. Raw input
+must still be validated before constructing FName as D02 requires: builds without
+case-preserving names cannot recover discarded input casing. This patch does not
+change Core identity storage or add a raw-input import path.
+
+Validation observed for W3-04b on UE 5.8.3 Linux, UID 1000:
+
+- `UE_ROOT=/home/brewerm/Downloads/unreal bash build/build-linux.sh --game`
+  exited 0; editor `Result: Succeeded` (210.32 s), game `Result: Succeeded`
+  (284.75 s).
+- The standard `build/run-tests.sh Lighthaven` startup failed because the installed
+  DDC graph had no writable node. Memory-cache retries reached a separate startup
+  SIGSEGV in engine-installation enumeration from the home screen; no tests ran
+  in those attempts.
+- Direct `UnrealEditor-Cmd` with the script's automation flags plus
+  `-DDC-ForceMemoryCache` and
+  `-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0`, with
+  `XDG_CONFIG_HOME` set to worktree `Saved/BuildEnvironment/config`, exited 0 in
+  72 s. Exported `index.json` contained 76 completed Success states, zero failed,
+  notRun or inProcess; all eight World tests succeeded, including both reported
+  failures. Evidence is in this attempt's worker-output `library/`.
+- `git diff --check` exited 0. No package, gameplay, map safety or Windows checks
+  were performed; those remain separate host/integrator work.

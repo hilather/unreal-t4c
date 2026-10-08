@@ -19,7 +19,7 @@ bool LHWorld::ValidateWorld(const FLHWorldRecord& W,FString& Error)
         for (const auto& E:A.Encounters)
         {
             const auto* Slot=Def->Spawns.FindByPredicate([&](const auto& S) { return S.SpawnId==E.Life.SpawnSlot; });
-            if (!Slot || Slots.Contains(E.Life.SpawnSlot) || !SameArea(E.Life.Area,A.Area) || E.Life.LifeGeneration<0 || Slot->Enemy.Value.ToString()!=E.Definition.Value.ToString() ||
+            if (!Slot || Slots.Contains(E.Life.SpawnSlot) || !SameArea(E.Life.Area,A.Area) || E.Life.LifeGeneration<0 || !Slot->Enemy.Value.ToString().Equals(E.Definition.Value.ToString(),ESearchCase::CaseSensitive) ||
                 E.State==ELHEncounterLifeState::Unresolved || static_cast<uint8>(E.State)>static_cast<uint8>(ELHEncounterLifeState::PermanentlyDefeated) || !LHAreaStatePrivate::Number(E.CurrentHealth) || !LHAreaStatePrivate::Number(E.RespawnRemainingSeconds)) return Bad(TEXT("Invalid spawn/lifecycle data"));
             if ((E.State==ELHEncounterLifeState::Alive && (E.CurrentHealth.Value<=0 || E.bRewardCommitted)) || (E.State!=ELHEncounterLifeState::Alive && E.CurrentHealth.Value!=0)) return Bad(TEXT("Inconsistent encounter health/state"));
             if (E.bRewardCommitted || E.KillReward.Value.IsValid())

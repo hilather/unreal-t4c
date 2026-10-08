@@ -127,8 +127,8 @@ TArray<FLHAreaDefinition> MakeRegistry()
 namespace LHWorld
 {
 const TArray<FLHAreaDefinition>& Registry() { static const auto R=LHAreaRegistryPrivate::MakeRegistry(); return R; }
-bool SameArea(const FLHAreaId& A,const FLHAreaId& B) { return A.Content.Value.ToString()==B.Content.Value.ToString(); }
-bool SameEntrance(const FLHEntranceId& A,const FLHEntranceId& B) { return SameArea(A.Area,B.Area) && A.LocalId.ToString()==B.LocalId.ToString(); }
+bool SameArea(const FLHAreaId& A,const FLHAreaId& B) { return A.Content.Value.ToString().Equals(B.Content.Value.ToString(),ESearchCase::CaseSensitive); }
+bool SameEntrance(const FLHEntranceId& A,const FLHEntranceId& B) { return SameArea(A.Area,B.Area) && A.LocalId.ToString().Equals(B.LocalId.ToString(),ESearchCase::CaseSensitive); }
 bool SafeTransform(const FTransform& T)
 {
     return !T.ContainsNaN() && T.GetRotation().IsNormalized() && T.GetScale3D().Equals(FVector::OneVector);

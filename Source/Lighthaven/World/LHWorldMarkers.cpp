@@ -11,11 +11,11 @@ bool ALHSpawnMarker::ResolveLife(const FLHAreaRecord& Record,FLHSpawnLifeId& Out
 {
     if (!SpawnId.IsValid() || EnemyDefinitionId.Value.IsNone() || !LHWorld::SameArea(Area,Record.Area)) return false;
     const auto* Definition=LHWorld::FindArea(Area);
-    if (!Definition || !Definition->Spawns.ContainsByPredicate([&](const auto& Slot) { return Slot.SpawnId==SpawnId && Slot.Enemy.Value.ToString()==EnemyDefinitionId.Value.ToString(); })) return false;
+    if (!Definition || !Definition->Spawns.ContainsByPredicate([&](const auto& Slot) { return Slot.SpawnId==SpawnId && Slot.Enemy.Value.ToString().Equals(EnemyDefinitionId.Value.ToString(),ESearchCase::CaseSensitive); })) return false;
     const FLHEncounterRecord* Found=nullptr;
     for (const auto& E:Record.Encounters) if (E.Life.SpawnSlot==SpawnId)
     {
-        if (Found || E.Life.LifeGeneration<0 || E.Definition.Value.ToString()!=EnemyDefinitionId.Value.ToString() || !LHWorld::SameArea(E.Life.Area,Area)) return false;
+        if (Found || E.Life.LifeGeneration<0 || !E.Definition.Value.ToString().Equals(EnemyDefinitionId.Value.ToString(),ESearchCase::CaseSensitive) || !LHWorld::SameArea(E.Life.Area,Area)) return false;
         Found=&E;
     }
     FLHSpawnLifeId Life; Life.Area=Area; Life.SpawnSlot=SpawnId;

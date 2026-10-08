@@ -6,6 +6,8 @@
 #include "World/LHWorldMarkers.h"
 #include "Persistence/LHSaveCodec.h"
 #include "UObject/StrongObjectPtr.h"
+#include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
 #if WITH_DEV_AUTOMATION_TESTS
 namespace LHWorldTestsPrivate
 {
@@ -60,7 +62,16 @@ bool FLHWorldRegistryTest::RunTest(const FString& Parameters)
     int32 Spawns=0,Portals=0,Entrances=0;
     for (const auto& A:LHWorld::Registry()) { Spawns+=A.Spawns.Num(); Portals+=A.Portals.Num(); Entrances+=A.Entrances.Num(); TestNotNull(TEXT("Fallback resolves"),LHWorld::FindEntrance(A.SafeFallback)); }
     TestEqual(TEXT("77 explicit spawn IDs"),Spawns,77); TestEqual(TEXT("Eight directed portals"),Portals,8); TestEqual(TEXT("Nine entrances"),Entrances,9);
-    FLHAreaId Wrong=LHWorld::Registry()[0].Id; Wrong.Content.Value=TEXT("Area.lighthaventempledistrict"); TestNull(TEXT("Wrong casing fails"),LHWorld::FindArea(Wrong)); return true;
+    FLHAreaId Wrong=LHWorld::Registry()[0].Id; Wrong.Content.Value=TEXT("Area.lighthaventempledistrict"); TestNull(TEXT("Wrong casing fails"),LHWorld::FindArea(Wrong));
+    auto Entrance=LHWorld::Registry()[0].SafeFallback;
+    TestNotNull(TEXT("Canonical entrance resolves"),LHWorld::FindEntrance(Entrance));
+    Entrance.LocalId=TEXT("temple.SafeSpawn");
+    TestNull(TEXT("Wrong entrance casing fails"),LHWorld::FindEntrance(Entrance));
+    auto Portal=LHWorld::Registry()[0].Portals[0].Portal;
+    TestNotNull(TEXT("Canonical portal resolves"),LHWorld::FindPortal(Portal));
+    Portal.Area=Wrong;
+    TestNull(TEXT("Wrong portal area casing fails"),LHWorld::FindPortal(Portal));
+    return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWorldPairTest,"Lighthaven.World.PortalPairing",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FLHWorldPairTest::RunTest(const FString& Parameters)
@@ -134,9 +145,17 @@ bool FLHWorldSaveFailureTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWorldStateTest,"Lighthaven.World.AreaHydrationAndHighWater",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FLHWorldStateTest::RunTest(const FString& Parameters)
 {
-    TStrongObjectPtr<ULHAreaStateSubsystem> State(NewObject<ULHAreaStateSubsystem>()); FString Error;
+    TStrongObjectPtr<UGameInstance> GameInstance(NewObject<UGameInstance>(GEngine));
+    TStrongObjectPtr<ULHAreaStateSubsystem> State(NewObject<ULHAreaStateSubsystem>(GameInstance.Get()));
+    FSubsystemCollection<UGameInstanceSubsystem> Collection;
+    State->Initialize(Collection); FString Error;
     FLHWorldRecord World; World.RunId=FGuid::NewGuid(); FLHAreaRecord Area; Area.Area=LHWorld::Registry()[1].Id; Area.Encounters.Add(Encounter(LHWorld::Registry()[1])); World.Areas.Add(Area);
-    TestTrue(TEXT("Hydrate"),State->Hydrate(World,Error)); auto Corrupt=World; Corrupt.Areas[0].Encounters[0].Life.SpawnSlot=FGuid::NewGuid();
+    TestTrue(TEXT("Hydrate"),State->Hydrate(World,Error));
+    auto WrongArea=Area.Area; WrongArea.Content.Value=TEXT("Area.templeB1");
+    TestNull(TEXT("Wrong state lookup casing fails"),State->Find(WrongArea));
+    auto WrongEnemy=World; WrongEnemy.Areas[0].Encounters[0].Definition.Value=TEXT("Enemy.brownRat");
+    TestFalse(TEXT("Wrong spawn enemy casing rejected"),State->Hydrate(WrongEnemy,Error));
+    auto Corrupt=World; Corrupt.Areas[0].Encounters[0].Life.SpawnSlot=FGuid::NewGuid();
     TestFalse(TEXT("Unknown spawn rejected"),State->Hydrate(Corrupt,Error)); TestNotNull(TEXT("Existing state retained"),State->Find(Area.Area));
     Corrupt=World; Corrupt.Areas[0].Encounters[0].Life.LifeGeneration=-1; TestFalse(TEXT("Negative generation rejected"),State->Hydrate(Corrupt,Error));
     Area.Encounters[0].Life.LifeGeneration=3; TestTrue(TEXT("Trusted committed generation update"),State->StoreArea(Area,Error));
@@ -144,6 +163,7 @@ bool FLHWorldStateTest::RunTest(const FString& Parameters)
     Old=Area; Old.Encounters.Reset(); TestFalse(TEXT("Cannot forget latest life"),State->StoreArea(Old,Error));
     TestTrue(TEXT("Persist world"),State->PersistInto(World,Error)); TestEqual(TEXT("Generation persisted"),World.Areas[0].Encounters[0].Life.LifeGeneration,int64(3));
     auto WrongRun=World; WrongRun.RunId=FGuid::NewGuid(); TestFalse(TEXT("Different run cannot persist"),State->PersistInto(WrongRun,Error));
+    State->Deinitialize();
     return true;
 }
 namespace LHWorldSaveTestsPrivate

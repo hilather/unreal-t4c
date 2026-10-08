@@ -17,14 +17,14 @@ bool LHWorld::ValidatePlacements(const TArray<FLHAreaId>& Maps,const TArray<FLHP
         if (I.Kind==ELHPlacedIdKind::Spawn && Area)
         {
             const auto* S=Area->Spawns.FindByPredicate([&](const auto& Slot) { return Slot.SpawnId==I.Id; });
-            if (!S || S->Enemy.Value.ToString()!=I.Definition.Value.ToString()) Errors.Add(I.Context+TEXT(": invalid spawn definition/slot"));
+            if (!S || !S->Enemy.Value.ToString().Equals(I.Definition.Value.ToString(),ESearchCase::CaseSensitive)) Errors.Add(I.Context+TEXT(": invalid spawn definition/slot"));
         }
         if (I.Kind==ELHPlacedIdKind::Interactable && I.Definition.Value.IsNone()) Errors.Add(I.Context+TEXT(": interactable definition missing"));
         if (I.Kind==ELHPlacedIdKind::Portal)
         {
             FLHEntityId Id; Id.Area=I.Area; Id.InstanceId=I.Id; const auto* P=FindPortal(Id);
             if (!P || !SameEntrance(P->Source,I.Source) || !SameEntrance(P->Destination,I.Destination) || !SameArea(I.Area,I.Source.Area)) Errors.Add(I.Context+TEXT(": unauthorized portal edge"));
-            const bool bExpectedReturn=I.Source.LocalId.ToString()==TEXT("Entry");
+            const bool bExpectedReturn=I.Source.LocalId.ToString().Equals(TEXT("Entry"),ESearchCase::CaseSensitive);
             if (I.bReturn!=bExpectedReturn) Errors.Add(I.Context+TEXT(": incorrect portal direction"));
             int32 Reverse=0;
             for (const auto& R:Identities) if (R.Kind==ELHPlacedIdKind::Portal && SameEntrance(I.Source,R.Destination) && SameEntrance(I.Destination,R.Source)) ++Reverse;
