@@ -1,4 +1,7 @@
 #include "Misc/AutomationTest.h"
+#include "EnhancedPlayerInput.h"
+#include "EnhancedInputSubsystemInterface.h"
+#include "InputKeyEventArgs.h"
 #include "Abilities/LHCombatComponent.h"
 #include "Abilities/LHAttributeSet.h"
 #include "Framework/LHEnemyCharacter.h"
@@ -212,6 +215,88 @@ bool FLHDeadPlayerMovementTest::RunTest(const FString&)
     F.Controller->PlayerTick(0.016f);
     TestTrue(TEXT("Mismatched avatar tick clears pending input"), F.Source->GetPendingMovementInputVector().IsNearlyZero());
     TestTrue(TEXT("Mismatched avatar tick stops velocity"), F.Source->GetVelocity().IsNearlyZero());
+    return true;
+}
+// A native subsystem adapter installs the exact runtime mappings without a window
+// or LocalPlayer startup. No movement setter or action injection is used.
+namespace
+{
+struct FInputFixture : IEnhancedInputSubsystemInterface
+{
+    FFixture Game;
+    UEnhancedPlayerInput* Input;
+    TMap<TObjectPtr<const UInputAction>, FInjectedInput> Injections;
+    FInputFixture()
+    {
+        Input=CastChecked<UEnhancedPlayerInput>(Game.Controller->PlayerInput);
+        FModifyContextOptions Options;
+        Options.bForceImmediately=true;
+        Options.bIgnoreAllPressedKeysUntilRelease=false;
+        AddMappingContext(Game.Controller->InputConfig->Context(ELHInputContext::Gameplay),0,Options);
+        Game.Source->GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+        Tick(); // Observe actual neutral input before the initial press.
+    }
+    virtual UEnhancedPlayerInput* GetPlayerInput() const override { return Input; }
+    virtual TMap<TObjectPtr<const UInputAction>, FInjectedInput>& GetContinuouslyInjectedInputs() override { return Injections; }
+    void Key(EInputEvent Event)
+    {
+        Game.Controller->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D,Event,Event==IE_Released ? 0.f : 1.f));
+    }
+    void Tick()
+    {
+        Game.Controller->PlayerTick(0.016f);
+        Game.Source->GetCharacterMovement()->TickComponent(0.016f,LEVELTICK_All,nullptr);
+    }
+};
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHHeldMovementAttack, "Lighthaven.Integration.HeldMovementThroughAttack", Flags)
+bool FLHHeldMovementAttack::RunTest(const FString&)
+{
+    FInputFixture F;
+    F.Key(IE_Pressed); F.Tick();
+    TestTrue(TEXT("Real D mapping produces movement"), !F.Game.Controller->GetHeldMovement().IsNearlyZero());
+    TestTrue(TEXT("Select target"), F.Game.Controller->SelectTarget(F.Game.Target));
+    F.Game.World->GetTimerManager().Tick(0.f);
+    TestTrue(TEXT("Attack accepted"), F.Game.Controller->RequestSelectedAttack()==ELHCommandReason::None);
+    TestTrue(TEXT("Clear retains physical D state"), F.Game.Controller->IsInputKeyDown(EKeys::D));
+    const FVector Stopped=F.Game.Source->GetActorLocation();
+    for (int32 I=0; I<5; ++I)
+    {
+        F.Key(IE_Repeat); F.Tick();
+        TestTrue(TEXT("Held key blocked during pending attack"), F.Game.Controller->GetHeldMovement().IsNearlyZero());
+    }
+    {
+        TGuardValue<uint64> Frame(GFrameCounter,GFrameCounter+1);
+        F.Game.World->GetTimerManager().Tick(1.1f);
+    }
+    TestFalse(TEXT("Attack completed through real timer"), F.Game.Attacker->IsActionPending());
+    for (int32 I=0; I<5; ++I)
+    {
+        F.Key(IE_Repeat); F.Tick();
+        TestTrue(TEXT("Held key blocked after completion"), F.Game.Controller->GetHeldMovement().IsNearlyZero());
+        TestTrue(TEXT("Pawn stays stopped"), F.Game.Source->GetActorLocation().Equals(Stopped,0.01f));
+    }
+    F.Key(IE_Released); F.Tick(); F.Key(IE_Pressed); F.Tick();
+    TestFalse(TEXT("Release then press resumes mapped movement"), F.Game.Controller->GetHeldMovement().IsNearlyZero());
+    TestFalse(TEXT("Fresh press moves pawn"), F.Game.Source->GetActorLocation().Equals(Stopped,0.01f));
+    return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHHeldMovementContext, "Lighthaven.Integration.HeldMovementThroughContext", Flags)
+bool FLHHeldMovementContext::RunTest(const FString&)
+{
+    FInputFixture F;
+    F.Key(IE_Pressed); F.Tick();
+    TestFalse(TEXT("Mapped movement established"), F.Game.Controller->GetHeldMovement().IsNearlyZero());
+    F.Game.Controller->SetControlContext(ELHInputContext::UI);
+    F.Game.Controller->SetControlContext(ELHInputContext::Gameplay);
+    F.Key(IE_Repeat); F.Tick();
+    TestTrue(TEXT("Context reentry blocks held key"), F.Game.Controller->GetHeldMovement().IsNearlyZero());
+    // Simulate the real engine focus-loss flush, not a semantic neutral setter.
+    F.Game.Controller->FlushPressedKeys(); F.Tick();
+    F.Key(IE_Repeat); F.Tick();
+    TestTrue(TEXT("Engine flush and repeat cannot fake release"), F.Game.Controller->GetHeldMovement().IsNearlyZero());
+    F.Key(IE_Released); F.Tick(); F.Key(IE_Pressed); F.Tick();
+    TestFalse(TEXT("Actual release and press restores input"), F.Game.Controller->GetHeldMovement().IsNearlyZero());
     return true;
 }
 #endif

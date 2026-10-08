@@ -14,16 +14,19 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Misc/CoreDelegates.h"
 #include "UnrealClient.h"
+#include "InputKeyEventArgs.h"
 ALHPlayerController::ALHPlayerController() { bShowMouseCursor=true; }
 void ALHPlayerController::BeginPlay()
 {
     Super::BeginPlay();
-    DeactivateHandle=FCoreDelegates::ApplicationWillDeactivateDelegate.AddUObject(this,&ALHPlayerController::ClearHeldMovement);
+    DeactivateHandle=FCoreDelegates::ApplicationWillDeactivateDelegate.AddUObject(this,&ALHPlayerController::ApplicationDeactivated);
+    ReactivateHandle=FCoreDelegates::ApplicationHasReactivatedDelegate.AddUObject(this,&ALHPlayerController::ApplicationReactivated);
     SetControlContext(ActiveContext);
 }
 void ALHPlayerController::EndPlay(const EEndPlayReason::Type Reason)
 {
     FCoreDelegates::ApplicationWillDeactivateDelegate.Remove(DeactivateHandle);
+    FCoreDelegates::ApplicationHasReactivatedDelegate.Remove(ReactivateHandle);
     if (auto* State=GetPlayerState<ALHPlayerState>()) State->ClearAvatar();
     ClearHeldMovement();
     Super::EndPlay(Reason);
@@ -66,8 +69,42 @@ void ALHPlayerController::SetupInputComponent()
 }
 void ALHPlayerController::ClearHeldMovement()
 {
-    Movement.Clear(); bAwaitMoveRelease=true; FlushPressedKeys();
+    // Do not erase physical key state: a flushed held key looks released next tick.
+    Movement.Clear(); bAwaitMoveRelease=true;
     if (auto* C=Cast<ALHCharacter>(GetPawn())) { C->ConsumeMovementInputVector(); C->GetCharacterMovement()->StopMovementImmediately(); }
+}
+bool ALHPlayerController::MovementInputsReleased() const
+{
+    return FlushedMovementKeys.IsEmpty() && !IsInputKeyDown(EKeys::W) && !IsInputKeyDown(EKeys::A)
+        && !IsInputKeyDown(EKeys::S) && !IsInputKeyDown(EKeys::D)
+        && FMath::Abs(GetInputAnalogKeyState(EKeys::Gamepad_LeftX))<0.2f
+        && FMath::Abs(GetInputAnalogKeyState(EKeys::Gamepad_LeftY))<0.2f;
+}
+void ALHPlayerController::FlushPressedKeys()
+{
+    // Engine focus-loss flushing also manufactures neutral state. Remember affected
+    // keys/axes until an actual device release event, including after focus regain.
+    for (const FKey& Key : {EKeys::W,EKeys::A,EKeys::S,EKeys::D})
+        if (IsInputKeyDown(Key)) FlushedMovementKeys.Add(Key);
+    for (const FKey& Key : {EKeys::Gamepad_LeftX,EKeys::Gamepad_LeftY})
+        if (FMath::Abs(GetInputAnalogKeyState(Key))>=0.2f) FlushedMovementKeys.Add(Key);
+    ClearHeldMovement();
+    Super::FlushPressedKeys();
+}
+bool ALHPlayerController::InputKey(const FInputKeyEventArgs& Params)
+{
+    if (Params.Event==IE_Released || (Params.Event==IE_Axis && FMath::Abs(Params.AmountDepressed)<0.2f))
+        FlushedMovementKeys.Remove(Params.Key);
+    return Super::InputKey(Params);
+}
+void ALHPlayerController::ApplicationDeactivated()
+{
+    bApplicationActive=false; bHadFocus=false; ClearHeldMovement();
+}
+void ALHPlayerController::ApplicationReactivated()
+{
+    bApplicationActive=true;
+    SetControlContext(ActiveContext);
 }
 void ALHPlayerController::SetControlContext(ELHInputContext Context)
 {
@@ -85,10 +122,14 @@ void ALHPlayerController::PlayerTick(float DeltaSeconds)
     Super::PlayerTick(DeltaSeconds);
     if (!HasLiveMovementAvatar()) { ClearHeldMovement(); return; }
     auto* V=GetWorld() ? GetWorld()->GetGameViewport() : nullptr;
-    const bool Focus=V && V->Viewport && V->Viewport->IsForegroundWindow();
+    // Slate viewport keyboard focus can be valid while SDL native foreground
+    // bookkeeping is stale after a Wayland workspace switch. No viewport exists
+    // in transient automation worlds; those still exercise the real input tick.
+    const bool Focus=bApplicationActive && (!V || (V->Viewport &&
+        (V->Viewport->HasFocus() || V->Viewport->IsForegroundWindow())));
     if (!Focus) { if (bHadFocus) ClearHeldMovement(); bHadFocus=false; return; }
     if (!bHadFocus) { SetControlContext(ActiveContext); bHadFocus=true; }
-    if (bAwaitMoveRelease && !IsInputKeyDown(EKeys::W) && !IsInputKeyDown(EKeys::A) && !IsInputKeyDown(EKeys::S) && !IsInputKeyDown(EKeys::D) && FMath::Abs(GetInputAnalogKeyState(EKeys::Gamepad_LeftX))<0.2f && FMath::Abs(GetInputAnalogKeyState(EKeys::Gamepad_LeftY))<0.2f) bAwaitMoveRelease=false;
+    if (bAwaitMoveRelease && MovementInputsReleased()) bAwaitMoveRelease=false;
     if (SelectedTarget.IsValid() && !ValidTarget(SelectedTarget.Get())) SelectedTarget.Reset();
     if (ActiveContext==ELHInputContext::Gameplay) if (auto* C=Cast<ALHCharacter>(GetPawn()))
     {
@@ -109,7 +150,9 @@ bool ALHPlayerController::HasLiveMovementAvatar() const
 void ALHPlayerController::SubmitMovement(FVector2D Axis)
 {
     if (!HasLiveMovementAvatar()) { ClearHeldMovement(); return; }
-    if (Axis.IsNearlyZero()) bAwaitMoveRelease=false;
+    if (Axis.IsNearlyZero() && MovementInputsReleased()) bAwaitMoveRelease=false;
+    auto* State=GetPlayerState<ALHPlayerState>();
+    if (State && State->GetCombatComponent()->IsActionPending()) { ClearHeldMovement(); return; }
     if (bHadFocus && !bAwaitMoveRelease && ActiveContext==ELHInputContext::Gameplay)
         Movement.Held=Axis.GetClampedToMaxSize(1);
 }
@@ -185,7 +228,11 @@ ELHCommandReason ALHPlayerController::RequestSelectedAttack()
     if (ActiveContext!=ELHInputContext::Gameplay) return ELHCommandReason::InvalidRequest;
     auto* State=GetPlayerState<ALHPlayerState>();
     auto* Enemy=Cast<ALHEnemyCharacter>(SelectedTarget.Get());
-    if (!State || !Enemy) return ELHCommandReason::NotFound;
+    if (!State || !Enemy)
+    {
+        UE_LOG(LogTemp, Display, TEXT("LH attack request: NotFound (no selected combat target)"));
+        return ELHCommandReason::NotFound;
+    }
     const auto Reason=State->GetCombatComponent()->RequestBasicAttack(Enemy->GetCombatComponent());
     UE_LOG(LogTemp, Display, TEXT("LH attack request: %s"), *StaticEnum<ELHCommandReason>()->GetNameStringByValue(static_cast<int64>(Reason)));
     if (Reason==ELHCommandReason::None) { ClearHeldMovement(); OnAttackRequested.Broadcast(Enemy); }

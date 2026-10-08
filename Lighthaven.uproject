@@ -1,5 +1,5 @@
 {
-  "_DraftComment": "// DRAFT schema rev 1 — NOT COMPILED (no Unreal Engine installed); integrator review pending",
+  "_DraftComment": "// DRAFT schema rev 1 \u2014 NOT COMPILED (no Unreal Engine installed); integrator review pending",
   "FileVersion": 3,
   "EngineAssociation": "5.8",
   "Category": "",
@@ -36,6 +36,10 @@
       "TargetAllowList": [
         "Editor"
       ]
+    },
+    {
+      "Name": "AndroidFileServer",
+      "Enabled": false
     }
   ]
 }

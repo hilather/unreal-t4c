@@ -71,9 +71,13 @@ release gating. Headless fixtures do not exercise hardware input or rendering.
    maps through LFS separately. Restart PIE for fresh prototype resources.
 2. In Dev_Combat, use WASD and Shift to walk/run. Tab/Q cycle, left click a dummy,
    F cancels; right mouse attacks. Approach each dummy within 200 cm. Confirm
-   the pillar blocks selection/attack and moving outside range before impact
+   the pillar blocks selection/attack at floor (600,820,0), while floor
+   (760,1000,0) permits a clear shot to TargetLOS (600,1000,0). Both are within
+   200 cm. Moving outside range before impact
    prevents damage. Check pending attacks stop movement; fresh movement requires
-   release. Camera middle-drag and wheel remain functional.
+   release and re-press (hold D through attack completion and key repeats; no
+   movement may resume). Left stick must return below 0.2 then deflect again.
+   Camera middle-drag and wheel remain functional.
 3. Repeat with left stick/L3, RB/LB cycling, R3 cancellation and right trigger
    attack; test right-stick camera and D-pad zoom. Verify keyboard and gamepad
    both reach the same authority result. Observe request reasons and one timed
@@ -151,3 +155,16 @@ reported success (195.57 s / 154.89 s). Both modified test sources compiled.
 UBA cache-store warnings were logged. All existing assertion lines are unchanged;
 `git diff --check` passed. Runtime automation and interactive checks remain for
 the non-root host; this is a compilation-validated candidate only.
+
+## G1-FIX3 host retest
+
+Run all `Lighthaven` tests, including new HeldMovementThroughAttack and
+HeldMovementThroughContext tests. These use real PlayerInput key events,
+Enhanced Input action dispatch and PlayerTick rather than SubmitMovement setters.
+Repeat focus loss/regain with a held key and a held stick, including workspace
+switches without clicking. See controls.md for the engine-source investigation
+and remaining Wayland uncertainty. Regenerate maps for revised LOS fixtures.
+`bash build/package-linux.sh` now explicitly cooks both maps by default; launch
+the archive with each map, including Dev_Movement, to verify package coverage.
+AndroidFileServer is explicitly disabled because Android deployment is unused.
+G1 still requires host test/play/package evidence; no new gate pass is claimed.

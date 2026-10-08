@@ -43,8 +43,21 @@ and inspect reachability in the editor before saving the final LFS maps.
 
 ## Combat
 
-LOSPillar is a solid cylinder centered (-500,500,200), diameter 180, height
-400. From the player floor origin, TargetLOS at (600,1000,0) lies behind it.
+LOSPillar is a solid cylinder centered (600,910,200), diameter 60, height
+400. TargetLOS is at floor (600,1000,0). The nonblocking editor TargetPoints
+`LOSBlockedPosition` (600,820,0) and `LOSClearPosition` (760,1000,0) mark
+reachable player floor positions: blocked distance 180 cm, clear distance
+160 cm, both inside the 200 cm selection/attack range. Pawn centers sit at
+capsule half-height above these floor coordinates. The blocked trace crosses
+the pillar center; the clear trace at Y=1000 stays 90 cm from its center.
+The blocked pawn and dummy each have 60 cm clearance to the pillar surface,
+exceeding the 35/34 cm capsule radii. Approach from Y<820 or X>760.
+From clear position select/attack; from blocked position Tab/click must exclude
+the dummy and any retained selection must clear. For impact-time LOS rejection,
+start at clear position and relocate behind the pillar before the 1 s impact
+(using a host debug relocation: pending attack intentionally blocks walking).
+These revised dimensions are G1-FIX3 Prototype fixture tuning, 2026-10-08;
+no historical mechanics claim. The old pillar could not exercise melee LOS.
 The three main TargetPoints share Y=0 and floor Z=0:
 
 | Actor | X | Horizontal distance from player floor origin |
