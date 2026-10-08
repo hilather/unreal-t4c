@@ -1,4 +1,4 @@
-// DRAFT schema rev 1 — NOT COMPILED (no Unreal Engine installed); integrator review pending
+// Editor-only validation and reproducible dev-map generation dependencies.
 using UnrealBuildTool;
 
 public class LighthavenEditor : ModuleRules
@@ -7,6 +7,6 @@ public class LighthavenEditor : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "Lighthaven" });
-        PrivateDependencyModuleNames.AddRange(new string[] { "UnrealEd", "DataValidation" });
+        PrivateDependencyModuleNames.AddRange(new string[] { "UnrealEd", "DataValidation", "NavigationSystem" });
     }
 }
