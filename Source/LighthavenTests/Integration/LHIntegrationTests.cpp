@@ -65,6 +65,10 @@ struct FFixture
             C->SetNumericAttributeBase(ULHAttributeSet::GetManaAttribute(), 10);
         }
         Controller->Possess(Source); Target->InitializeAfterRestore();
+        // No LocalPlayer startup runs in this transient world. PlayerTick still
+        // calls TickPlayerInput, which requires a real PlayerInput instance.
+        Controller->InitInputSystem();
+        check(Controller->PlayerInput);
         FLHBasicAttackConfig Config;
         Config.Combat.HitBase = Number(1); Config.Combat.AccuracyScale = Number(0); Config.Combat.AvoidanceScale = Number(0);
         Config.Combat.MinimumChance = Number(1); Config.Combat.MaximumChance = Number(1);

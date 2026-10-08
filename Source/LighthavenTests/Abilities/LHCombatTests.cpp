@@ -25,6 +25,8 @@ FLHInteger Integer(int64 V)
 }
 struct FFixture
 {
+    // Restore the host frame only after all simulated ticks and world cleanup.
+    TGuardValue<uint64> FrameCounter{GFrameCounter, GFrameCounter};
     UWorld* World;
     ALHEnemyCharacter* Source;
     ALHEnemyCharacter* Target;
@@ -172,7 +174,9 @@ namespace
 {
 void AdvanceImpactTimer(UWorld* World, float Seconds)
 {
-    TGuardValue<uint64> Frame(GFrameCounter, GFrameCounter+1);
+    // TimerManager skips a second Tick in the same frame. A per-call guard
+    // would restore the counter and reuse that frame on every later advance.
+    ++GFrameCounter;
     World->GetTimerManager().Tick(Seconds);
 }
 }

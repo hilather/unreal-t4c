@@ -131,3 +131,23 @@ reported warnings; compilation and linking succeeded. `git diff --check` passed.
 No Automation, editor session, cook, package or play was run: UID 0 cannot
 initialize Unreal. Coordinator must run all 28 `Lighthaven` tests on the non-root
 host and retain the G1 manual/device checks; no gate result is claimed.
+
+## G1-FIX2 transient input fixture
+
+The fixture now calls `InitInputSystem()` after possession and checks PlayerInput.
+A spawned controller without LocalPlayer startup does not receive that normal
+initialization. In UE 5.8.3 `APlayerController::PlayerTick` unconditionally calls
+`TickPlayerInput`, whose `check(PlayerInput)` caused the reported crash before the
+product death gate ran (`PlayerController.cpp:2309,5444`). `InitInputSystem`
+creates configured PlayerInput and invokes SetupInputComponent (line 756).
+The product movement gate and every integration assertion remain unchanged.
+DeadPlayerMovement still drives full controller and CharacterMovement ticks;
+dead/mismatched avatars should clear residual input and velocity, and restored
+avatars still require neutral followed by fresh movement. No hardware input,
+viewport focus or observed runtime pass is claimed.
+
+G1-FIX2 validation: required editor/game build exited 0, both UE 5.8.3 targets
+reported success (195.57 s / 154.89 s). Both modified test sources compiled.
+UBA cache-store warnings were logged. All existing assertion lines are unchanged;
+`git diff --check` passed. Runtime automation and interactive checks remain for
+the non-root host; this is a compilation-validated candidate only.
