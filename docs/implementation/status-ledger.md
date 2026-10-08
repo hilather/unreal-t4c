@@ -55,7 +55,7 @@ Host test status (2026-10-08, main incl. S-02): 30/30 Lighthaven Automation test
 | W2-01 persistence | integrated, host-tested (W2-01b + W2-01c fix) | 51/51 host tests | codex-sol | Source/Lighthaven/Persistence/, LighthavenTests/Persistence/ | Brief ready (coordinator scratch/wave2). Launch after Matt's G1 play check |
 | W2-02 character | integrated, host-tested (W2-02b + W2-02d + W2-02e) | 56/56 host tests | codex-sol | Source/Lighthaven/Character/, LighthavenTests/Character/ | Brief ready |
 | W2-03 frontend/character UI | W2-03b + W2-03c integrated: 5 Slate screens on presenters, V-03 style, L_Frontend generated on host (LFS). Host 38/38 tests. Live save/character adapters pending W2-04 | codex-sol | Source/Lighthaven/UI/, LighthavenTests/UI/, frontend map commandlet | Brief ready; L_Frontend generated on host |
-| W2-04 Wave 2 integration | W2-04b submitted: host build OK, 64 pass / 1 FAIL (IndependentRebuild uses IsAlive() as an avatar proxy), package with L_Frontend+dev maps OK, packaged game starts in L_Frontend (LHFrontendGameMode). Fix in W2-04c | codex-sol | Framework/, Config/, LighthavenTests/Integration/ | Brief ready; produces G2 checklist |
+| W2-04 Wave 2 integration (W2-04, W2-04b, W2-04c) | integrated, host-tested | codex-sol | Framework/, Config/, Integration tests, UI/Character/Persistence adapters | 65/65 host tests; Linux package (L_Frontend+Dev_Movement+Dev_Combat) OK; packaged game starts in L_Frontend |
 
 Open (Windows phase): Unreal writes project `Build/` (e.g. Build/Linux/FileOpenOrder) while our scripts live in lowercase `build/`; on case-insensitive Windows these are one folder. Decide before Windows work (rename scripts dir, or keep and gitignore engine subpaths).
 
@@ -83,3 +83,5 @@ Host test status (2026-10-08, main incl. W2-01/02/03): 56/56 Lighthaven Automati
 | W2-01d..f canonical command digest (D04) + reward IDs (D06) | integrated, host-tested | codex-sol | Persistence/ | LHSave::RequestDigest / LHSave::GrowthId with frozen vectors; 59/59 host tests. Lesson: UE 5.8 FString::AppendChar(0) is a no-op; build NUL test input via GetCharArray().Insert |
 | A-04 graybox lighting and readability guide | integrated (first pass) | codex-astra | docs/implementation/art/lighting/ | Wave 3 prep: light levels, torch placement, roof/wall occlusion for the elevated camera, landmark lighting per floor |
 | V-04 in-world feedback visuals | integrated (first pass) | codex-astra | docs/implementation/ui/feedback/ | Target ring/outline, nameplates and health bars, damage numbers, interaction prompts, loot/death markers, resource warnings; consistent with V-02/V-03/A-03/A-04 |
+
+| **G2** | **awaiting manual packaged play check** (Matt / QA) | n/a | n/a | Checklist: docs/implementation/w2-integration.md "G2 packaged Linux checklist". Automated parts pass (65/65 tests, package, launch). Windows deferred |
