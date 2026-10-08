@@ -69,3 +69,5 @@ Open (Windows phase): Unreal writes project `Build/` (e.g. Build/Linux/FileOpenO
 | Task | Status | Profile | Owned paths / binary assets | Notes |
 |---|---|---|---|---|
 | V-03 UI visual style guide | integrated (first pass) | codex-astra | docs/implementation/ui/style/ | Tokens, typography, iconography, controller glyph policy, widget states from approved V-02/A-01/A-02; consumable by W2-03 C++ widgets |
+
+**Incident 2026-10-08 (W2 launch):** W2-01..03 were reserved, then the coordinator wrote project memory (the art-direction record) before their briefs were prepared. The frozen knowledge snapshot went stale and the ticker looped on prepare-brief ("memory changed after knowledge selection"), so the workers never received briefs (usage not_bound). No work was lost. Recovery: cancel-attempt, stop, and relaunch each task in order. **Rule: finish all memory and ledger writes before reserving launches; never write memory between reserve and launch** (farm fix BRIEF-SNAPSHOT-STALE-1). W2-03's relaunch brief includes the V-03 style guide.
