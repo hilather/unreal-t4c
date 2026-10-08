@@ -395,7 +395,8 @@ bool FLHCharacterUnresolvedTest::RunTest(const FString &)
     TestTrue(TEXT("Allocation conservation rejects"), Loaded.Import(Corrupt) == ELHCommandReason::InvalidRequest);
     Corrupt = Before;
     Corrupt.Character.Inventory.Add(LHCharacterTestsPrivate::Item(B, TEXT("Item.TestQuiver")));
-    Corrupt.Character.Inventory.Add(Corrupt.Character.Inventory[0]);
+    const FLHItemInstance DuplicateItem = Corrupt.Character.Inventory[0];
+    Corrupt.Character.Inventory.Add(DuplicateItem);
     TestTrue(TEXT("Duplicate instance rejects"), Loaded.Import(Corrupt) == ELHCommandReason::InvalidRequest);
     FLHSaveSnapshot Unchanged;
     Loaded.Export(Unchanged);

@@ -55,4 +55,6 @@ Evidence: `library/build-final.log`, `library/build-timing.txt`, `library/build-
 
 ## Unity-safe file-local helpers
 
+Never pass an element of a TArray to the same array's Add/Insert; copy it to a local first so reallocation cannot invalidate the source (W2-02e).
+
 Put file-local helpers in a file-unique named namespace (for example, `LHCharacterAuthorityPrivate`) and qualify references outside it. Avoid anonymous namespaces with common helper names: Unreal unity builds combine multiple `.cpp` files into one translation unit. `LH_NO_UNITY=1 bash build/build-linux.sh --game` opts into UBT `-DisableUnity` for both targets.
