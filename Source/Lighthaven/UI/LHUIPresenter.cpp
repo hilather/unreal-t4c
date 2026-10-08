@@ -12,8 +12,8 @@ void FLHUIPresenter::Open(ELHUIScreen S)
     case ELHUIScreen::Frontend: Controls = {"New", "Continue", "Characters", "Settings", "Quit"}; break;
     case ELHUIScreen::Characters: Controls = {"Profiles", "Details", "Recovery", "Continue", "Back"}; break;
     case ELHUIScreen::Creation: Controls = {"Name", "Appearance", "Question1", "Question2", "Question3", "Question4", "Roll", "Reroll", "Review", "Confirm", "Back"}; break;
-    case ELHUIScreen::CharacterSheet: Controls = {"CharacterTab", "InventoryTab", "Strength", "Endurance", "Agility", "Intelligence", "Wisdom", "Details", "Confirm", "Back"}; break;
-    case ELHUIScreen::Inventory: Controls = {"CharacterTab", "InventoryTab", "Items", "Head", "Torso", "MainHand", "OffHand", "Legs", "Feet", "Accessory", "Quiver", "Details", "Confirm", "Back"}; break;
+    case ELHUIScreen::CharacterSheet: Controls = {"CharacterTab", "InventoryTab", "Strength", "Endurance", "Agility", "Intelligence", "Wisdom", "Details", "Reset", "Confirm", "Back"}; break;
+    case ELHUIScreen::Inventory: Controls = {"CharacterTab", "InventoryTab", "Items", "Head", "Torso", "MainHand", "OffHand", "Legs", "Feet", "Accessory", "Quiver", "Details", "Equip", "Unequip", "Confirm", "Back"}; break;
     case ELHUIScreen::Settings: Controls = {"Volume", "Controls", "Apply", "Revert", "Back"}; break;
     }
     Focus = 0;
@@ -103,6 +103,14 @@ FString FLHUIPresenter::Format(const FLHInteger& V)
 {
     if (V.Resolution != ELHValueResolution::Resolved) return TEXT("— Unknown");
     FString S = LexToString(V.Value);
+    if (V.Provenance.Status == ELHProvenanceStatus::Prototype) S += TEXT(" Prototype");
+    if (V.Provenance.Status == ELHProvenanceStatus::Disputed) S += TEXT(" Disputed");
+    return S;
+}
+FString FLHUIPresenter::Format(const FLHNumber& V)
+{
+    if (V.Resolution != ELHValueResolution::Resolved) return TEXT("— Unknown");
+    FString S = FString::SanitizeFloat(V.Value);
     if (V.Provenance.Status == ELHProvenanceStatus::Prototype) S += TEXT(" Prototype");
     if (V.Provenance.Status == ELHProvenanceStatus::Disputed) S += TEXT(" Disputed");
     return S;
