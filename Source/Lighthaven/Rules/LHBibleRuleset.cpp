@@ -4,13 +4,7 @@ namespace LH::Rules
 namespace
 {
 FLHFieldProvenance P(ELHProvenanceStatus S,const TCHAR* U,const TCHAR* N) { FLHFieldProvenance P; P.Status=S; P.SourceUrl=U; P.RetrievedDate=TEXT("2026-10-07"); P.SourceBaseline=TEXT("Bible classic 2001–2006; R-02 documentary capture"); P.Notes=N; return P; }
-FLHInteger I(int64 V,const FLHFieldProvenance& P) { FLHInteger R; R.Value=V; R.Provenance=P; R.Resolution=ELHValueResolution::Resolved; // Missing values retain source metadata while storage remains Unresolved.
- const auto GrowthMissing=P(ELHProvenanceStatus::Missing,TEXT("https://web.archive.org/web/20021230103921/http://www.t4cbible.com:80/hp.html"),TEXT("Combination, RNG distribution and timing not documented"));
- R.ManaCombination.Provenance=GrowthMissing; R.GrowthTiming.Provenance=GrowthMissing;
- R.CreationRNG.Provenance=P(ELHProvenanceStatus::Missing,TEXT("https://web.archive.org/web/20020602203835/http://www.t4cbible.com:80/start.html"),TEXT("Roll chart is not a probability law"));
- R.InitialResources.Provenance=P(ELHProvenanceStatus::Missing,TEXT("https://web.archive.org/web/20041011170503/http://www.t4cbible.com:80/getstart.html"),TEXT("Exact starting grants absent"));
- for (auto& X:R.Experience) if (X.Next.Resolution==ELHValueResolution::Unresolved) { X.Next.Provenance=X.Threshold.Provenance; X.Next.Provenance.Status=ELHProvenanceStatus::Missing; X.Next.Provenance.Notes=TEXT("Final next-level cell blank; not zero or a cap"); }
- for (auto& A:R.Skills) { A.CostUnit.Provenance=A.Provenance; A.CostUnit.Provenance.Status=ELHProvenanceStatus::Missing; A.CostUnit.Provenance.Notes=TEXT("Printed cost currency/increment/scaling unresolved"); }
+FLHInteger I(int64 V,const FLHFieldProvenance& P) { FLHInteger R; R.Value=V; R.Provenance=P; R.Resolution=ELHValueResolution::Resolved;
  return R;
  }
 FLHNumber N(double V,const FLHFieldProvenance& P) { FLHNumber R; R.Value=V; R.Provenance=P; R.Resolution=ELHValueResolution::Resolved; return R; }
@@ -724,6 +718,13 @@ FBibleRuleset MakeBibleRuleset()
  R.Answers.Add({TEXT("King drink"),TEXT("poison"),TEXT("Agi"),{1,0,1,0,0},P(ELHProvenanceStatus::Confirmed, TEXT("https://web.archive.org/web/20020602203835/http://www.t4cbible.com:80/start.html"), TEXT("Numeric deltas remain missing; cross-check https://www.t4cbible.com/charroll"))});
  R.Answers.Add({TEXT("King drink"),TEXT("rejuvenation"),TEXT("Wis"),{0,0,0,0,1},P(ELHProvenanceStatus::Confirmed, TEXT("https://web.archive.org/web/20020602203835/http://www.t4cbible.com:80/start.html"), TEXT("Numeric deltas remain missing; cross-check https://www.t4cbible.com/charroll"))});
  R.Answers.Add({TEXT("King drink"),TEXT("ambrosia"),TEXT("Int"),{0,0,0,1,0},P(ELHProvenanceStatus::Confirmed, TEXT("https://web.archive.org/web/20020602203835/http://www.t4cbible.com:80/start.html"), TEXT("Numeric deltas remain missing; cross-check https://www.t4cbible.com/charroll"))});
+ // Missing values retain source metadata while storage remains Unresolved.
+ const auto GrowthMissing=P(ELHProvenanceStatus::Missing,TEXT("https://web.archive.org/web/20021230103921/http://www.t4cbible.com:80/hp.html"),TEXT("Combination, RNG distribution and timing not documented"));
+ R.ManaCombination.Provenance=GrowthMissing; R.GrowthTiming.Provenance=GrowthMissing;
+ R.CreationRNG.Provenance=P(ELHProvenanceStatus::Missing,TEXT("https://web.archive.org/web/20020602203835/http://www.t4cbible.com:80/start.html"),TEXT("Roll chart is not a probability law"));
+ R.InitialResources.Provenance=P(ELHProvenanceStatus::Missing,TEXT("https://web.archive.org/web/20041011170503/http://www.t4cbible.com:80/getstart.html"),TEXT("Exact starting grants absent"));
+ for (auto& X:R.Experience) if (X.Next.Resolution==ELHValueResolution::Unresolved) { X.Next.Provenance=X.Threshold.Provenance; X.Next.Provenance.Status=ELHProvenanceStatus::Missing; X.Next.Provenance.Notes=TEXT("Final next-level cell blank; not zero or a cap"); }
+ for (auto& A:R.Skills) { A.CostUnit.Provenance=A.Provenance; A.CostUnit.Provenance.Status=ELHProvenanceStatus::Missing; A.CostUnit.Provenance.Notes=TEXT("Printed cost currency/increment/scaling unresolved"); }
  return R;
 }
 }

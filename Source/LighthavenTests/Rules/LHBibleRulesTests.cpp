@@ -76,4 +76,24 @@ bool FLHBibleRequirements::RunTest(const FString&)
     TestTrue(TEXT("Skill costs need unit"),BibleSkillCost(*Stun,true).Diagnostic.Reason==EReason::Unresolved);
     auto Missing=*Fire; Missing.Level.Resolution=ELHValueResolution::Unresolved; TestTrue(TEXT("Missing requirement rejects"),CheckBibleRequirements(Missing,EAttributeBasis::Base,I).Diagnostic.Reason==EReason::Unresolved); return true;
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHBibleMissingProvenance,"Lighthaven.Rules.Bible.MissingValueProvenance",BibleFlags)
+bool FLHBibleMissingProvenance::RunTest(const FString&)
+{
+    const auto R=MakeBibleRuleset();
+    const auto CheckMissing=[this](const FLHInteger& V)
+    {
+        TestTrue(TEXT("Missing stays unresolved"),V.Resolution==ELHValueResolution::Unresolved);
+        TestTrue(TEXT("Missing status retained"),V.Provenance.Status==ELHProvenanceStatus::Missing);
+        TestFalse(TEXT("Source URL retained"),V.Provenance.SourceUrl.IsEmpty());
+        TestEqual(TEXT("Inherited retrieval date"),V.Provenance.RetrievedDate,FString(TEXT("2026-10-07")));
+        TestFalse(TEXT("Missing explanation retained"),V.Provenance.Notes.IsEmpty());
+        TestTrue(TEXT("Missing cost rejects"),BibleCost(V).Diagnostic.Reason==EReason::Unresolved);
+    };
+    CheckMissing(R.CreationRNG); CheckMissing(R.InitialResources);
+    CheckMissing(R.ManaCombination); CheckMissing(R.GrowthTiming);
+    if (R.Experience.IsEmpty() || R.Skills.IsEmpty()) return false;
+    CheckMissing(R.Experience.Last().Next);
+    for (const auto& Skill:R.Skills) CheckMissing(Skill.CostUnit);
+    return true;
+}
 #endif
