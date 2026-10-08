@@ -248,7 +248,7 @@ bool FLHWave2InputHandoff::RunTest(const FString&)
 {
     using namespace LHWave2TestsPrivate;
     auto Disk=MakeShared<FStorage>(); FRuntime R(Disk);
-    auto* Viewport=NewObject<UGameViewportClient>();
+    auto* Viewport=NewObject<UGameViewportClient>(GEngine);
     auto* Context=GEngine->GetWorldContextFromWorld(R.World); Context->GameViewport=Viewport;
     // Headless automation has no SViewport: exercise both controllers' runtime
     // input application seams against the same viewport and local subsystem.
