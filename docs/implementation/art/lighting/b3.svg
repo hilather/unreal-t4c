@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1160" viewBox="0 0 1440 1160" role="img" aria-labelledby="title desc">
+<title id="title">A-04 B3 · partitioned circuit proposed light plan</title>
+<desc id="desc">Original top-down XY coordinate aid derived from V-01 text. All positions and lighting are prototype proposals. Not an Unreal render. Room borders are schematic, not aperture or collision drawings; consult linked layout and README tables.</desc>
+<rect width="1440" height="1160" fill="#171717"/>
+<style>text{font-family:Liberation Sans,Arial,sans-serif;fill:#F2F2F2} .muted{fill:#C4C4C4} .label{font-size:12px;paint-order:stroke;stroke:#171717;stroke-width:4px;stroke-linejoin:round} .room{font-size:13px;font-weight:bold} .small{font-size:14px} .key{font-size:15px}</style>
+<text x="44.00" y="48.00" class="" font-size="20">LIGHTHAVEN  /  A-04</text>
+<text x="44.00" y="89.00" class="" font-size="32">B3 · partitioned circuit</text>
+<text x="44.00" y="119.00" class="muted" font-size="17">Cooler broad fill · pale baffle caps · warm Level 4 tip</text>
+<polyline points="635.25,805.12 604.54,805.12" fill="none" stroke="#514B42" stroke-width="24.57" stroke-linejoin="miter"/>
+<polyline points="497.04,820.48 466.32,820.48" fill="none" stroke="#514B42" stroke-width="24.57" stroke-linejoin="miter"/>
+<polyline points="420.25,712.98 420.25,636.20" fill="none" stroke="#514B42" stroke-width="24.57" stroke-linejoin="miter"/>
+<polyline points="497.04,544.05 543.11,544.05 543.11,605.48 619.89,605.48 619.89,559.41" fill="none" stroke="#514B42" stroke-width="24.57" stroke-linejoin="miter"/>
+<polyline points="696.68,513.34 742.75,513.34" fill="none" stroke="#514B42" stroke-width="24.57" stroke-linejoin="miter"/>
+<polyline points="804.18,620.84 804.18,759.05 742.75,759.05" fill="none" stroke="#514B42" stroke-width="24.57" stroke-linejoin="miter"/>
+<polyline points="781.14,482.62 781.14,390.48" fill="none" stroke="#514B42" stroke-width="24.57" stroke-linejoin="miter"/>
+<polyline points="358.82,574.77 328.11,574.77" fill="none" stroke="#514B42" stroke-width="24.57" stroke-linejoin="miter"/>
+<polyline points="235.96,574.77 205.25,574.77" fill="none" stroke="#514B42" stroke-width="24.57" stroke-linejoin="miter"/>
+<polyline points="466.32,743.70 520.07,743.70 520.07,712.98" fill="none" stroke="#514B42" stroke-width="24.57" stroke-linejoin="miter"/>
+<rect x="635.25" y="712.98" width="107.50" height="107.50" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="677.00" y="770.73" class="room" font-size="16">R01</text>
+<rect x="497.04" y="759.05" width="107.50" height="138.21" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="546.46" y="786.09" class="room" font-size="16">R02</text>
+<rect x="527.75" y="812.80" width="38.39" height="38.39" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="534.95" y="836.00" class="room" font-size="16">R03</text>
+<rect x="343.46" y="712.98" width="122.86" height="138.21" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="392.89" y="786.09" class="room" font-size="16">R04</text>
+<rect x="481.68" y="651.55" width="76.79" height="61.43" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="508.07" y="686.27" class="room" font-size="16">R05</text>
+<rect x="358.82" y="513.34" width="138.21" height="122.86" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="415.93" y="578.77" class="room" font-size="16">R06</text>
+<rect x="235.96" y="528.70" width="92.14" height="92.14" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="270.04" y="578.77" class="room" font-size="16">R07</text>
+<rect x="82.39" y="513.34" width="122.86" height="107.50" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="131.82" y="571.09" class="room" font-size="16">R08</text>
+<rect x="589.18" y="451.91" width="107.50" height="107.50" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="653.96" y="548.05" class="room" font-size="16">R09</text>
+<rect x="742.75" y="482.62" width="122.86" height="138.21" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="822.89" y="563.41" class="room" font-size="16">R10</text>
+<rect x="742.75" y="282.98" width="76.79" height="107.50" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="769.14" y="371.45" class="room" font-size="16">R11</text>
+<rect x="573.82" y="620.84" width="53.75" height="76.79" fill="#171717" stroke="#C4C4C4" stroke-width="1.5"/>
+<rect x="627.57" y="490.30" width="30.71" height="30.71" fill="#333333" stroke="#C4C4C4" stroke-width="1.5"/>
+<polyline points="374.18,774.41 412.57,774.41 412.57,743.70" fill="none" stroke="#C4C4C4" stroke-width="3.00" stroke-linejoin="miter"/>
+<polyline points="796.50,582.45 796.50,544.05" fill="none" stroke="#C4C4C4" stroke-width="3.00" stroke-linejoin="miter"/>
+<polyline points="627.57,514.88 627.57,496.45" fill="none" stroke="#333333" stroke-width="4.00" stroke-linejoin="miter"/>
+<polyline points="635.25,805.12 604.54,805.12" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<polyline points="497.04,820.48 466.32,820.48" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<polyline points="420.25,712.98 420.25,636.20" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<polyline points="497.04,544.05 543.11,544.05 543.11,605.48 619.89,605.48 619.89,559.41" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<polyline points="696.68,513.34 742.75,513.34" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<polyline points="804.18,620.84 804.18,759.05 742.75,759.05" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<polyline points="781.14,482.62 781.14,390.48" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<polyline points="358.82,574.77 328.11,574.77" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<polyline points="235.96,574.77 205.25,574.77" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<polyline points="466.32,743.70 520.07,743.70 520.07,712.98" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<rect x="642.93" y="743.70" width="46.07" height="46.07" fill="none" stroke="#A9C4CC" stroke-width="1.5" stroke-dasharray="5 4"/>
+<rect x="758.11" y="313.70" width="46.07" height="46.07" fill="none" stroke="#A9C4CC" stroke-width="1.5" stroke-dasharray="5 4"/>
+<polyline points="665.96,732.18 665.96,688.41" fill="none" stroke="#E9BF79" stroke-width="4.00" stroke-linejoin="miter"/>
+<circle cx="665.96" cy="688.41" r="5" fill="#E9BF79"/>
+<text x="673.96" y="678.41" class="label" font-size="16">to B2</text>
+<polyline points="781.14,298.34 781.14,250.73" fill="none" stroke="#E9BF79" stroke-width="4.00" stroke-linejoin="miter"/>
+<circle cx="781.14" cy="250.73" r="5" fill="#E9BF79"/>
+<text x="789.14" y="240.73" class="label" font-size="16">to B4</text>
+<rect x="637.93" y="723.34" width="10" height="10" fill="#A9C4CC" stroke="#171717" stroke-width="2"/>
+<text x="649.93" y="721.34" class="label" font-size="16">T01</text>
+<circle cx="601.46" cy="851.20" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="608.46" y="844.20" class="label" font-size="16">T02</text>
+<circle cx="563.07" cy="832.00" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="570.07" y="825.00" class="label" font-size="16">T03</text>
+<circle cx="346.54" cy="759.05" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="353.54" y="752.05" class="label" font-size="16">T04</text>
+<circle cx="555.39" cy="674.59" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="562.39" y="667.59" class="label" font-size="16">T05</text>
+<circle cx="430.23" cy="674.59" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="437.23" y="667.59" class="label" font-size="16">T06</text>
+<circle cx="427.93" cy="516.41" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="434.93" y="509.41" class="label" font-size="16">T07</text>
+<circle cx="282.04" cy="531.77" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="289.04" y="524.77" class="label" font-size="16">T08</text>
+<circle cx="85.46" cy="551.73" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="92.46" y="544.73" class="label" font-size="16">T09</text>
+<rect x="528.12" y="600.48" width="10" height="10" fill="#A9C4CC" stroke="#171717" stroke-width="2"/>
+<text x="540.12" y="598.48" class="label" font-size="16">T10</text>
+<rect x="624.88" y="569.77" width="10" height="10" fill="#A9C4CC" stroke="#171717" stroke-width="2"/>
+<text x="636.88" y="567.77" class="label" font-size="16">T11</text>
+<circle cx="642.93" cy="454.98" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="649.93" y="447.98" class="label" font-size="16">T12</text>
+<circle cx="862.54" cy="544.05" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="869.54" y="537.05" class="label" font-size="16">T13</text>
+<circle cx="814.16" cy="759.05" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="821.16" y="752.05" class="label" font-size="16">T14</text>
+<circle cx="791.12" cy="436.55" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="798.12" y="429.55" class="label" font-size="16">T15</text>
+<circle cx="804.18" cy="298.34" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="811.18" y="291.34" class="label" font-size="16">T16</text>
+<rect x="740.82" y="339.41" width="10" height="10" fill="#A9C4CC" stroke="#171717" stroke-width="2"/>
+<text x="752.82" y="337.41" class="label" font-size="16">T17</text>
+<text x="942.00" y="155.00" class="" font-size="19">ROOM KEY  /  layout IDs</text>
+<text x="942.00" y="182.00" class="key" font-size="16">R01  B3.Entry</text>
+<text x="942.00" y="205.00" class="key" font-size="16">R02  B3.LowerWest</text>
+<text x="942.00" y="228.00" class="key" font-size="16">R03  B3.C3Cell</text>
+<text x="942.00" y="251.00" class="key" font-size="16">R04  B3.West</text>
+<text x="942.00" y="274.00" class="key" font-size="16">R05  B3.WestBay</text>
+<text x="942.00" y="297.00" class="key" font-size="16">R06  B3.UpperCentral</text>
+<text x="942.00" y="320.00" class="key" font-size="16">R07  B3.BranchNear</text>
+<text x="942.00" y="343.00" class="key" font-size="16">R08  B3.BranchEnd</text>
+<text x="942.00" y="366.00" class="key" font-size="16">R09  B3.East</text>
+<text x="942.00" y="389.00" class="key" font-size="16">R10  B3.LowerRight</text>
+<text x="942.00" y="412.00" class="key" font-size="16">R11  B3.Descent</text>
+<text x="942.00" y="458.00" class="" font-size="17">LIGHT KEY  /  see README for XYZ + ranges</text>
+<text x="942.00" y="485.00" class="small" font-size="16">T01   N   B3.Entry</text>
+<text x="942.00" y="506.00" class="small" font-size="16">T02   T   B3.LowerWest</text>
+<text x="942.00" y="527.00" class="small" font-size="16">T03   T   B3.C3Cell</text>
+<text x="942.00" y="548.00" class="small" font-size="16">T04   T   B3.West</text>
+<text x="942.00" y="569.00" class="small" font-size="16">T05   T   B3.WestBay</text>
+<text x="942.00" y="590.00" class="small" font-size="16">T06   T   B3.C03</text>
+<text x="942.00" y="611.00" class="small" font-size="16">T07   T   B3.UpperCentral</text>
+<text x="942.00" y="632.00" class="small" font-size="16">T08   T   B3.BranchNear</text>
+<text x="942.00" y="653.00" class="small" font-size="16">T09   T   B3.BranchEnd</text>
+<text x="942.00" y="674.00" class="small" font-size="16">T10   N   B3.C04</text>
+<text x="942.00" y="695.00" class="small" font-size="16">T11   N   B3.C04</text>
+<text x="942.00" y="716.00" class="small" font-size="16">T12   T   B3.East</text>
+<text x="942.00" y="737.00" class="small" font-size="16">T13   T   B3.LowerRight</text>
+<text x="942.00" y="758.00" class="small" font-size="16">T14   T   B3.C06</text>
+<text x="942.00" y="779.00" class="small" font-size="16">T15   T   B3.C07</text>
+<text x="942.00" y="800.00" class="small" font-size="16">T16   W   B3.Descent</text>
+<text x="942.00" y="821.00" class="small" font-size="16">T17   N   B3.Descent</text>
+<text x="44.00" y="1042.00" class="muted" font-size="17">B3: SkyLight 0.32 (0.26–0.38)</text>
+<text x="44.00" y="1070.00" class="muted" font-size="16">Circle T/W = amber fixture  •  square N = neutral stair/route  •  diamond F = overhead fill</text>
+<text x="44.00" y="1095.00" class="muted" font-size="16">Dashed blue = minimum arrival reserve, NOT a safety system. Dark holes/plinths stay blocked.</text>
+<text x="44.00" y="1120.00" class="muted" font-size="16">Top-down +X →, +Y ↑; 1 U = 100 cm. Borders omit doorway cuts. Light symbols show centers, NOT radii.</text>
+<text x="44.00" y="1144.00" class="muted" font-size="14">All metrics are Prototype / A-04 + inherited V-01. No source pixels. No engine appearance or performance claim.</text>
+<path d="M60,1005 h76.79" stroke="#F2F2F2" stroke-width="3"/>
+<text x="60.00" y="996.00" class="small" font-size="16">10 U</text>
+</svg>
