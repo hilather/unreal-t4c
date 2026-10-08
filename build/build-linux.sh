@@ -8,7 +8,7 @@ if [[ $# -gt 1 || (${1:-} != "" && ${1:-} != "--game") ]]; then
 fi
 builder="$UE_ROOT/Engine/Build/BatchFiles/Linux/Build.sh"
 [[ -f "$builder" ]] || { echo "Build script missing: $builder" >&2; exit 1; }
-log_dir="$LH_PROJECT_ROOT/Saved/Logs/Build-$(date -u +%Y%m%dT%H%M%SZ)-$$"
+log_dir="$LH_BUILD_DIR/logs/Build-$(date -u +%Y%m%dT%H%M%SZ)-$$"
 mkdir -p -- "$log_dir"
 cd -- "$LH_PROJECT_ROOT"
 bash "$builder" LighthavenEditor Linux Development "-Project=$LH_PROJECT" -WaitMutex 2>&1 | tee "$log_dir/editor.log"

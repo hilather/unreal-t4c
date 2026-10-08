@@ -19,6 +19,13 @@ if [[ ! -f "$UE_ROOT/Engine/Binaries/Linux/UnrealEditor" ]]; then
 fi
 UE_ROOT="$(cd -- "$UE_ROOT" && pwd)"
 export UE_ROOT
+# Installed-engine UBT uses .NET ApplicationData for its logs and traces.
+# An absent user config directory can resolve to an empty path, causing writes
+# relative to the read-only engine mount. Keep the default inside the project.
+if [[ -z "${XDG_CONFIG_HOME:-}" ]]; then
+    export XDG_CONFIG_HOME="$LH_PROJECT_ROOT/Saved/BuildEnvironment/config"
+    mkdir -p -- "$XDG_CONFIG_HOME"
+fi
 if ! command -v python3 >/dev/null 2>&1; then
     echo "python3 is required to read Build.version and Automation reports." >&2
     exit 1
