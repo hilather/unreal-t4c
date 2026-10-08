@@ -9,6 +9,7 @@ ALHPlayerState::ALHPlayerState()
     Combat = CreateDefaultSubobject<ULHCombatComponent>(TEXT("Combat"));
 }
 UAbilitySystemComponent* ALHPlayerState::GetAbilitySystemComponent() const { return Combat; }
+APawn* ALHPlayerState::GetCombatAvatar() const { return Cast<APawn>(Combat->GetAvatarActor()); }
 void ALHPlayerState::InitializeAvatar(APawn* Avatar)
 {
     Combat->OnDeath.RemoveAll(this);

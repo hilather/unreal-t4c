@@ -89,9 +89,10 @@ bool FLHWave2Independence::RunTest(const FString&)
     {
         FRuntime Runtime(Disk); TestTrue(TEXT("Select restores"),Runtime.Restore(Expected.Header.CharacterId));
         TestTrue(TEXT("Complete canonical snapshot equal after runtime destruction"),Equal(Expected,Runtime.Session->Snapshot()));
-        auto* C=Runtime.State->GetCombatComponent(); TestFalse(TEXT("No live ASC avatar before initialization"),C->IsAlive());
+        auto* C=Runtime.State->GetCombatComponent(); TestNull(TEXT("No combat pawn avatar before initialization"),Runtime.State->GetCombatAvatar());
         TestEqual(TEXT("Restored health installed before avatar"),C->GetCombatAttributes()->GetHealth(),float(Expected.Character.CurrentHealth.Value));
         auto* Avatar=Runtime.World->SpawnActor<ALHCharacter>(); Runtime.State->InitializeAvatar(Avatar);
+        TestEqual(TEXT("Initialization binds the restored combat pawn"),Runtime.State->GetCombatAvatar(),static_cast<APawn*>(Avatar));
         TestEqual(TEXT("Initialization keeps restored resources"),C->GetCombatAttributes()->GetHealth(),float(Expected.Character.CurrentHealth.Value));
     }
     return true;

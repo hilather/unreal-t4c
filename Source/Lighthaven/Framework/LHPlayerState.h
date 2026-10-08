@@ -15,6 +15,8 @@ public:
     virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
     ULHCombatComponent* GetCombatComponent() const { return Combat; }
     ULHCharacterAuthorityComponent* GetCharacterAuthority() const { return CharacterAuthority; }
+    // GAS defaults its avatar to the owner; expose only the bound gameplay pawn.
+    APawn* GetCombatAvatar() const;
     void InitializeAvatar(APawn* Avatar);
     void ClearAvatar();
 private:

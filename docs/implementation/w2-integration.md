@@ -210,3 +210,33 @@ output; that log is authoritative if this summary differs. Both native test and
 game targets linked. UBA warned that some action result store tasks did not succeed,
 without preventing target success. Whitespace and 24-path scope checks passed.
 No native runtime or gate pass is claimed.
+
+## W2-04c — direct combat pawn assertion
+
+`ULHCombatComponent::IsAlive()` combines a valid, non-destroying ASC avatar actor
+with finite positive health. It does not distinguish the gameplay pawn from the
+PlayerState: UE 5.8.3 `UAbilitySystemComponent::InitializeComponent()` calls
+`InitAbilityActorInfo(Owner, Owner)` by default. The restore adapter does not bind
+a pawn early. Thus restored positive health can make the owner-backed ASC alive
+before `ALHPlayerState::InitializeAvatar`.
+
+The read-only `ALHPlayerState::GetCombatAvatar()` forwards the existing GAS avatar
+read and casts it to `APawn`, returning null for the default PlayerState avatar.
+Keeping that forwarding call in the Framework module also avoids the previous
+cross-module GAS export/link problem. IndependentRebuild now directly requires
+no combat pawn before initialization for both restored characters, and requires
+the exact spawned pawn after initialization. Every other assertion is retained.
+No restore ordering, Abilities code, schema, tuning or binary asset changed.
+
+Native Automation is not run in this worker: `id -u` returned **0**, and Unreal
+refuses root execution. Coordinator should run `bash build/run-tests.sh Lighthaven`
+as a normal host user and retain exact pass/fail lines; no runtime pass is claimed.
+Build details and evidence are recorded in the W2-04c attempt report.
+
+W2-04c build actually run:
+`UE_ROOT=/home/brewerm/Downloads/unreal bash build/build-linux.sh --game`.
+Exit **0**, wall time **232.132 seconds**; both editor and game reported
+`Result: Succeeded`. Evidence: W2-04c attempt output `library/build.log` and
+`library/build-time.txt`. `git diff --check` passed. Native tests, editor launch,
+package and play were not run in this root worker; the previously reported
+64 pass / 1 fail and package launch are coordinator evidence for the base only.
