@@ -55,7 +55,7 @@ Host test status (2026-10-08, main incl. S-02): 30/30 Lighthaven Automation test
 | W2-01 persistence | integrated, host-tested (W2-01b + W2-01c fix) | 51/51 host tests | codex-sol | Source/Lighthaven/Persistence/, LighthavenTests/Persistence/ | Brief ready (coordinator scratch/wave2). Launch after Matt's G1 play check |
 | W2-02 character | integrated, host-tested (W2-02b + W2-02d + W2-02e) | 56/56 host tests | codex-sol | Source/Lighthaven/Character/, LighthavenTests/Character/ | Brief ready |
 | W2-03 frontend/character UI | W2-03b + W2-03c integrated: 5 Slate screens on presenters, V-03 style, L_Frontend generated on host (LFS). Host 38/38 tests. Live save/character adapters pending W2-04 | codex-sol | Source/Lighthaven/UI/, LighthavenTests/UI/, frontend map commandlet | Brief ready; L_Frontend generated on host |
-| W2-04 Wave 2 integration | checkpoint integrated; continues as W2-04b (active) | codex-sol | Framework/, Config/, LighthavenTests/Integration/ | Brief ready; produces G2 checklist |
+| W2-04 Wave 2 integration | W2-04b submitted: host build OK, 64 pass / 1 FAIL (IndependentRebuild uses IsAlive() as an avatar proxy), package with L_Frontend+dev maps OK, packaged game starts in L_Frontend (LHFrontendGameMode). Fix in W2-04c | codex-sol | Framework/, Config/, LighthavenTests/Integration/ | Brief ready; produces G2 checklist |
 
 Open (Windows phase): Unreal writes project `Build/` (e.g. Build/Linux/FileOpenOrder) while our scripts live in lowercase `build/`; on case-insensitive Windows these are one folder. Decide before Windows work (rename scripts dir, or keep and gitignore engine subpaths).
 
