@@ -121,7 +121,10 @@ LH_ID_TEST(FLHRequestMalformed,"Digest.CanonicalAndRejection")
     M=C; M.Request.Epoch={}; TestTrue(TEXT("Zero epoch"),Digest(TEXT("CreateCharacter"),M).IsEmpty());
     M=C; M.PreviewToken={}; TestTrue(TEXT("Zero token"),Digest(TEXT("CreateCharacter"),M).IsEmpty());
     M=C; M.DisplayName=FString::ChrN(129,'a'); TestTrue(TEXT("Display bound"),Digest(TEXT("CreateCharacter"),M).IsEmpty());
-    M=C; M.DisplayName.AppendChar(0); M.DisplayName+=TEXT("hidden"); TestTrue(TEXT("Embedded NUL rejects"),Digest(TEXT("CreateCharacter"),M).IsEmpty());
+    M=C; M.DisplayName=TEXT("Namehidden"); M.DisplayName.GetCharArray().Insert(TCHAR(0),4);
+    TestEqual(TEXT("Embedded NUL canonical input length"),M.DisplayName.Len(),11);
+    TestEqual(TEXT("Embedded NUL canonical input character"),M.DisplayName[4],TCHAR(0));
+    TestTrue(TEXT("Embedded NUL rejects"),Digest(TEXT("CreateCharacter"),M).IsEmpty());
     TestFalse(TEXT("Embedded NUL canonical encode rejects"),LHSave::EncodeCanonicalRequest(TEXT("CreateCharacter"),M.StaticStruct(),&M,Bytes,Error));
     TestTrue(TEXT("Embedded NUL canonical reason"),Error.Reason==ELHSaveReason::Malformed);
     M=C; M.DisplayName.AppendChar(static_cast<TCHAR>(0xd800)); TestTrue(TEXT("Malformed native Unicode rejects"),Digest(TEXT("CreateCharacter"),M).IsEmpty());

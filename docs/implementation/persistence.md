@@ -81,3 +81,7 @@ These constants were calculated once with an independent little-endian byte asse
 The shared `FWire::String` writer checks every native character before UTF-8 conversion and rejects embedded NUL as `Malformed`. It retains explicit `Len()` conversion, surrogate validation and existing byte bounds. `LHSaveWireV1.inl` routes FString fields, enum tokens and FName strings through this writer, covering both canonical requests and save headers/payloads. Diagnostic prevalidation also rejects NUL before its explicit-length byte accounting. This prevents a hidden suffix from sharing the identity of its visible prefix.
 
 Native regression assertions cover canonical request rejection with the structured reason, save character-name rejection and diagnostic rejection. Frozen valid-input digest vectors and schema revision 1 are unchanged; no valid-input byte encoding changed. Automation execution remains for a non-root host user; see the attempt handoff for build observations.
+
+### W2-01f: embedded NUL test inputs
+
+Never use `AppendChar(0)` to build NUL test input: UE 5.8.3 ignores that character. The canonical request, saved character name and diagnostic rejection tests insert `TCHAR(0)` into `GetCharArray()` between a visible prefix and hidden suffix. Each asserts the full `Len()` and the NUL at its expected index before checking rejection with `Malformed`. The defensive product scans remain unchanged.
