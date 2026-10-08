@@ -52,9 +52,14 @@ Host test status (2026-10-08, main incl. S-02): 30/30 Lighthaven Automation test
 
 | Task | Status | Profile | Owned paths / binary assets | Notes |
 |---|---|---|---|---|
-| W2-01 persistence | planned, **held for G1** | codex-sol | Source/Lighthaven/Persistence/, LighthavenTests/Persistence/ | Brief ready (coordinator scratch/wave2). Launch after Matt's G1 play check |
-| W2-02 character | planned, **held for G1** | codex-sol | Source/Lighthaven/Character/, LighthavenTests/Character/ | Brief ready |
-| W2-03 frontend/character UI | planned, **held for G1** | codex-sol | Source/Lighthaven/UI/, LighthavenTests/UI/, frontend map commandlet | Brief ready; L_Frontend generated on host |
+| W2-01 persistence | active (launching) | codex-sol | Source/Lighthaven/Persistence/, LighthavenTests/Persistence/ | Brief ready (coordinator scratch/wave2). Launch after Matt's G1 play check |
+| W2-02 character | active (launching) | codex-sol | Source/Lighthaven/Character/, LighthavenTests/Character/ | Brief ready |
+| W2-03 frontend/character UI | active (launching) | codex-sol | Source/Lighthaven/UI/, LighthavenTests/UI/, frontend map commandlet | Brief ready; L_Frontend generated on host |
 | W2-04 Wave 2 integration | planned (after W2-01..03) | codex-sol | Framework/, Config/, LighthavenTests/Integration/ | Brief ready; produces G2 checklist |
 
 Open (Windows phase): Unreal writes project `Build/` (e.g. Build/Linux/FileOpenOrder) while our scripts live in lowercase `build/`; on case-insensitive Windows these are one folder. Decide before Windows work (rename scripts dir, or keep and gitignore engine subpaths).
+
+**Matt decisions 2026-10-08 07:25 ET (relayed by Shepherd):**
+1. Push approved. Matt pushed `main` (ee9f9fb plus the LFS maps) to github.com/hilather/unreal-t4c; `origin/main` tracks it. **The repository is public**: never commit secrets, credentials or unlicensed binaries; reference images stay out of the repo (no commercial licence established).
+2. Wave 2 starts now, in parallel with Matt's remaining G1 hand checks (bugs 2–4 re-check, GUI nav build). W2-01..W2-03 launch one at a time; W2-04 after W2-01..03 are merged and host-tested. Any G1 hand-check failure comes back as a Wave 1 fix.
+3. Art direction for A-01/A-02/V-02 is **not yet approved** (Matt reviewing). No work may treat those specs as approved direction until he signs off.
