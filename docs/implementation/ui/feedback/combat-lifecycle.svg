@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-labelledby="title desc"><title id="title">Combat: results follow authority</title><desc id="desc">P: N is an owner-supplied amount, not a tuning value. Gameplay timers pause; UI cannot resolve damage or grant loot.</desc><g style="font-family: &quot;Source Sans 3&quot;, &quot;Liberation Sans&quot;, sans-serif">
+<rect x="0" y="0" width="1920" height="1080" rx="6" fill="#171717"/>
+<text x="72" y="68" font-size="24" fill="#E9BF79" font-weight="400" text-anchor="start">LIGHTHAVEN  /  V-04  /  FIRST-PASS PROPOSAL</text>
+<text x="72" y="126" font-size="48" fill="#F2F2F2" font-weight="400" text-anchor="start">Combat: results follow authority</text>
+<text x="72" y="168" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">P: N is an owner-supplied amount, not a tuning value. Gameplay timers pause; UI cannot resolve damage or grant loot.</text>
+<rect x="72" y="198" width="576" height="324" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="96" y="243" font-size="30" fill="#E9BF79" font-weight="600" text-anchor="start">01  COMMIT</text>
+<text x="96" y="280" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">Cost is settled; no damage text.</text>
+<rect x="672" y="198" width="576" height="324" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="696" y="243" font-size="30" fill="#E9BF79" font-weight="600" text-anchor="start">02  EXPLICIT IMPACT</text>
+<text x="696" y="280" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">Show only the resolved result.</text>
+<rect x="1272" y="198" width="576" height="324" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="1296" y="243" font-size="30" fill="#E9BF79" font-weight="600" text-anchor="start">03  TERMINAL / CANCEL</text>
+<text x="1296" y="280" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">Clear anticipation; retain spent mana.</text>
+<rect x="96" y="305" width="528" height="60" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<path d="M126,320 l15,15 l-15,15 l-15,-15 Z" stroke="#A9C4CC" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="156" y="345" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Mana −N MP</text>
+<text x="96" y="402" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Player HUD spend receipt</text>
+<text x="96" y="450" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">Requires commit + cost context.</text>
+<rect x="696" y="305" width="528" height="60" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<path d="M712,320 h28 v18 l-14,12 l-14,-12 Z" stroke="#F2F2F2" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="756" y="345" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Damage −N HP</text>
+<rect x="696" y="383" width="252" height="60" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<circle cx="726" cy="413" r="12" fill="none" stroke="#F2F2F2" stroke-width="3"/>
+<path d="M710,397 l9,9 M733,420 l9,9" stroke="#F2F2F2" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="756" y="423" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Miss</text>
+<rect x="966" y="383" width="258" height="60" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<path d="M981,413 l5,12 h20 l5,-12 M996,419 v-19 M989,407 l7,-7 l7,7" stroke="#A9C4CC" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="1026" y="423" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Heal +N HP</text>
+<text x="696" y="488" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">Heal needs its own settled event.</text>
+<rect x="1296" y="305" width="528" height="60" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<path d="M1318,320 h16 l7,7 v16 l-7,7 h-16 l-7,-7 v-16 Z" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1326,327 v12 M1326,343 v3" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="1356" y="345" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Attack interrupted</text>
+<text x="1296" y="402" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">No refund or invented Miss.</text>
+<text x="1296" y="450" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">Death may precede impact text.</text>
+<text x="72" y="568" font-size="24" fill="#E9BF79" font-weight="400" text-anchor="start">DODGE REQUIRES AN EXPLICIT OUTCOME; CURRENT bHit=false DISPLAYS MISS.</text>
+<text x="72" y="620" font-size="36" fill="#F2F2F2" font-weight="600" text-anchor="start">Lifecycle: the marker never causes the transition</text>
+<rect x="72" y="646" width="426" height="234" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<circle cx="108" cy="685" r="15" fill="none" stroke="#C4C4C4" stroke-width="3"/>
+<path d="M97,696 l22,-22" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="138" y="696" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">Dead</text>
+<text x="90" y="737" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">No loot assumption</text>
+<rect x="90" y="761" width="390" height="96" rx="0" fill="#514B42"/>
+<rect x="250.5" y="814.0" width="63.0" height="18.0" rx="9" fill="#514B42" stroke="#171717" stroke-width="3"/>
+<rect x="522" y="646" width="426" height="234" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<path d="M558,670 l15,15 l-15,15 l-15,-15 Z" stroke="#A9C4CC" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="588" y="696" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">Loot available</text>
+<text x="540" y="737" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">Owner confirms contents</text>
+<rect x="540" y="761" width="390" height="96" rx="0" fill="#514B42"/>
+<rect x="700.5" y="814.0" width="63.0" height="18.0" rx="9" fill="#514B42" stroke="#171717" stroke-width="3"/>
+<path d="M816,779 l15,15 l-15,15 l-15,-15 Z" stroke="#A9C4CC" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<rect x="972" y="646" width="426" height="234" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<path d="M993,685 l9,10 l21,-23" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="1038" y="696" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">Looted → Empty</text>
+<text x="990" y="737" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">Remove diamond</text>
+<rect x="990" y="761" width="390" height="96" rx="0" fill="#514B42"/>
+<rect x="1150.5" y="814.0" width="63.0" height="18.0" rx="9" fill="#514B42" stroke="#171717" stroke-width="3"/>
+<rect x="1422" y="646" width="426" height="234" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<path d="M1445,670 h26 l-26,30 h26 Z" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="1488" y="696" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">Waiting for new life</text>
+<text x="1440" y="737" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">No world marker</text>
+<text x="1440" y="800" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">No countdown or beacon.</text>
+<text x="1440" y="839" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">New life clears old effects.</text>
+<text x="72" y="928" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">P: 2 chips per recipient / 8 globally. No summed hits or delayed result queue. Opaque chips stay legible.</text>
+<path d="M72,978 H1848" stroke="#909090" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="72" y="1018" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">Dead state suppresses late hit flash. Permit one matching lethal result chip; loading a state never replays the event.</text>
+<text x="1848" y="1050" font-size="24" fill="#E9BF79" font-weight="400" text-anchor="end">Prototype UI  ·  No runtime result</text>
+</g></svg>

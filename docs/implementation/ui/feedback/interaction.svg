@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-labelledby="title desc"><title id="title">Interaction: one clear action</title><desc id="desc">Compare KBM and generic gamepad variants. The running HUD shows only the active device, resolved action and supplied reason.</desc><g style="font-family: &quot;Source Sans 3&quot;, &quot;Liberation Sans&quot;, sans-serif">
+<rect x="0" y="0" width="1920" height="1080" rx="6" fill="#171717"/>
+<text x="72" y="68" font-size="24" fill="#E9BF79" font-weight="400" text-anchor="start">LIGHTHAVEN  /  V-04  /  FIRST-PASS PROPOSAL</text>
+<text x="72" y="126" font-size="48" fill="#F2F2F2" font-weight="400" text-anchor="start">Interaction: one clear action</text>
+<text x="72" y="168" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">Compare KBM and generic gamepad variants. The running HUD shows only the active device, resolved action and supplied reason.</text>
+<text x="72" y="218" font-size="24" fill="#E9BF79" font-weight="400" text-anchor="start">NPC / SERVICE</text>
+<rect x="72" y="228" width="876" height="108" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<rect x="86" y="242" width="32" height="32" rx="4" fill="#333333" stroke="#909090" stroke-width="3"/>
+<text x="102" y="267" font-size="24" fill="#F2F2F2" font-weight="400" text-anchor="middle">E</text>
+<text x="132" y="267" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">E · Talk · Kilhiam</text>
+<text x="84" y="315" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Light teacher</text>
+<text x="972" y="218" font-size="24" fill="#E9BF79" font-weight="400" text-anchor="start">Generic gamepad</text>
+<rect x="972" y="228" width="876" height="108" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<circle cx="1002" cy="246" r="5" fill="#242424" stroke="#909090" stroke-width="2"/>
+<circle cx="990" cy="258" r="5" fill="#242424" stroke="#909090" stroke-width="2"/>
+<circle cx="1014" cy="258" r="5" fill="#242424" stroke="#909090" stroke-width="2"/>
+<circle cx="1002" cy="270" r="5" fill="#F2F2F2" stroke="#909090" stroke-width="2"/>
+<text x="1032" y="267" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">South · Talk · Kilhiam</text>
+<text x="984" y="315" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Light teacher</text>
+<text x="72" y="384" font-size="24" fill="#E9BF79" font-weight="400" text-anchor="start">STAIRS / PORTAL</text>
+<rect x="72" y="394" width="876" height="108" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<rect x="86" y="408" width="32" height="32" rx="4" fill="#333333" stroke="#909090" stroke-width="3"/>
+<text x="102" y="433" font-size="24" fill="#F2F2F2" font-weight="400" text-anchor="middle">E</text>
+<text x="132" y="433" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">E · Inspect travel</text>
+<text x="84" y="481" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Down to B2 · Confirm destination next</text>
+<text x="972" y="384" font-size="24" fill="#E9BF79" font-weight="400" text-anchor="start">Generic gamepad</text>
+<rect x="972" y="394" width="876" height="108" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<circle cx="1002" cy="412" r="5" fill="#242424" stroke="#909090" stroke-width="2"/>
+<circle cx="990" cy="424" r="5" fill="#242424" stroke="#909090" stroke-width="2"/>
+<circle cx="1014" cy="424" r="5" fill="#242424" stroke="#909090" stroke-width="2"/>
+<circle cx="1002" cy="436" r="5" fill="#F2F2F2" stroke="#909090" stroke-width="2"/>
+<text x="1032" y="433" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">South · Inspect travel</text>
+<text x="984" y="481" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Down to B2 · Confirm destination next</text>
+<text x="72" y="550" font-size="24" fill="#E9BF79" font-weight="400" text-anchor="start">LOOT / OUT OF RANGE</text>
+<rect x="72" y="560" width="876" height="108" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<circle cx="102" cy="590" r="15" fill="none" stroke="#C4C4C4" stroke-width="3"/>
+<path d="M91,601 l22,-22" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="132" y="599" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">Inspect loot · Brown Rat</text>
+<text x="84" y="647" font-size="30" fill="#C4C4C4" font-weight="400" text-anchor="start">Move closer to loot</text>
+<text x="972" y="550" font-size="24" fill="#E9BF79" font-weight="400" text-anchor="start">Generic gamepad</text>
+<rect x="972" y="560" width="876" height="108" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<circle cx="1002" cy="590" r="15" fill="none" stroke="#C4C4C4" stroke-width="3"/>
+<path d="M991,601 l22,-22" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="1032" y="599" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">Inspect loot · Brown Rat</text>
+<text x="984" y="647" font-size="30" fill="#C4C4C4" font-weight="400" text-anchor="start">Move closer to loot</text>
+<text x="72" y="716" font-size="24" fill="#E9BF79" font-weight="400" text-anchor="start">DOOR / CONDITIONAL</text>
+<rect x="72" y="726" width="876" height="108" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<rect x="86" y="740" width="32" height="32" rx="4" fill="#333333" stroke="#909090" stroke-width="3"/>
+<text x="102" y="765" font-size="24" fill="#F2F2F2" font-weight="400" text-anchor="middle">E</text>
+<text x="132" y="765" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">E · Open door</text>
+<text x="84" y="813" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Only for an adopted interactive door</text>
+<text x="972" y="716" font-size="24" fill="#E9BF79" font-weight="400" text-anchor="start">Generic gamepad</text>
+<rect x="972" y="726" width="876" height="108" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<circle cx="1002" cy="744" r="5" fill="#242424" stroke="#909090" stroke-width="2"/>
+<circle cx="990" cy="756" r="5" fill="#242424" stroke="#909090" stroke-width="2"/>
+<circle cx="1014" cy="756" r="5" fill="#242424" stroke="#909090" stroke-width="2"/>
+<circle cx="1002" cy="768" r="5" fill="#F2F2F2" stroke="#909090" stroke-width="2"/>
+<text x="1032" y="765" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">South · Open door</text>
+<text x="984" y="813" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Only for an adopted interactive door</text>
+<text x="72" y="922" font-size="24" fill="#E9BF79" font-weight="400" text-anchor="start">HUD RESOURCE CUES</text>
+<rect x="396" y="887" width="414" height="60" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<path d="M426,902 l16,30 h-32 Z" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M426,912 v10 M426,926 v3" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="456" y="927" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Low health</text>
+<rect x="834" y="887" width="402" height="60" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<path d="M864,902 l15,15 l-15,15 l-15,-15 Z" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="894" y="927" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Low mana</text>
+<rect x="1260" y="887" width="588" height="60" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<path d="M1282,902 h16 l7,7 v16 l-7,7 h-16 l-7,-7 v-16 Z" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1290,909 v12 M1290,925 v3" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="1320" y="927" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Can&#x27;t attack: not ready</text>
+<path d="M72,978 H1848" stroke="#909090" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="72" y="1018" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">P: low HP enter 25% / clear 30%; MP enter 20% / clear 25%. Static HUD warnings; unknown maxima disable thresholds.</text>
+<text x="1848" y="1050" font-size="24" fill="#E9BF79" font-weight="400" text-anchor="end">Prototype UI  ·  No runtime result</text>
+</g></svg>

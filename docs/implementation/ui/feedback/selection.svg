@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-labelledby="title desc"><title id="title">Selection: one target, distinct states</title><desc id="desc">Original schematic crops. Markers keep capsule footprints; labels and dark keylines preserve their meaning without colour.</desc><g style="font-family: &quot;Source Sans 3&quot;, &quot;Liberation Sans&quot;, sans-serif">
+<rect x="0" y="0" width="1920" height="1080" rx="6" fill="#171717"/>
+<text x="72" y="68" font-size="24" fill="#E9BF79" font-weight="400" text-anchor="start">LIGHTHAVEN  /  V-04  /  FIRST-PASS PROPOSAL</text>
+<text x="72" y="126" font-size="48" fill="#F2F2F2" font-weight="400" text-anchor="start">Selection: one target, distinct states</text>
+<text x="72" y="168" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">Original schematic crops. Markers keep capsule footprints; labels and dark keylines preserve their meaning without colour.</text>
+<rect x="72" y="198" width="276" height="364" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="90" y="236" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">Hover</text>
+<rect x="84" y="254" width="252" height="186" rx="0" fill="#695640"/>
+<path d="M189.6,398 l-6.8,-40.8 l13.6,-28.9 h27.2 l13.6,28.9 l-6.8,40.8 Z" stroke="#909090" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="#666453"/>
+<circle cx="210" cy="313.85" r="14.45" fill="#B7A987" stroke="#171717" stroke-width="3"/>
+<path d="M178,365 H154 V389" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M178,365 H154 V389" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M242,365 H266 V389" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M242,365 H266 V389" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M178,435 H154 V411" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M178,435 H154 V411" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M242,435 H266 V411" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M242,435 H266 V411" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<rect x="84" y="456" width="252" height="72" rx="6" fill="#171717"/>
+<path d="M99,487 v-10 h10 M119,477 h10 v10 M129,497 v10 h-10 M109,507 h-10 v-10" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="142" y="501" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Hover</text>
+<rect x="372" y="198" width="276" height="364" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="390" y="236" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">Selected</text>
+<rect x="384" y="254" width="252" height="186" rx="0" fill="#695640"/>
+<path d="M489.6,398 l-6.8,-40.8 l13.6,-28.9 h27.2 l13.6,28.9 l-6.8,40.8 Z" stroke="#909090" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="#666453"/>
+<circle cx="510" cy="313.85" r="14.45" fill="#B7A987" stroke="#171717" stroke-width="3"/>
+<path d="M478,365 H454 V389" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M478,365 H454 V389" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M542,365 H566 V389" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M542,365 H566 V389" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M478,435 H454 V411" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M478,435 H454 V411" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M542,435 H566 V411" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M542,435 H566 V411" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<rect x="384" y="456" width="252" height="72" rx="6" fill="#171717"/>
+<path d="M399,492 l9,10 l21,-23" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="442" y="501" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Selected</text>
+<path d="M584,389 l13,11 l-13,11 Z" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="#E9BF79"/>
+<path d="M584,389 l13,11 l-13,11 Z" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="#E9BF79"/>
+<path d="M425,329 l15,13 l-15,13" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<rect x="672" y="198" width="276" height="364" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="690" y="236" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">Out of reach</text>
+<rect x="684" y="254" width="252" height="186" rx="0" fill="#695640"/>
+<path d="M789.6,398 l-6.8,-40.8 l13.6,-28.9 h27.2 l13.6,28.9 l-6.8,40.8 Z" stroke="#909090" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="#666453"/>
+<circle cx="810" cy="313.85" r="14.45" fill="#B7A987" stroke="#171717" stroke-width="3"/>
+<path d="M778,365 h-8 M762,365 h-8 v8 M754,381 v8" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M778,365 h-8 M762,365 h-8 v8 M754,381 v8" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M842,365 h8 M858,365 h8 v8 M866,381 v8" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M842,365 h8 M858,365 h8 v8 M866,381 v8" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M778,435 h-8 M762,435 h-8 v-8 M754,419 v-8" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M778,435 h-8 M762,435 h-8 v-8 M754,419 v-8" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M842,435 h8 M858,435 h8 v-8 M866,419 v-8" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M842,435 h8 M858,435 h8 v-8 M866,419 v-8" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<rect x="684" y="456" width="252" height="72" rx="6" fill="#171717"/>
+<path d="M699,492 h30 M706,483 l-7,9 l7,9 M722,483 l7,9 l-7,9" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="742" y="501" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Unavailable</text>
+<rect x="972" y="198" width="276" height="364" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="990" y="236" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">Dead</text>
+<rect x="984" y="254" width="252" height="186" rx="0" fill="#695640"/>
+<rect x="1080.25" y="389.5" width="59.5" height="17.0" rx="9" fill="#514B42" stroke="#171717" stroke-width="3"/>
+<path d="M1078,365 H1054 V389" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1078,365 H1054 V389" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1142,365 H1166 V389" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1142,365 H1166 V389" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1078,435 H1054 V411" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1078,435 H1054 V411" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1142,435 H1166 V411" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1142,435 H1166 V411" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<rect x="984" y="456" width="252" height="72" rx="6" fill="#171717"/>
+<circle cx="1014" cy="492" r="15" fill="none" stroke="#C4C4C4" stroke-width="3"/>
+<path d="M1003,503 l22,-22" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="1042" y="501" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Cannot attack</text>
+<rect x="1272" y="198" width="276" height="364" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="1290" y="236" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">Unreachable</text>
+<rect x="1284" y="254" width="252" height="186" rx="0" fill="#695640"/>
+<path d="M1389.6,398 l-6.8,-40.8 l13.6,-28.9 h27.2 l13.6,28.9 l-6.8,40.8 Z" stroke="#909090" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="#666453"/>
+<circle cx="1410" cy="313.85" r="14.45" fill="#B7A987" stroke="#171717" stroke-width="3"/>
+<path d="M1378,365 H1354 V389" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1378,365 H1354 V389" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1442,365 H1466 V389" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1442,365 H1466 V389" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1378,435 H1354 V411" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1378,435 H1354 V411" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1442,435 H1466 V411" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1442,435 H1466 V411" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<rect x="1284" y="456" width="252" height="72" rx="6" fill="#171717"/>
+<circle cx="1314" cy="492" r="15" fill="none" stroke="#C4C4C4" stroke-width="3"/>
+<path d="M1303,503 l22,-22" stroke="#C4C4C4" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="1342" y="501" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Unavailable</text>
+<rect x="1572" y="198" width="276" height="364" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="1590" y="236" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">Gamepad cycle</text>
+<rect x="1584" y="254" width="252" height="186" rx="0" fill="#695640"/>
+<path d="M1689.6,398 l-6.8,-40.8 l13.6,-28.9 h27.2 l13.6,28.9 l-6.8,40.8 Z" stroke="#909090" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="#666453"/>
+<circle cx="1710" cy="313.85" r="14.45" fill="#B7A987" stroke="#171717" stroke-width="3"/>
+<path d="M1678,365 H1654 V389" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1678,365 H1654 V389" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1742,365 H1766 V389" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1742,365 H1766 V389" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1678,435 H1654 V411" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1678,435 H1654 V411" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1742,435 H1766 V411" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1742,435 H1766 V411" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<rect x="1584" y="456" width="252" height="72" rx="6" fill="#171717"/>
+<path d="M1605,479 l15,13 l-15,13" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="1642" y="501" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Selected</text>
+<path d="M1784,389 l13,11 l-13,11 Z" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="#E9BF79"/>
+<path d="M1784,389 l13,11 l-13,11 Z" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="#E9BF79"/>
+<text x="1710" y="550" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="middle">Target n of total</text>
+<text x="72" y="594" font-size="24" fill="#E9BF79" font-weight="400" text-anchor="start">SIX A-04 FLOORS  /  FLAT SWATCHES, NOT A LIGHTING SIMULATION</text>
+<rect x="72" y="620" width="276" height="252" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="90" y="658" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">Hub exterior</text>
+<rect x="84" y="679" width="252" height="121" rx="0" fill="#77766D"/>
+<path d="M178,705 H154 V729" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M178,705 H154 V729" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M242,705 H266 V729" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M242,705 H266 V729" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M178,775 H154 V751" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M178,775 H154 V751" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M242,775 H266 V751" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M242,775 H266 V751" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="210" y="845" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="middle">#77766D</text>
+<rect x="372" y="620" width="276" height="252" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="390" y="658" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">Hub interior</text>
+<rect x="384" y="679" width="252" height="121" rx="0" fill="#77766D"/>
+<path d="M478,705 H454 V729" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M478,705 H454 V729" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M542,705 H566 V729" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M542,705 H566 V729" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M478,775 H454 V751" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M478,775 H454 V751" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M542,775 H566 V751" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M542,775 H566 V751" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="510" y="845" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="middle">#77766D</text>
+<rect x="672" y="620" width="276" height="252" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="690" y="658" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">B1</text>
+<rect x="684" y="679" width="252" height="121" rx="0" fill="#695640"/>
+<path d="M778,705 H754 V729" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M778,705 H754 V729" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M842,705 H866 V729" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M842,705 H866 V729" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M778,775 H754 V751" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M778,775 H754 V751" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M842,775 H866 V751" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M842,775 H866 V751" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="810" y="845" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="middle">#695640</text>
+<rect x="972" y="620" width="276" height="252" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="990" y="658" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">B2</text>
+<rect x="984" y="679" width="252" height="121" rx="0" fill="#695640"/>
+<path d="M1078,705 H1054 V729" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1078,705 H1054 V729" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1142,705 H1166 V729" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1142,705 H1166 V729" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1078,775 H1054 V751" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1078,775 H1054 V751" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1142,775 H1166 V751" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1142,775 H1166 V751" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="1110" y="845" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="middle">#695640</text>
+<rect x="1272" y="620" width="276" height="252" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="1290" y="658" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">B3</text>
+<rect x="1284" y="679" width="252" height="121" rx="0" fill="#695640"/>
+<path d="M1378,705 H1354 V729" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1378,705 H1354 V729" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1442,705 H1466 V729" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1442,705 H1466 V729" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1378,775 H1354 V751" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1378,775 H1354 V751" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1442,775 H1466 V751" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1442,775 H1466 V751" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="1410" y="845" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="middle">#695640</text>
+<rect x="1572" y="620" width="276" height="252" rx="6" fill="#242424" stroke="#909090" stroke-width="3"/>
+<text x="1590" y="658" font-size="30" fill="#F2F2F2" font-weight="600" text-anchor="start">B4</text>
+<rect x="1584" y="679" width="252" height="121" rx="0" fill="#514B42"/>
+<path d="M1678,705 H1654 V729" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1678,705 H1654 V729" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1742,705 H1766 V729" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1742,705 H1766 V729" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1678,775 H1654 V751" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1678,775 H1654 V751" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1742,775 H1766 V751" stroke="#171717" stroke-width="9" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<path d="M1742,775 H1766 V751" stroke="#E9BF79" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="1710" y="845" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="middle">#514B42</text>
+<text x="72" y="923" font-size="30" fill="#F2F2F2" font-weight="400" text-anchor="start">Amber core on dark keyline: 10.41:1 in token space. Every floor still needs rendered pixel checks.</text>
+<path d="M72,978 H1848" stroke="#909090" stroke-width="3" stroke-linecap="butt" stroke-linejoin="round" fill="none"/>
+<text x="72" y="1018" font-size="24" fill="#C4C4C4" font-weight="400" text-anchor="start">F / Right-stick press clears. Q / L shoulder previous. Tab / R shoulder next. No through-wall markers.</text>
+<text x="1848" y="1050" font-size="24" fill="#E9BF79" font-weight="400" text-anchor="end">Prototype UI  ·  No runtime result</text>
+</g></svg>
