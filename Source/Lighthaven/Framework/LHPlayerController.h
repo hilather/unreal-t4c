@@ -44,6 +44,7 @@ private:
     FDelegateHandle DeactivateHandle;
     bool bHadFocus=true;
     bool bAwaitMoveRelease=true;
+    bool HasLiveMovementAvatar() const;
     void Move(const FInputActionValue& Value);
     void StopMove(const FInputActionValue& Value);
     void Look(const FInputActionValue& Value);

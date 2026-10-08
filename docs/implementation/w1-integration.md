@@ -105,3 +105,21 @@ while headers were edited during a build, incorrect impact log field access,
 and a direct test-module GAS symbol reference; final source resolves these.
 No Automation/editor/commandlet/cook/package/play execution occurred in this
 root worker. Logs/timing accompany the attempt evidence report.
+
+## G1-FIX player movement life gate
+
+Movement ingress and controller tick require the PlayerState combat component
+to be alive and its avatar to equal the possessed pawn. Failure clears held axes,
+consumes pending pawn input, stops velocity and reinstates release gating before
+focus processing; neutral input while dead cannot unlock restored movement.
+Canonical resource/avatar restoration still requires neutral followed by fresh
+input. No respawn framework or death UI was added.
+
+`Lighthaven.Integration.DeadPlayerMovement` delivers a lethal enemy attack,
+checks retained possession, submits neutral then digital/analog axes, and advances
+controller/CharacterMovement ticks. It also injects residual input/velocity to
+exercise tick cleanup, checks restored-avatar release gating and rejects a live
+but mismatched avatar. The floorless transient fixture uses flying movement to
+isolate locomotion from gravity. Both devices share semantic ingress; hardware
+and focused viewport validation remain host checks. All existing 24 tests retain
+their assertions; the four added tests bring the suite to 28.

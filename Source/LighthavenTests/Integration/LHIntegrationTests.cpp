@@ -78,6 +78,8 @@ struct FFixture
         Config.ManaCost = Number(2); Config.CooldownSeconds = Number(3); Config.ImpactSeconds = Number(1);
         Config.RangeCm = Number(200); Config.WeaponMinimum = Number(10); Config.WeaponMaximum = Number(10);
         Attacker->ConfigureAttack(Config, {});
+        Defender->ConfigureAttack(Config, {});
+        Defender->SetCombatRandomState(FRandomStream(123));
         Attacker->SetCombatRandomState(FRandomStream(123));
     }
     ~FFixture()
@@ -154,6 +156,58 @@ bool FLHContextIntegration::RunTest(const FString&)
     F.Controller->SubmitMovement(FVector2D::ZeroVector);
     F.Controller->SubmitMovement(FVector2D(1,0));
     TestFalse(TEXT("Neutral then new input accepted"), F.Controller->GetHeldMovement().IsNearlyZero());
+    return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeadPlayerMovementTest, "Lighthaven.Integration.DeadPlayerMovement", Flags)
+bool FLHDeadPlayerMovementTest::RunTest(const FString&)
+{
+    FFixture F;
+    // This transient world has no floor; flying isolates locomotion from gravity.
+    F.Source->GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+    F.Attacker->SetNumericAttributeBase(ULHAttributeSet::GetHealthAttribute(), 10);
+    F.Controller->SubmitMovement(FVector2D::ZeroVector);
+    F.Controller->SubmitMovement(FVector2D(1,0));
+    F.Source->AddMovementInput(FVector::ForwardVector, 1);
+    F.Source->GetCharacterMovement()->Velocity=FVector(100,0,0);
+    TestTrue(TEXT("Enemy lethal attack accepted"), F.Defender->RequestBasicAttack(F.Attacker)==ELHCommandReason::None);
+    TestTrue(TEXT("Lethal hit through combat"), F.Defender->ResolveImpact(F.Defender->GetPendingIdentity()));
+    TestFalse(TEXT("Player dead"), F.Attacker->IsAlive());
+    TestTrue(TEXT("Dead pawn still possessed"), F.Controller->GetPawn()==F.Source);
+    // Keyboard digital and gamepad analog semantic axes share SubmitMovement.
+    for (const FVector2D Axis : {FVector2D(1,0), FVector2D(0.4,0.7)})
+    {
+        F.Controller->SubmitMovement(FVector2D::ZeroVector);
+        F.Controller->SubmitMovement(Axis);
+        TestTrue(TEXT("Fresh dead input blocked"), F.Controller->GetHeldMovement().IsNearlyZero());
+        // Also inject residual motion to exercise the per-tick gate independently of ingress.
+        F.Source->AddMovementInput(FVector::ForwardVector, 1);
+        F.Source->GetCharacterMovement()->Velocity=FVector(100,0,0);
+        for (int32 I=0; I<3; ++I)
+        {
+            F.Controller->PlayerTick(0.016f);
+            F.Source->GetCharacterMovement()->TickComponent(0.016f, LEVELTICK_All, nullptr);
+            TestTrue(TEXT("Dead held movement stays zero"), F.Controller->GetHeldMovement().IsNearlyZero());
+            TestTrue(TEXT("Dead pending input stays zero"), F.Source->GetPendingMovementInputVector().IsNearlyZero());
+            TestTrue(TEXT("Dead velocity stays zero"), F.Source->GetVelocity().IsNearlyZero());
+        }
+    }
+    F.Attacker->SetNumericAttributeBase(ULHAttributeSet::GetHealthAttribute(), 100);
+    F.State->InitializeAvatar(F.Source);
+    F.Controller->SubmitMovement(FVector2D(1,0));
+    TestTrue(TEXT("Restored live avatar requires release"), F.Controller->GetHeldMovement().IsNearlyZero());
+    F.Controller->SubmitMovement(FVector2D::ZeroVector);
+    F.Controller->SubmitMovement(FVector2D(1,0));
+    TestFalse(TEXT("Restored live avatar accepts fresh movement"), F.Controller->GetHeldMovement().IsNearlyZero());
+    F.State->InitializeAvatar(F.Target);
+    TestTrue(TEXT("Mismatched avatar is alive"), F.Attacker->IsAlive());
+    F.Controller->SubmitMovement(FVector2D::ZeroVector);
+    F.Controller->SubmitMovement(FVector2D(1,0));
+    TestTrue(TEXT("Mismatched avatar blocks input"), F.Controller->GetHeldMovement().IsNearlyZero());
+    F.Source->AddMovementInput(FVector::ForwardVector, 1);
+    F.Source->GetCharacterMovement()->Velocity=FVector(100,0,0);
+    F.Controller->PlayerTick(0.016f);
+    TestTrue(TEXT("Mismatched avatar tick clears pending input"), F.Source->GetPendingMovementInputVector().IsNearlyZero());
+    TestTrue(TEXT("Mismatched avatar tick stops velocity"), F.Source->GetVelocity().IsNearlyZero());
     return true;
 }
 #endif

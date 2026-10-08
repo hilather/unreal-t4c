@@ -83,6 +83,7 @@ void ALHPlayerController::SetControlContext(ELHInputContext Context)
 void ALHPlayerController::PlayerTick(float DeltaSeconds)
 {
     Super::PlayerTick(DeltaSeconds);
+    if (!HasLiveMovementAvatar()) { ClearHeldMovement(); return; }
     auto* V=GetWorld() ? GetWorld()->GetGameViewport() : nullptr;
     const bool Focus=V && V->Viewport && V->Viewport->IsForegroundWindow();
     if (!Focus) { if (bHadFocus) ClearHeldMovement(); bHadFocus=false; return; }
@@ -99,8 +100,15 @@ void ALHPlayerController::PlayerTick(float DeltaSeconds)
     }
 }
 void ALHPlayerController::Move(const FInputActionValue& V) { SubmitMovement(V.Get<FVector2D>()); }
+bool ALHPlayerController::HasLiveMovementAvatar() const
+{
+    const auto* State=GetPlayerState<ALHPlayerState>();
+    const auto* Combat=State ? State->GetCombatComponent() : nullptr;
+    return GetPawn() && Combat && Combat->IsAlive() && Combat->GetAvatarActor()==GetPawn();
+}
 void ALHPlayerController::SubmitMovement(FVector2D Axis)
 {
+    if (!HasLiveMovementAvatar()) { ClearHeldMovement(); return; }
     if (Axis.IsNearlyZero()) bAwaitMoveRelease=false;
     if (bHadFocus && !bAwaitMoveRelease && ActiveContext==ELHInputContext::Gameplay)
         Movement.Held=Axis.GetClampedToMaxSize(1);
