@@ -1,4 +1,5 @@
 #include "LHSaveCodec.h"
+#include "Core/LHCommands.h"
 #include "Containers/StringConv.h"
 
 namespace LHSaveCodecPrivate
@@ -83,7 +84,28 @@ struct FWire
         if (!Ok()) return;
         if (bWrite)
         {
-            FTCHARToUTF8 U(*V); uint32 N=U.Length();
+            // Conversion must not silently replace malformed native Unicode with U+FFFD.
+            for (int32 I=0; I<V.Len(); ++I)
+            {
+                const uint32 C=static_cast<uint32>(V[I]);
+                // Even explicit-length conversion can stop at NUL on some platforms.
+                // Check the native storage before conversion so suffixes cannot disappear.
+                if (C==0)
+                { Fail(ELHSaveReason::Malformed,TEXT("Embedded NUL in string")); return; }
+                if constexpr (sizeof(TCHAR)==2)
+                {
+                    if (C>=0xd800 && C<=0xdbff)
+                    {
+                        if (++I>=V.Len() || static_cast<uint32>(V[I])<0xdc00 || static_cast<uint32>(V[I])>0xdfff)
+                        { Fail(ELHSaveReason::Malformed,TEXT("Malformed native Unicode")); return; }
+                    }
+                    else if (C>=0xdc00 && C<=0xdfff)
+                    { Fail(ELHSaveReason::Malformed,TEXT("Malformed native Unicode")); return; }
+                }
+                else if (C>0x10ffff || (C>=0xd800 && C<=0xdfff))
+                { Fail(ELHSaveReason::Malformed,TEXT("Malformed native Unicode")); return; }
+            }
+            FTCHARToUTF8 U(*V,V.Len()); uint32 N=U.Length();
             if (N>Limit || !Utf8(MakeArrayView(reinterpret_cast<const uint8*>(U.Get()),U.Length()),Ascii))
             { Fail(ELHSaveReason::Oversize,TEXT("String exceeds limit or is invalid UTF-8/token")); return; }
             U32(N); Raw(const_cast<uint8*>(reinterpret_cast<const uint8*>(U.Get())),N);
@@ -260,3 +282,149 @@ bool LHSave::Decode(TConstArrayView<uint8> Bytes, const FLHCharacterId& Characte
     }
     Snapshot=MoveTemp(V); return true;
 }
+
+namespace LHSaveValidationPrivate
+{
+bool Id(FName N, bool Dotted);
+bool Area(const FLHAreaId& A);
+bool Attributes(const FLHAttributeBlock& A);
+bool Rng(const FLHRngState& R, bool Gameplay);
+}
+namespace LHSaveCodecPrivate
+{
+static bool Valid(const FLHCreateCharacterRequest& R)
+{
+    using namespace LHSaveValidationPrivate;
+    if (R.DisplayName.IsEmpty() || R.DisplayName.Len()>128 || R.AppearanceIds.Num()>16 ||
+        R.Creation.QuestionAnswers.Num()>4 || R.Creation.AcceptedRollInputs.Num()>16 || !R.PreviewToken.IsValid() || !Attributes(R.Creation.AcceptedAttributes) ||
+        R.Creation.GenerationRevision.Resolution!=ELHValueResolution::Resolved || R.Creation.GenerationRevision.Value<1 ||
+        !Id(R.Creation.GenerationPolicy.Value,true)) return false;
+    for (const auto& A:R.AppearanceIds) if (!Id(A.Value,true)) return false;
+    for (const auto& Q:R.Creation.QuestionAnswers) if (!Id(Q.Question.Value,true) || !Id(Q.Answer.Value,true)) return false;
+    for (const auto& I:R.Creation.AcceptedRollInputs) if (!Rng(I,false)) return false;
+    return true;
+}
+static bool Valid(const FLHAllocateAttributePointsRequest& R)
+{
+    if (!LHSaveValidationPrivate::Attributes(R.Points)) return false;
+    int64 Total=0;
+    for (const auto* P:{&R.Points.Agility,&R.Points.Endurance,&R.Points.Intelligence,&R.Points.Strength,&R.Points.Wisdom})
+    { if (P->Value>MAX_int64-Total) return false; Total+=P->Value; }
+    return Total>0;
+}
+static bool Valid(const FLHEquipItemRequest& R)
+{
+    return R.Item.RunId.IsValid() && R.Item.InstanceId.IsValid() && LHSaveValidationPrivate::Area(R.Item.Area) &&
+        R.Slot!=ELHEquipmentSlot::Unspecified;
+}
+static void RequestFields(FWire& W, FLHCreateCharacterRequest& R)
+{
+    FDepth Depth(W); W.Struct(5);
+    W.Name("AppearanceIds"); Array(W,R.AppearanceIds,16,false);
+    Field(W,"Creation",R.Creation);
+    W.Name("DisplayName"); W.String(R.DisplayName,128);
+    Field(W,"PreviewToken",R.PreviewToken); Field(W,"Request",R.Request);
+}
+static void RequestFields(FWire& W, FLHAllocateAttributePointsRequest& R)
+{
+    FDepth Depth(W); W.Struct(2); Field(W,"Points",R.Points); Field(W,"Request",R.Request);
+}
+static void RequestFields(FWire& W, FLHEquipItemRequest& R)
+{
+    FDepth Depth(W); W.Struct(4); Field(W,"Item",R.Item); Field(W,"Request",R.Request);
+    Field(W,"Slot",R.Slot); Field(W,"bUnequip",R.bUnequip);
+}
+template<class T> static bool RequestWire(FName Command, const void* Input, TConstArrayView<uint8> Bytes,
+    TArray<uint8>& Out, FLHSaveError& Error, bool Read)
+{
+    T R;
+    if (!Read)
+    {
+        const T& Source=*static_cast<const T*>(Input);
+        if (!Valid(Source)) return Reject(Error,ELHSaveReason::Malformed,TEXT("Invalid request fields"));
+        R=Source;
+    }
+    auto Envelope=[Command](FWire& W,T& V)
+    {
+        FDepth Depth(W); W.Struct(3);
+        W.Name("Command"); W.Name(TCHAR_TO_ANSI(*Command.ToString()));
+        W.Name("Domain"); W.Name("LHRequest1"); W.Name("Request"); RequestFields(W,V);
+    };
+    if (Read)
+    {
+        if (Bytes.Num()>LHSave::MaxPayloadBytes) return Reject(Error,ELHSaveReason::Oversize,TEXT("Request byte limit"));
+        T Scratch; FWire Scan(Bytes,Error,true); Envelope(Scan,Scratch);
+        if (!Scan.Ok() || Scan.Remaining()!=0) return Reject(Error,ELHSaveReason::Malformed,TEXT("Malformed request bytes"));
+        FWire W(Bytes,Error); Envelope(W,R); if (!W.Ok()) return false;
+    }
+    if (!R.Request.Value.IsValid() || !R.Request.Epoch.IsValid() || !Valid(R))
+        return Reject(Error,ELHSaveReason::Malformed,TEXT("Invalid request fields"));
+    FWire W(Error); Envelope(W,R); if (!W.Ok()) return false;
+    if (Read && (W.Output.Num()!=Bytes.Num() || FMemory::Memcmp(W.Output.GetData(),Bytes.GetData(),Bytes.Num())!=0))
+        return Reject(Error,ELHSaveReason::Malformed,TEXT("Noncanonical request bytes"));
+    Out=MoveTemp(W.Output); return true;
+}
+static bool DispatchRequest(FName Command,const UScriptStruct* Type,const void* Input,TConstArrayView<uint8> Bytes,
+    TArray<uint8>& Out,FLHSaveError& Error,bool Read)
+{
+    // ToString comparison preserves case-sensitive command tokens; FName equality would not.
+#define LH_REQUEST(T, Token) if (Command.ToString()==TEXT(Token) && (Read || Type==T::StaticStruct())) \
+    return RequestWire<T>(Command,Input,Bytes,Out,Error,Read);
+    LH_REQUEST(FLHCreateCharacterRequest,"CreateCharacter")
+    LH_REQUEST(FLHAllocateAttributePointsRequest,"AllocateAttributePoints")
+    LH_REQUEST(FLHEquipItemRequest,"EquipItem")
+#undef LH_REQUEST
+    return Reject(Error,ELHSaveReason::Malformed,TEXT("Unsupported command or mismatched request type"));
+}
+}
+bool LHSave::EncodeCanonicalRequest(FName Command,const UScriptStruct* Type,const void* Request,TArray<uint8>& Bytes,FLHSaveError& Error)
+{
+    Error={}; Bytes.Reset();
+    if (!Request) return LHSaveCodecPrivate::Reject(Error,ELHSaveReason::Malformed,TEXT("Null request"));
+    return LHSaveCodecPrivate::DispatchRequest(Command,Type,Request,{},Bytes,Error,false);
+}
+bool LHSave::CanonicalRequestDigest(FName Command,const UScriptStruct* Type,const void* Request,FString& Digest,FLHSaveError& Error)
+{
+    Digest.Reset(); TArray<uint8> Bytes;
+    if (!EncodeCanonicalRequest(Command,Type,Request,Bytes,Error)) return false;
+    Digest=Sha256(Bytes); return true;
+}
+FString LHSave::RequestDigest(FName Command,const UScriptStruct* Type,const void* Request)
+{ FString Digest; FLHSaveError Error; CanonicalRequestDigest(Command,Type,Request,Digest,Error); return Digest; }
+bool LHSave::ValidateCanonicalRequestBytes(FName Command,TConstArrayView<uint8> Bytes,FLHSaveError& Error)
+{ Error={}; TArray<uint8> Out; return LHSaveCodecPrivate::DispatchRequest(Command,nullptr,nullptr,Bytes,Out,Error,true); }
+bool LHSave::RewardIdFromDigest(const FString& Digest,FLHRewardId& Reward,FLHSaveError& Error)
+{
+    Error={}; Reward={};
+    if (!LHSaveCodecPrivate::Hex(Digest)) return LHSaveCodecPrivate::Reject(Error,ELHSaveReason::Malformed,TEXT("Invalid reward SHA256"));
+    uint32 Words[4]={};
+    auto Nibble=[](TCHAR C)->uint32 { return C<='9' ? C-'0' : C-'a'+10; };
+    for (int32 I=0;I<16;++I) Words[I/4]|=((Nibble(Digest[2*I])<<4)|Nibble(Digest[2*I+1]))<<(8*(I%4));
+    FGuid Guid(Words[0],Words[1],Words[2],Words[3]);
+    if (!Guid.IsValid()) return LHSaveCodecPrivate::Reject(Error,ELHSaveReason::Malformed,TEXT("All-zero reward identity"));
+    Reward.Value=Guid; return true;
+}
+bool LHSave::GrowthRewardId(const FGuid& Run,const FLHCharacterId& Character,int64 ToLevel,FLHRewardId& Reward,FLHSaveError& Error)
+{
+    using namespace LHSaveCodecPrivate;
+    Error={}; Reward={};
+    if (!Run.IsValid() || !Character.Value.IsValid() || ToLevel<2) return Reject(Error,ELHSaveReason::Malformed,TEXT("Invalid growth source"));
+    FWire W(Error); W.Struct(5); W.Name("Domain"); W.Name("LHReward1"); W.Name("Purpose"); W.Name("LevelGrowth");
+    FGuid R=Run; Field(W,"RunId",R); W.Name("SourceKey"); W.Struct(2);
+    FLHCharacterId C=Character; Field(W,"CharacterId",C); Field(W,"ToLevel",ToLevel);
+    W.Name("SourceKind"); W.Name("Growth");
+    return W.Ok() && RewardIdFromDigest(Sha256(W.Output),Reward,Error);
+}
+bool LHSave::EnemyLifeRewardId(const FGuid& Run,const FLHSpawnLifeId& Life,FLHRewardId& Reward,FLHSaveError& Error)
+{
+    using namespace LHSaveCodecPrivate;
+    Error={}; Reward={};
+    if (!Run.IsValid() || !Life.SpawnSlot.IsValid() || Life.LifeGeneration<0 || !LHSaveValidationPrivate::Area(Life.Area))
+        return Reject(Error,ELHSaveReason::Malformed,TEXT("Invalid enemy life source"));
+    FWire W(Error); W.Struct(5); W.Name("Domain"); W.Name("LHReward1"); W.Name("Purpose"); W.Name("KillSettlement");
+    FGuid R=Run; Field(W,"RunId",R); FLHSpawnLifeId L=Life; Field(W,"SourceKey",L);
+    W.Name("SourceKind"); W.Name("EnemyLife");
+    return W.Ok() && RewardIdFromDigest(Sha256(W.Output),Reward,Error);
+}
+FLHRewardId LHSave::GrowthId(const FGuid& Run,const FLHCharacterId& Character,int64 ToLevel)
+{ FLHRewardId Reward; FLHSaveError Error; GrowthRewardId(Run,Character,ToLevel,Reward,Error); return Reward; }

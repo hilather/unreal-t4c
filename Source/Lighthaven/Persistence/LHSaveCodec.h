@@ -43,3 +43,23 @@ namespace LHSave
     LIGHTHAVEN_API bool Decode(TConstArrayView<uint8> Bytes, const FLHCharacterId& Character,
         const FLHSaveCompatibility& Compatibility, FLHSaveSnapshot& Snapshot, FLHSaveError& Error, FLHSaveDecodeStats* Stats=nullptr);
 }
+
+// Command type metadata is used only for exact allowlist dispatch, never reflection serialization.
+namespace LHSave
+{
+    LIGHTHAVEN_API bool EncodeCanonicalRequest(FName Command, const UScriptStruct* Type, const void* Request,
+        TArray<uint8>& Bytes, FLHSaveError& Error);
+    LIGHTHAVEN_API bool CanonicalRequestDigest(FName Command, const UScriptStruct* Type, const void* Request,
+        FString& Digest, FLHSaveError& Error);
+    // Directly compatible with FLHCharacterProfile::RequestDigest; empty on rejection.
+    LIGHTHAVEN_API FString RequestDigest(FName Command, const UScriptStruct* Type, const void* Request);
+    LIGHTHAVEN_API bool ValidateCanonicalRequestBytes(FName Command, TConstArrayView<uint8> Bytes, FLHSaveError& Error);
+    LIGHTHAVEN_API bool GrowthRewardId(const FGuid& Run, const FLHCharacterId& Character, int64 ToLevel,
+        FLHRewardId& Reward, FLHSaveError& Error);
+    LIGHTHAVEN_API bool EnemyLifeRewardId(const FGuid& Run, const FLHSpawnLifeId& Life,
+        FLHRewardId& Reward, FLHSaveError& Error);
+    // Directly compatible with FLHCharacterProfile::GrowthId; invalid on rejection.
+    LIGHTHAVEN_API FLHRewardId GrowthId(const FGuid& Run, const FLHCharacterId& Character, int64 ToLevel);
+    // Mapping only. Authority must reject an existing ID associated with a different source tuple.
+    LIGHTHAVEN_API bool RewardIdFromDigest(const FString& Digest, FLHRewardId& Reward, FLHSaveError& Error);
+}
