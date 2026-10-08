@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1160" viewBox="0 0 1440 1160" role="img" aria-labelledby="title desc">
+<title id="title">A-04 B1 · three-arm hub proposed light plan</title>
+<desc id="desc">Original top-down XY coordinate aid derived from V-01 text. All positions and lighting are prototype proposals. Not an Unreal render. Room borders are schematic, not aperture or collision drawings; consult linked layout and README tables.</desc>
+<rect width="1440" height="1160" fill="#171717"/>
+<style>text{font-family:Liberation Sans,Arial,sans-serif;fill:#F2F2F2} .muted{fill:#C4C4C4} .label{font-size:12px;paint-order:stroke;stroke:#171717;stroke-width:4px;stroke-linejoin:round} .room{font-size:13px;font-weight:bold} .small{font-size:14px} .key{font-size:15px}</style>
+<text x="44.00" y="48.00" class="" font-size="20">LIGHTHAVEN  /  A-04</text>
+<text x="44.00" y="89.00" class="" font-size="32">B1 · three-arm hub</text>
+<text x="44.00" y="119.00" class="muted" font-size="17">Dry warm stone · bright return · separately readable healer detour</text>
+<polyline points="456.08,654.62 456.08,565.04" fill="none" stroke="#514B42" stroke-width="28.67" stroke-linejoin="miter"/>
+<polyline points="375.46,484.42 285.88,484.42" fill="none" stroke="#514B42" stroke-width="28.67" stroke-linejoin="miter"/>
+<polyline points="536.71,484.42 644.21,484.42" fill="none" stroke="#514B42" stroke-width="28.67" stroke-linejoin="miter"/>
+<rect x="375.46" y="654.62" width="161.25" height="161.25" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="444.08" y="739.25" class="room" font-size="16">R01</text>
+<rect x="375.46" y="403.79" width="161.25" height="161.25" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="444.08" y="488.42" class="room" font-size="16">R02</text>
+<rect x="348.58" y="502.33" width="26.88" height="35.83" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="350.02" y="524.25" class="room" font-size="16">R03</text>
+<rect x="536.71" y="412.75" width="26.88" height="35.83" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="538.15" y="434.67" class="room" font-size="16">R04</text>
+<rect x="88.79" y="385.88" width="197.08" height="179.17" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="175.33" y="479.46" class="room" font-size="16">R05</text>
+<rect x="644.21" y="332.12" width="215.00" height="232.92" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="748.67" y="533.21" class="room" font-size="16">R06</text>
+<rect x="733.79" y="367.96" width="89.58" height="107.50" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="766.58" y="425.71" class="room" font-size="16">R07</text>
+<polyline points="456.08,654.62 456.08,565.04" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<polyline points="375.46,484.42 285.88,484.42" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<polyline points="536.71,484.42 644.21,484.42" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<rect x="388.90" y="685.98" width="53.75" height="53.75" fill="none" stroke="#A9C4CC" stroke-width="1.5" stroke-dasharray="5 4"/>
+<rect x="751.71" y="412.75" width="53.75" height="53.75" fill="none" stroke="#A9C4CC" stroke-width="1.5" stroke-dasharray="5 4"/>
+<polyline points="415.77,744.21 415.77,797.96" fill="none" stroke="#E9BF79" stroke-width="4.00" stroke-linejoin="miter"/>
+<circle cx="415.77" cy="797.96" r="5" fill="#E9BF79"/>
+<text x="423.77" y="815.96" class="label" font-size="16">to Hub</text>
+<polyline points="778.58,403.79 778.58,367.96" fill="none" stroke="#E9BF79" stroke-width="4.00" stroke-linejoin="miter"/>
+<circle cx="778.58" cy="367.96" r="5" fill="#E9BF79"/>
+<text x="786.58" y="357.96" class="label" font-size="16">to B2</text>
+<rect x="388.38" y="739.21" width="10" height="10" fill="#A9C4CC" stroke="#171717" stroke-width="2"/>
+<text x="400.38" y="737.21" class="label" font-size="16">T01</text>
+<circle cx="444.44" cy="609.83" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="451.44" y="602.83" class="label" font-size="16">T02</text>
+<circle cx="456.08" cy="561.46" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="463.08" y="554.46" class="label" font-size="16">T03</text>
+<circle cx="379.04" cy="457.54" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="386.04" y="450.54" class="label" font-size="16">T04</text>
+<circle cx="533.12" cy="457.54" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="540.12" y="450.54" class="label" font-size="16">T05</text>
+<circle cx="267.96" cy="457.54" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="274.96" y="450.54" class="label" font-size="16">T06</text>
+<rect x="87.38" y="470.46" width="10" height="10" fill="#A9C4CC" stroke="#171717" stroke-width="2"/>
+<text x="99.38" y="468.46" class="label" font-size="16">T07</text>
+<circle cx="590.46" cy="472.77" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="597.46" y="465.77" class="label" font-size="16">T08</text>
+<circle cx="733.79" cy="475.46" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="740.79" y="468.46" class="label" font-size="16">T09</text>
+<circle cx="855.62" cy="502.33" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="862.62" y="495.33" class="label" font-size="16">T10</text>
+<circle cx="671.08" cy="335.71" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="678.08" y="328.71" class="label" font-size="16">T11</text>
+<rect x="804.94" y="398.79" width="10" height="10" fill="#A9C4CC" stroke="#171717" stroke-width="2"/>
+<text x="816.94" y="396.79" class="label" font-size="16">T12</text>
+<text x="942.00" y="155.00" class="" font-size="19">ROOM KEY  /  layout IDs</text>
+<text x="942.00" y="182.00" class="key" font-size="16">R01  B1.Entry</text>
+<text x="942.00" y="205.00" class="key" font-size="16">R02  B1.Hub</text>
+<text x="942.00" y="228.00" class="key" font-size="16">R03  B1.Hub.NegXBay</text>
+<text x="942.00" y="251.00" class="key" font-size="16">R04  B1.Hub.PosXBay</text>
+<text x="942.00" y="274.00" class="key" font-size="16">R05  B1.Healers</text>
+<text x="942.00" y="297.00" class="key" font-size="16">R06  B1.Descent</text>
+<text x="942.00" y="320.00" class="key" font-size="16">R07  B1.Descent.Enclosure</text>
+<text x="942.00" y="366.00" class="" font-size="17">LIGHT KEY  /  see README for XYZ + ranges</text>
+<text x="942.00" y="393.00" class="small" font-size="16">T01   N   B1.Entry</text>
+<text x="942.00" y="414.00" class="small" font-size="16">T02   T   B1.C01.EntryHub</text>
+<text x="942.00" y="435.00" class="small" font-size="16">T03   T   B1.Hub</text>
+<text x="942.00" y="456.00" class="small" font-size="16">T04   T   B1.Hub</text>
+<text x="942.00" y="477.00" class="small" font-size="16">T05   T   B1.Hub</text>
+<text x="942.00" y="498.00" class="small" font-size="16">T06   W   B1.Healers</text>
+<text x="942.00" y="519.00" class="small" font-size="16">T07   N   B1.Healers</text>
+<text x="942.00" y="540.00" class="small" font-size="16">T08   T   B1.C03.HubDescent</text>
+<text x="942.00" y="561.00" class="small" font-size="16">T09   W   B1.Descent</text>
+<text x="942.00" y="582.00" class="small" font-size="16">T10   T   B1.Descent</text>
+<text x="942.00" y="603.00" class="small" font-size="16">T11   T   B1.Descent</text>
+<text x="942.00" y="624.00" class="small" font-size="16">T12   N   B1.Descent.Enclosure</text>
+<text x="44.00" y="1042.00" class="muted" font-size="17">B1: SkyLight 0.50 (0.40–0.60)</text>
+<text x="44.00" y="1070.00" class="muted" font-size="16">Circle T/W = amber fixture  •  square N = neutral stair/route  •  diamond F = overhead fill</text>
+<text x="44.00" y="1095.00" class="muted" font-size="16">Dashed blue = minimum arrival reserve, NOT a safety system. Dark holes/plinths stay blocked.</text>
+<text x="44.00" y="1120.00" class="muted" font-size="16">Top-down +X →, +Y ↑; 1 U = 100 cm. Borders omit doorway cuts. Light symbols show centers, NOT radii.</text>
+<text x="44.00" y="1144.00" class="muted" font-size="14">All metrics are Prototype / A-04 + inherited V-01. No source pixels. No engine appearance or performance claim.</text>
+<path d="M60,1005 h89.58" stroke="#F2F2F2" stroke-width="3"/>
+<text x="60.00" y="996.00" class="small" font-size="16">10 U</text>
+</svg>

@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1160" viewBox="0 0 1440 1160" role="img" aria-labelledby="title desc">
+<title id="title">A-04 B2 · ring and dogleg proposed light plan</title>
+<desc id="desc">Original top-down XY coordinate aid derived from V-01 text. All positions and lighting are prototype proposals. Not an Unreal render. Room borders are schematic, not aperture or collision drawings; consult linked layout and README tables.</desc>
+<rect width="1440" height="1160" fill="#171717"/>
+<style>text{font-family:Liberation Sans,Arial,sans-serif;fill:#F2F2F2} .muted{fill:#C4C4C4} .label{font-size:12px;paint-order:stroke;stroke:#171717;stroke-width:4px;stroke-linejoin:round} .room{font-size:13px;font-weight:bold} .small{font-size:14px} .key{font-size:15px}</style>
+<text x="44.00" y="48.00" class="" font-size="20">LIGHTHAVEN  /  A-04</text>
+<text x="44.00" y="89.00" class="" font-size="32">B2 · ring and dogleg</text>
+<text x="44.00" y="119.00" class="muted" font-size="17">Damp lower bands · visible void coping · two equal ring routes</text>
+<polyline points="444.14,854.69 444.14,783.03" fill="none" stroke="#514B42" stroke-width="19.11" stroke-linejoin="miter"/>
+<polyline points="450.11,651.64 450.11,615.81" fill="none" stroke="#514B42" stroke-width="19.11" stroke-linejoin="miter"/>
+<polyline points="384.42,520.25 336.64,520.25" fill="none" stroke="#514B42" stroke-width="19.11" stroke-linejoin="miter"/>
+<polyline points="270.94,579.97 270.94,663.58" fill="none" stroke="#514B42" stroke-width="19.11" stroke-linejoin="miter"/>
+<polyline points="300.81,460.53 300.81,388.86" fill="none" stroke="#514B42" stroke-width="19.11" stroke-linejoin="miter"/>
+<polyline points="474.00,460.53 474.00,353.03 378.44,353.03 378.44,293.31" fill="none" stroke="#514B42" stroke-width="19.11" stroke-linejoin="miter"/>
+<polyline points="599.42,245.53 671.08,245.53" fill="none" stroke="#514B42" stroke-width="19.11" stroke-linejoin="miter"/>
+<rect x="384.42" y="854.69" width="119.44" height="119.44" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="432.14" y="918.42" class="room" font-size="16">R01</text>
+<rect x="384.42" y="651.64" width="131.39" height="131.39" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="438.11" y="769.11" class="room" font-size="16">R02</text>
+<rect x="420.25" y="579.97" width="59.72" height="35.83" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="438.11" y="601.89" class="room" font-size="16">R03</text>
+<rect x="384.42" y="460.53" width="131.39" height="119.44" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="438.11" y="524.25" class="room" font-size="16">R04</text>
+<rect x="205.25" y="460.53" width="131.39" height="119.44" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="258.94" y="524.25" class="room" font-size="16">R05</text>
+<rect x="205.25" y="663.58" width="131.39" height="107.50" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="258.94" y="721.33" class="room" font-size="16">R06</text>
+<rect x="264.97" y="305.25" width="71.67" height="83.61" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="288.81" y="351.06" class="room" font-size="16">R07</text>
+<rect x="145.53" y="269.42" width="119.44" height="83.61" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="193.25" y="315.22" class="room" font-size="16">R08</text>
+<rect x="324.69" y="197.75" width="274.72" height="95.56" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="450.06" y="249.53" class="room" font-size="16">R09</text>
+<rect x="671.08" y="173.86" width="131.39" height="119.44" fill="#333333" stroke="#909090" stroke-width="1.5"/>
+<text x="724.78" y="237.58" class="room" font-size="16">R10</text>
+<rect x="426.22" y="693.44" width="47.78" height="47.78" fill="#171717" stroke="#C4C4C4" stroke-width="1.5"/>
+<polyline points="444.14,854.69 444.14,783.03" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<polyline points="450.11,651.64 450.11,615.81" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<polyline points="384.42,520.25 336.64,520.25" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<polyline points="270.94,579.97 270.94,663.58" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<polyline points="300.81,460.53 300.81,388.86" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<polyline points="474.00,460.53 474.00,353.03 378.44,353.03 378.44,293.31" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<polyline points="599.42,245.53 671.08,245.53" fill="none" stroke="#909090" stroke-width="1.00" stroke-linejoin="miter" stroke-dasharray="3 4"/>
+<rect x="396.36" y="887.54" width="35.83" height="35.83" fill="none" stroke="#A9C4CC" stroke-width="1.5" stroke-dasharray="5 4"/>
+<rect x="683.03" y="218.65" width="35.83" height="35.83" fill="none" stroke="#A9C4CC" stroke-width="1.5" stroke-dasharray="5 4"/>
+<polyline points="414.28,926.36 414.28,962.19" fill="none" stroke="#E9BF79" stroke-width="4.00" stroke-linejoin="miter"/>
+<circle cx="414.28" cy="962.19" r="5" fill="#E9BF79"/>
+<text x="422.28" y="980.19" class="label" font-size="16">to B1</text>
+<polyline points="700.94,215.67 700.94,179.83" fill="none" stroke="#E9BF79" stroke-width="4.00" stroke-linejoin="miter"/>
+<circle cx="700.94" cy="179.83" r="5" fill="#E9BF79"/>
+<text x="708.94" y="169.83" class="label" font-size="16">to B3</text>
+<rect x="391.36" y="921.36" width="10" height="10" fill="#A9C4CC" stroke="#171717" stroke-width="2"/>
+<text x="403.36" y="919.36" class="label" font-size="16">T01</text>
+<circle cx="436.38" cy="818.86" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="443.38" y="811.86" class="label" font-size="16">T02</text>
+<circle cx="396.36" cy="759.14" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="403.36" y="752.14" class="label" font-size="16">T03</text>
+<circle cx="503.86" cy="675.53" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="510.86" y="668.53" class="label" font-size="16">T04</text>
+<rect x="463.03" y="577.96" width="10" height="10" fill="#A9C4CC" stroke="#171717" stroke-width="2"/>
+<text x="475.03" y="575.96" class="label" font-size="16">T05</text>
+<circle cx="513.42" cy="508.31" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="520.42" y="501.31" class="label" font-size="16">T06</text>
+<circle cx="336.64" cy="496.36" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="343.64" y="489.36" class="label" font-size="16">T07</text>
+<circle cx="282.89" cy="462.92" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="289.89" y="455.92" class="label" font-size="16">T08</text>
+<circle cx="207.64" cy="723.31" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="214.64" y="716.31" class="label" font-size="16">T09</text>
+<circle cx="334.25" cy="370.94" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="341.25" y="363.94" class="label" font-size="16">T10</text>
+<circle cx="147.92" cy="311.22" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="154.92" y="304.22" class="label" font-size="16">T11</text>
+<circle cx="481.76" cy="353.03" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="488.76" y="346.03" class="label" font-size="16">T12</text>
+<circle cx="370.68" cy="353.03" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="377.68" y="346.03" class="label" font-size="16">T13</text>
+<circle cx="426.22" cy="200.14" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="433.22" y="193.14" class="label" font-size="16">T14</text>
+<circle cx="533.72" cy="290.92" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="540.72" y="283.92" class="label" font-size="16">T15</text>
+<circle cx="599.42" cy="227.61" r="5" fill="#E9BF79" stroke="#171717" stroke-width="2"/>
+<text x="606.42" y="220.61" class="label" font-size="16">T16</text>
+<rect x="707.89" y="210.67" width="10" height="10" fill="#A9C4CC" stroke="#171717" stroke-width="2"/>
+<text x="719.89" y="208.67" class="label" font-size="16">T17</text>
+<text x="942.00" y="155.00" class="" font-size="19">ROOM KEY  /  layout IDs</text>
+<text x="942.00" y="182.00" class="key" font-size="16">R01  B2.Entry</text>
+<text x="942.00" y="205.00" class="key" font-size="16">R02  B2.Ring</text>
+<text x="942.00" y="228.00" class="key" font-size="16">R03  B2.LowerBay</text>
+<text x="942.00" y="251.00" class="key" font-size="16">R04  B2.Junction</text>
+<text x="942.00" y="274.00" class="key" font-size="16">R05  B2.BranchJunction</text>
+<text x="942.00" y="297.00" class="key" font-size="16">R06  B2.LeftDeadEnd</text>
+<text x="942.00" y="320.00" class="key" font-size="16">R07  B2.UpperHook.Stem</text>
+<text x="942.00" y="343.00" class="key" font-size="16">R08  B2.UpperHook.Terminus</text>
+<text x="942.00" y="366.00" class="key" font-size="16">R09  B2.LongHall</text>
+<text x="942.00" y="389.00" class="key" font-size="16">R10  B2.Descent</text>
+<text x="942.00" y="435.00" class="" font-size="17">LIGHT KEY  /  see README for XYZ + ranges</text>
+<text x="942.00" y="462.00" class="small" font-size="16">T01   N   B2.Entry</text>
+<text x="942.00" y="483.00" class="small" font-size="16">T02   T   B2.C01.EntryRing</text>
+<text x="942.00" y="504.00" class="small" font-size="16">T03   T   B2.Ring</text>
+<text x="942.00" y="525.00" class="small" font-size="16">T04   T   B2.Ring</text>
+<text x="942.00" y="546.00" class="small" font-size="16">T05   N   B2.LowerBay</text>
+<text x="942.00" y="567.00" class="small" font-size="16">T06   T   B2.Junction</text>
+<text x="942.00" y="588.00" class="small" font-size="16">T07   T   B2.BranchJunction</text>
+<text x="942.00" y="609.00" class="small" font-size="16">T08   T   B2.BranchJunction</text>
+<text x="942.00" y="630.00" class="small" font-size="16">T09   T   B2.LeftDeadEnd</text>
+<text x="942.00" y="651.00" class="small" font-size="16">T10   T   B2.UpperHook.Stem</text>
+<text x="942.00" y="672.00" class="small" font-size="16">T11   T   B2.UpperHook.Terminus</text>
+<text x="942.00" y="693.00" class="small" font-size="16">T12   T   B2.Dogleg</text>
+<text x="942.00" y="714.00" class="small" font-size="16">T13   T   B2.Dogleg</text>
+<text x="942.00" y="735.00" class="small" font-size="16">T14   T   B2.LongHall</text>
+<text x="942.00" y="756.00" class="small" font-size="16">T15   T   B2.LongHall</text>
+<text x="942.00" y="777.00" class="small" font-size="16">T16   W   B2.LongHall</text>
+<text x="942.00" y="798.00" class="small" font-size="16">T17   N   B2.Descent</text>
+<text x="44.00" y="1042.00" class="muted" font-size="17">B2: SkyLight 0.40 (0.32–0.48)</text>
+<text x="44.00" y="1070.00" class="muted" font-size="16">Circle T/W = amber fixture  •  square N = neutral stair/route  •  diamond F = overhead fill</text>
+<text x="44.00" y="1095.00" class="muted" font-size="16">Dashed blue = minimum arrival reserve, NOT a safety system. Dark holes/plinths stay blocked.</text>
+<text x="44.00" y="1120.00" class="muted" font-size="16">Top-down +X →, +Y ↑; 1 U = 100 cm. Borders omit doorway cuts. Light symbols show centers, NOT radii.</text>
+<text x="44.00" y="1144.00" class="muted" font-size="14">All metrics are Prototype / A-04 + inherited V-01. No source pixels. No engine appearance or performance claim.</text>
+<path d="M60,1005 h59.72" stroke="#F2F2F2" stroke-width="3"/>
+<text x="60.00" y="996.00" class="small" font-size="16">10 U</text>
+</svg>
