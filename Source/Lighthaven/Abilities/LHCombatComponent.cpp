@@ -148,3 +148,12 @@ bool ULHCombatComponent::RestoreRemainingCooldown(double Seconds)
     CooldownEnd = GetWorld()->GetTimeSeconds() + Seconds;
     return true;
 }
+
+void ULHCombatComponent::SetNumericAttributeBase(const FGameplayAttribute& Attribute, float NewBaseValue)
+{
+    Super::SetNumericAttributeBase(Attribute, NewBaseValue);
+}
+void ULHCombatComponent::CancelAllAbilities(UGameplayAbility* Ignore)
+{
+    Super::CancelAllAbilities(Ignore);
+}

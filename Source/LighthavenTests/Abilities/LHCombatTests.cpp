@@ -60,7 +60,7 @@ struct FFixture
     }
     ~FFixture() { Attacker->ClearCombatAvatar(); Defender->ClearCombatAvatar(); World->DestroyWorld(false); }
 };
-constexpr uint32 Flags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
+constexpr auto Flags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDestroyedTargetTest, "Lighthaven.Abilities.DestroyedTarget", Flags)
 bool FLHDestroyedTargetTest::RunTest(const FString&)

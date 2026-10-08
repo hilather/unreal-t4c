@@ -30,6 +30,9 @@ class LIGHTHAVEN_API ULHCombatComponent : public UAbilitySystemComponent
     GENERATED_BODY()
 public:
     ULHCombatComponent();
+    // Export GAS forwarding calls through Lighthaven for consumers in other modules.
+    void SetNumericAttributeBase(const FGameplayAttribute& Attribute, float NewBaseValue);
+    void CancelAllAbilities(UGameplayAbility* Ignore = nullptr);
     // Possession/restore must call after canonical resources and derived values are installed.
     void InitializeCombatActorInfo(AActor* Owner, AActor* Avatar);
     void ClearCombatAvatar();
