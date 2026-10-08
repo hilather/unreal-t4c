@@ -75,4 +75,6 @@ Open (Windows phase): Unreal writes project `Build/` (e.g. Build/Linux/FileOpenO
 | Task | Status | Profile | Owned paths / binary assets | Notes |
 |---|---|---|---|---|
 | W2-02d character on current main + unity-safe helpers | submitted; host build OK; host tests crash | codex-sol | Character/, 8 .cpp namespace edits | Crash in Lighthaven.Character.UnresolvedAndImportValidation: TArray self-aliasing at LHCharacterTests.cpp:398 (test only). 13 tests passed before the crash |
-| W2-02e character test self-aliasing fix | **HELD** (launch refused twice on herdr-farm 4d26d2f) | codex-sol | LighthavenTests/Character/ | Refusal at profile probe: "native probe did not establish prompt readiness (process_observation_failed) … pidfd observation unavailable". Reported to Shepherd |
+| W2-02e character test self-aliasing fix | submitted; host test running (launch held, then relaunched after the orchestrator reverted the run-as-owner-uid setting; coordinator re-adopted) | codex-sol | LighthavenTests/Character/ | Refusal at profile probe: "native probe did not establish prompt readiness (process_observation_failed) … pidfd observation unavailable". Reported to Shepherd |
+
+| A-03 placeholder presentation specs | active | codex-astra | docs/implementation/art/placeholders/ | Code-drawable stand-ins (engine shapes, V-03/A-01 palette, A-01 dimensions) and a presentation-ID table for W3/W4, from approved first-pass direction |
