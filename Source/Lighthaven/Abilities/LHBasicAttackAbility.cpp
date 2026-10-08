@@ -11,6 +11,7 @@ ULHBasicAttackAbility::ULHBasicAttackAbility()
 void ULHBasicAttackAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
     const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
+    ++ActivationSerial;
     auto* Combat = Cast<ULHCombatComponent>(ActorInfo->AbilitySystemComponent.Get());
     if (!Combat || !GetWorld() || !CommitAbility(Handle, ActorInfo, ActivationInfo) || Combat->CommitAttack() != ELHCommandReason::None)
     {
@@ -25,12 +26,23 @@ void ULHBasicAttackAbility::ActivateAbility(const FGameplayAbilitySpecHandle Han
 }
 void ULHBasicAttackAbility::Impact()
 {
-    if (auto* Combat = Cast<ULHCombatComponent>(GetAbilitySystemComponentFromActorInfo())) Combat->ResolveImpact(Combat->GetPendingIdentity());
-    EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, false, false);
+    const uint64 Serial = ActivationSerial;
+    const auto Handle = CurrentSpecHandle;
+    const auto* ActorInfo = CurrentActorInfo;
+    const auto ActivationInfo = CurrentActivationInfo;
+    if (auto* Combat = Cast<ULHCombatComponent>(GetAbilitySystemComponentFromActorInfo()))
+    {
+        // Copy: publication can cancel and overwrite the component's pending identity.
+        const FLHHitIdentity Identity = Combat->GetPendingIdentity();
+        Combat->ResolveImpact(Identity);
+    }
+    // An InstancedPerActor object may now belong to a replacement activation.
+    if (Serial == ActivationSerial && IsActive()) EndAbility(Handle, ActorInfo, ActivationInfo, false, false);
 }
 void ULHBasicAttackAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
     const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
+    if (Handle != CurrentSpecHandle || ActorInfo != CurrentActorInfo || !IsEndAbilityValid(Handle, ActorInfo)) return;
     if (GetWorld()) GetWorld()->GetTimerManager().ClearTimer(ImpactTimer);
     if (ActorInfo) if (auto* Combat = Cast<ULHCombatComponent>(ActorInfo->AbilitySystemComponent.Get())) Combat->FinishAttack();
     Super::EndAbility(Handle, ActorInfo, ActivationInfo, false, bWasCancelled);

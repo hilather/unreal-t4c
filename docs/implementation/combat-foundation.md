@@ -54,3 +54,71 @@ At every test's scope exit the destructor clears both combat avatars (cancelling
 Host runtime confirmation remains required: the worker runs as UID 0, which Unreal refuses, and the task forbids running Automation here. Coordinator should run `bash build/run-tests.sh Lighthaven` as a normal host user and confirm all six tests finish and repeated fixture setup does not crash. Timer-driven impact and rendered gameplay are still outside this fixture's coverage.
 
 Observed W1-03c validation: `UE_ROOT=/home/brewerm/Downloads/unreal bash build/build-linux.sh --game` exited **0** against installed UE **5.8.3**. LighthavenEditor reported **Result: Succeeded**, UBT execution time **131.79 seconds**, including `Compile LHCombatTests.cpp`; Lighthaven reported **Result: Succeeded**, **151.19 seconds**. UBA logged unsuccessful action-result store tasks, but both targets compiled and linked. Evidence is this attempt's `library/build.log`. `git diff --check` passed; a static comparison against base confirmed all six test bodies/assertions unchanged. No Automation/runtime result is claimed.
+
+## G1-FIX re-entrant impact ownership
+
+The native timer callback snapshots its activation serial, GAS activation fields and
+impact identity before publishing damage/death/impact listeners. A listener may
+cancel and immediately commit another attack on this InstancedPerActor object;
+the resumed callback ends only its original still-active serial. EndAbility checks
+the current handle/actor info and GAS end validity before clearing shared timer or
+pending state. Immediate replacement was retained instead of rejecting requests
+during publication, so existing synchronous listener semantics remain available.
+
+New timer-driven regressions are `Lighthaven.Abilities.ImpactReplacement`,
+`ImpactCancelWithoutReplacement` and `TargetDeathReplacement`. They check
+committed costs, pending identity, replacement timer delivery, original publication
+identity, one damage per activation, and duplicate rejection. The death variant
+replaces onto a second live target. The zero-second cooldown used to expose
+re-entrancy is explicitly synthetic Prototype tuning, not a production change.
+Existing tests and assertions remain in place. Runtime execution is reserved for
+the non-root host; see the G1-FIX report for compilation evidence.
+
+G1-FIX compilation: `UE_ROOT=/home/brewerm/Downloads/unreal bash build/build-linux.sh --game`
+exited 0 against UE 5.8.3; editor (including all test sources) and game both
+reported `Result: Succeeded` (UBT 237.24 s / 177.32 s). UBA cache-store tasks
+reported warnings; compilation and linking succeeded. `git diff --check` passed.
+No Automation, editor session, cook, package or play was run: UID 0 cannot
+initialize Unreal. Coordinator must run all 28 `Lighthaven` tests on the non-root
+host and retain the G1 manual/device checks; no gate result is claimed.
+
+## G1-FIX2 host regression diagnosis
+
+The host failures did not show a rejected replacement: both replacement acceptance,
+cost and pending-identity assertions survived. The clock helper restored
+`GFrameCounter` after every advance, so every later call reused the same frame.
+UE 5.8.3 `FTimerManager::Tick` returns immediately when `LastTickedFrame ==
+GFrameCounter` (`TimerManager.cpp:1136`, `TimerManager.h:466`). Thus only the first
+advance ran; the replacement remained pending and duplicates could still resolve
+its unconsumed impact. The fixture now owns frame-counter restoration until world
+cleanup, and each advance increments it. Every assertion is unchanged.
+
+The native InstancedPerActor serial guard remains correct for these callbacks:
+`Impact` snapshots before publication and compares the live serial afterward.
+Listeners explicitly cancel the first ability before requesting another.
+`CancelAbilitySpec` calls the instance's `CancelAbility`; native `Impact` holds no
+ability scope lock, so `EndAbility` and `NotifyAbilityEnded` synchronously decrement
+the spec's ActiveCount before `TryActivateAbility` checks it. ASC's ability-list
+lock does not defer instance cancellation. No next-tick activation deferral or
+product change is needed. Engine evidence: installed GameplayAbilities private
+`Abilities/GameplayAbility.cpp:739,801` and
+`AbilitySystemComponent_Abilities.cpp:1225,1350,1831`.
+
+During the first timer callback a replacement timer is queued as Pending, then
+activated at the end of that tick with expiry `InternalTime + 1 s`. Fresh frames
+allow 0.5 + 0.6 s (ImpactReplacement) or 1.1 s (TargetDeathReplacement) to deliver
+it. The old serial skips EndAbility; the replacement's own callback ends its
+current serial and clears its pending state. This explains expected second
+publication, exactly one hit per activation, completed pending state, rejected
+duplicates and no extra hits. Cancellation-only still clears the action and
+retains the committed cost. These are source-traced expectations pending host
+execution, not observed test passes.
+
+G1-FIX2 validation: the required build command exited 0 on UE 5.8.3. Editor
+(including both changed test sources) and game reported `Result: Succeeded`
+(195.57 s / 154.89 s UBT execution). UBA cache-store warnings remain in the
+attempt's `library/build.log`; compilation and linking succeeded.
+`git diff --check` passed, and static assertion-line comparison against base
+confirmed all existing assertions unchanged in both affected test files.
+Automation/editor/cook/package/play were not run in the root worker. Coordinator
+must rerun all 28 tests on the normal host; no G1 gate pass is claimed.
