@@ -1,60 +1,62 @@
-# G0-L Linux build evidence and stopped checkpoint
+# G0-L2 Linux evidence and stopped checkpoint
 
-Task ID: **G0-L**, attempt `attempt-3eee24a741fc49cf2ccd219f745fe839f3c633b405a4dd4b4928aa5ad5ada074`.
+Task ID: G0-L2. Attempt: `attempt-2b982fcbff457f76fee2954bac8e431adabcbb26eaa14f4943fd471bffa68ba7`.
+Base revision: `20982e3ca834601cd3fe40e2867faf72c6684a90`. Build/source fix revision: `167b4be`; result revision is the submitted commit containing this report (exact SHA in submission receipt and attempt report). Contract revision: 1; schema semantic approval remains with integrator. Evidence candidate, not a declaration of verified gate success or integration.
 
-Base revision: `bc92bcacfeafab78aaf9ec2f8199967fcc4e84b6`. Build-config commit: `0acc8689a82b53e4d410a5d56139bc0e032574e2`; result revision is the submitted commit containing this report (receipt and exact result SHA in the attempt output report). Contract revision: **1 draft, not frozen**. Evidence candidate for coordinator review; no gate success or integration is declared.
+Owned paths / binary assets: `Lighthaven.uproject`, `Source/`, `Config/`, `Content/Lighthaven/Maps/`, `build/`, this report. Changed `build/lh-env.sh`, `Source/Lighthaven/Lighthaven.Build.cs`, `build/Toolchain.md`, this report. No binary assets created or changed.
 
-Owned paths: `Lighthaven.uproject`, `Source/`, `Config/`, `Content/Lighthaven/Maps/`, `build/`, this report. Changed only `build/lh-env.sh`, `build/build-linux.sh`, `build/README.md`, `build/Toolchain.md`, this report. No binary assets created, no schema or rules semantics changed, no include-path change made without compiler evidence.
+Behavior changed: unset/empty `UBA_ROOT` now defaults to project-local `Saved/UBA`, created and exported by lh-env.sh. Explicit caller UBA_ROOT remains respected. Existing project-local XDG config default retained. Added `PublicIncludePaths.Add(ModuleDirectory)` only after clang reported missing `Rules/LHRules.h` in Rules and test code. Rules semantics and assertions unchanged. UBA remained enabled; no NoUBA fallback used. Source-backed mechanics: no new values. Provisional tuning introduced: none.
 
-Behavior changed: unset `XDG_CONFIG_HOME` now defaults to an existing project-local `Saved/BuildEnvironment/config`, avoiding installed UBT's engine-relative ApplicationData writes. Explicit caller XDG configuration is respected. Build logs now reside under ignored `build/logs/`. No gameplay behavior changed; no source-backed mechanics or prototype tuning introduced.
+## Observed G0 items
 
-## Observed gate items
-
-| Item | Status | Evidence / missing prerequisite |
+| Item | Status | Observed evidence |
 | --- | --- | --- |
-| Engine and bundled SDK sanity | passed | Editor and command editor exist with executable modes; Build.version 5.8.3 / CL 58210709; bundled x86_64 clang executed and reports 20.1.8; sysroot directories present; UBT selected native SDK and libc++. Not an editor launch. |
-| LighthavenEditor Linux Development build | failed | Retry exit 6: UBA cache parent outside allowed write roots is read-only. No completed C++ action/link established. |
-| UHT substep | passed | `UHT processed LighthavenEditor in 26.4897962 seconds (12 generated files written)`. This does not freeze contract semantics or pass compilation. |
-| Lighthaven Linux Development game build | not run | Stop at editor build hard blocker. |
-| Native Automation tests | not run | No compiled editor/test modules; stopped at sandbox blocker. |
-| Blank map / startup-map configuration | not run | Stop before editor execution; no map created and no startup map selected. |
-| Cook / stage / pak / package / archive | not run | No successful native build or selected startup map; stopped at sandbox blocker. |
-| Packaged Linux executable launch | not run | No packaged executable. Rendering was neither real nor null: no launch occurred. |
-| Windows package and launch | deferred | Owner's Linux-first decision; no Windows machine supplied. |
+| Engine / SDK sanity | passed | Both Linux editor binaries executable; Build.version 5.8.3 / CL 58210709. Bundled clang 20.1.8 executed; sysroot directories present. |
+| LighthavenEditor Linux Development build | passed | Retry compiled Rules, generated code and Tests; linked all three editor modules; UBT `Result: Succeeded`, 34.69 seconds. |
+| Lighthaven Linux Development build | passed | Compiled and linked `Binaries/Linux/Lighthaven`; UBT `Result: Succeeded`, 79.81 seconds. Combined build script exit 0. |
+| Automation execution | failed | Editor-Cmd launch aborted with exit 134: `Refusing to run with the root privileges.` No fixture ran, no index.json or editor.log created. |
+| Blank map / startup-map setup | not run | Stop at first hard runtime blocker; editor cannot initialize under this worker UID. No engine empty map selected. |
+| Cook / stage / pak / package / archive | not run | Same root-runtime blocker; no usable editor run established. |
+| Packaged launch | not run | No archive produced. Neither real nor null rendering observed; the aborted editor invocation requested null RHI. |
+| Windows package / launch | deferred | Linux-first owner decision. |
 
 ## Checks actually run
 
-Run window: 2026-10-08 approximately 00:00–00:03 UTC (2026-10-07 Toronto). Host: brewtop, Linux 7.2.5-3-omarchy x86_64. UBT detected 6 physical and 12 logical cores, selecting up to 6 processes.
+Run window: 2026-10-08 00:08–00:12 UTC (2026-10-07 Toronto). Host: brewtop, Linux 7.2.5-3-omarchy x86_64. UBT: 6 physical / 12 logical cores, 6 parallel processes.
 
-- `ls -l /home/brewerm/mnt/ue5.8.3/Engine/Binaries/Linux/UnrealEditor /home/brewerm/mnt/ue5.8.3/Engine/Binaries/Linux/UnrealEditor-Cmd`: exit 0, both executable.
-- `cat /home/brewerm/mnt/ue5.8.3/Engine/Build/Build.version`: exit 0; 5.8.3, CL 58210709, compatible CL 55116800, promoted installed build, branch `++UE5+Release-5.8`.
-- `/home/brewerm/mnt/ue5.8.3/Engine/Extras/ThirdPartyNotUE/SDKs/HostLinux/Linux_x64/v26_clang-20.1.8-rockylinux8/x86_64-unknown-linux-gnu/bin/clang --version`: exit 0; clang 20.1.8, revision `87f0227cb60147a26a1eeb4fb06e3b505e9c7261`.
-- `ls /home/brewerm/mnt/ue5.8.3/Engine/Extras/ThirdPartyNotUE/SDKs/HostLinux/Linux_x64/v26_clang-20.1.8-rockylinux8/x86_64-unknown-linux-gnu`: exit 0; bin, etc, include, lib, lib64, libexec, share, usr. ToolchainVersion.txt reports `v26_clang-20.1.8-rockylinux8`.
-- `UE_ROOT=/home/brewerm/mnt/ue5.8.3 bash build/build-linux.sh`: exit **134**, captured using `set -o pipefail` and `tee build/logs/g0-editor-console.log`. UBT aborted while creating `/home/brewerm/mnt/ue5.8.3/Epic` on the read-only mount, before UHT.
-- `mkdir -p Saved/BuildEnvironment/config`: exit 0. `XDG_CONFIG_HOME="$PWD/Saved/BuildEnvironment/config" UE_ROOT=/home/brewerm/mnt/ue5.8.3 bash build/build-linux.sh`: exit **6**, captured with pipefail and `tee build/logs/g0-editor-xdg-console.log`. UBT reported total execution time **81.33 seconds**; UHT took **26.4897962 seconds**. No game target followed.
-- `git lfs version`: exit 0, git-lfs/3.8.0. No LFS asset add attempted.
+- `ls -l /home/brewerm/mnt/ue5.8.3/Engine/Binaries/Linux/UnrealEditor /home/brewerm/mnt/ue5.8.3/Engine/Binaries/Linux/UnrealEditor-Cmd`: exit 0, executable files.
+- `cat /home/brewerm/mnt/ue5.8.3/Engine/Build/Build.version`: exit 0; 5.8.3, CL 58210709, compatible CL 55116800, promoted build, `++UE5+Release-5.8`.
+- `/home/brewerm/mnt/ue5.8.3/Engine/Extras/ThirdPartyNotUE/SDKs/HostLinux/Linux_x64/v26_clang-20.1.8-rockylinux8/x86_64-unknown-linux-gnu/bin/clang --version`: exit 0; 20.1.8, LLVM revision `87f0227cb60147a26a1eeb4fb06e3b505e9c7261`.
+- `ls /home/brewerm/mnt/ue5.8.3/Engine/Extras/ThirdPartyNotUE/SDKs/HostLinux/Linux_x64/v26_clang-20.1.8-rockylinux8/x86_64-unknown-linux-gnu`: exit 0; bin, etc, include, lib, lib64, libexec, share, usr. No download needed.
+- `uname -a`; `hostname`: exit 0, host above.
+- `UE_ROOT=/home/brewerm/mnt/ue5.8.3 bash build/build-linux.sh --game`: first run exit 6, editor compilation failed for missing Rules header. UHT completed in 6.7052836 seconds; UBA executed C++ actions using project-local root; UBT total 79.40 seconds. Game did not run in this first invocation.
+- Same build command after include-path fix: exit 0; editor 34.69 seconds, game 79.81 seconds. Full logs under `build/logs/Build-20261008T000958Z-2/{editor,game}.log`. Initial failure log: `build/logs/Build-20261008T000818Z-2/editor.log`.
+- `UE_ROOT=/home/brewerm/mnt/ue5.8.3 bash build/run-tests.sh Lighthaven`: exit 134. Console evidence: `Saved/Automation.2n16q2/console.log`. No completed test evidence.
+- `id`: exit 0, `uid=0(root) gid=0(root) groups=0(root),65534(nobody)`.
 - `bash -n build/lh-env.sh build/build-linux.sh build/run-tests.sh build/package-linux.sh`: exit 0.
-- `git diff --check`: exit 0 (repeated after documentation edits).
-- Canonical attempt brief/input/receipts read through `herdr-farm`; exit 0. Receipts returned `[]`, including at the stopped checkpoint; no required update pending in the observed responses.
+- `git diff --check`: exit 0.
+- Canonical attempt-brief, attempt-input, receipts: exit 0; receipts `[]` at stopped checkpoint, no observed required updates.
 
-Full logs kept under ignored `build/logs/`: `g0-editor-console.log`, `g0-editor-xdg-console.log`, `g0-ubt.log`, `g0-trace.uba`. Supporting copies are in this attempt's output `library/`. Generated UHT files remain ignored under `Intermediate/`; native UBT log/trace remain under `Saved/BuildEnvironment/config/Epic/UnrealBuildTool/`. No generated output is committed.
-
-Key retry log lines:
+Key evidence:
 
 ```text
-UHT processed LighthavenEditor in 26.4897962 seconds (12 generated files written)
-Using Clang compiler 20.1.8 (.../v26_clang-20.1.8-rockylinux8/x86_64-unknown-linux-gnu/bin/clang++)
-Using bundled libc++ standard C++ library.
-Using Unreal Build Accelerator local executor to run 15 action(s)
-Unhandled exception: IOException: Read-only file system : '/home/brewerm/.herdr-farm-homes/codex-sol/.epic'
-... UnrealBuildTool.UBAExecutor.Init ... UBAExecutor.cs:line 310
-Result: Failed (OtherCompilationError)
-Total execution time: 81.33 seconds
+fatal error: 'Rules/LHRules.h' file not found
+[11/14] Link libUnrealEditor-Lighthaven.so
+[13/14] Link libUnrealEditor-LighthavenTests.so
+Result: Succeeded
+Total execution time: 34.69 seconds
+[6/7] Link Lighthaven
+Result: Succeeded
+Total execution time: 79.81 seconds
+Refusing to run with the root privileges.
+libc++abi: __cxa_guard_acquire detected recursive initialization
 ```
+
+Both successful builds also emitted `Some action result store tasks did not succeed`. This did not prevent compile/link success; cache-store reliability has not been established. Full logs and final UBT trace remain ignored; copies accompany attempt output `library/`. No generated files committed.
 
 ## Tests per fixture
 
-All are **not run**, with the same prerequisite: completed native editor/test-module build. No assertions altered and no rules defect inferred from an unexecuted fixture. Prefix is `Lighthaven.Rules.`:
+Each is **not run** because engine startup aborted before Automation initialization. Test invocation overall is failed, not a rules failure. Prefix `Lighthaven.Rules.`:
 
 - `Prototype.Synthetic.CreationRNGAndPointConservation`
 - `Prototype.Synthetic.DerivedStatsEquipUnequipSymmetry`
@@ -64,10 +66,8 @@ All are **not run**, with the same prerequisite: completed native editor/test-mo
 - `Prototype.Ledger.ManaFractionalCarry`
 - `Prototype.Ledger.UnresolvedParametersReject`
 
-## Blocker, decisions and next task
+## Checks not run, defects and next task
 
-UBA's default root is `/home/brewerm/.herdr-farm-homes/codex-sol/.epic/UnrealBuildAccelerator`; creation fails at its `.epic` parent. This is outside the worker's allowed write roots. Following the explicit sandbox stop instruction, no further build or alternate UBA cache configuration was attempted, HOME was not changed, and no permissions were expanded. No downloads, installs, sudo, engine changes, or hand-authored binary assets occurred.
+Concrete blocker: worker executes as UID 0; supplied UnrealEditor-Cmd refuses root privileges before runtime logs or Automation results. No further runtime, map, packaging or launch attempts made after the first hard blocker. No requested write outside worktree arose after the approved UBA configuration. DDC, shader-worker and crash-report cache behavior remain unmeasured because startup did not proceed. HOME and engine mount unchanged; no sudo, permission expansion, downloads, installs, assertion weakening or root-check bypass attempted.
 
-Read-only engine-source inspection shows `UBAExecutor.cs` lines 257–282 select configured RootDir, then `UBA_ROOT` / `BOX_ROOT`, then the user-profile default. This is evidence for the next authorized task's cache policy decision, not a tested remedy. Supply a writable approved UBA cache configuration or execution environment, then rerun the editor build and fix genuine compiler errors before the game build, Automation, map, package and launch. The new XDG default was supported by the explicit-env retry; a subsequent build through the committed default has not been run after this hard blocker.
-
-Integrator decisions in contracts-v1.md and rules-implementation.md remain pending, including semantic freeze, XP convention, RNG encoding, adapters and policy provenance. UHT success alone does not resolve them. Coordinator should reconcile its status-ledger's obsolete extraction/engine-absence note with this observed engine availability and new cache blocker; that ledger is outside this worker's scope. Clean-checkout reproducibility, graphics, editor runtime compatibility, package dependencies and archive checksum remain unmeasured.
+Next task: coordinator supplies a non-root Unreal runtime execution environment with writable project-local generated directories. Re-run Automation, then editor-create blank map (or select engine empty map), startup-map configuration, Development packaging and timed archived launch. Retain full logs and per-fixture outcomes. Coordinator reviews this evidence and updates its owned status ledger; no merge/push performed. Clean-checkout reproducibility and rendering remain untested. Semantic contract decisions from prior report remain pending despite successful compilation.

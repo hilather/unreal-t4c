@@ -4,6 +4,16 @@ Inspection date: 2026-10-07. Base: `5ab4515797f7588968661fdaa0ee34def799f5a0`. C
 
 **Historical W0-02 result: G0 BLOCKED at that inspection.** No accessible Unreal editor/engine, Epic native SDK, Windows build machine/toolchain, or C++ project was available then. No compile, editor, import, Automation test, cook, package, executable launch or play check ran. Schema revision 1 still requires integrator approval. The coordinator must carry this blocked status into the shared ledger; that ledger is outside this worker's ownership.
 
+## G0-L2 observed update — 2026-10-08 UTC
+
+Engine sanity reconfirmed on brewtop (Linux 7.2.5-3-omarchy, x86_64): UE **5.8.3 / CL 58210709**, bundled **clang 20.1.8** (LLVM revision `87f0227cb60147a26a1eeb4fb06e3b505e9c7261`), native sysroot present. No download or installation.
+
+Project-local `UBA_ROOT=Saved/UBA` resolves the prior HOME cache blocker; UBA stayed enabled. Initial build exit 6 exposed missing `Rules/LHRules.h`; `PublicIncludePaths.Add(ModuleDirectory)` fixed module header visibility. Retry `UE_ROOT=/home/brewerm/mnt/ue5.8.3 bash build/build-linux.sh --game` exited **0**: editor compile/link **34.69 s**, game compile/link **79.81 s**. Initial UHT **6.7052836 s**, failed build **79.40 s**. Both successful builds emitted `Some action result store tasks did not succeed`; cache-store reliability remains uncertain.
+
+`UE_ROOT=/home/brewerm/mnt/ue5.8.3 bash build/run-tests.sh Lighthaven` exited **134** before tests: `Refusing to run with the root privileges.` Worker `id` reports **UID 0**. No test fixture executed. Stop checkpoint: a non-root runtime execution environment is required. Map, cook/package and packaged launch **not run**; Windows **deferred**. DDC/shader/crash cache behavior and rendering unmeasured. Engine and HOME unchanged; no root-check bypass or permission changes attempted.
+
+Evidence: ignored `build/logs/Build-20261008T000818Z-2/editor.log`, `build/logs/Build-20261008T000958Z-2/{editor,game}.log`, `Saved/Automation.2n16q2/console.log`. Detailed statuses and handoff: [G0-L2 report](../docs/implementation/g0-linux-report.md). This supersedes the G0-L cache checkpoint below; historical evidence retained.
+
 ## G0-L observed update — 2026-10-07 Toronto / 2026-10-08 UTC
 
 **Linux G0 remains blocked; Windows packaging/launch deferred.** Engine and native SDK are now accessible. The editor build reached successful UHT, then failed before C++ actions because the sandbox denies the default UBA cache directory. This supersedes the old engine-absence finding below, not the historical audit evidence.
