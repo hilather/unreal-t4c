@@ -7,7 +7,7 @@
 #include "HAL/PlatformFileManager.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
-namespace
+namespace LHPersistenceTestsPrivate
 {
 FLHInteger I(int64 V) { FLHInteger R; R.Resolution=ELHValueResolution::Resolved; R.Value=V; R.Provenance.Status=ELHProvenanceStatus::Prototype; R.Provenance.Notes=TEXT("Synthetic persistence fixture; no authentic gameplay tuning"); return R; }
 FLHNumber N(double V) { FLHNumber R; R.Resolution=ELHValueResolution::Resolved; R.Value=V; R.Provenance.Status=ELHProvenanceStatus::Prototype; return R; }
@@ -112,6 +112,7 @@ bool Class::RunTest(const FString&)
 
 LH_TEST(FLHPersistenceRoundTrip,"RoundTrip")
 {
+    using namespace LHPersistenceTestsPrivate;
     auto S=Fixture(); TArray<uint8> Bytes; FLHSaveError Error; FLHSaveSnapshot Loaded;
     if (!TestTrue(TEXT("Encode populated fixture"),LHSave::Encode(S,Bytes,Error))) { AddError(Error.Detail); return false; }
     if (!TestTrue(TEXT("Decode populated fixture"),LHSave::Decode(Bytes,S.Header.CharacterId,Compatibility(S),Loaded,Error))) { AddError(Error.Detail); return false; }
@@ -128,6 +129,7 @@ LH_TEST(FLHPersistenceRoundTrip,"RoundTrip")
 }
 LH_TEST(FLHPersistenceCanonical,"CanonicalBytesAndSHA256")
 {
+    using namespace LHPersistenceTestsPrivate;
     auto S=Fixture(); FLHSaveError Error; TArray<uint8> A,B;
     TestTrue(TEXT("First encode"),LHSave::Encode(S,A,Error)); TestTrue(TEXT("Second encode"),LHSave::Encode(S,B,Error)); TestTrue(TEXT("Deterministic bytes"),A==B);
     const int32 PayloadStart=10+U32(A,6);
@@ -169,6 +171,7 @@ LH_TEST(FLHPersistenceCanonical,"CanonicalBytesAndSHA256")
 }
 LH_TEST(FLHPersistenceChecksumFallback,"BadChecksumFallback")
 {
+    using namespace LHPersistenceTestsPrivate;
     auto S=Fixture(); auto Disk=MakeShared<FMemoryStorage>(); auto Store=MakeShared<FLHSaveStore>(Disk);
     if (!TestTrue(TEXT("Seed A"),Disk->Seed(S,0))) return false;
     S.Header.TransactionSequence=2; S.Character.Gold=I(101); if (!TestTrue(TEXT("Seed B"),Disk->Seed(S,1))) return false;
@@ -182,6 +185,7 @@ LH_TEST(FLHPersistenceChecksumFallback,"BadChecksumFallback")
 }
 LH_TEST(FLHPersistenceInterrupted,"InterruptedWriteFallback")
 {
+    using namespace LHPersistenceTestsPrivate;
     auto S=Fixture(); auto Disk=MakeShared<FMemoryStorage>(); auto Store=MakeShared<FLHSaveStore>(Disk); FLHSaveError Error;
     if (!TestTrue(TEXT("Seed previous"),Disk->Seed(S,0))) return false;
     S.Header.TransactionSequence=2; TestTrue(TEXT("Start save"),Store->RequestSave(S,Compatibility(S),true,Error));
@@ -195,6 +199,7 @@ LH_TEST(FLHPersistenceInterrupted,"InterruptedWriteFallback")
 }
 LH_TEST(FLHPersistenceFuture,"FutureVersionAndAlgorithms")
 {
+    using namespace LHPersistenceTestsPrivate;
     auto S=Fixture(); TArray<uint8> Bytes; FLHSaveError Error; FLHSaveSnapshot Loaded;
     if (!TestTrue(TEXT("Encode fixture"),LHSave::Encode(S,Bytes,Error))) return false;
     const auto Original=Bytes; SetU32(Bytes,FindField(Bytes,"SchemaVersion"),2); FLHSaveDecodeStats Stats;
@@ -210,6 +215,7 @@ LH_TEST(FLHPersistenceFuture,"FutureVersionAndAlgorithms")
 }
 LH_TEST(FLHPersistenceBounds,"BoundsBeforeAllocation")
 {
+    using namespace LHPersistenceTestsPrivate;
     auto S=Fixture(); TArray<uint8> Bytes; FLHSaveError Error; FLHSaveSnapshot Loaded; FLHSaveDecodeStats Stats;
     if (!TestTrue(TEXT("Encode fixture"),LHSave::Encode(S,Bytes,Error))) return false;
     const auto Original=Bytes;
@@ -232,6 +238,7 @@ LH_TEST(FLHPersistenceBounds,"BoundsBeforeAllocation")
 }
 LH_TEST(FLHPersistenceBothBad,"BothSlotsBadVisible")
 {
+    using namespace LHPersistenceTestsPrivate;
     auto S=Fixture(); auto Disk=MakeShared<FMemoryStorage>(); auto Store=MakeShared<FLHSaveStore>(Disk);
     if (!TestTrue(TEXT("Seed A"),Disk->Seed(S,0)) || !TestTrue(TEXT("Seed B"),Disk->Seed(S,1))) return false;
     for (auto& Pair:Disk->Files) Pair.Value.SetNum(5);
@@ -246,6 +253,7 @@ LH_TEST(FLHPersistenceBothBad,"BothSlotsBadVisible")
 }
 LH_TEST(FLHPersistenceEpoch,"RequestEpochMismatch")
 {
+    using namespace LHPersistenceTestsPrivate;
     auto S=Fixture(); TArray<uint8> Bytes; FLHSaveError Error; FLHSaveSnapshot Loaded;
     if (!TestTrue(TEXT("Encode fixture"),LHSave::Encode(S,Bytes,Error))) return false;
     const int32 Offset=FindField(Bytes,"Epoch"); Bytes[Offset]^=1; Rechecksum(Bytes);
@@ -256,6 +264,7 @@ LH_TEST(FLHPersistenceEpoch,"RequestEpochMismatch")
 }
 LH_TEST(FLHPersistenceQueue,"CoalescingFailureRetryAndImmutability")
 {
+    using namespace LHPersistenceTestsPrivate;
     auto S=Fixture(); auto Disk=MakeShared<FMemoryStorage>(); auto Store=MakeShared<FLHSaveStore>(Disk); FLHSaveError Error;
     if (!TestTrue(TEXT("Seed A"),Disk->Seed(S,0))) return false;
     int32 Failures=0,Successes=0;
@@ -282,6 +291,7 @@ LH_TEST(FLHPersistenceQueue,"CoalescingFailureRetryAndImmutability")
 }
 LH_TEST(FLHPersistenceMalformed,"MalformedAndCompatibility")
 {
+    using namespace LHPersistenceTestsPrivate;
     auto S=Fixture(); TArray<uint8> Bytes; FLHSaveError Error; FLHSaveSnapshot Loaded;
     if (!TestTrue(TEXT("Encode fixture"),LHSave::Encode(S,Bytes,Error))) return false;
     const auto Original=Bytes;
@@ -301,11 +311,15 @@ LH_TEST(FLHPersistenceMalformed,"MalformedAndCompatibility")
     TestFalse(TEXT("Changed mechanical rules require migration"),LHSave::Decode(Original,S.Header.CharacterId,C,Loaded,Error)); TestTrue(TEXT("Rules mismatch"),Error.Reason==ELHSaveReason::IncompatibleRuleset);
     C=Compatibility(S); C.ValidateReferences=[](const FLHSaveSnapshot&,FLHSaveError& E) { E={ELHSaveReason::InvalidSnapshot,TEXT("Synthetic registry rejected missing definition")}; return false; };
     TestFalse(TEXT("Authoritative registry can reject mandatory references"),LHSave::Decode(Original,S.Header.CharacterId,C,Loaded,Error));
-    S.Character.Inventory.Add(S.Character.Inventory[0]); TestFalse(TEXT("Duplicate inventory key rejects"),LHSave::Encode(S,Bytes,Error));
+    // TArray rejects arguments that alias its own storage, even if capacity is available.
+    const FLHItemInstance DuplicateItem=S.Character.Inventory[0];
+    S.Character.Inventory.Add(DuplicateItem); TestFalse(TEXT("Duplicate inventory key rejects"),LHSave::Encode(S,Bytes,Error));
+    TestTrue(TEXT("Duplicate inventory key reason"),Error.Reason==ELHSaveReason::InvalidSnapshot);
     return true;
 }
 LH_TEST(FLHPersistenceLocalStorage,"LocalStorageBoundsAndEnumeration")
 {
+    using namespace LHPersistenceTestsPrivate;
     const FString Root=FPaths::ProjectSavedDir()/TEXT("Automation/Persistence")/FGuid::NewGuid().ToString(EGuidFormats::Digits);
     IPlatformFile& Files=FPlatformFileManager::Get().GetPlatformFile();
     if (!TestTrue(TEXT("Create isolated storage"),Files.CreateDirectoryTree(*Root))) return false;
@@ -326,6 +340,7 @@ LH_TEST(FLHPersistenceLocalStorage,"LocalStorageBoundsAndEnumeration")
 }
 LH_TEST(FLHPersistenceSequences,"SequencesIndependentCharactersAndReadback")
 {
+    using namespace LHPersistenceTestsPrivate;
     auto S=Fixture(); auto Disk=MakeShared<FMemoryStorage>(); auto Store=MakeShared<FLHSaveStore>(Disk); FLHSaveError Error;
     if (!TestTrue(TEXT("Seed first character"),Disk->Seed(S,0))) return false;
     S.Header.TransactionSequence=2;
@@ -351,7 +366,7 @@ LH_TEST(FLHPersistenceSequences,"SequencesIndependentCharactersAndReadback")
     return true;
 }
 
-namespace
+namespace LHPersistenceTestsPrivate
 {
 struct FLocalAsyncFixture
 {
@@ -391,6 +406,7 @@ public:
 }
 LH_TEST(FLHPersistenceLocalAsync,"LocalAsyncWriteAndReopen")
 {
+    using namespace LHPersistenceTestsPrivate;
     auto Context=MakeShared<FLocalAsyncFixture>(); Context->Test=this; Context->Snapshot=Fixture();
     Context->Directory=FPaths::ProjectSavedDir()/TEXT("Automation/Persistence")/FGuid::NewGuid().ToString(EGuidFormats::Digits);
     Context->Store=MakeShared<FLHSaveStore>(LHCreateLocalSaveStorage(Context->Directory));

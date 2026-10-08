@@ -3,7 +3,7 @@
 #include "HAL/PlatformFileManager.h"
 #include "Misc/Paths.h"
 
-namespace
+namespace LHLocalSaveStoragePrivate
 {
 class FLocalStorage final : public ILHSaveStorage
 {
@@ -60,4 +60,4 @@ public:
 };
 }
 TSharedRef<ILHSaveStorage> LHCreateLocalSaveStorage(const FString& Directory)
-{ return MakeShared<FLocalStorage>(Directory); }
+{ return MakeShared<LHLocalSaveStoragePrivate::FLocalStorage>(Directory); }

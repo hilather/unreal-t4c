@@ -1,6 +1,6 @@
 #include "LHSaveCodec.h"
 
-namespace
+namespace LHSaveValidationPrivate
 {
 bool Digest(const FString& S)
 {
@@ -52,6 +52,7 @@ bool Rng(const FLHRngState& R, bool Gameplay)
 
 bool LHSave::Validate(const FLHSaveSnapshot& S, FLHSaveError& E)
 {
+    using namespace LHSaveValidationPrivate;
     E={};
     auto Bad=[&E](const TCHAR* D) { E={ELHSaveReason::InvalidSnapshot,D}; return false; };
     if (S.Header.SchemaVersion>1) { E={ELHSaveReason::FutureSchema,TEXT("Future schema")}; return false; }

@@ -41,3 +41,13 @@ Native tests under `Lighthaven.Persistence.*` cover populated roundtrip, exact d
 The canonical test emits a synthetic encoder-produced `.lhs` and full-file `.sha256` beneath `Saved/Automation/Persistence/` when run; no save fixture was manually fabricated or claimed produced in this root worker. The coordinator can archive these after native tests. Test snapshots explicitly label numbers Prototype/synthetic; no game-mechanics defaults or source authenticity are introduced. No test worlds or actors are used, so the world/controller/timer fixture conventions do not apply.
 
 Validation results and concrete host prerequisites are recorded in the attempt report. Required host command: `UE_ROOT=/home/brewerm/Downloads/unreal bash build/run-tests.sh Lighthaven` as a non-root user. The broader G2 two-character equip/progression/quit/relaunch and recovery UI require W2-02/03/04 integration and a real Linux package; Windows packaging remains deferred.
+
+## W2-01c — malformed test crash and unity helpers
+
+The duplicate-inventory mutation now copies the first item to a local value before adding it back to the inventory. Passing an inventory element directly to the same TArray's Add triggers Unreal's self-alias check; reserving capacity alone does not bypass that check. The malformed/compatibility cases remain, and duplicate inventory rejection now also asserts InvalidSnapshot.
+
+The owned persistence sources and wire include were inspected for Add/AddUnique/Append/Insert/Emplace aliases. The sole self-aliasing mutation found was the duplicate-inventory test. Codec Raw writes append stack values, UTF-8 conversion buffers, or a separate header/payload wire's output; keyed-array entries are built from a separate values array. Truncation uses SetNum and the interrupted-write fixture moves its queued write into a local before removing it.
+
+File-local helpers now live in file-unique namespaces: LHSaveCodecPrivate (including LHSaveWireV1.inl), LHSaveValidationPrivate, LHLocalSaveStoragePrivate and LHPersistenceTestsPrivate. Public entry points and test bodies use qualified names or function-scoped using directives, so helper names are not imported at unity translation-unit scope. LHSaveStore.cpp, LHSaveSubsystem.cpp and LHSha256.cpp have no free file-local helpers; their lambdas/constants remain function-local.
+
+Automation must be rerun with UE 5.8.3 as a non-root host user: this attempt's id -u returned 0, so no editor or automation execution was attempted. Build results and timing are recorded in the W2-01c attempt report. No schema, mechanics tuning or binary assets changed.

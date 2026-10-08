@@ -1,7 +1,7 @@
 #include "LHSaveCodec.h"
 #include "Containers/StringConv.h"
 
-namespace
+namespace LHSaveCodecPrivate
 {
 bool Less(TConstArrayView<uint8> A, TConstArrayView<uint8> B)
 {
@@ -166,7 +166,7 @@ bool Hex(const FString& S)
 bool Reject(FLHSaveError& E, ELHSaveReason R, const TCHAR* D) { E={R,D}; return false; }
 }
 
-namespace
+namespace LHSaveCodecPrivate
 {
 bool DecodeIdentityV1(TConstArrayView<uint8> P, const FLHSaveCompatibility& Compatibility,
     FLHSaveSnapshot& V, FLHSaveError& Error, FLHSaveDecodeStats* Stats)
@@ -196,10 +196,11 @@ const FSchemaDispatch* FindSchema(int32 Version)
     return nullptr;
 }
 }
-bool LHSave::SupportsVersion(int32 Version) { return FindSchema(Version)!=nullptr; }
+bool LHSave::SupportsVersion(int32 Version) { return LHSaveCodecPrivate::FindSchema(Version)!=nullptr; }
 
 bool LHSave::Encode(const FLHSaveSnapshot& Snapshot, TArray<uint8>& Bytes, FLHSaveError& Error)
 {
+    using namespace LHSaveCodecPrivate;
     Error={}; Bytes.Reset();
     if (!Validate(Snapshot,Error)) return false;
     FLHSaveSnapshot V=Snapshot;
@@ -216,6 +217,7 @@ bool LHSave::Encode(const FLHSaveSnapshot& Snapshot, TArray<uint8>& Bytes, FLHSa
 bool LHSave::Decode(TConstArrayView<uint8> Bytes, const FLHCharacterId& Character,
     const FLHSaveCompatibility& Compatibility, FLHSaveSnapshot& Snapshot, FLHSaveError& Error, FLHSaveDecodeStats* Stats)
 {
+    using namespace LHSaveCodecPrivate;
     Error={}; if (Stats) *Stats={};
     if (Bytes.Num()>MaxFileBytes) return Reject(Error,ELHSaveReason::Oversize,TEXT("File limit"));
     FWire File(Bytes,Error); uint8 Magic[6]={}; File.Raw(Magic,6);
