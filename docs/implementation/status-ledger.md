@@ -19,7 +19,7 @@ the lowercase form.
 | B-01 Linux build/test scripts | integrated (e5f2e81) | codex-sol | .gitignore, build/*.sh, build/README.md | Ready for UE 5.8.3 Linux |
 | V-01 graybox layout specs | integrated | codex-astra | docs/implementation/layout/ | Church + B1–B4 build-ready layouts for Wave 3 |
 | A-01 creature presentation specs | integrated | codex-astra | docs/implementation/art/creatures/ | 11 roster definitions + Balork encounter companion. Open: no typed PresentationId registry yet (W4-02/integrator); combat lacks commit/cancel animation hooks (only OnImpact) and a recovery duration (W4/W5) |
-| A-02 player + environment kit specs | active | codex-astra | docs/implementation/art/player/, docs/implementation/art/environment/ | Prep for W5-01/W5-02 |
+| A-02 player + environment kit specs | integrated | codex-astra | docs/implementation/art/player/, docs/implementation/art/environment/ | Prep for W5-01/W5-02 |
 | V-02 UI wireframes | integrated (captured) | codex-astra | docs/implementation/ui/ | |
 | R-02 rules ledger rebased on T4C Bible | integrated | codex-sol | rules-ledger.md, world-ledger.md, ruleset-bible-v1.md | Baseline = classic Vircom-era T4C Bible (2001–2006 snapshots). 88 ledger rows confirmed; conflicts kept disputed |
 | W1-02b/W1-02c Bible table models and ruleset | integrated, host-tested | codex-sol | Source/Lighthaven/Rules/, Source/LighthavenTests/Rules/ | 13/13 Lighthaven.Rules tests pass on host (UE 5.8.3) |
