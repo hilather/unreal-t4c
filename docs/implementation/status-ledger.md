@@ -53,9 +53,9 @@ Host test status (2026-10-08, main incl. S-02): 30/30 Lighthaven Automation test
 | Task | Status | Profile | Owned paths / binary assets | Notes |
 |---|---|---|---|---|
 | W2-01 persistence | integrated, host-tested (W2-01b + W2-01c fix) | 51/51 host tests | codex-sol | Source/Lighthaven/Persistence/, LighthavenTests/Persistence/ | Brief ready (coordinator scratch/wave2). Launch after Matt's G1 play check |
-| W2-02 character | W2-02b submitted; host test pending | codex-sol | Source/Lighthaven/Character/, LighthavenTests/Character/ | Brief ready |
+| W2-02 character | integrated, host-tested (W2-02b + W2-02d + W2-02e) | 56/56 host tests | codex-sol | Source/Lighthaven/Character/, LighthavenTests/Character/ | Brief ready |
 | W2-03 frontend/character UI | W2-03b + W2-03c integrated: 5 Slate screens on presenters, V-03 style, L_Frontend generated on host (LFS). Host 38/38 tests. Live save/character adapters pending W2-04 | codex-sol | Source/Lighthaven/UI/, LighthavenTests/UI/, frontend map commandlet | Brief ready; L_Frontend generated on host |
-| W2-04 Wave 2 integration | planned (after W2-01..03) | codex-sol | Framework/, Config/, LighthavenTests/Integration/ | Brief ready; produces G2 checklist |
+| W2-04 Wave 2 integration | active (W2-01..03 all on main) | codex-sol | Framework/, Config/, LighthavenTests/Integration/ | Brief ready; produces G2 checklist |
 
 Open (Windows phase): Unreal writes project `Build/` (e.g. Build/Linux/FileOpenOrder) while our scripts live in lowercase `build/`; on case-insensitive Windows these are one folder. Decide before Windows work (rename scripts dir, or keep and gitignore engine subpaths).
 
@@ -75,6 +75,8 @@ Open (Windows phase): Unreal writes project `Build/` (e.g. Build/Linux/FileOpenO
 | Task | Status | Profile | Owned paths / binary assets | Notes |
 |---|---|---|---|---|
 | W2-02d character on current main + unity-safe helpers | submitted; host build OK; host tests crash | codex-sol | Character/, 8 .cpp namespace edits | Crash in Lighthaven.Character.UnresolvedAndImportValidation: TArray self-aliasing at LHCharacterTests.cpp:398 (test only). 13 tests passed before the crash |
-| W2-02e character test self-aliasing fix | submitted; host test running (launch held, then relaunched after the orchestrator reverted the run-as-owner-uid setting; coordinator re-adopted) | codex-sol | LighthavenTests/Character/ | Refusal at profile probe: "native probe did not establish prompt readiness (process_observation_failed) … pidfd observation unavailable". Reported to Shepherd |
+| W2-02e character test self-aliasing fix | integrated (launch held, then relaunched after the orchestrator reverted the run-as-owner-uid setting; coordinator re-adopted) | codex-sol | LighthavenTests/Character/ | Refusal at profile probe: "native probe did not establish prompt readiness (process_observation_failed) … pidfd observation unavailable". Reported to Shepherd |
 
 | A-03 placeholder presentation specs | active | codex-astra | docs/implementation/art/placeholders/ | Code-drawable stand-ins (engine shapes, V-03/A-01 palette, A-01 dimensions) and a presentation-ID table for W3/W4, from approved first-pass direction |
+
+Host test status (2026-10-08, main incl. W2-01/02/03): 56/56 Lighthaven Automation tests pass. Conventions: file-local helpers in file-unique namespaces (unity safety); never pass a TArray element to the same array's Add/Insert.
