@@ -3,6 +3,8 @@
 #include "Abilities/LHAttributeSet.h"
 #include "Framework/LHEnemyCharacter.h"
 #include "Engine/World.h"
+#include "Engine/Engine.h"
+#include "UObject/UObjectGlobals.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 namespace
@@ -28,9 +30,19 @@ struct FFixture
     ULHCombatComponent* Defender;
     FFixture()
     {
-        World = UWorld::CreateWorld(EWorldType::Game, false);
-        World->InitializeNewWorld(UWorld::InitializationValues().AllowAudioPlayback(false).CreatePhysicsScene(true)
-            .RequiresHitProxies(false).CreateNavigation(false).CreateAISystem(false).ShouldSimulatePhysics(false).SetTransactional(false));
+        const FName WorldName = MakeUniqueObjectName(nullptr, UWorld::StaticClass(), TEXT("LHCombatTestWorld"),
+            EUniqueObjectNameOptions::GloballyUnique);
+        const UWorld::InitializationValues Initialization = UWorld::InitializationValues()
+            .AllowAudioPlayback(false).CreatePhysicsScene(true).RequiresHitProxies(false)
+            .CreateNavigation(false).CreateAISystem(false).ShouldSimulatePhysics(false).SetTransactional(false);
+        FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
+        // CreateWorld initializes the level and WorldSettings once; never InitializeNewWorld again.
+        World = UWorld::CreateWorld(EWorldType::Game, false, WorldName, GetTransientPackage(), true,
+            ERHIFeatureLevel::Num, &Initialization);
+        check(World);
+        Context.SetCurrentWorld(World);
+        World->InitializeActorsForPlay(FURL());
+        // No game mode or world ticking is needed: avatar initialization and impacts are explicit below.
         FActorSpawnParameters Spawn; Spawn.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
         Source = World->SpawnActor<ALHEnemyCharacter>(FVector::ZeroVector, FRotator::ZeroRotator, Spawn);
         Target = World->SpawnActor<ALHEnemyCharacter>(FVector(100, 0, 0), FRotator::ZeroRotator, Spawn);
@@ -58,7 +70,18 @@ struct FFixture
         Attacker->ConfigureAttack(Config, {});
         Attacker->SetCombatRandomState(FRandomStream(123));
     }
-    ~FFixture() { Attacker->ClearCombatAvatar(); Defender->ClearCombatAvatar(); World->DestroyWorld(false); }
+    ~FFixture()
+    {
+        // Cancel GAS actions/timers while their world and avatars are still available.
+        Attacker->ClearCombatAvatar();
+        Defender->ClearCombatAvatar();
+        if (!Target->IsActorBeingDestroyed()) { Target->Destroy(); }
+        if (!Source->IsActorBeingDestroyed()) { Source->Destroy(); }
+        World->DestroyWorld(false);
+        GEngine->DestroyWorldContext(World);
+    }
+    FFixture(const FFixture&) = delete;
+    FFixture& operator=(const FFixture&) = delete;
 };
 constexpr auto Flags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 }
