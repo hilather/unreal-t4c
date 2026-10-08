@@ -11,6 +11,10 @@ if [[ "$filter" == *';'* || "$filter" == *$'\n'* || "$filter" == *$'\r'* ]]; the
     echo "Test filter cannot contain command separators or newlines." >&2
     exit 2
 fi
+if [[ "$(id -u)" == 0 ]]; then
+    echo "Unreal refuses to run as root; run on the host as a normal user" >&2
+    exit 1
+fi
 editor="$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd"
 [[ -x "$editor" ]] || { echo "Command editor missing or not executable: $editor" >&2; exit 1; }
 mkdir -p -- "$LH_PROJECT_ROOT/Saved"

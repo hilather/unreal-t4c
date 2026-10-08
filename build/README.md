@@ -1,10 +1,11 @@
 # Linux build and G0 preparation
 
 Linux first on brewtop; Windows packaging and launch are deferred by the owner.
-The G0-L editor build reached successful UHT on UE 5.8.3, then stopped at a
-sandbox-denied UBA cache write before C++ compilation. G0 remains blocked; see
-`docs/implementation/g0-linux-report.md`. Source contracts remain drafts; native
-Automation fixtures exist but have not run, and there are no authored maps.
+Both Linux targets built in G0-L2. The coordinator reports all seven
+`Lighthaven.Rules.*` tests passed on the host (`result host-check`); this worker
+has not independently run them. See `docs/implementation/g0-linux-report.md`.
+The temporary startup and cooked map is the engine-provided `/Engine/Maps/Entry`.
+There are no authored project maps; package and launch evidence is still required.
 
 ## Setup
 
@@ -32,7 +33,7 @@ driver is additionally required for graphical editor and packaged launch checks.
 Host clang alone does not establish readiness. See Toolchain.md for the earlier
 audit; its Windows-primary recommendation predates the Linux-first decision.
 
-## Linux G0 checklist (not yet run)
+## Linux G0 checklist
 
 1. Use a clean checkout with all required LFS objects. Record revision, engine
    Build.version, archive checksum, SDK/compiler and host details. Review and
@@ -45,22 +46,33 @@ audit; its Windows-primary recommendation predates the Linux-first decision.
    ```
    Availability of GenerateProjectFiles.sh depends on the binary distribution;
    IDE generation is optional for Build.sh and is not a build gate by itself.
-3. Open the real editor, observe the project/map and close it:
+3. Run editor, tests, packaging and launch on the host as a normal user.
+   Before launching the editor, fail fast if UID is zero:
+   ```bash
+   if [[ "$(id -u)" == 0 ]]; then
+       echo "Unreal refuses to run as root; run on the host as a normal user" >&2
+       exit 1
+   fi
+   ```
+   `run-tests.sh` also checks this before invoking the editor.
+   Open the real editor, observe the project/map and close it:
    ```bash
    source build/lh-env.sh
    "$UE_ROOT/Engine/Binaries/Linux/UnrealEditor" "$LH_PROJECT"
    ```
-4. After native tests are authored, run them:
+4. Run the native Automation tests:
    ```bash
    bash build/run-tests.sh
    bash build/run-tests.sh Lighthaven.Rules
    ```
-5. After the integrator authors a map and configures startup/cook settings,
-   package it with its actual long package name:
+5. Package the configured temporary engine map with its explicit long package name:
    ```bash
-   bash build/package-linux.sh /Game/Lighthaven/Maps/Dev_Blank
+   bash build/package-linux.sh /Engine/Maps/Entry
    ```
-   This map name is illustrative; it does not exist in the current checkout.
+   `Config/DefaultEngine.ini` selects Entry for game and editor startup;
+   `Config/DefaultGame.ini` includes it in MapsToCook; the script selects `-platform=Linux`.
+   A future project map must be created by the editor and have matching startup
+   and cook settings before replacing this temporary map.
 6. Locate the game launcher in the printed archive directory, launch it from
    outside the editor on Linux, observe the intended map and a clean exit.
    Capture logs, exact executable path/hash and observed behavior. Cooking an
@@ -85,7 +97,7 @@ prove the original Windows delivery requirements or full gameplay acceptance.
   closed. SuccessWithWarnings also fails conservatively for review. The report
   format and command completion behavior need confirmation against UE 5.8.3.
   Headless tests do not establish rendering, controller or world traversal.
-- `package-linux.sh /Game/.../Map`: invokes Linux Development BuildCookRun with
+- `package-linux.sh /Game/.../Map` or `/Engine/Maps/...`: invokes Linux Development BuildCookRun with
   build, cook, stage, pak, package and archive. UAT success establishes its
   reported pipeline outcome; manually launching the archive remains required.
 
@@ -99,6 +111,6 @@ Scripts neither manufacture assets nor edit shared source/config/ledgers.
 Installed-engine builds default an unset `XDG_CONFIG_HOME` to
 `Saved/BuildEnvironment/config`, creating it before UBT starts. This prevents
 .NET ApplicationData from resolving relative to a read-only engine when the
-worker has no user config directory. This does not redirect UBA's separate
-default `~/.epic/UnrealBuildAccelerator` cache; G0-L stopped when that path was
-denied by the sandbox. No full build result is established by the config fix.
+worker has no user config directory. UBA's separate cache defaults to project-local `Saved/UBA` via `UBA_ROOT`.
+Explicit caller values for both variables remain respected. Both defaults are
+set by `lh-env.sh`, also sourced by the packaging script.

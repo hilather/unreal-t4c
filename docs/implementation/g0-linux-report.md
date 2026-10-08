@@ -71,3 +71,34 @@ Each is **not run** because engine startup aborted before Automation initializat
 Concrete blocker: worker executes as UID 0; supplied UnrealEditor-Cmd refuses root privileges before runtime logs or Automation results. No further runtime, map, packaging or launch attempts made after the first hard blocker. No requested write outside worktree arose after the approved UBA configuration. DDC, shader-worker and crash-report cache behavior remain unmeasured because startup did not proceed. HOME and engine mount unchanged; no sudo, permission expansion, downloads, installs, assertion weakening or root-check bypass attempted.
 
 Next task: coordinator supplies a non-root Unreal runtime execution environment with writable project-local generated directories. Re-run Automation, then editor-create blank map (or select engine empty map), startup-map configuration, Development packaging and timed archived launch. Retain full logs and per-fixture outcomes. Coordinator reviews this evidence and updates its owned status ledger; no merge/push performed. Clean-checkout reproducibility and rendering remain untested. Semantic contract decisions from prior report remain pending despite successful compilation.
+
+## How G0 runs on Linux
+
+G0-L3 supplies configuration and host-run scripts. Builds can run in the sandbox
+using project-local `UBA_ROOT` and `XDG_CONFIG_HOME` from `build/lh-env.sh`.
+The worker sandbox runs as UID 0; Unreal refuses to initialize as root.
+The coordinator runs editor, Automation, cook/package and archived launch on
+brewtop as a normal user and records that evidence as `result host-check`.
+`build/run-tests.sh` now rejects root before launching the editor.
+
+The G0-L3 task brief reports the G0-L2 host game/editor builds succeeded and all
+seven `Lighthaven.Rules.*` tests passed. These are coordinator-reported host
+results, not new observations by this worker; the historical sandbox failure
+and fixture list above remain the G0-L2 worker record.
+
+The committed temporary game/editor startup map is `/Engine/Maps/Entry`, also
+listed in packaging MapsToCook. The project name is Lighthaven, with a fixed
+project GUID; the packaging script selects Linux with `-platform=Linux`. No gameplay settings or
+binary maps are added. Package on the host with:
+
+```bash
+bash build/package-linux.sh /Engine/Maps/Entry
+```
+
+The script still requires one explicit map, now allowing `/Game/...` and
+`/Engine/Maps/...`; it retains both writable environment defaults. Engine-map
+cooking and packaged startup have not been observed in G0-L3. The optional
+blank-map creation script is omitted: Entry fulfills the temporary map contract
+without enabling a plugin or relying on an untested map-creation commandlet.
+The coordinator must retain cook/archive/launch logs and observe startup before
+reviewing the Linux gate. Windows checks remain deferred.

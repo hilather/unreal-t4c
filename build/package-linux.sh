@@ -2,8 +2,8 @@
 set -euo pipefail
 # shellcheck source=build/lh-env.sh
 source "$(dirname -- "${BASH_SOURCE[0]}")/lh-env.sh"
-if [[ $# != 1 || "$1" != /Game/* || "$1" == *'+'* || "$1" == *'.umap' ]]; then
-    echo "Usage: $0 /Game/path/to/Map (one explicit map, without .umap)" >&2
+if [[ $# != 1 || ( "$1" != /Game/* && "$1" != /Engine/Maps/* ) || "$1" == *'+'* || "$1" == *'.umap' ]]; then
+    echo "Usage: $0 /Game/path/to/Map or /Engine/Maps/Map (one explicit map, without .umap)" >&2
     exit 2
 fi
 uat="$UE_ROOT/Engine/Build/BatchFiles/RunUAT.sh"
