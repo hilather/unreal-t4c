@@ -38,6 +38,8 @@ Host test status (2026-10-08, main incl. W1-01): editor+game build OK; 22/22 Lig
 | Task | Status | Profile | Owned paths / binary assets | Notes |
 |---|---|---|---|---|
 | W1-INT Wave 1 wiring | integrated, host-tested | codex-sol | Framework/, Input/, Lighthaven.Build.cs, Config/, Commandlets, LighthavenTests/Integration/ | GameMode defaults, Enhanced Input config, controls→combat attack path, Dev_Combat dummies + startup map. Host: build OK; 24/24 tests (13 Rules, 6 Abilities, 3 Controls, 2 Integration); dev maps regenerated with LHGameMode (LFS); package Dev_Combat BUILD SUCCESSFUL; packaged game loads Dev_Combat with LHGameMode and exits cleanly |
-| **G1** | **awaiting manual play check (Matt)** | n/a | n/a | Checklist in docs/implementation/w1-integration.md: run, target and attack a dummy with keyboard/mouse and with gamepad in Dev_Combat; Dev_Movement ramp/door/stairs/ceiling. A skeptical review of state ownership / duplicate hit paths is also part of G1 |
+| G1-SKEPTIC review | integrated | codex-sol | docs/reviews/G1-skeptic.md | 2 major verified-by-inspection defects: dead player can still move; stale impact callback tears down a newer activation |
+| G1-FIX | active | codex-sol | Abilities/, Framework/, LighthavenTests/Abilities+Integration | Fixes both findings with timer-driven regressions |
+| **G1** | **blocked on G1-FIX, then manual play check (Matt)** | n/a | n/a | Checklist in docs/implementation/w1-integration.md: run, target and attack a dummy with keyboard/mouse and with gamepad in Dev_Combat; Dev_Movement ramp/door/stairs/ceiling. A skeptical review of state ownership / duplicate hit paths is also part of G1 |
 
 Binary asset locks: Content/Lighthaven/Maps/Dev_Movement.umap and Dev_Combat.umap are generated only by build/generate-dev-maps.sh (W1-04 commandlet); never hand-edit.
