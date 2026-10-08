@@ -40,6 +40,11 @@ public:
     UPROPERTY(EditAnywhere, Category="Prototype") float SelectionRange=200.f;
     UPROPERTY(Transient) TObjectPtr<ULHInputConfig> InputConfig;
 private:
+    TSharedPtr<class FLHWave2Session> LiveSession;
+    TSharedPtr<class FLHUIPresenter> JournalPresenter;
+    TSharedPtr<class SLHFrontendWidget> JournalWidget;
+    void CloseJournal();
+    bool bCloseJournalRequested=false;
     ELHInputContext ActiveContext=ELHInputContext::Gameplay;
     LHControls::FMovementState Movement;
     TWeakObjectPtr<AActor> SelectedTarget;

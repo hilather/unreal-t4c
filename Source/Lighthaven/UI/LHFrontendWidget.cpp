@@ -307,7 +307,8 @@ void SLHFrontendWidget::Activate(FName Id)
     if (ModalAction == "Keyboard") { Keyboard(KeyboardFocus); return; }
     if (IsModal()) { Submit(); return; }
     const int32 I = P->FocusOrder().IndexOfByKey(Id); if (I != INDEX_NONE) P->MoveFocus(I - P->FocusOrder().IndexOfByKey(P->FocusedControl()));
-    if (Id == "Name") { Modal("Keyboard"); }
+    if (Id == "RetrySave") { P->RetryPersistence(); }
+    else if (Id == "Name") { Modal("Keyboard"); }
     else if (Id == "New") Open(ELHUIScreen::Creation);
     else if (Id == "Characters" || (Id == "Continue" && P->Screen() == ELHUIScreen::Frontend)) Open(ELHUIScreen::Characters);
     else if (Id == "Settings") Open(ELHUIScreen::Settings);
@@ -318,6 +319,7 @@ void SLHFrontendWidget::Activate(FName Id)
     else if (Id == "Roll" || Id == "Reroll" || Id == "Review") { P->Roll(Id == "Reroll"); }
     else if (Id == "Confirm")
     {
+        if (P->Screen()==ELHUIScreen::Creation && P->IsConfirmed()) { P->RetryPersistence(); return; }
         FLHUIIntentReview Review;
         if (P->Screen() == ELHUIScreen::CharacterSheet) {
             Review = P->ReviewAllocation(Allocation);
@@ -375,6 +377,7 @@ void SLHFrontendWidget::Back()
     if (IsModal()) { bModalConfirm = false; NextScreen.Reset(); Submit(); return; }
     if (P->Screen() == ELHUIScreen::Creation && P->IsConfirmed())
     { LocalMessage = TEXT("Creation accepted. Waiting for the owner to finish saving and transition."); return; }
+    if (!HasAllocation() && P->ResumeGameplay()) return;
     if (P->Screen() == ELHUIScreen::Frontend) { Modal("Quit"); return; }
     if (P->Screen() == ELHUIScreen::Creation || P->Screen() == ELHUIScreen::CharacterSheet) { Modal("Discard"); return; }
     Open(ELHUIScreen::Frontend);

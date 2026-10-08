@@ -63,3 +63,22 @@ namespace LHSave
     // Mapping only. Authority must reject an existing ID associated with a different source tuple.
     LIGHTHAVEN_API bool RewardIdFromDigest(const FString& Digest, FLHRewardId& Reward, FLHSaveError& Error);
 }
+
+// Read-only access to existing frozen value encoders for Framework mechanical/catalog closure composition.
+namespace LHSave
+{
+    LIGHTHAVEN_API TArray<uint8> CanonicalValue(FString Value, FLHSaveError& Error);
+    LIGHTHAVEN_API TArray<uint8> CanonicalValue(FName Value, FLHSaveError& Error);
+    LIGHTHAVEN_API TArray<uint8> CanonicalValue(int32 Value, FLHSaveError& Error);
+    LIGHTHAVEN_API TArray<uint8> CanonicalValue(int64 Value, FLHSaveError& Error);
+    LIGHTHAVEN_API TArray<uint8> CanonicalValue(bool Value, FLHSaveError& Error);
+    LIGHTHAVEN_API TArray<uint8> CanonicalValue(FLHInteger Value, FLHSaveError& Error);
+    LIGHTHAVEN_API TArray<uint8> CanonicalValue(FLHNumber Value, FLHSaveError& Error);
+    LIGHTHAVEN_API TArray<uint8> CanonicalValue(FLHContentId Value, FLHSaveError& Error);
+    LIGHTHAVEN_API TArray<uint8> CanonicalValue(FLHAttributeBlock Value, FLHSaveError& Error);
+    LIGHTHAVEN_API TArray<uint8> CanonicalValue(FLHQuestionAnswer Value, FLHSaveError& Error);
+    LIGHTHAVEN_API TArray<uint8> CanonicalValue(FLHFieldProvenance Value, FLHSaveError& Error);
+    LIGHTHAVEN_API TArray<uint8> CanonicalValue(FLHMechanicalField Value, FLHSaveError& Error);
+    LIGHTHAVEN_API TArray<uint8> CanonicalValue(FTransform Value, FLHSaveError& Error);
+    LIGHTHAVEN_API TArray<uint8> CanonicalValue(ELHEquipmentSlot Value, FLHSaveError& Error);
+}

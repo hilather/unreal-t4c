@@ -20,7 +20,7 @@ private:
     UPROPERTY() TObjectPtr<ULHInputConfig> InputConfig;
     TSharedPtr<FLHUIPresenter> Presenter;
     TSharedPtr<SLHFrontendWidget> Screen;
-    TSharedPtr<class FLHUnavailableUIOwner> UnavailableOwner;
+    TSharedPtr<class FLHWave2Session> LiveOwner;
     ELHUIScreen ContextScreen = ELHUIScreen::Settings;
 };
 UCLASS()

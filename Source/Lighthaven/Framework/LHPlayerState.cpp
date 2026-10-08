@@ -1,12 +1,15 @@
 #include "Framework/LHPlayerState.h"
+#include "Character/LHCharacterAuthority.h"
 #include "Abilities/LHCombatComponent.h"
 #include "GameFramework/Pawn.h"
 #include "Framework/LHPlayerController.h"
 ALHPlayerState::ALHPlayerState()
 {
+    CharacterAuthority = CreateDefaultSubobject<ULHCharacterAuthorityComponent>(TEXT("CharacterAuthority"));
     Combat = CreateDefaultSubobject<ULHCombatComponent>(TEXT("Combat"));
 }
 UAbilitySystemComponent* ALHPlayerState::GetAbilitySystemComponent() const { return Combat; }
+APawn* ALHPlayerState::GetCombatAvatar() const { return Cast<APawn>(Combat->GetAvatarActor()); }
 void ALHPlayerState::InitializeAvatar(APawn* Avatar)
 {
     Combat->OnDeath.RemoveAll(this);

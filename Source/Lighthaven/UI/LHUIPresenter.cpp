@@ -6,6 +6,11 @@ void FLHUIPresenter::Open(ELHUIScreen S)
 {
     if (bPending) return;
     if (!Controls.IsEmpty()) RetainedFocus.Add(ActiveScreen, FocusedControl());
+    if (S==ELHUIScreen::Creation && ActiveScreen!=S)
+    {
+        if (!Read.BeginCreation()) { Message=TEXT("Finish saving the current character first."); return; }
+        bConfirmed=false; Confirmation={}; Preview={}; DisplayName.Empty(); AppearanceIds.Empty(); QuestionAnswers.Empty(); Refresh();
+    }
     ActiveScreen = S;
     switch (S)
     {
@@ -16,6 +21,8 @@ void FLHUIPresenter::Open(ELHUIScreen S)
     case ELHUIScreen::Inventory: Controls = {"CharacterTab", "InventoryTab", "Items", "Head", "Torso", "MainHand", "OffHand", "Legs", "Feet", "Accessory", "Quiver", "Details", "Equip", "Unequip", "Confirm", "Back"}; break;
     case ELHUIScreen::Settings: Controls = {"Volume", "Controls", "Apply", "Revert", "Back"}; break;
     }
+    Controls.AddUnique(TEXT("Quit"));
+    Controls.Add(TEXT("RetrySave"));
     Focus = 0;
     if (const FName* Prior = RetainedFocus.Find(S))
     {

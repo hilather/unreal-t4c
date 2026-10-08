@@ -19,6 +19,7 @@ public:
     bool RetrySave(const FLHCharacterId& Character, FLHSaveError& Error);
     bool IsDirty(const FLHCharacterId& Character) const;
     bool IsWriting(const FLHCharacterId& Character) const;
+    TSharedPtr<FLHSaveStore> GetStore() const { return Store; } // Game-thread session adapter owns event lifetime.
     FLHSaveEvents Events;
 private:
     TSharedPtr<FLHSaveStore> Store;

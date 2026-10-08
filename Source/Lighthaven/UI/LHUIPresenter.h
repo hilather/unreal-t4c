@@ -32,6 +32,8 @@ class LIGHTHAVEN_API ILHUIReadOwner
 {
 public:
     virtual ~ILHUIReadOwner() = default;
+    virtual FString OwnerStatus() const { return {}; }
+    virtual bool BeginCreation() { return true; }
     virtual FLHSaveSnapshot Snapshot() const = 0;
     virtual TArray<FLHUIProfile> Profiles() const = 0;
     virtual TArray<FLHContentId> AppearanceCatalog() const = 0;
@@ -48,6 +50,8 @@ public:
     // Session failures are separate from Core command reasons; empty string means accepted.
     virtual FString Continue(FLHCharacterId Character, bool bAcknowledgeRecovery) = 0;
     virtual FString RequestExit() = 0;
+    virtual bool ResumeGameplay() { return false; }
+    virtual FString RetryPersistence() { return TEXT("Save retry unavailable."); }
 };
 enum class ELHUIScreen : uint8 { Frontend, Characters, Creation, CharacterSheet, Inventory, Settings };
 
@@ -69,7 +73,8 @@ public:
     const TArray<FLHQuestionAnswer>& AnswerInput() const { return QuestionAnswers; }
     const FLHSaveSnapshot& Snapshot() const { return View; }
     const TArray<FLHUIProfile>& Profiles() const { return ProfileView; }
-    const FString& Error() const { return Message; }
+    FString Error() const { const FString Status=Read.OwnerStatus(); return Status.IsEmpty()?Message:Status; }
+    void RetryPersistence() { Message=Session.RetryPersistence(); }
     bool IsPending() const { return bPending; }
     bool IsConfirmed() const { return bConfirmed; }
 
@@ -84,6 +89,7 @@ public:
     void SelectProfile(FLHCharacterId Id);
     bool Continue(bool bAcknowledgeRecovery);
     bool Quit();
+    bool ResumeGameplay() { return Session.ResumeGameplay(); }
     static FString Format(const FLHInteger& Value);
     static FString Format(const FLHNumber& Value);
     static FString Reason(ELHCommandReason Value);

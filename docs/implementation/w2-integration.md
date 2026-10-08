@@ -1,124 +1,169 @@
-# W2-04 integration checkpoint and G2 checklist
+# W2-04b integration candidate and G2 checklist
 
-Task ID: W2-04. Contract revision: 1. Base revision:
-`2f6cbe7b270149781615693995d0ac90ab122197`.
-This is a **blocked integration evidence candidate**, not a completed implementation
-or a G2 pass. No runtime wiring, schema, configuration or binary assets changed.
+Task ID: W2-04b. Contract revision: 1. Base revision:
+`66cd1e0fb8c6d041b87a064c928e1f373a56d44c`.
+Result revision is the submitted candidate in the receipt/report. This is source
+and compilation evidence for review, **not an observed G2 runtime pass**.
+The previous W2-04 canonical-identity checkpoint is resolved by W2-01d:
+the production profile assigns `RequestDigest = LHSave::RequestDigest` and
+`GrowthId = LHSave::GrowthId`. No test fingerprint is used by the live adapter.
 
-## Required integrator request
+## Wiring requirements — implemented source
 
-The assigned brief says W2-01 provides the D04 canonical command digest and D06
-reward identity functions. At this baseline, `Persistence/LHSaveCodec.h` exposes
-SupportsVersion, Sha256, Validate, Encode and Decode only. Encode accepts a
-FLHSaveSnapshot, not a command. There is no public command encoder/digest or
-reward mapping implementation elsewhere in Persistence. A public accessor cannot
-expose an implementation that is absent.
+`ULHSessionSubsystem` owns one `FLHWave2Session` for the game instance. It initializes
+and configures W2-01 once, retains its actual store through a public accessor,
+and owns event subscriptions. The subsystem retains adapters across controller
+travel; controllers retain them for the presenter lifetime. Deinitialization clears
+travel/exit callbacks. Native tests instantiate the exact same session adapter with
+an injected W2-01 storage implementation; no separate integration implementation.
 
-`Character/LHCharacterAuthority.h` requires injected RequestDigest and GrowthId
-callbacks. Initialize explicitly rejects absent callbacks
-(`LHCharacterAuthority.cpp`, Initialize). Its test profile supplies a reflection
-ExportText/SHA1-derived fingerprint and a deterministic tuple stand-in; both are
-explicitly test-only. Copying that fixture into production would violate D04/D06.
-The save payload checksum is not the digest of a command.
+ALHPlayerState creates one character authority component beside its ASC. Frontend
+GameMode uses that PlayerState, and its controller binds the live session before
+constructing its presenter. New creates a fresh bootstrap authority. The three
+frozen command overloads route only to the bound authority; unrelated command kinds
+fail closed. Questions, appearance, allocation and equipment reviews are owner
+reads. Allocation/equipment reviews execute against a detached service copy with
+fixed probe IDs: no new request IDs, preview tokens, reward IDs, live mutations or
+save writes occur. This can fail closed if a saved receipt collides with a probe ID.
+The frontend presenter receives the bootstrap request epoch before preview/confirm.
 
-Request the W2-01 owner/coordinator to implement and expose the missing canonical
-command byte encoder/digest, or explicitly expand W2-04's persistence permission
-beyond **a public accessor**. This requires substantive codec implementation and
-native vectors, not adapter wiring. Keep Core revision 1 unchanged. The accepted
-D04 contract in schema-rev1-freeze.md requires SHA256 of the LHRequest1-domain
-codec struct, command type and every request field (ID, epoch, preview token,
-creation evidence, provenance included), explicit allowlisted ASCII field order,
-canonical set ordering and rejection of malformed input. Initial coverage must
-include CreateCharacter, AllocateAttributePoints and EquipItem, with distinct
-command domains and mutation/reordering vectors. Reject unsupported types.
+Accepted, non-replayed commands export into the session's complete snapshot. Export
+preserves unrelated world/session/header records. Creation completes the explicitly
+empty Prototype world, safe entrance, codec/hash metadata and effect policy, then
+imports that completed snapshot into the authority before further command exports.
+A queued save is flushed on the next controller tick, after synchronous publication
+unwinds. One initial creation command schedules one initial write; accepted replay
+and the presenter's latched confirm schedule none. Save/travel suppression prevents
+new mutation commands while queued/writing/travelling. Combat settlement is not
+available for this temporary movement entry, so the session-bound player attack
+path fails closed and receives no dev combat resource fixture. Direct dev-map G1
+sessions without a canonical character retain their existing fixture behavior.
 
-D06 growth mapping can be implemented in an authorized Framework integrator
-helper if no shared implementation is supplied: SHA256 LHReward1 plus canonical
-run, source kind, growth source key (CharacterId, ToLevel), and LevelGrowth
-purpose; first 16 bytes map to four little-endian GUID words. Its native vectors
-and zero/collision policy must be explicit. The brief's claim of an existing
-W2-01 function is not supported by this baseline.
+Creation travels to Dev_Movement only on its matching W2-01 Succeeded event. The sole in-flight snapshot/character and
+command suppression identify the completion; a retry may raise the durable
+sequence after an initially valid file had a failed readback. The adapter imports
+that returned high-water sequence before admitting later commands. Failed
+and Unreadable details remain visible through the presenter; save events log kind,
+GUID, sequence and detail. RetrySave retries the immutable pending snapshot, keeping
+the committed identity and receipt. No new creation is issued. Confirmed quit waits
+for durability; failure keeps the executable open, and successful retry completes
+that confirmed quit. A normal quit after the last completed action is already durable
+needs no duplicate write.
 
-Work stops at this ownership checkpoint. No alternate codec, fixture fingerprint,
-placeholder asset, invented content hash, or startup switch is introduced.
-No new mechanics research or tuning is needed for this request. The existing
-synthetic profile may be used as the expressly Prototype profile once shared
-identity functions and mechanical/catalog closure hashes exist.
+Continue selects by GUID (also shown in profile status), enumerates unreadable
+profiles, requires explicit recovery acknowledgment, then loads and imports the
+complete save. An invalid profile is loaded once for W2-01's concrete Unreadable
+event; files are preserved. No replacement character is automatically created.
+Authority import rejects invalid resources/history/equipment and repeated reward
+IDs. D06 identity mapping remains under W2-01, and the unchanged character owner
+rejects a growth ID collision against existing history. This Wave 2 profile accepts
+no encounter/corpse/source lifecycle records: the registry validator rejects them
+rather than dropping them or altering D06 atomic lifecycle/high-water semantics.
+World settlement and rewards remain their later-wave owners' work.
 
-## Wiring requirements after the checkpoint
+Gameplay possession reconstructs the fresh PlayerState authority from the complete
+snapshot. It installs canonical current resources and recomputed derived GAS values
+before InitializeAvatar, bypassing dev-map resource initialization. Inventory,
+equipment, base attributes, historical maxima, growth inputs/RNG and receipts remain
+canonical value records; only transient adapter bindings refer to actors. C/I/Escape
+open the native journal with live presenters. Menus pause simulation; the controller
+ticks while paused to flush completed action saves. Journal closure is deferred to
+controller tick so a Slate event does not destroy its own widget, and reentry uses
+the existing neutral/release movement gate.
 
-- Attach one character authority component to ALHPlayerState. Initialize it with
-  the explicit Prototype profile and canonical identity callbacks. Bind creation,
-  allocation and equipment to this owner; unsupported commands fail closed.
-- Give the game-instance session owner immutable complete snapshots and save
-  event subscriptions. Character Export updates only its owned fields; preserve
-  world/session fields in the complete snapshot. Configure persistence with
-  matching rules/catalog hashes, growth limit and reference validation.
-- Bind a live presenter to the frontend controller with adapters that outlive it.
-  Supply question/appearance catalogs and side-effect-free allocation/equipment
-  reviews. Do not mint previews, rewards or request IDs during review.
-- Save creation once after synchronous authority publication settles. Wait for
-  its matching Succeeded event before travel to Dev_Movement. Failure must remain
-  visible, retain the committed identity and permit save retry without creation.
-  Replayed accepted commands must not request a second mutation save.
-- Continue enumerates by GUID, requires recovery acknowledgment, validates and
-  imports the selected complete save. All-invalid preserves the files and shows
-  the persistence Unreadable event; never create a replacement automatically.
-- Tear down the prior runtime; reconstruct a fresh PlayerState authority,
-  inventory/equipment, base attributes, historical maxima and resources. Install
-  derived GAS values before InitializeAvatar. The current player controller
-  calls the dev initializer before avatar initialization: a canonical restore
-  must bypass that fixture so it cannot overwrite restored resources.
-- Serialized state uses frozen value records and stable IDs only. Actor/component
-  pointers are transient owner bindings, never persisted fields. Suppress
-  commands while saving/travelling, and save only completed action boundaries.
-- Expose the journal presenter in gameplay; the existing controller's context
-  switching alone does not construct the character/inventory screens. Wait for
-  successful durability before confirmed quit; surface failure and allow retry.
+Core/schema revision 1 is unchanged. UI edits are binding/lifecycle/status/retry
+adapters. Persistence edits only expose the existing store and read-only access to
+existing frozen value encoders; no serializer, validation, storage or reward behavior
+is changed. Helpers use file-unique namespaces. No TArray element is supplied to
+that array's Add/Insert. No binary asset was generated or modified.
 
-## Required native integration tests (not implemented or run here)
+## Explicit Prototype profile and closure
 
-`Lighthaven.Integration.Wave2.*` must exercise the actual live session adapter,
-not merely repeat isolated codec tests:
+The task authorizes the existing synthetic profile when no better ledger profile
+exists. Assumption: its two fully described toy items are the declared initial
+Prototype kit, allowing legal UI equipment without a debug grant. All enabled
+numeric inputs carry Prototype provenance. Creation uses four Question.Test0..3
+answers, one finite outcome with five attributes of 10 and 10 unspent points
+(total budget 60; maxima 20); level 1, HP20/MP10, skill/gold zero, two inventory
+cells, capacity100. XP thresholds 0/100/300/600; growth HP2/MP1 plus two normalized
+rolls scaled by2, Base basis, +5/+15 grants. Stats constants are1 (capacity100),
+coefficients zero. The toy bow/quiver have weight1/stack1 and zero requirements;
+bow grants Strength2/Accuracy3 and requires its equipped compatible quiver.
+Seed123 is an explicit Prototype finite-table seed. Combat and mana regeneration
+are disabled policies for this temporary canonical entry. None is an authenticity
+or verified-in-play claim; no new mechanics research was performed.
 
-1. Create two GUID-distinct characters, save each, destroy their runtime owners,
-   reconstruct each and compare full canonical character/world/session state.
-   Verify independence even with equal display names.
-2. Equip and allocate through owner commands, persist each completed action,
-   rebuild, compare inventory bindings, attributes, growth history and resources.
-   Check derived GAS installation precedes avatar initialization.
-3. Corrupt the newest generation; load the prior generation and require a
-   Recovered event and explicit UI acknowledgment before continue.
-4. Corrupt both generations; require a visible Unreadable error, preserve files,
-   retain the selected identity and assert no new character is created.
-5. Fail initial write/readback; require visible Failed, no travel/quit and retry
-   of the same committed character. Repeated confirms/replays cannot duplicate it.
+`LHWave2Closure` publishes the resolved mechanical closure and complete enabled
+gameplay catalog as explicit ASCII-sorted codec structs with canonical keyed sets,
+ordered question/threshold/outcome sequences, symbolic policies, values and full
+provenance. It composes the existing frozen value encoders through read-only
+accessors. SHA256 is computed from those bytes, with ruleset ID/revision included
+and ContentHash/migration/cosmetic bindings/transient state excluded. Catalog includes
+the mechanical closure and the one authored temporary entrance/map/checkpoint.
+Additional eligibility policies/skill minimums are not enabled by this synthetic
+profile; extending the profile requires a closure adapter/compatibility revision.
+The identity checkpoint has no alternate command/reward codec.
 
-Use unique transient worlds, single initialization, per-test destruction,
-InitInputSystem on spawned controllers, and GFrameCounter advancement per timer
-tick. Worker UID is 0, so Automation/editor execution is prohibited here.
+## Required native integration tests — implemented, runtime NOT RUN
+
+`Lighthaven.Integration.Wave2.*` adds six native Automation tests:
+
+- IndependentRebuild: two GUID-distinct equal-name characters through live presenters,
+  deferred single saves, full runtime/world destruction, independent restore and
+  canonical snapshot equality, GAS values installed before avatar initialization.
+- EquipmentAllocationRebuild: side-effect-free legal review, allocation and quiver/bow
+  equip commands, each completed save, retained growth history using canonical IDs,
+  destruction/rebuild and full inventory/attributes/resources/world/session comparison,
+  including a second untouched character after the mutations.
+  The growth settlement is an explicitly trusted native fixture, not packaged G2 evidence.
+- RecoveryAndUnreadable: corrupt newest slot, acknowledgment before loading the earlier
+  canonical snapshot, then both slots bad, visible error, no new character or writes,
+  retained bad bytes and successful independent loading of the unaffected character.
+- SaveFailureRetry: failed initial write, visible failure, no travel, latched repeated
+  confirm without duplicate write, stable committed identity, failed quit remains open,
+  then matching retry durability completes the confirmed quit.
+- ReadbackRetryHighWater: a valid write whose readback fails remains visible and
+  blocks travel; retry succeeds with a raised envelope sequence and the next
+  command advances from that durable high-water value.
+- CanonicalClosure: frozen canonical struct prefix, hash coverage, hash/migration
+  exclusion, definition-set permutation, mechanical/provenance mutation sensitivity,
+  and catalog hash agreement. Full closure byte/digest host observation remains open.
+
+Fixtures use globally unique transient worlds, one initialization, controller
+InitInputSystem, destruction per runtime, the actual authority component and actual
+W2-01 store/codec. No timers are advanced by these tests, so no synthetic timer tick
+or GFrameCounter mutation is needed. Worker UID is 0: no Automation/editor execution
+was attempted. The coordinator must capture the full suite's exact pass/fail lines;
+existing 56/56 host results are inherited evidence, not this worker's observation.
+Profile reads are cached between save events so Slate refresh does not re-read
+and hash every file on every frame.
 
 ## G2 packaged Linux checklist for the coordinator
 
 All items below are **NOT RUN**. Windows equivalents are deferred.
-The full integration and native tests above must exist before this checklist can
-be used as gate evidence. A baseline build does not establish these behaviors.
+The live adapter and native tests are now implemented. Compilation does not establish
+the runtime behaviors or pass G2.
 
 1. Build editor and game with
    `UE_ROOT=/home/brewerm/Downloads/unreal bash build/build-linux.sh --game`.
    Require both `Result: Succeeded`. As a non-root host user run
    `bash build/run-tests.sh Lighthaven`, retaining exact pass/fail lines.
-2. Ensure the editor-generated L_Frontend and Dev_Movement maps are cooked and
-   frontend startup is configured. Inspect `build/package-linux.sh` map arguments;
-   do not assume its current dev-map defaults include L_Frontend. Build and launch
-   the real Linux package. Record revision, build command, exit code and archive.
+2. Hydrate the actual LFS maps on the host first: this isolated checkout has only
+   129/130-byte LFS pointers. If needed, the coordinator runs the existing editor
+   generators and reviews/commits binaries separately. Startup now selects L_Frontend
+   and MapsToCook includes it. Package with explicit map arguments (the script's
+   default arguments still select the G1 maps):
+   `UE_ROOT=/home/brewerm/Downloads/unreal bash build/package-linux.sh /Game/Lighthaven/Maps/L_Frontend /Game/Lighthaven/Maps/Dev_Movement /Game/Lighthaven/Maps/Dev_Combat`.
+   Launch the real archive. Record revision, command, exit code and archive.
 3. Create A and B through the UI. Record their stable GUIDs and displayed
    Prototype profile/provenance. Confirm each creation reaches Dev_Movement only
    after one successful initial save. Confirm both appear independently in select.
 4. Equip A through the inventory screen and legally allocate points through the
    character sheet. Capture the completed save event and the resulting inventory,
    bindings, base/effective attributes, growth records and current resources.
-   Confirm B is unchanged. Do not inject authority state or grant debug points to
+   Equip the Prototype quiver before its compatible Prototype bow. The legal initial
+   Prototype pool is 10 points. C/I open the journal; Escape closes it after staged
+   edits are resolved. Confirm B is unchanged. Do not inject authority state or grant debug points to
    substitute for this UI check; use the declared legal Prototype starting pool.
 5. Exit through confirmed Quit after durability success. Relaunch the executable
    (a genuinely new process). Continue A and B separately; compare identities and
@@ -132,15 +177,66 @@ be used as gate evidence. A baseline build does not establish these behaviors.
    character, and unaffected loading of the other character. Restore backups only
    with the executable closed.
 8. Exercise a write failure. Require the W2-01 failure detail to remain visible,
-   prevent travel/quit, retry the retained completed snapshot and observe success.
+   prevent travel/quit, activate RetrySave on the same screen and observe success.
+   A confirmed pending quit completes on successful retry; otherwise initial creation
+   travels on its successful retry.
    Record process logs, save event sequences and observed state; screenshots alone
    do not prove independent persistence or successful writes.
 
 ## Validation and handoff
 
-Inspection covered persistence, character, UI and Wave 1 integration documents,
-frozen contracts, START-HERE, Wave 2/G2, module headers and command/restore paths.
-Build observations, exact timings and the result revision are in the attempt
-report. No engine/editor/package/play result or existing host test count is claimed
-as observed runtime evidence by this worker. Next task: shared canonical command
-identity implementation or scope amendment, then resume W2-04 and host G2.
+See the attempt report for final build command, exit code, wall time, both target
+result lines and evidence paths. `git diff --check` and scope review are run before
+submission. A failed test-module link from calling an unexported GAS method was
+corrected to use the existing exported combat API. No engine/editor/cook/package/
+play/native test result is inferred from compilation. LFS maps are pointers here;
+host hydration or editor generation is a concrete package prerequisite. Windows
+validation remains deferred. If the first-ever failed write leaves only a corrupt file and no valid generation,
+W2-01 Start intentionally refuses to overwrite the all-invalid pair on retry
+(LHSaveStore.cpp:106); this adapter preserves its error/identity and does not delete
+files. Integrator request to the persistence owner: define a safe policy for retry
+of a store-owned failed initial generation, or document host intervention. This
+non-wiring storage policy is outside W2-04b and is not changed here.
+Settings execution and richer UI presentation remain
+W2-03 limitations; this adapter does not implement economy, combat settlement,
+world topology, respawn or migration. Next: coordinator review, host Automation,
+actual Linux packaging and this G2 checklist before a gate decision.
+
+Final build actually run: `UE_ROOT=/home/brewerm/Downloads/unreal bash build/build-linux.sh --game`,
+exit **0**, wall time **66.395 seconds**. Editor `Result: Succeeded`, UBT total
+**9.86 seconds**; game `Result: Succeeded`, UBT total **55.87 seconds**.
+The exact editor timing is printed in `library/build-final.log` in the attempt
+output; that log is authoritative if this summary differs. Both native test and
+game targets linked. UBA warned that some action result store tasks did not succeed,
+without preventing target success. Whitespace and 24-path scope checks passed.
+No native runtime or gate pass is claimed.
+
+## W2-04c — direct combat pawn assertion
+
+`ULHCombatComponent::IsAlive()` combines a valid, non-destroying ASC avatar actor
+with finite positive health. It does not distinguish the gameplay pawn from the
+PlayerState: UE 5.8.3 `UAbilitySystemComponent::InitializeComponent()` calls
+`InitAbilityActorInfo(Owner, Owner)` by default. The restore adapter does not bind
+a pawn early. Thus restored positive health can make the owner-backed ASC alive
+before `ALHPlayerState::InitializeAvatar`.
+
+The read-only `ALHPlayerState::GetCombatAvatar()` forwards the existing GAS avatar
+read and casts it to `APawn`, returning null for the default PlayerState avatar.
+Keeping that forwarding call in the Framework module also avoids the previous
+cross-module GAS export/link problem. IndependentRebuild now directly requires
+no combat pawn before initialization for both restored characters, and requires
+the exact spawned pawn after initialization. Every other assertion is retained.
+No restore ordering, Abilities code, schema, tuning or binary asset changed.
+
+Native Automation is not run in this worker: `id -u` returned **0**, and Unreal
+refuses root execution. Coordinator should run `bash build/run-tests.sh Lighthaven`
+as a normal host user and retain exact pass/fail lines; no runtime pass is claimed.
+Build details and evidence are recorded in the W2-04c attempt report.
+
+W2-04c build actually run:
+`UE_ROOT=/home/brewerm/Downloads/unreal bash build/build-linux.sh --game`.
+Exit **0**, wall time **232.132 seconds**; both editor and game reported
+`Result: Succeeded`. Evidence: W2-04c attempt output `library/build.log` and
+`library/build-time.txt`. `git diff --check` passed. Native tests, editor launch,
+package and play were not run in this root worker; the previously reported
+64 pass / 1 fail and package launch are coordinator evidence for the base only.
