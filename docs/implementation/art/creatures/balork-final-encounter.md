@@ -12,7 +12,7 @@ Observed in those creature images: patterned red/dark wing mass, horned dark-red
 
 ## Required movement and visible envelope
 
-Reference dimensions from [Balork](balork.md#scale-and-collision): 260 cm head, 310 cm horn/animated top, 440 cm wing width × 200 cm fore–aft transit box, approximately 400 cm polearm; capsule R=100 cm / HH=155 cm. The conservative transit turning circle is 484 cm. All are proposals; full geometry still needs a swept test. The camera is the [controls view](README.md#camera-and-silhouette-rules), including 1200 cm default boom and 45° **horizontal** FOV. Keep normal zoom/orbit control; do not introduce a cinematic camera that hides escape lanes.
+Reference dimensions from [Balork](balork.md#scale-and-collision): 260 cm head, 310 cm horn/animated top, 440 cm wing width × 200 cm fore–aft transit box, approximately 400 cm polearm; capsule R=100 cm / HH=155 cm. The conservative root-centered transit turning circle is 484 cm. All are proposals; full geometry still needs a swept test. The camera is the [controls view](README.md#camera-and-silhouette-rules), including 1200 cm default boom and 45° **horizontal** FOV. Keep normal zoom/orbit control; do not introduce a cinematic camera that hides escape lanes.
 
 | B4 space/link | Existing extent / minimum | Presentation acceptance |
 |---|---|---|

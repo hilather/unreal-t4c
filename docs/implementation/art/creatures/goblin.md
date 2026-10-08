@@ -21,19 +21,20 @@ All dimensions below are **Prototype**, A-01 / LH_Prototype_v1 / 2026-10-08, sou
 | Measurement | cm |
 |---|---:|
 | Visible resting top above floor | 185 |
-| Maximum animated top above floor | 200 |
+| Maximum live animated top above floor | 200 |
 | Full fore–aft length, including appendages/equipment in transit | 110 |
 | Full lateral span in transit | 85 |
+| Root-to-front / root-to-rear transit bounds (+X / −X magnitudes) | 65 / 45 |
 | Upright capsule radius R | 35 |
 | Upright capsule half-height HH | 70 |
 | Capsule diameter × full height | 70 × 140 |
-| Conservative transit turn diameter, rounded up | 140 |
+| Conservative root-centered transit turn diameter, rounded up | 156 |
 
 Standing head height 125 cm inherits W0-04; table top includes the carried approximately 170 cm polearm in a tilted stance. Maximum 200 cm animated height constrains weapon lifts. Length includes forward weapon angle. The capsule is 70 cm wide × 140 cm tall; the shaft is nonblocking cosmetic geometry.
 
-**Arithmetic check against ordinary route minima:** max(visual width, capsule diameter) = 85 cm, leaving 155 cm total width at a 240 cm door, 235 cm in a 320 cm corridor and 215 cm on a 300 cm stair. max(animated top, capsule height) = 200 cm, leaving 100 cm under the 300 cm door/headroom requirement. The 140 cm transit turn circle is below a 320 cm landing side by 180 cm. Margins are total space, not guaranteed space per side or room for another actor.
+**Arithmetic check against ordinary route minima:** max(visual width, capsule diameter) = 85 cm, leaving 155 cm total width at a 240 cm door, 235 cm in a 320 cm corridor and 215 cm on a 300 cm stair. max(animated top, capsule height) = 200 cm, leaving 100 cm under the 300 cm door/headroom requirement. The 156 cm root-centered transit turn circle is below a 320 cm landing side by 164 cm. Margins are total space, not guaranteed space per side or room for another actor.
 
-Transit fits ordinary routes arithmetically. **Death exception:** a rigid 170 cm polearm laid flat will not fit the 110 × 85 cm transit box. Reserve a 190 × 100 cm visual death box (215 cm turn diagonal), still below 240 cm door width when aligned and 320 cm landings; collapse shaft along the corridor, not across its jambs. Do not scale or delete the polearm to hide clipping. Runtime corpse placement and obstacle avoidance need review; the death pose must not add blocking collision.
+Transit fits ordinary routes arithmetically. **Death exception:** a rigid 170 cm polearm laid flat will not fit the 110 × 85 cm transit box. Reserve a root-centered 190 × 100 cm visual death box (215 cm turn diagonal), still below 240 cm door width when aligned and 320 cm landings; collapse shaft along the corridor, not across its jambs. Do not scale or delete the polearm to hide clipping. Runtime corpse placement and obstacle avoidance need review; the death pose must not add blocking collision.
 
 ## Materials and palette
 
@@ -51,7 +52,7 @@ Shared goblin biped: floor `root`, pelvis/spine/head, ears, arms/hands and legs/
 | Attack impact, f30 | Single forward short polearm jab, blade at its maximum authored extension at f30; weapon length does not change authority range. |
 | Recoil, f31–f42 | Settle toward idle, interruptibly; one impact only. |
 | Hit | Short chest/shoulder recoil, retaining grip alignment. |
-| Death + dead hold | Knees buckle and body folds to one side; lay the shortened projected shaft diagonally within the 110 × 85 cm transit footprint only if its geometry fits, otherwise use the larger death envelope below. |
+| Death + dead hold | Knees buckle and body folds to one side; lay the rigid polearm along the corridor inside the root-centered 190 × 100 cm death envelope specified above. |
 | Special / transitions | No ranged throw, shield bash or independent weapon damage socket. Weapon stays attached to corpse until lifecycle cleanup; it is not a free pickup. |
 
 Contact is a visual key, never a damage notify. Commit/cancel animation hooks are a pending integration seam; native impact/death results drive feedback. A failed range/LOS validation may emit no `OnImpact`, so clear the cosmetic attack through its lifecycle, not by waiting indefinitely for a hit event. Death interrupts presentation; loot and corpse collision/removal belong to the lifecycle owner.

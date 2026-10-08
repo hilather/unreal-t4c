@@ -21,17 +21,18 @@ All dimensions below are **Prototype**, A-01 / LH_Prototype_v1 / 2026-10-08, sou
 | Measurement | cm |
 |---|---:|
 | Visible resting top above floor | 310 |
-| Maximum animated top above floor | 310 |
+| Maximum live animated top above floor | 310 |
 | Full fore–aft length, including appendages/equipment in transit | 200 |
 | Full lateral span in transit | 440 |
+| Root-to-front / root-to-rear transit bounds (+X / −X magnitudes) | 100 / 100 |
 | Upright capsule radius R | 100 |
 | Upright capsule half-height HH | 155 |
 | Capsule diameter × full height | 200 × 310 |
-| Conservative transit turn diameter, rounded up | 484 |
+| Conservative root-centered transit turn diameter, rounded up | 484 |
 
 Head 260 cm, horn tips 310 cm, spread wings 440 cm, body capsule 200 cm wide × 310 cm tall and polearm approximately 400 cm inherit W0-04. Keep full wings spread and carry the polearm across the body inside the 440 × 200 cm transit box. Grip near the shaft center and verify combined wing/weapon bounds; individual dimensions alone do not guarantee that box. No folded-wing transit is assumed.
 
-**Arithmetic check against boss route minima:** max(visual width, capsule diameter) = 440 cm, leaving 60 cm total width at a 500 cm door, 110 cm in a 550 cm corridor and 110 cm on a 550 cm stair. max(animated top, capsule height) = 310 cm, leaving 50 cm under the 360 cm door/headroom requirement. The 484 cm transit turn circle is below a 600 cm landing side by 116 cm. Margins are total space, not guaranteed space per side or room for another actor.
+**Arithmetic check against boss route minima:** max(visual width, capsule diameter) = 440 cm, leaving 60 cm total width at a 500 cm door, 110 cm in a 550 cm corridor and 110 cm on a 550 cm stair. max(animated top, capsule height) = 310 cm, leaving 50 cm under the 360 cm door/headroom requirement. The 484 cm root-centered transit turn circle is below a 600 cm landing side by 116 cm. Margins are total space, not guaranteed space per side or room for another actor.
 
 **Fails ordinary routes:** wings exceed the 240 cm door by 200 cm, 320 cm corridor by 120 cm and 300 cm stair by 140 cm; 310 cm horns/capsule exceed 300 cm headroom by 10 cm. The 484 cm turn circle also exceeds ordinary 320 cm pads. Use only the [B4 authored boss extent](../../layout/b4.md#boss-navigation-and-retreat-footprint): complex rooms, C04 and the reserved Hall apron. C01–C03/return stair are not boss transit. **Optional attack exception:** a wider room-only swing may use at most a 520 cm horizontal swept diameter at ≤310 cm height; it will NOT fit a 500 cm boss doorway (20 cm excess). Use the compact jab there; the wider variant is not required and must stay disabled until presentation/AI can select it without changing timing, hit count or range. A 550 cm corridor/600 cm pad only clears that bound arithmetically. The 220 cm dev low ceiling also fails by 90 cm. Full animation, corpse and player-passing sweeps remain untested.
 
@@ -48,7 +49,7 @@ Dedicated demon skeleton: floor `root`, pelvis/spine/chest/head/horns, legs/feet
 | Idle | Measured breathing, restrained wing tension and polearm balance inside the full-spread envelope. |
 | Locomotion | Grounded walk/start/stop and deliberate turns with wings held broad; no takeoff, teleport or root-motion charge. |
 | Attack windup, f0–f29 | Brace legs and draw the central polearm grip back at torso height. Avoid an overhead weapon lift beyond 310 cm or a lateral spin through a doorway. |
-| Attack impact, f30 | Single compact polearm jab/downward press at f30; keep near-door attack in the transit envelope. For an optional wider room-only presentation, honor the separate sweep exception below. |
+| Attack impact, f30 | Single compact polearm jab/downward press at f30; keep near-door attack in the transit envelope. For an optional wider room-only presentation, honor the separate sweep exception above. |
 | Recoil, f31–f42 | Settle toward idle, interruptibly; one impact only. |
 | Hit | Small chest/wing recoil with horns staying inside the height limit; no stun or interrupt rule inferred. |
 | Death + dead hold | Knees fold and torso lowers; wings settle inward/down without a large backward fall. Lay the polearm across the spread-wing footprint, then hold an inert boss corpse; review combined corpse bounds. |

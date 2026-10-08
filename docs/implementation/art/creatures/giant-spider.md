@@ -21,17 +21,18 @@ All dimensions below are **Prototype**, A-01 / LH_Prototype_v1 / 2026-10-08, sou
 | Measurement | cm |
 |---|---:|
 | Visible resting top above floor | 65 |
-| Maximum animated top above floor | 90 |
+| Maximum live animated top above floor | 90 |
 | Full fore–aft length, including appendages/equipment in transit | 150 |
 | Full lateral span in transit | 170 |
+| Root-to-front / root-to-rear transit bounds (+X / −X magnitudes) | 85 / 65 |
 | Upright capsule radius R | 55 |
 | Upright capsule half-height HH | 55 |
 | Capsule diameter × full height | 110 × 110 |
-| Conservative transit turn diameter, rounded up | 227 |
+| Conservative root-centered transit turn diameter, rounded up | 241 |
 
 170 cm leg-tip span and 65 cm resting top inherit W0-04. The forward fang pose may raise the front to 90 cm but cannot spread legs beyond 170 × 150 cm. Capsule diameter 110 cm excludes outer legs, and capsule top 110 cm exceeds visible body; review targeting and low lintels accordingly.
 
-**Arithmetic check against ordinary route minima:** max(visual width, capsule diameter) = 170 cm, leaving 70 cm total width at a 240 cm door, 150 cm in a 320 cm corridor and 130 cm on a 300 cm stair. max(animated top, capsule height) = 110 cm, leaving 190 cm under the 300 cm door/headroom requirement. The 227 cm transit turn circle is below a 320 cm landing side by 93 cm. Margins are total space, not guaranteed space per side or room for another actor.
+**Arithmetic check against ordinary route minima:** max(visual width, capsule diameter) = 170 cm, leaving 70 cm total width at a 240 cm door, 150 cm in a 320 cm corridor and 130 cm on a 300 cm stair. max(animated top, capsule height) = 110 cm, leaving 190 cm under the 300 cm door/headroom requirement. The 241 cm root-centered transit turn circle is below a 320 cm landing side by 79 cm. Margins are total space, not guaranteed space per side or room for another actor.
 
 No intended ordinary route is flagged as dimensionally too small at these bounds. Turn on the landing, not inside the door; maintain the envelope during attack/hit/death, and review actual swept limbs on stairs. This is a paper comparison only: collision, selection, slope/step contact, moving player overlap and pathfinding remain untested.
 
@@ -58,7 +59,7 @@ Contact is a visual key, never a damage notify. Commit/cancel animation hooks ar
 
 ## Placeholder and replacement
 
-Two gray flattened spheres for abdomen/front body and eight bent pairs of thin cylinders in a 170 × 150 cm footprint, with a small rust-red front sphere. Preserve separate leg silhouettes even in the proxy. These are proposed engine-shape assemblies, not assets created here. Disable collision on the visual pieces; retain the reviewed capsule and stable entity/life identity. Set the floor root under the capsule as described in the README.
+Two gray flattened spheres for abdomen/front body and eight legs, each assembled from two bent thin cylinders in a 170 × 150 cm footprint, with a small rust-red front sphere. Preserve separate leg silhouettes even in the proxy. These are proposed engine-shape assemblies, not assets created here. Disable collision on the visual pieces; retain the reviewed capsule and stable entity/life identity. Set the floor root under the capsule as described in the README.
 
 W4-02 maps `Enemy.GiantSpider` → `Presentation.Enemy.GiantSpider` → the proxy, then W5-03 replaces that binding with the approved **Spider** mesh, materials and animation set. See the [unimplemented resolver boundary](README.md#presentation-ids-and-replacement-seam). Do not edit HP, timing, reach, rewards or capsule as part of an art-only swap. Review at the 900/1200/1800 cm camera distances, in silhouette/grayscale and beside relevant family variants, before accepting the replacement.
 

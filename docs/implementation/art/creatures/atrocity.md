@@ -21,17 +21,18 @@ All dimensions below are **Prototype**, A-01 / LH_Prototype_v1 / 2026-10-08, sou
 | Measurement | cm |
 |---|---:|
 | Visible resting top above floor | 190 |
-| Maximum animated top above floor | 210 |
+| Maximum live animated top above floor | 210 |
 | Full fore–aft length, including appendages/equipment in transit | 160 |
 | Full lateral span in transit | 180 |
+| Root-to-front / root-to-rear transit bounds (+X / −X magnitudes) | 95 / 65 |
 | Upright capsule radius R | 65 |
 | Upright capsule half-height HH | 100 |
 | Capsule diameter × full height | 130 × 200 |
-| Conservative transit turn diameter, rounded up | 241 |
+| Conservative root-centered transit turn diameter, rounded up | 262 |
 
-190 cm hunched top and 180 cm arm/claw span inherit W0-04. Windup shoulders may reach 210 cm. Forearms/claws stay within 180 × 160 cm transit/compact attack footprint. The conservative 241 cm turn diameter is slightly larger than an ordinary 240 cm door: cross aligned, turn only on the 320 cm pad.
+190 cm hunched top and 180 cm arm/claw span inherit W0-04. Windup shoulders may reach 210 cm. Forearms/claws stay within 180 × 160 cm transit/compact attack footprint. The conservative 262 cm turn diameter is larger than an ordinary 240 cm door: cross aligned, turn only on the 320 cm pad.
 
-**Arithmetic check against ordinary route minima:** max(visual width, capsule diameter) = 180 cm, leaving 60 cm total width at a 240 cm door, 140 cm in a 320 cm corridor and 120 cm on a 300 cm stair. max(animated top, capsule height) = 210 cm, leaving 90 cm under the 300 cm door/headroom requirement. The 241 cm transit turn circle is below a 320 cm landing side by 79 cm. Margins are total space, not guaranteed space per side or room for another actor.
+**Arithmetic check against ordinary route minima:** max(visual width, capsule diameter) = 180 cm, leaving 60 cm total width at a 240 cm door, 140 cm in a 320 cm corridor and 120 cm on a 300 cm stair. max(animated top, capsule height) = 210 cm, leaving 90 cm under the 300 cm door/headroom requirement. The 262 cm root-centered transit turn circle is below a 320 cm landing side by 58 cm. Margins are total space, not guaranteed space per side or room for another actor.
 
 No intended ordinary route is flagged as dimensionally too small at these bounds. Turn on the landing, not inside the door; maintain the envelope during attack/hit/death, and review actual swept limbs on stairs. This is a paper comparison only: collision, selection, slope/step contact, moving player overlap and pathfinding remain untested.
 

@@ -21,17 +21,18 @@ All dimensions below are **Prototype**, A-01 / LH_Prototype_v1 / 2026-10-08, sou
 | Measurement | cm |
 |---|---:|
 | Visible resting top above floor | 25 |
-| Maximum animated top above floor | 35 |
+| Maximum live animated top above floor | 35 |
 | Full fore–aft length, including appendages/equipment in transit | 90 |
 | Full lateral span in transit | 28 |
+| Root-to-front / root-to-rear transit bounds (+X / −X magnitudes) | 22.5 / 67.5 |
 | Upright capsule radius R | 25 |
 | Upright capsule half-height HH | 25 |
 | Capsule diameter × full height | 50 × 50 |
-| Conservative transit turn diameter, rounded up | 95 |
+| Conservative root-centered transit turn diameter, rounded up | 138 |
 
 Body length 45 cm excluding the approximately 45 cm tail, inherited from W0-04; full 90 cm length includes it. Keep the tail curled inside the stated box during turns/death. The 50 cm-tall logical capsule exceeds the visible back: selection and low-obstacle LOS need explicit W4 review.
 
-**Arithmetic check against ordinary route minima:** max(visual width, capsule diameter) = 50 cm, leaving 190 cm total width at a 240 cm door, 270 cm in a 320 cm corridor and 250 cm on a 300 cm stair. max(animated top, capsule height) = 50 cm, leaving 250 cm under the 300 cm door/headroom requirement. The 95 cm transit turn circle is below a 320 cm landing side by 225 cm. Margins are total space, not guaranteed space per side or room for another actor.
+**Arithmetic check against ordinary route minima:** max(visual width, capsule diameter) = 50 cm, leaving 190 cm total width at a 240 cm door, 270 cm in a 320 cm corridor and 250 cm on a 300 cm stair. max(animated top, capsule height) = 50 cm, leaving 250 cm under the 300 cm door/headroom requirement. The 138 cm root-centered transit turn circle is below a 320 cm landing side by 182 cm. Margins are total space, not guaranteed space per side or room for another actor.
 
 No intended ordinary route is flagged as dimensionally too small at these bounds. Turn on the landing, not inside the door; maintain the envelope during attack/hit/death, and review actual swept limbs on stairs. This is a paper comparison only: collision, selection, slope/step contact, moving player overlap and pathfinding remain untested.
 

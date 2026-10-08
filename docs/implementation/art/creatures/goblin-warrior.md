@@ -21,19 +21,20 @@ All dimensions below are **Prototype**, A-01 / LH_Prototype_v1 / 2026-10-08, sou
 | Measurement | cm |
 |---|---:|
 | Visible resting top above floor | 210 |
-| Maximum animated top above floor | 215 |
+| Maximum live animated top above floor | 215 |
 | Full fore–aft length, including appendages/equipment in transit | 120 |
 | Full lateral span in transit | 105 |
+| Root-to-front / root-to-rear transit bounds (+X / −X magnitudes) | 70 / 50 |
 | Upright capsule radius R | 40 |
 | Upright capsule half-height HH | 75 |
 | Capsule diameter × full height | 80 × 150 |
-| Conservative transit turn diameter, rounded up | 160 |
+| Conservative root-centered transit turn diameter, rounded up | 175 |
 
 Head stays at the inherited 125 cm goblin ruler. Heavier yoke widens the shoulders without increasing head height; approximately 190 cm polearm raises the total carried height to 210 cm. Cap all windup tips at 215 cm. Never enlarge runtime actor scale to make Warrior seem stronger.
 
-**Arithmetic check against ordinary route minima:** max(visual width, capsule diameter) = 105 cm, leaving 135 cm total width at a 240 cm door, 215 cm in a 320 cm corridor and 195 cm on a 300 cm stair. max(animated top, capsule height) = 215 cm, leaving 85 cm under the 300 cm door/headroom requirement. The 160 cm transit turn circle is below a 320 cm landing side by 160 cm. Margins are total space, not guaranteed space per side or room for another actor.
+**Arithmetic check against ordinary route minima:** max(visual width, capsule diameter) = 105 cm, leaving 135 cm total width at a 240 cm door, 215 cm in a 320 cm corridor and 195 cm on a 300 cm stair. max(animated top, capsule height) = 215 cm, leaving 85 cm under the 300 cm door/headroom requirement. The 175 cm root-centered transit turn circle is below a 320 cm landing side by 145 cm. Margins are total space, not guaranteed space per side or room for another actor.
 
-Transit/compact attack fit ordinary routes arithmetically, including the 215 cm tip beneath the dev room’s 220 cm low ceiling with only 5 cm visual margin. **Death exception:** rigid 190 cm weapon requires a 210 × 110 cm visual death box (238 cm diagonal), still below a 320 cm landing. Align it along the corridor and review jamb/corner clearance; a cross-door fall is not certified by that arithmetic. Corpse visuals remain nonblocking. Low ceiling and death transitions need real animation review.
+Transit/compact attack fit ordinary routes arithmetically, including the 215 cm tip beneath the dev room’s 220 cm low ceiling with only 5 cm visual margin. **Death exception:** rigid 190 cm weapon requires a root-centered 210 × 110 cm visual death box (238 cm diagonal), still below a 320 cm landing. Align it along the corridor and review jamb/corner clearance; a cross-door fall is not certified by that arithmetic. Corpse visuals remain nonblocking. Low ceiling and death transitions need real animation review.
 
 ## Materials and palette
 
@@ -51,7 +52,7 @@ Reuse the goblin skeleton and lead/support grip arrangement. Separate equipment 
 | Attack impact, f30 | One compact forward/downward polearm jab at f30, shoulder band still visible from above; no second blade hit. |
 | Recoil, f31–f42 | Settle toward idle, interruptibly; one impact only. |
 | Hit | Brief upper-body recoil while feet remain grounded; no unapproved stagger or stun. |
-| Death + dead hold | Drop to knees then settle sideways with weapon laid along the corridor into the separate death envelope below. |
+| Death + dead hold | Drop to knees then settle sideways with weapon laid along the corridor into the separate death envelope above. |
 | Special / transitions | No shield, charge, shout buff or new combo. Retain weapon with corpse; loot rules are independent of visible equipment. |
 
 Contact is a visual key, never a damage notify. Commit/cancel animation hooks are a pending integration seam; native impact/death results drive feedback. A failed range/LOS validation may emit no `OnImpact`, so clear the cosmetic attack through its lifecycle, not by waiting indefinitely for a hit event. Death interrupts presentation; loot and corpse collision/removal belong to the lifecycle owner.
