@@ -85,3 +85,5 @@ Host test status (2026-10-08, main incl. W2-01/02/03): 56/56 Lighthaven Automati
 | V-04 in-world feedback visuals | integrated (first pass) | codex-astra | docs/implementation/ui/feedback/ | Target ring/outline, nameplates and health bars, damage numbers, interaction prompts, loot/death markers, resource warnings; consistent with V-02/V-03/A-03/A-04 |
 
 | **G2** | **awaiting manual packaged play check** (Matt / QA) | n/a | n/a | Checklist: docs/implementation/w2-integration.md "G2 packaged Linux checklist". Automated parts pass (65/65 tests, package, launch). Windows deferred |
+
+**2026-10-08 ~16:20 ET:** main pushed to origin (ee9f9fb..999f424, LFS objects included; repo public). Wave 3 briefs drafted (coordinator scratch/wave3: W3-04 first, then W3-01/02/03 map generators in parallel, then W3-05), **held until G2 passes and Matt gives the go-ahead**. Astra lane idle until G2 screenshots exist for a visual review.
