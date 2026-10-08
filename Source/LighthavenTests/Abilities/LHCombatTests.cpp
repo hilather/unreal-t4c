@@ -9,7 +9,7 @@
 #include "CoreGlobals.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
-namespace
+namespace LHCombatTestsPrivate
 {
 FLHNumber Number(double V)
 {
@@ -89,10 +89,10 @@ struct FFixture
 };
 constexpr auto Flags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDestroyedTargetTest, "Lighthaven.Abilities.DestroyedTarget", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDestroyedTargetTest, "Lighthaven.Abilities.DestroyedTarget", LHCombatTestsPrivate::Flags)
 bool FLHDestroyedTargetTest::RunTest(const FString&)
 {
-    FFixture F;
+    LHCombatTestsPrivate::FFixture F;
     TestTrue(TEXT("Activate GAS attack"), F.Attacker->RequestBasicAttack(F.Defender) == ELHCommandReason::None);
     auto Id = F.Attacker->GetPendingIdentity();
     F.Target->Destroy();
@@ -100,10 +100,10 @@ bool FLHDestroyedTargetTest::RunTest(const FString&)
     TestEqual(TEXT("No damage"), F.Defender->GetCombatAttributes()->GetHealth(), 100.f);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDuplicateImpactTest, "Lighthaven.Abilities.DuplicateImpact", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDuplicateImpactTest, "Lighthaven.Abilities.DuplicateImpact", LHCombatTestsPrivate::Flags)
 bool FLHDuplicateImpactTest::RunTest(const FString&)
 {
-    FFixture F;
+    LHCombatTestsPrivate::FFixture F;
     TestTrue(TEXT("Activate"), F.Attacker->RequestBasicAttack(F.Defender) == ELHCommandReason::None);
     auto Id = F.Attacker->GetPendingIdentity();
     TestTrue(TEXT("First impact"), F.Attacker->ResolveImpact(Id));
@@ -112,10 +112,10 @@ bool FLHDuplicateImpactTest::RunTest(const FString&)
     TestEqual(TEXT("Exactly one cost"), F.Attacker->GetCombatAttributes()->GetMana(), 8.f);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHFailedResourceTest, "Lighthaven.Abilities.FailedResource", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHFailedResourceTest, "Lighthaven.Abilities.FailedResource", LHCombatTestsPrivate::Flags)
 bool FLHFailedResourceTest::RunTest(const FString&)
 {
-    FFixture F;
+    LHCombatTestsPrivate::FFixture F;
     F.Attacker->SetNumericAttributeBase(ULHAttributeSet::GetManaAttribute(), 1);
     const int32 Seed = F.Attacker->GetCombatRandomState().GetCurrentSeed();
     TestTrue(TEXT("Insufficient resource rejects"), F.Attacker->RequestBasicAttack(F.Defender) == ELHCommandReason::InsufficientMana);
@@ -126,10 +126,10 @@ bool FLHFailedResourceTest::RunTest(const FString&)
     TestEqual(TEXT("No random roll consumed"), F.Attacker->GetCombatRandomState().GetCurrentSeed(), Seed);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeadTargetTest, "Lighthaven.Abilities.DeadTarget", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeadTargetTest, "Lighthaven.Abilities.DeadTarget", LHCombatTestsPrivate::Flags)
 bool FLHDeadTargetTest::RunTest(const FString&)
 {
-    FFixture F;
+    LHCombatTestsPrivate::FFixture F;
     F.Defender->SetNumericAttributeBase(ULHAttributeSet::GetHealthAttribute(), 0);
     TestTrue(TEXT("Dead target rejects activation"), F.Attacker->RequestBasicAttack(F.Defender) == ELHCommandReason::InvalidLifeState);
     F.Defender->SetNumericAttributeBase(ULHAttributeSet::GetHealthAttribute(), 100);
@@ -140,10 +140,10 @@ bool FLHDeadTargetTest::RunTest(const FString&)
     TestEqual(TEXT("Dead health unchanged"), F.Defender->GetCombatAttributes()->GetHealth(), 0.f);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeathOnceTest, "Lighthaven.Abilities.DeathOnce", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeathOnceTest, "Lighthaven.Abilities.DeathOnce", LHCombatTestsPrivate::Flags)
 bool FLHDeathOnceTest::RunTest(const FString&)
 {
-    FFixture F; int32 Deaths = 0;
+    LHCombatTestsPrivate::FFixture F; int32 Deaths = 0;
     F.Defender->SetNumericAttributeBase(ULHAttributeSet::GetHealthAttribute(), 10);
     F.Defender->OnDeath.AddLambda([&Deaths](const FLHHitIdentity&) { ++Deaths; });
     TestTrue(TEXT("Activate"), F.Attacker->RequestBasicAttack(F.Defender) == ELHCommandReason::None);
@@ -154,10 +154,10 @@ bool FLHDeathOnceTest::RunTest(const FString&)
     TestEqual(TEXT("Health clamps to zero"), F.Defender->GetCombatAttributes()->GetHealth(), 0.f);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHImpactRangeTest, "Lighthaven.Abilities.ImpactRangeAndCancellation", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHImpactRangeTest, "Lighthaven.Abilities.ImpactRangeAndCancellation", LHCombatTestsPrivate::Flags)
 bool FLHImpactRangeTest::RunTest(const FString&)
 {
-    FFixture F;
+    LHCombatTestsPrivate::FFixture F;
     TestTrue(TEXT("Activate"), F.Attacker->RequestBasicAttack(F.Defender) == ELHCommandReason::None);
     auto Id = F.Attacker->GetPendingIdentity();
     F.Target->SetActorLocation(FVector(1000, 0, 0));
@@ -170,7 +170,7 @@ bool FLHImpactRangeTest::RunTest(const FString&)
     return true;
 }
 // Drive TimerManager, including timers created re-entrantly during publication.
-namespace
+namespace LHCombatTestsPrivate
 {
 void AdvanceImpactTimer(UWorld* World, float Seconds)
 {
@@ -180,10 +180,10 @@ void AdvanceImpactTimer(UWorld* World, float Seconds)
     World->GetTimerManager().Tick(Seconds);
 }
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHReentrantReplacementTest, "Lighthaven.Abilities.ImpactReplacement", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHReentrantReplacementTest, "Lighthaven.Abilities.ImpactReplacement", LHCombatTestsPrivate::Flags)
 bool FLHReentrantReplacementTest::RunTest(const FString&)
 {
-    FFixture F(true);
+    LHCombatTestsPrivate::FFixture F(true);
     int32 Impacts=0;
     FLHHitIdentity First, Replacement;
     F.Attacker->OnImpact.AddLambda([&](const FLHHitIdentity& Id, const LH::Rules::FCombatResult&)
@@ -199,27 +199,27 @@ bool FLHReentrantReplacementTest::RunTest(const FString&)
     F.World->GetTimerManager().Tick(0.f);
     TestTrue(TEXT("First accepted"), F.Attacker->RequestBasicAttack(F.Defender)==ELHCommandReason::None);
     First=F.Attacker->GetPendingIdentity();
-    AdvanceImpactTimer(F.World, 1.1f);
+    LHCombatTestsPrivate::AdvanceImpactTimer(F.World, 1.1f);
     TestEqual(TEXT("First damage once"), F.Defender->GetCombatAttributes()->GetHealth(), 90.f);
     TestEqual(TEXT("Both committed costs survive"), F.Attacker->GetCombatAttributes()->GetMana(), 6.f);
     TestTrue(TEXT("Replacement pending survives old callback"), F.Attacker->IsActionPending());
     TestTrue(TEXT("Replacement identity survives"), F.Attacker->GetPendingIdentity()==Replacement && !(First==Replacement));
     TestFalse(TEXT("Old duplicate rejected"), F.Attacker->ResolveImpact(First));
-    AdvanceImpactTimer(F.World, 0.5f);
+    LHCombatTestsPrivate::AdvanceImpactTimer(F.World, 0.5f);
     TestEqual(TEXT("Replacement not early"), Impacts, 1);
-    AdvanceImpactTimer(F.World, 0.6f);
+    LHCombatTestsPrivate::AdvanceImpactTimer(F.World, 0.6f);
     TestEqual(TEXT("Replacement timer survives"), Impacts, 2);
     TestEqual(TEXT("Exactly one damage per activation"), F.Defender->GetCombatAttributes()->GetHealth(), 80.f);
     TestFalse(TEXT("Replacement finished"), F.Attacker->IsActionPending());
     TestFalse(TEXT("Replacement duplicate rejected"), F.Attacker->ResolveImpact(Replacement));
-    AdvanceImpactTimer(F.World, 2.f);
+    LHCombatTestsPrivate::AdvanceImpactTimer(F.World, 2.f);
     TestEqual(TEXT("No extra timer hits"), Impacts, 2);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHReentrantCancelTest, "Lighthaven.Abilities.ImpactCancelWithoutReplacement", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHReentrantCancelTest, "Lighthaven.Abilities.ImpactCancelWithoutReplacement", LHCombatTestsPrivate::Flags)
 bool FLHReentrantCancelTest::RunTest(const FString&)
 {
-    FFixture F(true); int32 Impacts=0;
+    LHCombatTestsPrivate::FFixture F(true); int32 Impacts=0;
     F.Attacker->OnImpact.AddLambda([&](const FLHHitIdentity&, const LH::Rules::FCombatResult&)
     {
         ++Impacts; F.Attacker->CancelAllAbilities();
@@ -227,19 +227,19 @@ bool FLHReentrantCancelTest::RunTest(const FString&)
     F.World->GetTimerManager().Tick(0.f);
     TestTrue(TEXT("Accepted"), F.Attacker->RequestBasicAttack(F.Defender)==ELHCommandReason::None);
     const auto Id=F.Attacker->GetPendingIdentity();
-    AdvanceImpactTimer(F.World, 1.1f);
+    LHCombatTestsPrivate::AdvanceImpactTimer(F.World, 1.1f);
     TestFalse(TEXT("Cancelled action cleared"), F.Attacker->IsActionPending());
     TestEqual(TEXT("Cost retained"), F.Attacker->GetCombatAttributes()->GetMana(), 8.f);
     TestFalse(TEXT("Duplicate rejected"), F.Attacker->ResolveImpact(Id));
-    AdvanceImpactTimer(F.World, 2.f);
+    LHCombatTestsPrivate::AdvanceImpactTimer(F.World, 2.f);
     TestEqual(TEXT("One publication"), Impacts, 1);
     TestEqual(TEXT("One damage"), F.Defender->GetCombatAttributes()->GetHealth(), 90.f);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeathReplacementTest, "Lighthaven.Abilities.TargetDeathReplacement", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeathReplacementTest, "Lighthaven.Abilities.TargetDeathReplacement", LHCombatTestsPrivate::Flags)
 bool FLHDeathReplacementTest::RunTest(const FString&)
 {
-    FFixture F(true); int32 Impacts=0, Deaths=0;
+    LHCombatTestsPrivate::FFixture F(true); int32 Impacts=0, Deaths=0;
     // A second initialized live target is needed; attacking the dead life must reject.
     FActorSpawnParameters Spawn; Spawn.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
     auto* Next=F.World->SpawnActor<ALHEnemyCharacter>(FVector(0,100,0), FRotator::ZeroRotator, Spawn);
@@ -266,19 +266,19 @@ bool FLHDeathReplacementTest::RunTest(const FString&)
     F.World->GetTimerManager().Tick(0.f);
     TestTrue(TEXT("First accepted"), F.Attacker->RequestBasicAttack(F.Defender)==ELHCommandReason::None);
     First=F.Attacker->GetPendingIdentity();
-    AdvanceImpactTimer(F.World, 1.1f);
+    LHCombatTestsPrivate::AdvanceImpactTimer(F.World, 1.1f);
     TestEqual(TEXT("One death"), Deaths, 1);
     TestEqual(TEXT("Lethal first damage"), F.Defender->GetCombatAttributes()->GetHealth(), 0.f);
     TestTrue(TEXT("Replacement pending"), F.Attacker->IsActionPending() && F.Attacker->GetPendingIdentity()==Replacement);
     TestEqual(TEXT("Both costs retained"), F.Attacker->GetCombatAttributes()->GetMana(), 6.f);
     TestEqual(TEXT("Next target untouched before timer"), NextCombat->GetCombatAttributes()->GetHealth(), 100.f);
-    AdvanceImpactTimer(F.World, 1.1f);
+    LHCombatTestsPrivate::AdvanceImpactTimer(F.World, 1.1f);
     TestEqual(TEXT("Both publications"), Impacts, 2);
     TestEqual(TEXT("Next damage once"), NextCombat->GetCombatAttributes()->GetHealth(), 90.f);
     TestFalse(TEXT("Replacement finished"), F.Attacker->IsActionPending());
     TestFalse(TEXT("Old duplicate rejected"), F.Attacker->ResolveImpact(First));
     TestFalse(TEXT("Replacement duplicate rejected"), F.Attacker->ResolveImpact(Replacement));
-    AdvanceImpactTimer(F.World, 2.f);
+    LHCombatTestsPrivate::AdvanceImpactTimer(F.World, 2.f);
     TestEqual(TEXT("No extra publications"), Impacts, 2);
     NextCombat->ClearCombatAvatar(); Next->Destroy();
     return true;

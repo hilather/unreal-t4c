@@ -5,7 +5,7 @@
 
 namespace LH::Rules
 {
-namespace
+namespace LHRulesPrivate
 {
 bool Finite(double V) { return std::isfinite(V); }
 bool Roll(double V) { return Finite(V) && V >= 0 && V < 1; }
@@ -103,40 +103,40 @@ bool Contains(const TArray<FLHContentId>& Ids, FName Id)
 TResult<FCreationResult> ValidateCreation(const FCreationParameters& P, const FAttributes& A, int64 Unspent)
 {
     FAttributes Min,Max; int64 Total;
-    if (!ReadAttributes(P.Minimum,Min) || !ReadAttributes(P.Maximum,Max) || !Read(P.TotalPoints,Total))
-        return Reject<FCreationResult>(EReason::Unresolved,TEXT("Creation RNG / legal ranges / total points unresolved"));
-    if (!Nonnegative(Min) || !AtLeast(Max,Min) || Total < 0)
-        return Reject<FCreationResult>(EReason::InvalidData,TEXT("Invalid creation bounds or budget"));
-    if (!AtLeast(A,Min) || !AtLeast(Max,A) || Unspent < 0)
-        return Reject<FCreationResult>(EReason::Ineligible,TEXT("Outside legal attribute ranges or negative point pool"));
+    if (!LHRulesPrivate::ReadAttributes(P.Minimum,Min) || !LHRulesPrivate::ReadAttributes(P.Maximum,Max) || !LHRulesPrivate::Read(P.TotalPoints,Total))
+        return LHRulesPrivate::Reject<FCreationResult>(EReason::Unresolved,TEXT("Creation RNG / legal ranges / total points unresolved"));
+    if (!LHRulesPrivate::Nonnegative(Min) || !LHRulesPrivate::AtLeast(Max,Min) || Total < 0)
+        return LHRulesPrivate::Reject<FCreationResult>(EReason::InvalidData,TEXT("Invalid creation bounds or budget"));
+    if (!LHRulesPrivate::AtLeast(A,Min) || !LHRulesPrivate::AtLeast(Max,A) || Unspent < 0)
+        return LHRulesPrivate::Reject<FCreationResult>(EReason::Ineligible,TEXT("Outside legal attribute ranges or negative point pool"));
     int64 Spent;
-    if (!Sum(A,Spent) || !Add(Spent,Unspent,Spent)) return Reject<FCreationResult>(EReason::Overflow,TEXT("Point sum overflow"));
-    if (Spent != Total) return Reject<FCreationResult>(EReason::Ineligible,TEXT("Creation point conservation failed"));
-    TResult<FCreationResult> Out; Out.Diagnostic=Accepted(); Out.Value.Attributes=A; Out.Value.UnspentPoints=Unspent; return Out;
+    if (!LHRulesPrivate::Sum(A,Spent) || !LHRulesPrivate::Add(Spent,Unspent,Spent)) return LHRulesPrivate::Reject<FCreationResult>(EReason::Overflow,TEXT("Point sum overflow"));
+    if (Spent != Total) return LHRulesPrivate::Reject<FCreationResult>(EReason::Ineligible,TEXT("Creation point conservation failed"));
+    TResult<FCreationResult> Out; Out.Diagnostic=LHRulesPrivate::Accepted(); Out.Value.Attributes=A; Out.Value.UnspentPoints=Unspent; return Out;
 }
 
 TResult<FCreationResult> RollCreation(const FCreationParameters& P, const TArray<FLHQuestionAnswer>& Answers, int32 Index)
 {
     int64 Count;
-    if (!Read(P.AnswerCount,Count) || P.OutcomesResolution != ELHValueResolution::Resolved || !Ready(P.OutcomesProvenance))
-        return Reject<FCreationResult>(EReason::Unresolved,TEXT("Creation RNG outcome table unresolved"));
+    if (!LHRulesPrivate::Read(P.AnswerCount,Count) || P.OutcomesResolution != ELHValueResolution::Resolved || !LHRulesPrivate::Ready(P.OutcomesProvenance))
+        return LHRulesPrivate::Reject<FCreationResult>(EReason::Unresolved,TEXT("Creation RNG outcome table unresolved"));
     if (Count <= 0 || Answers.Num() != Count || !P.Outcomes.IsValidIndex(Index))
-        return Reject<FCreationResult>(EReason::InvalidData,TEXT("Expected complete question answers and an explicit legal outcome index"));
+        return LHRulesPrivate::Reject<FCreationResult>(EReason::InvalidData,TEXT("Expected complete question answers and an explicit legal outcome index"));
     TSet<FName> Questions;
     for (const auto& A : Answers)
     {
         if (A.Question.Value.IsNone() || A.Answer.Value.IsNone() || Questions.Contains(A.Question.Value))
-            return Reject<FCreationResult>(EReason::InvalidData,TEXT("Empty or repeated question ID"));
+            return LHRulesPrivate::Reject<FCreationResult>(EReason::InvalidData,TEXT("Empty or repeated question ID"));
         Questions.Add(A.Question.Value);
     }
     const auto& Outcome=P.Outcomes[Index];
-    if (Outcome.Answers.Num() != Answers.Num()) return Reject<FCreationResult>(EReason::InvalidData,TEXT("Outcome answer count mismatch"));
+    if (Outcome.Answers.Num() != Answers.Num()) return LHRulesPrivate::Reject<FCreationResult>(EReason::InvalidData,TEXT("Outcome answer count mismatch"));
     for (int32 N=0; N<Answers.Num(); ++N)
         if (Answers[N].Question.Value != Outcome.Answers[N].Question.Value || Answers[N].Answer.Value != Outcome.Answers[N].Answer.Value)
-            return Reject<FCreationResult>(EReason::Ineligible,TEXT("Outcome belongs to different ordered answers"));
+            return LHRulesPrivate::Reject<FCreationResult>(EReason::Ineligible,TEXT("Outcome belongs to different ordered answers"));
     FAttributes A; int64 Unspent;
-    if (!ReadAttributes(Outcome.Attributes,A) || !Read(Outcome.UnspentPoints,Unspent))
-        return Reject<FCreationResult>(EReason::Unresolved,TEXT("Creation outcome values unresolved"));
+    if (!LHRulesPrivate::ReadAttributes(Outcome.Attributes,A) || !LHRulesPrivate::Read(Outcome.UnspentPoints,Unspent))
+        return LHRulesPrivate::Reject<FCreationResult>(EReason::Unresolved,TEXT("Creation outcome values unresolved"));
     auto Out=ValidateCreation(P,A,Unspent);
     if (Out.Diagnostic.IsAccepted()) Out.Value.OutcomeIndex=Index;
     return Out;
@@ -144,58 +144,58 @@ TResult<FCreationResult> RollCreation(const FCreationParameters& P, const TArray
 
 TResult<FStatsResult> DeriveStats(const FStatsParameters& P, const FStatsInput& I)
 {
-    if (!Nonnegative(I.Base) || !Finite(I.EarnedHealth) || !Finite(I.EarnedMana) || I.EarnedHealth < 0 || I.EarnedMana < 0)
-        return Reject<FStatsResult>(EReason::InvalidData,TEXT("Invalid canonical stats"));
+    if (!LHRulesPrivate::Nonnegative(I.Base) || !LHRulesPrivate::Finite(I.EarnedHealth) || !LHRulesPrivate::Finite(I.EarnedMana) || I.EarnedHealth < 0 || I.EarnedMana < 0)
+        return LHRulesPrivate::Reject<FStatsResult>(EReason::InvalidData,TEXT("Invalid canonical stats"));
     FStatsResult V; V.Effective=I.Base; V.MaxHealth=I.EarnedHealth; V.MaxMana=I.EarnedMana;
     double Acc=0,Avoid=0,Damage=0,Armor=0,Capacity=0;
     for (const auto& M : I.Equipment)
     {
         FAttributes A; double H,N,C,D,B,R,K;
-        if (!ReadAttributes(M.Attributes,A) || !Read(M.Health,H) || !Read(M.Mana,N) || !Read(M.Accuracy,C) ||
-            !Read(M.Avoidance,D) || !Read(M.DamageBonus,B) || !Read(M.Armor,R) || !Read(M.Capacity,K))
-            return Reject<FStatsResult>(EReason::Unresolved,TEXT("Unresolved equipment modifier; explicit resolved zeros required"));
-        if (!Finite(H)||!Finite(N)||!Finite(C)||!Finite(D)||!Finite(B)||!Finite(R)||!Finite(K))
-            return Reject<FStatsResult>(EReason::InvalidData,TEXT("Nonfinite equipment modifier"));
-        if (!AddAttributes(V.Effective,A)) return Reject<FStatsResult>(EReason::Overflow,TEXT("Equipment attribute overflow"));
+        if (!LHRulesPrivate::ReadAttributes(M.Attributes,A) || !LHRulesPrivate::Read(M.Health,H) || !LHRulesPrivate::Read(M.Mana,N) || !LHRulesPrivate::Read(M.Accuracy,C) ||
+            !LHRulesPrivate::Read(M.Avoidance,D) || !LHRulesPrivate::Read(M.DamageBonus,B) || !LHRulesPrivate::Read(M.Armor,R) || !LHRulesPrivate::Read(M.Capacity,K))
+            return LHRulesPrivate::Reject<FStatsResult>(EReason::Unresolved,TEXT("Unresolved equipment modifier; explicit resolved zeros required"));
+        if (!LHRulesPrivate::Finite(H)||!LHRulesPrivate::Finite(N)||!LHRulesPrivate::Finite(C)||!LHRulesPrivate::Finite(D)||!LHRulesPrivate::Finite(B)||!LHRulesPrivate::Finite(R)||!LHRulesPrivate::Finite(K))
+            return LHRulesPrivate::Reject<FStatsResult>(EReason::InvalidData,TEXT("Nonfinite equipment modifier"));
+        if (!LHRulesPrivate::AddAttributes(V.Effective,A)) return LHRulesPrivate::Reject<FStatsResult>(EReason::Overflow,TEXT("Equipment attribute overflow"));
         V.MaxHealth+=H; V.MaxMana+=N; Acc+=C; Avoid+=D; Damage+=B; Armor+=R; Capacity+=K;
     }
-    if (!Nonnegative(V.Effective)) return Reject<FStatsResult>(EReason::Ineligible,TEXT("Negative effective attributes"));
+    if (!LHRulesPrivate::Nonnegative(V.Effective)) return LHRulesPrivate::Reject<FStatsResult>(EReason::Ineligible,TEXT("Negative effective attributes"));
     const FLinearFormula* Formulas[]={&P.Accuracy,&P.Avoidance,&P.DamageBonus,&P.Armor,&P.Capacity};
     double* Values[]={&V.Accuracy,&V.Avoidance,&V.DamageBonus,&V.Armor,&V.Capacity};
     for (int32 N=0; N<UE_ARRAY_COUNT(Formulas); ++N)
     {
-        const auto D=Linear(*Formulas[N],V.Effective,*Values[N]);
-        if (!D.IsAccepted()) return Reject<FStatsResult>(D.Reason,D.Detail);
+        const auto D=LHRulesPrivate::Linear(*Formulas[N],V.Effective,*Values[N]);
+        if (!D.IsAccepted()) return LHRulesPrivate::Reject<FStatsResult>(D.Reason,D.Detail);
     }
     V.Accuracy+=Acc; V.Avoidance+=Avoid; V.DamageBonus+=Damage; V.Armor+=Armor; V.Capacity+=Capacity;
     const double Results[]={V.MaxHealth,V.MaxMana,V.Accuracy,V.Avoidance,V.DamageBonus,V.Armor,V.Capacity};
-    for (double Result : Results) if (!Finite(Result) || Result < 0) return Reject<FStatsResult>(EReason::InvalidData,TEXT("Invalid derived stat"));
-    TResult<FStatsResult> Out; Out.Diagnostic=Accepted(); Out.Value=V; return Out;
+    for (double Result : Results) if (!LHRulesPrivate::Finite(Result) || Result < 0) return LHRulesPrivate::Reject<FStatsResult>(EReason::InvalidData,TEXT("Invalid derived stat"));
+    TResult<FStatsResult> Out; Out.Diagnostic=LHRulesPrivate::Accepted(); Out.Value=V; return Out;
 }
 
 TResult<FProgressionResult> Advance(const FProgressionParameters& P, const FProgressionInput& I)
 {
     int64 Initial,AP,SP;
-    if (!Read(P.InitialLevel,Initial) || !Read(P.AttributePointsPerLevel,AP) || !Read(P.SkillPointsPerLevel,SP) || P.Thresholds.IsEmpty())
-        return Reject<FProgressionResult>(EReason::Unresolved,TEXT("Start level / XP curve / level entitlement unresolved"));
+    if (!LHRulesPrivate::Read(P.InitialLevel,Initial) || !LHRulesPrivate::Read(P.AttributePointsPerLevel,AP) || !LHRulesPrivate::Read(P.SkillPointsPerLevel,SP) || P.Thresholds.IsEmpty())
+        return LHRulesPrivate::Reject<FProgressionResult>(EReason::Unresolved,TEXT("Start level / XP curve / level entitlement unresolved"));
     if (Initial < 0 || AP < 0 || SP < 0 || I.EarnedLevel < Initial || I.ExperienceBalance < 0 || I.ExperienceDebt < 0 || I.ExperienceGain < 0 ||
-        I.UnspentAttributes < 0 || I.UnspentSkills < 0 || !Nonnegative(I.GrowthAttributes) || !Finite(I.EarnedHealth) || !Finite(I.EarnedMana) || I.EarnedHealth < 0 || I.EarnedMana < 0)
-        return Reject<FProgressionResult>(EReason::InvalidData,TEXT("Invalid progression input"));
+        I.UnspentAttributes < 0 || I.UnspentSkills < 0 || !LHRulesPrivate::Nonnegative(I.GrowthAttributes) || !LHRulesPrivate::Finite(I.EarnedHealth) || !LHRulesPrivate::Finite(I.EarnedMana) || I.EarnedHealth < 0 || I.EarnedMana < 0)
+        return LHRulesPrivate::Reject<FProgressionResult>(EReason::InvalidData,TEXT("Invalid progression input"));
     TArray<int64> Thresholds;
     for (const auto& T : P.Thresholds)
     {
         int64 V;
-        if (!Read(T,V)) return Reject<FProgressionResult>(EReason::Unresolved,TEXT("Unresolved XP threshold"));
-        if (V < 0 || (!Thresholds.IsEmpty() && V <= Thresholds.Last())) return Reject<FProgressionResult>(EReason::InvalidData,TEXT("XP thresholds must increase strictly"));
+        if (!LHRulesPrivate::Read(T,V)) return LHRulesPrivate::Reject<FProgressionResult>(EReason::Unresolved,TEXT("Unresolved XP threshold"));
+        if (V < 0 || (!Thresholds.IsEmpty() && V <= Thresholds.Last())) return LHRulesPrivate::Reject<FProgressionResult>(EReason::InvalidData,TEXT("XP thresholds must increase strictly"));
         Thresholds.Add(V);
     }
     const int64 OldIndex=I.EarnedLevel-Initial;
     if (OldIndex > std::numeric_limits<int32>::max() || !Thresholds.IsValidIndex(static_cast<int32>(OldIndex)))
-        return Reject<FProgressionResult>(EReason::InvalidData,TEXT("Earned level outside XP table"));
+        return LHRulesPrivate::Reject<FProgressionResult>(EReason::InvalidData,TEXT("Earned level outside XP table"));
     // Draft contracts-v1 convention: balance is retained progress; debt is a separate deficit.
     // Keeping balance at its pre-loss value avoids representing the same lost XP twice.
     if (I.ExperienceBalance < Thresholds[static_cast<int32>(OldIndex)])
-        return Reject<FProgressionResult>(EReason::InvalidData,TEXT("Balance below earned threshold: normalize debt separately per contracts-v1"));
+        return LHRulesPrivate::Reject<FProgressionResult>(EReason::InvalidData,TEXT("Balance below earned threshold: normalize debt separately per contracts-v1"));
     FProgressionResult V;
 
     V.EarnedLevel=I.EarnedLevel; V.ExperienceBalance=I.ExperienceBalance; V.ExperienceDebt=I.ExperienceDebt;
@@ -203,105 +203,105 @@ TResult<FProgressionResult> Advance(const FProgressionParameters& P, const FProg
     const int64 Repaid=FMath::Min(V.ExperienceDebt,I.ExperienceGain);
     V.ExperienceDebt-=Repaid;
     const int64 ProgressGain=I.ExperienceGain-Repaid;
-    if (!Add(V.ExperienceBalance,ProgressGain,V.ExperienceBalance)) return Reject<FProgressionResult>(EReason::Overflow,TEXT("XP balance overflow"));
+    if (!LHRulesPrivate::Add(V.ExperienceBalance,ProgressGain,V.ExperienceBalance)) return LHRulesPrivate::Reject<FProgressionResult>(EReason::Overflow,TEXT("XP balance overflow"));
     int32 Target=static_cast<int32>(OldIndex);
     if (V.ExperienceDebt == 0)
         while (Thresholds.IsValidIndex(Target+1) && V.ExperienceBalance >= Thresholds[Target+1]) ++Target;
     const int32 NewLevels=Target-static_cast<int32>(OldIndex);
-    if (I.Rolls.Num() != NewLevels) return Reject<FProgressionResult>(EReason::InvalidData,TEXT("Supply exactly one growth roll and award ID per newly earned level"));
+    if (I.Rolls.Num() != NewLevels) return LHRulesPrivate::Reject<FProgressionResult>(EReason::InvalidData,TEXT("Supply exactly one growth roll and award ID per newly earned level"));
     if (NewLevels > 0)
     {
         if (I.Ruleset.Id.Value.IsNone() || I.Ruleset.Revision <= 0 || I.Ruleset.ContentHash.IsEmpty())
-            return Reject<FProgressionResult>(EReason::InvalidData,TEXT("Growth requires frozen ruleset identity/revision/hash"));
+            return LHRulesPrivate::Reject<FProgressionResult>(EReason::InvalidData,TEXT("Growth requires frozen ruleset identity/revision/hash"));
         double H,M,HS,MS;
-        const auto HD=Linear(P.HealthGrowth,I.GrowthAttributes,H), MD=Linear(P.ManaGrowth,I.GrowthAttributes,M);
-        if (!HD.IsAccepted()) return Reject<FProgressionResult>(HD.Reason,HD.Detail);
-        if (!MD.IsAccepted()) return Reject<FProgressionResult>(MD.Reason,MD.Detail);
-        if (!Read(P.HealthRollScale,HS) || !Read(P.ManaRollScale,MS)) return Reject<FProgressionResult>(EReason::Unresolved,TEXT("Unresolved growth random scale"));
-        if (!Finite(HS) || !Finite(MS) || HS < 0 || MS < 0 || H < 0 || M < 0)
-            return Reject<FProgressionResult>(EReason::InvalidData,TEXT("Invalid growth parameters"));
+        const auto HD=LHRulesPrivate::Linear(P.HealthGrowth,I.GrowthAttributes,H), MD=LHRulesPrivate::Linear(P.ManaGrowth,I.GrowthAttributes,M);
+        if (!HD.IsAccepted()) return LHRulesPrivate::Reject<FProgressionResult>(HD.Reason,HD.Detail);
+        if (!MD.IsAccepted()) return LHRulesPrivate::Reject<FProgressionResult>(MD.Reason,MD.Detail);
+        if (!LHRulesPrivate::Read(P.HealthRollScale,HS) || !LHRulesPrivate::Read(P.ManaRollScale,MS)) return LHRulesPrivate::Reject<FProgressionResult>(EReason::Unresolved,TEXT("Unresolved growth random scale"));
+        if (!LHRulesPrivate::Finite(HS) || !LHRulesPrivate::Finite(MS) || HS < 0 || MS < 0 || H < 0 || M < 0)
+            return LHRulesPrivate::Reject<FProgressionResult>(EReason::InvalidData,TEXT("Invalid growth parameters"));
         TSet<FGuid> Ids;
         for (const auto& R : I.Rolls)
         {
-            if (!Roll(R.Health) || !Roll(R.Mana) || !R.AwardId.Value.IsValid() || Ids.Contains(R.AwardId.Value))
-                return Reject<FProgressionResult>(EReason::InvalidData,TEXT("Invalid/duplicate growth roll or award ID"));
+            if (!LHRulesPrivate::Roll(R.Health) || !LHRulesPrivate::Roll(R.Mana) || !R.AwardId.Value.IsValid() || Ids.Contains(R.AwardId.Value))
+                return LHRulesPrivate::Reject<FProgressionResult>(EReason::InvalidData,TEXT("Invalid/duplicate growth roll or award ID"));
             Ids.Add(R.AwardId.Value);
             const double HG=std::floor(H+HS*R.Health), MG=std::floor(M+MS*R.Mana);
-            if (!Finite(HG) || !Finite(MG) || !Finite(V.EarnedHealth+HG) || !Finite(V.EarnedMana+MG) ||
-                !Add(V.UnspentAttributes,AP,V.UnspentAttributes) || !Add(V.UnspentSkills,SP,V.UnspentSkills))
-                return Reject<FProgressionResult>(EReason::Overflow,TEXT("Growth award overflow"));
-            FLHGrowthAward A; A.AwardId=R.AwardId; A.Ruleset=I.Ruleset; A.GrowthInputs=SavedAttributes(I.GrowthAttributes);
-            const auto Policy=Provenance(ELHProvenanceStatus::Modernized,TEXT("Atomic level-up / debt recovery"));
-            A.FromLevel=Integer(V.EarnedLevel,Policy);
-            if (!Add(V.EarnedLevel,1,V.EarnedLevel)) return Reject<FProgressionResult>(EReason::Overflow,TEXT("Level overflow"));
-            A.ToLevel=Integer(V.EarnedLevel,Policy);
+            if (!LHRulesPrivate::Finite(HG) || !LHRulesPrivate::Finite(MG) || !LHRulesPrivate::Finite(V.EarnedHealth+HG) || !LHRulesPrivate::Finite(V.EarnedMana+MG) ||
+                !LHRulesPrivate::Add(V.UnspentAttributes,AP,V.UnspentAttributes) || !LHRulesPrivate::Add(V.UnspentSkills,SP,V.UnspentSkills))
+                return LHRulesPrivate::Reject<FProgressionResult>(EReason::Overflow,TEXT("Growth award overflow"));
+            FLHGrowthAward A; A.AwardId=R.AwardId; A.Ruleset=I.Ruleset; A.GrowthInputs=LHRulesPrivate::SavedAttributes(I.GrowthAttributes);
+            const auto Policy=LHRulesPrivate::Provenance(ELHProvenanceStatus::Modernized,TEXT("Atomic level-up / debt recovery"));
+            A.FromLevel=LHRulesPrivate::Integer(V.EarnedLevel,Policy);
+            if (!LHRulesPrivate::Add(V.EarnedLevel,1,V.EarnedLevel)) return LHRulesPrivate::Reject<FProgressionResult>(EReason::Overflow,TEXT("Level overflow"));
+            A.ToLevel=LHRulesPrivate::Integer(V.EarnedLevel,Policy);
             // Formula family is provisional even when a coefficient/sample is source-backed.
-            const auto Growth=Provenance(ELHProvenanceStatus::Prototype,TEXT("HP growth dependence / MP growth dependence: proposed linear floor model; not Classic parity"));
-            A.HealthIncrement=Number(HG,Growth); A.ManaIncrement=Number(MG,Growth);
-            A.AttributePoints=Integer(AP,P.AttributePointsPerLevel.Provenance); A.SkillPoints=Integer(SP,P.SkillPointsPerLevel.Provenance);
+            const auto Growth=LHRulesPrivate::Provenance(ELHProvenanceStatus::Prototype,TEXT("HP growth dependence / MP growth dependence: proposed linear floor model; not Classic parity"));
+            A.HealthIncrement=LHRulesPrivate::Number(HG,Growth); A.ManaIncrement=LHRulesPrivate::Number(MG,Growth);
+            A.AttributePoints=LHRulesPrivate::Integer(AP,P.AttributePointsPerLevel.Provenance); A.SkillPoints=LHRulesPrivate::Integer(SP,P.SkillPointsPerLevel.Provenance);
             V.EarnedHealth+=HG; V.EarnedMana+=MG; V.Awards.Add(A); V.AcceptedRolls.Add(R);
         }
     }
-    TResult<FProgressionResult> Out; Out.Diagnostic=Accepted(); Out.Value=MoveTemp(V); return Out;
+    TResult<FProgressionResult> Out; Out.Diagnostic=LHRulesPrivate::Accepted(); Out.Value=MoveTemp(V); return Out;
 }
 
 TResult<bool> CheckRequirements(const FRequirementPolicy& P, const FLHEligibility& E, const FRequirementInput& I)
 {
     FAttributes Minimum; int64 Level,Quiver;
-    if (P.Basis == EAttributeBasis::Unresolved || !Ready(P.BasisProvenance) || !ReadAttributes(E.MinimumAttributes,Minimum) || !Read(E.MinimumLevel,Level))
-        return Reject<bool>(EReason::Unresolved,TEXT("Requirement evaluation stat basis / minima unresolved"));
+    if (P.Basis == EAttributeBasis::Unresolved || !LHRulesPrivate::Ready(P.BasisProvenance) || !LHRulesPrivate::ReadAttributes(E.MinimumAttributes,Minimum) || !LHRulesPrivate::Read(E.MinimumLevel,Level))
+        return LHRulesPrivate::Reject<bool>(EReason::Unresolved,TEXT("Requirement evaluation stat basis / minima unresolved"));
     // No arbitrary policy strings are silently ignored.
-    if (!E.Policies.IsEmpty()) return Reject<bool>(EReason::Unresolved,TEXT("Eligibility policy extension not supported; integrator must define semantics"));
-    if (Level < 0 || I.Level < 0 || !Nonnegative(Minimum) || !Nonnegative(I.Base) || !Nonnegative(I.Effective))
-        return Reject<bool>(EReason::InvalidData,TEXT("Invalid requirement attributes/level"));
+    if (!E.Policies.IsEmpty()) return LHRulesPrivate::Reject<bool>(EReason::Unresolved,TEXT("Eligibility policy extension not supported; integrator must define semantics"));
+    if (Level < 0 || I.Level < 0 || !LHRulesPrivate::Nonnegative(Minimum) || !LHRulesPrivate::Nonnegative(I.Base) || !LHRulesPrivate::Nonnegative(I.Effective))
+        return LHRulesPrivate::Reject<bool>(EReason::InvalidData,TEXT("Invalid requirement attributes/level"));
     if (I.bBow)
     {
-        if (!Read(P.BowRequiresQuiver,Quiver)) return Reject<bool>(EReason::Unresolved,TEXT("Bow quiver policy unresolved"));
-        if (Quiver != 0 && Quiver != 1) return Reject<bool>(EReason::InvalidData,TEXT("Quiver policy must be a boolean integer"));
-        if (Quiver != 0 && !I.bCompatibleQuiverEquipped) return Reject<bool>(EReason::Ineligible,TEXT("Bow requires compatible equipped quiver; unlimited quiver not consumed"));
+        if (!LHRulesPrivate::Read(P.BowRequiresQuiver,Quiver)) return LHRulesPrivate::Reject<bool>(EReason::Unresolved,TEXT("Bow quiver policy unresolved"));
+        if (Quiver != 0 && Quiver != 1) return LHRulesPrivate::Reject<bool>(EReason::InvalidData,TEXT("Quiver policy must be a boolean integer"));
+        if (Quiver != 0 && !I.bCompatibleQuiverEquipped) return LHRulesPrivate::Reject<bool>(EReason::Ineligible,TEXT("Bow requires compatible equipped quiver; unlimited quiver not consumed"));
     }
     // Resolve every skill minimum before deciding eligibility.
     for (const auto& M : E.SkillMinimums)
     {
         double Value;
-        if (!Read(M.Value,Value)) return Reject<bool>(EReason::Unresolved,TEXT("Unresolved skill minimum"));
-        if (M.Key.IsNone() || !Finite(Value) || Value < 0) return Reject<bool>(EReason::InvalidData,TEXT("Invalid skill minimum"));
+        if (!LHRulesPrivate::Read(M.Value,Value)) return LHRulesPrivate::Reject<bool>(EReason::Unresolved,TEXT("Unresolved skill minimum"));
+        if (M.Key.IsNone() || !LHRulesPrivate::Finite(Value) || Value < 0) return LHRulesPrivate::Reject<bool>(EReason::InvalidData,TEXT("Invalid skill minimum"));
     }
     for (const auto& S : I.Skills)
     {
         int64 Value;
-        if (!Read(S.TrainedValue,Value)) return Reject<bool>(EReason::Unresolved,TEXT("Unresolved trained skill value"));
-        if (S.Skill.Value.IsNone() || Value < 0) return Reject<bool>(EReason::InvalidData,TEXT("Invalid learned skill"));
+        if (!LHRulesPrivate::Read(S.TrainedValue,Value)) return LHRulesPrivate::Reject<bool>(EReason::Unresolved,TEXT("Unresolved trained skill value"));
+        if (S.Skill.Value.IsNone() || Value < 0) return LHRulesPrivate::Reject<bool>(EReason::InvalidData,TEXT("Invalid learned skill"));
     }
     const FAttributes& A=P.Basis == EAttributeBasis::Base ? I.Base : I.Effective;
-    if (!AtLeast(A,Minimum) || I.Level < Level) return Reject<bool>(EReason::Ineligible,TEXT("Attribute or level prerequisite failed"));
+    if (!LHRulesPrivate::AtLeast(A,Minimum) || I.Level < Level) return LHRulesPrivate::Reject<bool>(EReason::Ineligible,TEXT("Attribute or level prerequisite failed"));
     for (const auto& S : E.RequiredSkills)
         if (S.Value.IsNone() || !I.Skills.ContainsByPredicate([&S](const FLHLearnedSkill& K) { return K.Skill.Value == S.Value; }))
-            return Reject<bool>(EReason::Ineligible,TEXT("Required learned skill missing"));
+            return LHRulesPrivate::Reject<bool>(EReason::Ineligible,TEXT("Required learned skill missing"));
     for (const auto& S : E.RequiredSpells)
-        if (S.Value.IsNone() || !Contains(I.Spells,S.Value)) return Reject<bool>(EReason::Ineligible,TEXT("Required learned spell missing"));
+        if (S.Value.IsNone() || !LHRulesPrivate::Contains(I.Spells,S.Value)) return LHRulesPrivate::Reject<bool>(EReason::Ineligible,TEXT("Required learned spell missing"));
     for (const auto& M : E.SkillMinimums)
     {
         const auto* Skill=I.Skills.FindByPredicate([&M](const FLHLearnedSkill& K) { return K.Skill.Value == M.Key; });
-        if (!Skill || Skill->TrainedValue.Value < M.Value.Value) return Reject<bool>(EReason::Ineligible,TEXT("Trained skill minimum failed"));
+        if (!Skill || Skill->TrainedValue.Value < M.Value.Value) return LHRulesPrivate::Reject<bool>(EReason::Ineligible,TEXT("Trained skill minimum failed"));
     }
-    TResult<bool> Out; Out.Diagnostic=Accepted(); Out.Value=true; return Out;
+    TResult<bool> Out; Out.Diagnostic=LHRulesPrivate::Accepted(); Out.Value=true; return Out;
 }
 
 TResult<FCombatResult> ResolveCombat(const FCombatParameters& P, const FCombatInput& I)
 {
     double Base,Acc,Avoid,Min,Max,Armor,Resistance,Floor,Quantum;
-    if (!Read(P.HitBase,Base)||!Read(P.AccuracyScale,Acc)||!Read(P.AvoidanceScale,Avoid)||!Read(P.MinimumChance,Min)||!Read(P.MaximumChance,Max)||
-        !Read(P.ArmorScale,Armor)||!Read(P.ResistanceScale,Resistance)||!Read(P.MinimumDamage,Floor)||!Read(P.DamageQuantum,Quantum))
-        return Reject<FCombatResult>(EReason::Unresolved,TEXT("Physical hit/damage parameters unresolved"));
+    if (!LHRulesPrivate::Read(P.HitBase,Base)||!LHRulesPrivate::Read(P.AccuracyScale,Acc)||!LHRulesPrivate::Read(P.AvoidanceScale,Avoid)||!LHRulesPrivate::Read(P.MinimumChance,Min)||!LHRulesPrivate::Read(P.MaximumChance,Max)||
+        !LHRulesPrivate::Read(P.ArmorScale,Armor)||!LHRulesPrivate::Read(P.ResistanceScale,Resistance)||!LHRulesPrivate::Read(P.MinimumDamage,Floor)||!LHRulesPrivate::Read(P.DamageQuantum,Quantum))
+        return LHRulesPrivate::Reject<FCombatResult>(EReason::Unresolved,TEXT("Physical hit/damage parameters unresolved"));
     const double Values[]={Base,Acc,Avoid,Min,Max,Armor,Resistance,Floor,Quantum,I.Accuracy,I.Avoidance,I.WeaponMinimum,I.WeaponMaximum,I.DamageBonus,I.QuiverBonus,I.Armor,I.Resistance};
-    for (double V : Values) if (!Finite(V)) return Reject<FCombatResult>(EReason::InvalidData,TEXT("Nonfinite combat input/parameter"));
+    for (double V : Values) if (!LHRulesPrivate::Finite(V)) return LHRulesPrivate::Reject<FCombatResult>(EReason::InvalidData,TEXT("Nonfinite combat input/parameter"));
     if (Min < 0 || Max > 1 || Min > Max || Armor < 0 || Resistance < 0 || Floor < 0 || Quantum <= 0 ||
-        I.WeaponMinimum < 0 || I.WeaponMaximum < I.WeaponMinimum || I.Armor < 0 || I.Resistance < 0 || !Roll(I.HitRoll) || !Roll(I.DamageRoll))
-        return Reject<FCombatResult>(EReason::InvalidData,TEXT("Invalid combat bounds, quantum or explicit normalized rolls"));
+        I.WeaponMinimum < 0 || I.WeaponMaximum < I.WeaponMinimum || I.Armor < 0 || I.Resistance < 0 || !LHRulesPrivate::Roll(I.HitRoll) || !LHRulesPrivate::Roll(I.DamageRoll))
+        return LHRulesPrivate::Reject<FCombatResult>(EReason::InvalidData,TEXT("Invalid combat bounds, quantum or explicit normalized rolls"));
     FCombatResult V;
     const double Chance=Base+Acc*I.Accuracy-Avoid*I.Avoidance;
-    if (!Finite(Chance)) return Reject<FCombatResult>(EReason::Overflow,TEXT("Hit chance overflow"));
+    if (!LHRulesPrivate::Finite(Chance)) return LHRulesPrivate::Reject<FCombatResult>(EReason::Overflow,TEXT("Hit chance overflow"));
     V.Chance=I.bSpell ? 1 : FMath::Clamp(Chance,Min,Max);
     V.bHit=I.bSpell || I.HitRoll < V.Chance;
     if (V.bHit)
@@ -309,33 +309,33 @@ TResult<FCombatResult> ResolveCombat(const FCombatParameters& P, const FCombatIn
         V.RawDamage=I.WeaponMinimum+(I.WeaponMaximum-I.WeaponMinimum)*I.DamageRoll+I.DamageBonus+I.QuiverBonus;
         const double ArmorReduction=I.bSpell ? 0 : Armor*I.Armor;
         const double ResistanceProduct=Resistance*I.Resistance;
-        if (!Finite(V.RawDamage)||!Finite(ArmorReduction)||!Finite(ResistanceProduct)) return Reject<FCombatResult>(EReason::Overflow,TEXT("Damage composition overflow"));
+        if (!LHRulesPrivate::Finite(V.RawDamage)||!LHRulesPrivate::Finite(ArmorReduction)||!LHRulesPrivate::Finite(ResistanceProduct)) return LHRulesPrivate::Reject<FCombatResult>(EReason::Overflow,TEXT("Damage composition overflow"));
         V.MitigatedDamage=FMath::Max(Floor,V.RawDamage-ArmorReduction)*(1-FMath::Clamp(ResistanceProduct,0.0,1.0));
         // Floor to an explicit data-defined quantum; no implicit minimum-one-damage rule.
         V.Damage=std::floor(V.MitigatedDamage/Quantum)*Quantum;
-        if (!Finite(V.MitigatedDamage)||!Finite(V.Damage)) return Reject<FCombatResult>(EReason::Overflow,TEXT("Damage rounding overflow"));
+        if (!LHRulesPrivate::Finite(V.MitigatedDamage)||!LHRulesPrivate::Finite(V.Damage)) return LHRulesPrivate::Reject<FCombatResult>(EReason::Overflow,TEXT("Damage rounding overflow"));
     }
-    TResult<FCombatResult> Out; Out.Diagnostic=Accepted(); Out.Value=V; return Out;
+    TResult<FCombatResult> Out; Out.Diagnostic=LHRulesPrivate::Accepted(); Out.Value=V; return Out;
 }
 
 TResult<FManaResult> RegenerateMana(const FManaParameters& P, const FManaInput& I)
 {
     double Amount,Interval;
-    if (!Read(P.Amount,Amount)||!Read(P.IntervalSeconds,Interval)) return Reject<FManaResult>(EReason::Unresolved,TEXT("Mana regeneration rate unresolved"));
+    if (!LHRulesPrivate::Read(P.Amount,Amount)||!LHRulesPrivate::Read(P.IntervalSeconds,Interval)) return LHRulesPrivate::Reject<FManaResult>(EReason::Unresolved,TEXT("Mana regeneration rate unresolved"));
     const double Values[]={Amount,Interval,I.Current,I.Maximum,I.FractionalSeconds,I.ActiveSeconds};
-    for (double V : Values) if (!Finite(V)) return Reject<FManaResult>(EReason::InvalidData,TEXT("Nonfinite mana parameter/input"));
+    for (double V : Values) if (!LHRulesPrivate::Finite(V)) return LHRulesPrivate::Reject<FManaResult>(EReason::InvalidData,TEXT("Nonfinite mana parameter/input"));
     if (Amount < 0 || Interval <= 0 || I.Current < 0 || I.Maximum < I.Current || I.FractionalSeconds < 0 || I.FractionalSeconds >= Interval || I.ActiveSeconds < 0)
-        return Reject<FManaResult>(EReason::InvalidData,TEXT("Invalid mana resource, carry, elapsed time or interval"));
+        return LHRulesPrivate::Reject<FManaResult>(EReason::InvalidData,TEXT("Invalid mana resource, carry, elapsed time or interval"));
     FManaResult V; V.Current=I.Current; V.FractionalSeconds=I.FractionalSeconds;
     if (I.bAlive && !I.bPaused)
     {
         const double Total=I.FractionalSeconds+I.ActiveSeconds;
-        if (!Finite(Total)) return Reject<FManaResult>(EReason::Overflow,TEXT("Mana timer overflow"));
+        if (!LHRulesPrivate::Finite(Total)) return LHRulesPrivate::Reject<FManaResult>(EReason::Overflow,TEXT("Mana timer overflow"));
         V.Ticks=std::floor(Total/Interval); V.FractionalSeconds=std::fmod(Total,Interval);
         const double Restored=V.Ticks*Amount;
-        if (!Finite(Restored)||!Finite(I.Current+Restored)) return Reject<FManaResult>(EReason::Overflow,TEXT("Mana recovery overflow"));
+        if (!LHRulesPrivate::Finite(Restored)||!LHRulesPrivate::Finite(I.Current+Restored)) return LHRulesPrivate::Reject<FManaResult>(EReason::Overflow,TEXT("Mana recovery overflow"));
         V.Current=FMath::Min(I.Maximum,I.Current+Restored);
     }
-    TResult<FManaResult> Out; Out.Diagnostic=Accepted(); Out.Value=V; return Out;
+    TResult<FManaResult> Out; Out.Diagnostic=LHRulesPrivate::Accepted(); Out.Value=V; return Out;
 }
 }

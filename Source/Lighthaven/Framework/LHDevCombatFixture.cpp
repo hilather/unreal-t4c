@@ -3,7 +3,7 @@
 #include "Abilities/LHAttributeSet.h"
 #include "Framework/LHCharacter.h"
 #include "Engine/World.h"
-namespace
+namespace LHDevCombatFixturePrivate
 {
 FLHNumber Number(double V)
 {
@@ -30,17 +30,17 @@ void LHDevCombat::InitializeForMap(ULHCombatComponent* Combat, AActor* Avatar)
     Combat->SetNumericAttributeBase(ULHAttributeSet::GetMaxManaAttribute(), 100);
     Combat->SetNumericAttributeBase(ULHAttributeSet::GetManaAttribute(), 100);
     FLHBasicAttackConfig Config;
-    Config.Combat.HitBase = Number(1); Config.Combat.AccuracyScale = Number(0); Config.Combat.AvoidanceScale = Number(0);
-    Config.Combat.MinimumChance = Number(1); Config.Combat.MaximumChance = Number(1);
-    Config.Combat.ArmorScale = Number(0); Config.Combat.ResistanceScale = Number(0);
-    Config.Combat.MinimumDamage = Number(0); Config.Combat.DamageQuantum = Number(1);
+    Config.Combat.HitBase = LHDevCombatFixturePrivate::Number(1); Config.Combat.AccuracyScale = LHDevCombatFixturePrivate::Number(0); Config.Combat.AvoidanceScale = LHDevCombatFixturePrivate::Number(0);
+    Config.Combat.MinimumChance = LHDevCombatFixturePrivate::Number(1); Config.Combat.MaximumChance = LHDevCombatFixturePrivate::Number(1);
+    Config.Combat.ArmorScale = LHDevCombatFixturePrivate::Number(0); Config.Combat.ResistanceScale = LHDevCombatFixturePrivate::Number(0);
+    Config.Combat.MinimumDamage = LHDevCombatFixturePrivate::Number(0); Config.Combat.DamageQuantum = LHDevCombatFixturePrivate::Number(1);
     Config.RequirementPolicy.Basis = LH::Rules::EAttributeBasis::Base;
-    Config.RequirementPolicy.BasisProvenance = Number(0).Provenance;
-    Config.Eligibility.MinimumLevel = Integer(0);
+    Config.RequirementPolicy.BasisProvenance = LHDevCombatFixturePrivate::Number(0).Provenance;
+    Config.Eligibility.MinimumLevel = LHDevCombatFixturePrivate::Integer(0);
     auto& A = Config.Eligibility.MinimumAttributes;
-    A.Strength = Integer(0); A.Endurance = Integer(0); A.Agility = Integer(0); A.Intelligence = Integer(0); A.Wisdom = Integer(0);
-    Config.ManaCost = Number(2); Config.CooldownSeconds = Number(3); Config.ImpactSeconds = Number(1);
-    Config.RangeCm = Number(200); Config.WeaponMinimum = Number(10); Config.WeaponMaximum = Number(10);
+    A.Strength = LHDevCombatFixturePrivate::Integer(0); A.Endurance = LHDevCombatFixturePrivate::Integer(0); A.Agility = LHDevCombatFixturePrivate::Integer(0); A.Intelligence = LHDevCombatFixturePrivate::Integer(0); A.Wisdom = LHDevCombatFixturePrivate::Integer(0);
+    Config.ManaCost = LHDevCombatFixturePrivate::Number(2); Config.CooldownSeconds = LHDevCombatFixturePrivate::Number(3); Config.ImpactSeconds = LHDevCombatFixturePrivate::Number(1);
+    Config.RangeCm = LHDevCombatFixturePrivate::Number(200); Config.WeaponMinimum = LHDevCombatFixturePrivate::Number(10); Config.WeaponMaximum = LHDevCombatFixturePrivate::Number(10);
     Combat->ConfigureAttack(Config, {});
     Combat->SetCombatRandomState(FRandomStream(123));
 }
