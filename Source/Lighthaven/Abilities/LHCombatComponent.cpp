@@ -4,7 +4,7 @@
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include <limits>
-namespace
+namespace LHCombatComponentPrivate
 {
 bool Ready(const FLHNumber& N)
 {
@@ -44,11 +44,11 @@ void ULHCombatComponent::ConfigureAttack(const FLHBasicAttackConfig& Config, con
 }
 bool ULHCombatComponent::IsAlive() const
 {
-    return LiveActor(GetAvatarActor()) && FMath::IsFinite(Attributes->GetHealth()) && Attributes->GetHealth() > 0;
+    return LHCombatComponentPrivate::LiveActor(GetAvatarActor()) && FMath::IsFinite(Attributes->GetHealth()) && Attributes->GetHealth() > 0;
 }
 bool ULHCombatComponent::InRangeAndSight(const ULHCombatComponent* Target) const
 {
-    if (!Target || !LiveActor(GetAvatarActor()) || !LiveActor(Target->GetAvatarActor()) || GetAvatarActor() == Target->GetAvatarActor()) return false;
+    if (!Target || !LHCombatComponentPrivate::LiveActor(GetAvatarActor()) || !LHCombatComponentPrivate::LiveActor(Target->GetAvatarActor()) || GetAvatarActor() == Target->GetAvatarActor()) return false;
     UWorld* World = GetAvatarActor()->GetWorld();
     if (!World || World != Target->GetAvatarActor()->GetWorld()) return false;
     const FVector Start = GetAvatarActor()->GetActorLocation(), End = Target->GetAvatarActor()->GetActorLocation();
@@ -60,12 +60,12 @@ bool ULHCombatComponent::InRangeAndSight(const ULHCombatComponent* Target) const
 }
 ELHCommandReason ULHCombatComponent::ValidateAttack(ULHCombatComponent* Target) const
 {
-    if (!IsValid(Target) || !LiveActor(Target->GetAvatarActor())) return ELHCommandReason::NotFound;
+    if (!IsValid(Target) || !LHCombatComponentPrivate::LiveActor(Target->GetAvatarActor())) return ELHCommandReason::NotFound;
     if (!IsAlive() || !Target->IsAlive()) return ELHCommandReason::InvalidLifeState;
     if (bPending) return ELHCommandReason::ActiveAction;
     if (GetRemainingCooldown() > 0) return ELHCommandReason::Cooldown;
-    if (!bRandomReady || !Ready(Attack.ManaCost) || !Ready(Attack.CooldownSeconds) || !Ready(Attack.ImpactSeconds) ||
-        !Ready(Attack.RangeCm) || !Ready(Attack.WeaponMinimum) || !Ready(Attack.WeaponMaximum)) return ELHCommandReason::UnresolvedRules;
+    if (!bRandomReady || !LHCombatComponentPrivate::Ready(Attack.ManaCost) || !LHCombatComponentPrivate::Ready(Attack.CooldownSeconds) || !LHCombatComponentPrivate::Ready(Attack.ImpactSeconds) ||
+        !LHCombatComponentPrivate::Ready(Attack.RangeCm) || !LHCombatComponentPrivate::Ready(Attack.WeaponMinimum) || !LHCombatComponentPrivate::Ready(Attack.WeaponMaximum)) return ELHCommandReason::UnresolvedRules;
     const auto Eligibility = LH::Rules::CheckRequirements(Attack.RequirementPolicy, Attack.Eligibility, RequirementInput);
     if (!Eligibility.Diagnostic.IsAccepted()) return Eligibility.Diagnostic.Reason == LH::Rules::EReason::Ineligible ? ELHCommandReason::Ineligible : ELHCommandReason::UnresolvedRules;
     // Validate formula parameters without consuming the combat random stream or mutating state.

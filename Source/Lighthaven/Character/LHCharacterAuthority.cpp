@@ -1,7 +1,7 @@
 #include "Character/LHCharacterAuthority.h"
 #include "GameFramework/PlayerState.h"
 
-namespace
+namespace LHCharacterAuthorityPrivate
 {
 using namespace LH::Rules;
 bool Ready(const FLHInteger &V)
@@ -168,6 +168,7 @@ bool EqualCreation(const FLHCreationRecord &A, const FLHCreationRecord &B)
 
 ULHCharacterAuthorityComponent *ULHCharacterAuthorityComponent::Attach(APlayerState *Owner)
 {
+    using namespace LH::Rules;
     if (!Owner || !Owner->HasAuthority())
         return nullptr;
     if (auto *Existing = Owner->FindComponentByClass<ULHCharacterAuthorityComponent>())
@@ -180,12 +181,13 @@ ULHCharacterAuthorityComponent *ULHCharacterAuthorityComponent::Attach(APlayerSt
 
 bool FLHCharacterAuthority::Initialize(const FLHCharacterProfile &P, const FGuid &Epoch, int32 InitialSeed)
 {
+    using namespace LH::Rules;
     check(IsInGameThread());
     if (bInitialized || !Epoch.IsValid() || !P.RequestDigest || !P.GrowthId || P.Reference.Id.Value.IsNone() ||
         P.Reference.Revision <= 0 || P.Reference.ContentHash.Len() != 64 || P.Reference.HashAlgorithm != TEXT("SHA256"))
         return false;
     if (P.Rules.Progression.Thresholds.Num() > 20000 || P.Items.Num() > 4096 ||
-        (Ready(P.Rules.Progression.InitialLevel) &&
+        (LHCharacterAuthorityPrivate::Ready(P.Rules.Progression.InitialLevel) &&
          (P.Rules.Progression.InitialLevel.Value < 0 || P.Rules.Progression.InitialLevel.Value > 20000)))
         return false;
     TSet<FName> IDs;
@@ -200,23 +202,25 @@ bool FLHCharacterAuthority::Initialize(const FLHCharacterProfile &P, const FGuid
     State.Session.RequestEpoch = Epoch;
     State.Header.Ruleset = P.Reference;
     State.World.RunId = FGuid::NewGuid();
-    PutRng(State, Rng(Seed, TEXT("RNG.Creation")));
-    PutRng(State, Rng(Seed, TEXT("RNG.Growth")));
+    LHCharacterAuthorityPrivate::PutRng(State, LHCharacterAuthorityPrivate::Rng(Seed, TEXT("RNG.Creation")));
+    LHCharacterAuthorityPrivate::PutRng(State, LHCharacterAuthorityPrivate::Rng(Seed, TEXT("RNG.Growth")));
     bInitialized = true;
     return true;
 }
 const FLHCharacterItemDefinition *FLHCharacterAuthority::Definition(FName ID) const
 {
+    using namespace LH::Rules;
     return Profile.Items.FindByPredicate([ID](const auto &D) { return D.Id.Value == ID; });
 }
 ELHCommandReason FLHCharacterAuthority::Preview(const TArray<FLHQuestionAnswer> &Answers, FLHCharacterPreview &Out)
 {
+    using namespace LH::Rules;
     check(IsInGameThread());
     if (!bInitialized || State.Header.CharacterId.Value.IsValid())
         return ELHCommandReason::InvalidRequest;
     if (Answers.Num() != 4)
         return ELHCommandReason::InvalidRequest;
-    if (!Ready(Profile.CreationRevision) || Profile.CreationRevision.Value <= 0 ||
+    if (!LHCharacterAuthorityPrivate::Ready(Profile.CreationRevision) || Profile.CreationRevision.Value <= 0 ||
         Profile.CreationPolicy.Value.IsNone())
         return ELHCommandReason::UnresolvedRules;
     TArray<int32> Eligible;
@@ -241,17 +245,18 @@ ELHCommandReason FLHCharacterAuthority::Preview(const TArray<FLHQuestionAnswer> 
     Next.Creation.AcceptedAttributes.Agility = A.Agility;
     Next.Creation.AcceptedAttributes.Intelligence = A.Intelligence;
     Next.Creation.AcceptedAttributes.Wisdom = A.Wisdom;
-    Next.Creation.AcceptedRollInputs.Add(Rng(Seed, TEXT("RNG.Creation")));
+    Next.Creation.AcceptedRollInputs.Add(LHCharacterAuthorityPrivate::Rng(Seed, TEXT("RNG.Creation")));
     Next.UnspentPoints = Roll.Value.UnspentPoints;
     Pending = Next;
     Seed = Random.GetCurrentSeed();
-    PendingRng = Rng(Seed, TEXT("RNG.Creation"));
+    PendingRng = LHCharacterAuthorityPrivate::Rng(Seed, TEXT("RNG.Creation"));
     Out = Next;
     return ELHCommandReason::None;
 }
 bool FLHCharacterAuthority::Begin(const FLHRequestId &ID, FName Kind, const UScriptStruct *Type, const void *Payload,
                                   FLHCommandResult &Out, FString &Digest) const
 {
+    using namespace LH::Rules;
     check(IsInGameThread());
     Out.Request = ID;
     if (!bInitialized || !ID.Value.IsValid() || ID.Epoch != State.Session.RequestEpoch)
@@ -285,6 +290,7 @@ bool FLHCharacterAuthority::Begin(const FLHRequestId &ID, FName Kind, const UScr
 }
 FLHCommandResult FLHCharacterAuthority::Commit(const FLHRequestId &ID, const FString &Digest, FLHSaveSnapshot &&Next)
 {
+    using namespace LH::Rules;
     Next.Header.TransactionSequence = State.Header.TransactionSequence + 1;
     FLHRequestReceipt Receipt;
     Receipt.Request = ID;
@@ -301,22 +307,23 @@ FLHCommandResult FLHCharacterAuthority::Commit(const FLHRequestId &ID, const FSt
 }
 FLHCommandResult FLHCharacterAuthority::Execute(const FLHCreateCharacterRequest &R)
 {
+    using namespace LH::Rules;
     FLHCommandResult Result;
     FString Digest;
     if (!Begin(R.Request, TEXT("CreateCharacter"), R.StaticStruct(), &R, Result, Digest))
         return Result;
     if (State.Header.CharacterId.Value.IsValid() || !R.PreviewToken.IsValid() || R.PreviewToken != Pending.Token ||
-        !EqualCreation(R.Creation, Pending.Creation))
+        !LHCharacterAuthorityPrivate::EqualCreation(R.Creation, Pending.Creation))
         return Result;
     TArray<FLHContentId> Looks = R.AppearanceIds;
     if (R.DisplayName.IsEmpty() || R.DisplayName.Len() > 64 || R.DisplayName.TrimStartAndEnd() != R.DisplayName ||
-        !Appearance(Looks))
+        !LHCharacterAuthorityPrivate::Appearance(Looks))
         return Result;
     for (TCHAR C : R.DisplayName)
         if (C < 32 || C == 127)
             return Result;
-    if (!Ready(Profile.InitialHealth) || !Ready(Profile.InitialMana) || !Ready(Profile.InitialGold) ||
-        !Ready(Profile.InitialSkillPoints) || !Ready(Profile.Rules.Progression.InitialLevel) ||
+    if (!LHCharacterAuthorityPrivate::Ready(Profile.InitialHealth) || !LHCharacterAuthorityPrivate::Ready(Profile.InitialMana) || !LHCharacterAuthorityPrivate::Ready(Profile.InitialGold) ||
+        !LHCharacterAuthorityPrivate::Ready(Profile.InitialSkillPoints) || !LHCharacterAuthorityPrivate::Ready(Profile.Rules.Progression.InitialLevel) ||
         Profile.Rules.Progression.Thresholds.IsEmpty())
     {
         Result.Reason = ELHCommandReason::UnresolvedRules;
@@ -331,15 +338,15 @@ FLHCommandResult FLHCharacterAuthority::Execute(const FLHCreateCharacterRequest 
     C.BaseAttributes = Pending.Creation.AcceptedAttributes;
     C.EarnedLevel = Profile.Rules.Progression.InitialLevel;
     C.ExperienceBalance = Profile.Rules.Progression.Thresholds[0];
-    C.ExperienceDebt = Integer(0);
-    C.UnspentAttributePoints = Integer(Pending.UnspentPoints);
+    C.ExperienceDebt = LHCharacterAuthorityPrivate::Integer(0);
+    C.UnspentAttributePoints = LHCharacterAuthorityPrivate::Integer(Pending.UnspentPoints);
     C.UnspentSkillPoints = Profile.InitialSkillPoints;
     C.Gold = Profile.InitialGold;
     C.EarnedBaseHealth = Profile.InitialHealth;
     C.EarnedBaseMana = Profile.InitialMana;
     C.CurrentHealth = Profile.InitialHealth;
     C.CurrentMana = Profile.InitialMana;
-    PutRng(Next, PendingRng);
+    LHCharacterAuthorityPrivate::PutRng(Next, PendingRng);
     for (const auto &ID : Profile.StarterItems)
     {
         FLHItemInstance I;
@@ -347,7 +354,7 @@ FLHCommandResult FLHCharacterAuthority::Execute(const FLHCreateCharacterRequest 
         I.Id.Area.Content.Value = TEXT("Area.LighthavenTempleDistrict");
         I.Id.InstanceId = FGuid::NewGuid();
         I.Definition = ID;
-        I.Quantity = Integer(1);
+        I.Quantity = LHCharacterAuthorityPrivate::Integer(1);
         C.Inventory.Add(I);
     }
     Result.Reason = Validate(Next);
@@ -359,15 +366,16 @@ FLHCommandResult FLHCharacterAuthority::Execute(const FLHCreateCharacterRequest 
 }
 LH::Rules::TResult<LH::Rules::FStatsResult> FLHCharacterAuthority::Stats(const FLHCharacterRecord &C) const
 {
+    using namespace LH::Rules;
     FStatsInput Input;
     TResult<FStatsResult> Reject;
-    if (!Attributes(C.BaseAttributes, Input.Base) || !Ready(C.EarnedBaseHealth) || !Ready(C.EarnedBaseMana))
+    if (!LHCharacterAuthorityPrivate::Attributes(C.BaseAttributes, Input.Base) || !LHCharacterAuthorityPrivate::Ready(C.EarnedBaseHealth) || !LHCharacterAuthorityPrivate::Ready(C.EarnedBaseMana))
         return Reject;
     Input.EarnedHealth = C.EarnedBaseHealth.Value;
     Input.EarnedMana = C.EarnedBaseMana.Value;
     for (const auto &Binding : C.Equipment)
     {
-        const auto *Item = C.Inventory.FindByPredicate([&](const auto &I) { return EntityEqual(I.Id, Binding.Item); });
+        const auto *Item = C.Inventory.FindByPredicate([&](const auto &I) { return LHCharacterAuthorityPrivate::EntityEqual(I.Id, Binding.Item); });
         const auto *D = Item ? Definition(Item->Definition.Value) : nullptr;
         if (!D || D->Slot != Binding.Slot || !Item->PermanentRolledValues.IsEmpty())
             return Reject;
@@ -377,10 +385,12 @@ LH::Rules::TResult<LH::Rules::FStatsResult> FLHCharacterAuthority::Stats(const F
 }
 LH::Rules::TResult<LH::Rules::FStatsResult> FLHCharacterAuthority::Stats() const
 {
+    using namespace LH::Rules;
     return Stats(State.Character);
 }
 ELHCommandReason FLHCharacterAuthority::Validate(const FLHSaveSnapshot &S) const
 {
+    using namespace LH::Rules;
     const auto &C = S.Character;
     if (!S.Header.CharacterId.Value.IsValid() || !S.World.RunId.IsValid() || !S.Session.RequestEpoch.IsValid() ||
         C.RebirthCount != 0)
@@ -396,15 +406,15 @@ ELHCommandReason FLHCharacterAuthority::Validate(const FLHSaveSnapshot &S) const
         if (Ch < 32 || Ch == 127)
             return ELHCommandReason::InvalidRequest;
     auto Looks = C.AppearanceIds;
-    if (!Appearance(Looks) || Looks.Num() != C.AppearanceIds.Num())
+    if (!LHCharacterAuthorityPrivate::Appearance(Looks) || Looks.Num() != C.AppearanceIds.Num())
         return ELHCommandReason::InvalidRequest;
-    if (C.Creation.GenerationPolicy.Value != Profile.CreationPolicy.Value || !Ready(C.Creation.GenerationRevision) ||
+    if (C.Creation.GenerationPolicy.Value != Profile.CreationPolicy.Value || !LHCharacterAuthorityPrivate::Ready(C.Creation.GenerationRevision) ||
         C.Creation.GenerationRevision.Value != Profile.CreationRevision.Value ||
         C.Creation.QuestionAnswers.Num() != 4 || C.Creation.AcceptedRollInputs.Num() != 1)
         return ELHCommandReason::InvalidRequest;
     int32 BeforeSeed;
     if (C.Creation.AcceptedRollInputs[0].StreamId != TEXT("RNG.Creation") ||
-        !Decode(C.Creation.AcceptedRollInputs[0], BeforeSeed))
+        !LHCharacterAuthorityPrivate::Decode(C.Creation.AcceptedRollInputs[0], BeforeSeed))
         return ELHCommandReason::InvalidRequest;
     TArray<int32> Eligible;
     for (int32 Index = 0; Index < Profile.Rules.Creation.Outcomes.Num(); ++Index)
@@ -416,7 +426,7 @@ ELHCommandReason FLHCharacterAuthority::Validate(const FLHSaveSnapshot &S) const
     const int32 Outcome = Eligible[CreationRandom.RandRange(0, Eligible.Num() - 1)];
     const auto CreationRoll = RollCreation(Profile.Rules.Creation, C.Creation.QuestionAnswers, Outcome);
     FAttributes Accepted, Base;
-    if (!Attributes(C.Creation.AcceptedAttributes, Accepted) || !Attributes(C.BaseAttributes, Base))
+    if (!LHCharacterAuthorityPrivate::Attributes(C.Creation.AcceptedAttributes, Accepted) || !LHCharacterAuthorityPrivate::Attributes(C.BaseAttributes, Base))
         return ELHCommandReason::UnresolvedRules;
     const auto &Expected = CreationRoll.Value.Attributes;
     if (Accepted.Strength != Expected.Strength || Accepted.Endurance != Expected.Endurance ||
@@ -427,9 +437,9 @@ ELHCommandReason FLHCharacterAuthority::Validate(const FLHSaveSnapshot &S) const
                                   &C.ExperienceDebt,     &C.UnspentAttributePoints,
                                   &C.UnspentSkillPoints, &C.Gold};
     for (auto *V : Values)
-        if (!Ready(*V) || V->Value < 0)
+        if (!LHCharacterAuthorityPrivate::Ready(*V) || V->Value < 0)
             return ELHCommandReason::UnresolvedRules;
-    if (!Ready(Profile.InventorySlots) || Profile.InventorySlots.Value < 0)
+    if (!LHCharacterAuthorityPrivate::Ready(Profile.InventorySlots) || Profile.InventorySlots.Value < 0)
         return ELHCommandReason::UnresolvedRules;
     if (C.Inventory.Num() > Profile.InventorySlots.Value || C.Inventory.Num() > 4096)
         return ELHCommandReason::InventoryFull;
@@ -438,7 +448,7 @@ ELHCommandReason FLHCharacterAuthority::Validate(const FLHSaveSnapshot &S) const
         return ELHCommandReason::InvalidRequest;
     for (const auto &Skill : C.LearnedSkills)
     {
-        if (Skill.Skill.Value.IsNone() || SkillIDs.Contains(Skill.Skill.Value) || !Ready(Skill.TrainedValue) ||
+        if (Skill.Skill.Value.IsNone() || SkillIDs.Contains(Skill.Skill.Value) || !LHCharacterAuthorityPrivate::Ready(Skill.TrainedValue) ||
             Skill.TrainedValue.Value < 0)
             return ELHCommandReason::InvalidRequest;
         SkillIDs.Add(Skill.Skill.Value);
@@ -454,11 +464,11 @@ ELHCommandReason FLHCharacterAuthority::Validate(const FLHSaveSnapshot &S) const
     for (const auto &I : C.Inventory)
     {
         const auto *D = Definition(I.Definition.Value);
-        if (!EntityValid(I.Id) || I.Id.RunId != S.World.RunId || ItemIds.Contains(I.Id.InstanceId) ||
-            !Ready(I.Quantity) || I.Quantity.Value <= 0 || !I.PermanentRolledValues.IsEmpty())
+        if (!LHCharacterAuthorityPrivate::EntityValid(I.Id) || I.Id.RunId != S.World.RunId || ItemIds.Contains(I.Id.InstanceId) ||
+            !LHCharacterAuthorityPrivate::Ready(I.Quantity) || I.Quantity.Value <= 0 || !I.PermanentRolledValues.IsEmpty())
             return ELHCommandReason::InvalidRequest;
         ItemIds.Add(I.Id.InstanceId);
-        if (!D || !Ready(D->StackLimit) || !Ready(D->Weight) || D->Weight.Value < 0)
+        if (!D || !LHCharacterAuthorityPrivate::Ready(D->StackLimit) || !LHCharacterAuthorityPrivate::Ready(D->Weight) || D->Weight.Value < 0)
             return ELHCommandReason::UnresolvedRules;
         if (I.Quantity.Value > D->StackLimit.Value)
             return ELHCommandReason::InvalidRequest;
@@ -476,18 +486,18 @@ ELHCommandReason FLHCharacterAuthority::Validate(const FLHSaveSnapshot &S) const
     }
     const auto Derived = Stats(C);
     if (!Derived.Diagnostic.IsAccepted())
-        return Reason(Derived.Diagnostic);
+        return LHCharacterAuthorityPrivate::Reason(Derived.Diagnostic);
     if (!FMath::IsFinite(Weight) || Weight > Derived.Value.Capacity)
         return ELHCommandReason::InventoryFull;
     FRequirementInput Req;
-    Attributes(C.BaseAttributes, Req.Base);
+    LHCharacterAuthorityPrivate::Attributes(C.BaseAttributes, Req.Base);
     Req.Effective = Derived.Value.Effective;
     Req.Level = C.EarnedLevel.Value;
     Req.Skills = C.LearnedSkills;
     Req.Spells = C.LearnedSpells;
     for (const auto &B : C.Equipment)
     {
-        const auto *I = C.Inventory.FindByPredicate([&](const auto &X) { return EntityEqual(X.Id, B.Item); });
+        const auto *I = C.Inventory.FindByPredicate([&](const auto &X) { return LHCharacterAuthorityPrivate::EntityEqual(X.Id, B.Item); });
         const auto *D = I ? Definition(I->Definition.Value) : nullptr;
         if (!D)
             return ELHCommandReason::InvalidEquipment;
@@ -497,7 +507,7 @@ ELHCommandReason FLHCharacterAuthority::Validate(const FLHSaveSnapshot &S) const
             if (Q.Slot == ELHEquipmentSlot::Quiver)
             {
                 const auto *Quiver =
-                    C.Inventory.FindByPredicate([&](const auto &X) { return EntityEqual(X.Id, Q.Item); });
+                    C.Inventory.FindByPredicate([&](const auto &X) { return LHCharacterAuthorityPrivate::EntityEqual(X.Id, Q.Item); });
                 if (Quiver)
                     for (const auto &Allowed : D->CompatibleQuivers)
                         if (Allowed.Value == Quiver->Definition.Value)
@@ -505,9 +515,9 @@ ELHCommandReason FLHCharacterAuthority::Validate(const FLHSaveSnapshot &S) const
             }
         const auto Check = CheckRequirements(Profile.Rules.Requirements, D->Eligibility, Req);
         if (!Check.Diagnostic.IsAccepted())
-            return Reason(Check.Diagnostic);
+            return LHCharacterAuthorityPrivate::Reason(Check.Diagnostic);
     }
-    if (!Ready(C.CurrentHealth) || !Ready(C.CurrentMana) || C.CurrentHealth.Value < 0 || C.CurrentMana.Value < 0 ||
+    if (!LHCharacterAuthorityPrivate::Ready(C.CurrentHealth) || !LHCharacterAuthorityPrivate::Ready(C.CurrentMana) || C.CurrentHealth.Value < 0 || C.CurrentMana.Value < 0 ||
         C.CurrentHealth.Value > Derived.Value.MaxHealth || C.CurrentMana.Value > Derived.Value.MaxMana)
         return ELHCommandReason::InvalidRequest;
     FProgressionInput P;
@@ -521,19 +531,19 @@ ELHCommandReason FLHCharacterAuthority::Validate(const FLHSaveSnapshot &S) const
     P.GrowthAttributes = Req.Base;
     const auto NoGrant = Advance(Profile.Rules.Progression, P);
     if (!NoGrant.Diagnostic.IsAccepted())
-        return Reason(NoGrant.Diagnostic);
-    if (C.GrowthAwards.Num() > 19999 || !Ready(Profile.Rules.Progression.InitialLevel) ||
+        return LHCharacterAuthorityPrivate::Reason(NoGrant.Diagnostic);
+    if (C.GrowthAwards.Num() > 19999 || !LHCharacterAuthorityPrivate::Ready(Profile.Rules.Progression.InitialLevel) ||
         C.GrowthAwards.Num() != C.EarnedLevel.Value - Profile.Rules.Progression.InitialLevel.Value)
         return ELHCommandReason::InvalidRequest;
-    if (!Ready(Profile.InitialHealth) || !Ready(Profile.InitialMana))
+    if (!LHCharacterAuthorityPrivate::Ready(Profile.InitialHealth) || !LHCharacterAuthorityPrivate::Ready(Profile.InitialMana))
         return ELHCommandReason::UnresolvedRules;
     double HistoricalHealth = Profile.InitialHealth.Value, HistoricalMana = Profile.InitialMana.Value;
     TSet<FGuid> Awards;
     int64 Level = Profile.Rules.Progression.InitialLevel.Value;
     for (const auto &A : C.GrowthAwards)
     {
-        if (!A.AwardId.Value.IsValid() || Awards.Contains(A.AwardId.Value) || !Ready(A.FromLevel) ||
-            !Ready(A.ToLevel) || A.FromLevel.Value != Level || A.ToLevel.Value != Level + 1 || A.RollInputs.Num() != 1)
+        if (!A.AwardId.Value.IsValid() || Awards.Contains(A.AwardId.Value) || !LHCharacterAuthorityPrivate::Ready(A.FromLevel) ||
+            !LHCharacterAuthorityPrivate::Ready(A.ToLevel) || A.FromLevel.Value != Level || A.ToLevel.Value != Level + 1 || A.RollInputs.Num() != 1)
             return ELHCommandReason::InvalidRequest;
         if (A.RollInputs[0].Algorithm != TEXT("LH.NormalizedRollPair") || A.RollInputs[0].AlgorithmRevision != 1 ||
             A.RollInputs[0].State.Num() != 16 || A.RollInputs[0].StreamId != TEXT("RNG.Growth"))
@@ -563,14 +573,14 @@ ELHCommandReason FLHCharacterAuthority::Validate(const FLHSaveSnapshot &S) const
         History.EarnedMana = HistoricalMana;
         History.Ruleset = Profile.Reference;
         History.Rolls.Add(Roll);
-        if (!Attributes(A.GrowthInputs, History.GrowthAttributes))
+        if (!LHCharacterAuthorityPrivate::Attributes(A.GrowthInputs, History.GrowthAttributes))
             return ELHCommandReason::InvalidRequest;
         const auto Replay = Advance(Profile.Rules.Progression, History);
         if (!Replay.Diagnostic.IsAccepted())
-            return Reason(Replay.Diagnostic);
+            return LHCharacterAuthorityPrivate::Reason(Replay.Diagnostic);
         const auto &ExpectedAward = Replay.Value.Awards[0];
-        if (!Ready(A.HealthIncrement) || !Ready(A.ManaIncrement) || !Ready(A.AttributePoints) ||
-            !Ready(A.SkillPoints) || A.HealthIncrement.Value != ExpectedAward.HealthIncrement.Value ||
+        if (!LHCharacterAuthorityPrivate::Ready(A.HealthIncrement) || !LHCharacterAuthorityPrivate::Ready(A.ManaIncrement) || !LHCharacterAuthorityPrivate::Ready(A.AttributePoints) ||
+            !LHCharacterAuthorityPrivate::Ready(A.SkillPoints) || A.HealthIncrement.Value != ExpectedAward.HealthIncrement.Value ||
             A.ManaIncrement.Value != ExpectedAward.ManaIncrement.Value ||
             A.AttributePoints.Value != ExpectedAward.AttributePoints.Value ||
             A.SkillPoints.Value != ExpectedAward.SkillPoints.Value)
@@ -605,6 +615,7 @@ ELHCommandReason FLHCharacterAuthority::Validate(const FLHSaveSnapshot &S) const
 }
 FLHCommandResult FLHCharacterAuthority::Execute(const FLHAllocateAttributePointsRequest &R)
 {
+    using namespace LH::Rules;
     FLHCommandResult Result;
     FString Digest;
     if (!Begin(R.Request, TEXT("AllocateAttributePoints"), R.StaticStruct(), &R, Result, Digest))
@@ -617,7 +628,7 @@ FLHCommandResult FLHCharacterAuthority::Execute(const FLHAllocateAttributePoints
         return Result;
     }
     FAttributes D;
-    if (!Attributes(R.Points, D))
+    if (!LHCharacterAuthorityPrivate::Attributes(R.Points, D))
         return Result;
     int64 Total = 0;
     for (int64 V : {D.Strength, D.Endurance, D.Agility, D.Intelligence, D.Wisdom})
@@ -652,6 +663,7 @@ FLHCommandResult FLHCharacterAuthority::Execute(const FLHAllocateAttributePoints
 }
 FLHCommandResult FLHCharacterAuthority::Execute(const FLHEquipItemRequest &R)
 {
+    using namespace LH::Rules;
     FLHCommandResult Result;
     FString Digest;
     if (!Begin(R.Request, TEXT("EquipItem"), R.StaticStruct(), &R, Result, Digest))
@@ -663,7 +675,7 @@ FLHCommandResult FLHCharacterAuthority::Execute(const FLHEquipItemRequest &R)
     }
     FLHSaveSnapshot Next = State;
     auto &C = Next.Character;
-    const auto *Item = C.Inventory.FindByPredicate([&](const auto &I) { return EntityEqual(I.Id, R.Item); });
+    const auto *Item = C.Inventory.FindByPredicate([&](const auto &I) { return LHCharacterAuthorityPrivate::EntityEqual(I.Id, R.Item); });
     if (!Item)
     {
         Result.Reason = ELHCommandReason::NotFound;
@@ -676,7 +688,7 @@ FLHCommandResult FLHCharacterAuthority::Execute(const FLHEquipItemRequest &R)
         return Result;
     }
     const int32 Existing = C.Equipment.IndexOfByPredicate([&](const auto &B) { return B.Slot == R.Slot; });
-    if (R.bUnequip && (Existing == INDEX_NONE || !EntityEqual(C.Equipment[Existing].Item, R.Item)))
+    if (R.bUnequip && (Existing == INDEX_NONE || !LHCharacterAuthorityPrivate::EntityEqual(C.Equipment[Existing].Item, R.Item)))
     {
         Result.Reason = ELHCommandReason::InvalidEquipment;
         return Result;
@@ -693,7 +705,7 @@ FLHCommandResult FLHCharacterAuthority::Execute(const FLHEquipItemRequest &R)
     const auto Derived = Stats(C);
     if (!Derived.Diagnostic.IsAccepted())
     {
-        Result.Reason = Reason(Derived.Diagnostic);
+        Result.Reason = LHCharacterAuthorityPrivate::Reason(Derived.Diagnostic);
         return Result;
     }
     // Removing maximum-resource gear cannot retain resources above the new maximum.
@@ -706,6 +718,7 @@ FLHCommandResult FLHCharacterAuthority::Execute(const FLHEquipItemRequest &R)
 }
 ELHCommandReason FLHCharacterAuthority::GrantExperience(int64 Gain)
 {
+    using namespace LH::Rules;
     check(IsInGameThread());
     if (!bInitialized || !State.Header.CharacterId.Value.IsValid() || Gain < 0 ||
         State.Header.TransactionSequence == MAX_int64)
@@ -725,22 +738,22 @@ ELHCommandReason FLHCharacterAuthority::GrantExperience(int64 Gain)
     I.Ruleset = Profile.Reference;
     const auto Derived = Stats();
     if (!Derived.Diagnostic.IsAccepted())
-        return Reason(Derived.Diagnostic);
+        return LHCharacterAuthorityPrivate::Reason(Derived.Diagnostic);
     if (Profile.GrowthBasis == EAttributeBasis::Effective)
         I.GrowthAttributes = Derived.Value.Effective;
-    else if (!Attributes(C.BaseAttributes, I.GrowthAttributes))
+    else if (!LHCharacterAuthorityPrivate::Attributes(C.BaseAttributes, I.GrowthAttributes))
         return ELHCommandReason::UnresolvedRules;
     const int64 Remaining = Gain - FMath::Min(Gain, C.ExperienceDebt.Value);
     if (Remaining > MAX_int64 - C.ExperienceBalance.Value)
         return ELHCommandReason::InvalidRequest;
     const int64 Balance = C.ExperienceBalance.Value + Remaining;
     int32 Count = 0;
-    if (!Ready(Profile.Rules.Progression.InitialLevel))
+    if (!LHCharacterAuthorityPrivate::Ready(Profile.Rules.Progression.InitialLevel))
         return ELHCommandReason::UnresolvedRules;
     for (int32 N = 0; N < Profile.Rules.Progression.Thresholds.Num(); ++N)
     {
         const auto &T = Profile.Rules.Progression.Thresholds[N];
-        if (!Ready(T))
+        if (!LHCharacterAuthorityPrivate::Ready(T))
             return ELHCommandReason::UnresolvedRules;
         if (Profile.Rules.Progression.InitialLevel.Value + N > C.EarnedLevel.Value && T.Value <= Balance)
             ++Count;
@@ -748,7 +761,7 @@ ELHCommandReason FLHCharacterAuthority::GrantExperience(int64 Gain)
     const auto *Stored =
         State.Session.GameplayRng.FindByPredicate([](const auto &R) { return R.StreamId == TEXT("RNG.Growth"); });
     int32 GrowthSeed;
-    if (!Stored || !Decode(*Stored, GrowthSeed))
+    if (!Stored || !LHCharacterAuthorityPrivate::Decode(*Stored, GrowthSeed))
         return ELHCommandReason::InvalidRequest;
     FRandomStream Random(GrowthSeed);
     TSet<FGuid> IDs;
@@ -767,7 +780,7 @@ ELHCommandReason FLHCharacterAuthority::GrantExperience(int64 Gain)
     }
     const auto Advanced = Advance(Profile.Rules.Progression, I);
     if (!Advanced.Diagnostic.IsAccepted())
-        return Reason(Advanced.Diagnostic);
+        return LHCharacterAuthorityPrivate::Reason(Advanced.Diagnostic);
     FLHSaveSnapshot Next = State;
     auto &NC = Next.Character;
     const auto &A = Advanced.Value;
@@ -781,10 +794,10 @@ ELHCommandReason FLHCharacterAuthority::GrantExperience(int64 Gain)
     for (int32 N = 0; N < A.Awards.Num(); ++N)
     {
         auto Award = A.Awards[N];
-        Award.RollInputs.Add(Pair(A.AcceptedRolls[N]));
+        Award.RollInputs.Add(LHCharacterAuthorityPrivate::Pair(A.AcceptedRolls[N]));
         NC.GrowthAwards.Add(Award);
     }
-    PutRng(Next, Rng(Random.GetCurrentSeed(), TEXT("RNG.Growth")));
+    LHCharacterAuthorityPrivate::PutRng(Next, LHCharacterAuthorityPrivate::Rng(Random.GetCurrentSeed(), TEXT("RNG.Growth")));
     const auto Valid = Validate(Next);
     if (Valid != ELHCommandReason::None)
         return Valid;
@@ -794,6 +807,7 @@ ELHCommandReason FLHCharacterAuthority::GrantExperience(int64 Gain)
 }
 ELHCommandReason FLHCharacterAuthority::AddExperienceDebt(int64 Amount)
 {
+    using namespace LH::Rules;
     check(IsInGameThread());
     if (!State.Header.CharacterId.Value.IsValid() || Amount < 0 ||
         Amount > MAX_int64 - State.Character.ExperienceDebt.Value || State.Header.TransactionSequence == MAX_int64)
@@ -809,6 +823,7 @@ ELHCommandReason FLHCharacterAuthority::AddExperienceDebt(int64 Amount)
 }
 ELHCommandReason FLHCharacterAuthority::AddItem(const FLHItemInstance &Item)
 {
+    using namespace LH::Rules;
     check(IsInGameThread());
     if (!State.Header.CharacterId.Value.IsValid() || State.Header.TransactionSequence == MAX_int64)
         return ELHCommandReason::InvalidRequest;
@@ -823,15 +838,16 @@ ELHCommandReason FLHCharacterAuthority::AddItem(const FLHItemInstance &Item)
 }
 ELHCommandReason FLHCharacterAuthority::RemoveItem(const FLHEntityId &Item, int64 Quantity)
 {
+    using namespace LH::Rules;
     check(IsInGameThread());
     if (Quantity <= 0 || State.Header.TransactionSequence == MAX_int64)
         return ELHCommandReason::InvalidRequest;
     FLHSaveSnapshot Next = State;
     auto &C = Next.Character;
-    const int32 Index = C.Inventory.IndexOfByPredicate([&](const auto &I) { return EntityEqual(Item, I.Id); });
+    const int32 Index = C.Inventory.IndexOfByPredicate([&](const auto &I) { return LHCharacterAuthorityPrivate::EntityEqual(Item, I.Id); });
     if (Index == INDEX_NONE)
         return ELHCommandReason::NotFound;
-    if (C.Equipment.ContainsByPredicate([&](const auto &B) { return EntityEqual(B.Item, Item); }))
+    if (C.Equipment.ContainsByPredicate([&](const auto &B) { return LHCharacterAuthorityPrivate::EntityEqual(B.Item, Item); }))
         return ELHCommandReason::InvalidEquipment;
     if (Quantity > C.Inventory[Index].Quantity.Value)
         return ELHCommandReason::InvalidRequest;
@@ -847,6 +863,7 @@ ELHCommandReason FLHCharacterAuthority::RemoveItem(const FLHEntityId &Item, int6
 }
 void FLHCharacterAuthority::Export(FLHSaveSnapshot &Out) const
 {
+    using namespace LH::Rules;
     Out.Character = State.Character;
     Out.Header.CharacterId = State.Header.CharacterId;
     Out.Header.TransactionSequence = State.Header.TransactionSequence;
@@ -856,10 +873,11 @@ void FLHCharacterAuthority::Export(FLHSaveSnapshot &Out) const
     Out.Session.RecentRequests = State.Session.RecentRequests;
     for (const auto &R : State.Session.GameplayRng)
         if (R.StreamId == TEXT("RNG.Creation") || R.StreamId == TEXT("RNG.Growth"))
-            PutRng(Out, R);
+            LHCharacterAuthorityPrivate::PutRng(Out, R);
 }
 ELHCommandReason FLHCharacterAuthority::Import(const FLHSaveSnapshot &S)
 {
+    using namespace LH::Rules;
     check(IsInGameThread());
     if (!bInitialized || S.Header.SchemaVersion != 1 || S.Header.TransactionSequence <= 0 ||
         S.Session.RecentRequests.Num() > 4096)
@@ -886,7 +904,7 @@ ELHCommandReason FLHCharacterAuthority::Import(const FLHSaveSnapshot &S)
         if (R.StreamId == TEXT("RNG.Creation") || R.StreamId == TEXT("RNG.Growth"))
         {
             int32 Value;
-            if (!Decode(R, Value))
+            if (!LHCharacterAuthorityPrivate::Decode(R, Value))
                 return ELHCommandReason::InvalidRequest;
             if (R.StreamId == TEXT("RNG.Creation"))
                 CreationSeed = Value;

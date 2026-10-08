@@ -3,7 +3,7 @@
 #include "Misc/SecureHash.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
-namespace
+namespace LHCharacterTestsPrivate
 {
 using namespace LH::Rules;
 constexpr auto Flags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
@@ -189,13 +189,14 @@ bool Equal(const FLHSaveSnapshot &A, const FLHSaveSnapshot &B)
 }
 } // namespace
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterCreationTest, "Lighthaven.Character.CreationAndReplay", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterCreationTest, "Lighthaven.Character.CreationAndReplay", LHCharacterTestsPrivate::Flags)
 bool FLHCharacterCreationTest::RunTest(const FString &)
 {
+    using namespace LH::Rules;
     FLHCharacterAuthority A;
-    TestTrue(TEXT("Initialize"), A.Initialize(Profile(), Epoch(), 123));
-    auto First = Create(A);
-    auto Current = Create(A);
+    TestTrue(TEXT("Initialize"), A.Initialize(LHCharacterTestsPrivate::Profile(), LHCharacterTestsPrivate::Epoch(), 123));
+    auto First = LHCharacterTestsPrivate::Create(A);
+    auto Current = LHCharacterTestsPrivate::Create(A);
     TestTrue(TEXT("Old reroll token invalid"), A.Execute(First).Disposition == ELHCommandDisposition::Rejected);
     auto Forged = Current;
     Forged.Creation.AcceptedAttributes.Strength.Value++;
@@ -208,73 +209,75 @@ bool FLHCharacterCreationTest::RunTest(const FString &)
     FLHSaveSnapshot After;
     A.Export(After);
     TestTrue(TEXT("Idempotent receipt"),
-             Replay.bReplay && Replay.CommittedSequence == Result.CommittedSequence && Equal(Before, After));
+             Replay.bReplay && Replay.CommittedSequence == Result.CommittedSequence && LHCharacterTestsPrivate::Equal(Before, After));
     auto Changed = Current;
     Changed.DisplayName = TEXT("Other");
     TestTrue(TEXT("Reused ID changed payload"), A.Execute(Changed).Reason == ELHCommandReason::ReusedRequestId);
     TestEqual(TEXT("Body expands bundled face"), A.Record().AppearanceIds.Num(), 5);
     TestEqual(TEXT("Creation retained"), A.Record().Creation.AcceptedAttributes.Strength.Value, int64(10));
     FLHCharacterAuthority Loaded;
-    Loaded.Initialize(Profile(), Epoch(), 321);
+    Loaded.Initialize(LHCharacterTestsPrivate::Profile(), LHCharacterTestsPrivate::Epoch(), 321);
     TestTrue(TEXT("Import"), Loaded.Import(Before) == ELHCommandReason::None);
     TestTrue(TEXT("Replay after load"), Loaded.Execute(Current).bReplay);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterAtomicTest, "Lighthaven.Character.AtomicRejectionsAndCapacity", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterAtomicTest, "Lighthaven.Character.AtomicRejectionsAndCapacity", LHCharacterTestsPrivate::Flags)
 bool FLHCharacterAtomicTest::RunTest(const FString &)
 {
+    using namespace LH::Rules;
     FLHCharacterAuthority A;
-    A.Initialize(Profile(), Epoch(), 123);
+    A.Initialize(LHCharacterTestsPrivate::Profile(), LHCharacterTestsPrivate::Epoch(), 123);
     FLHSaveSnapshot Before;
     A.Export(Before);
-    auto Bad = Answers();
+    auto Bad = LHCharacterTestsPrivate::Answers();
     Bad[1].Question = Bad[0].Question;
     FLHCharacterPreview Preview;
     TestTrue(TEXT("Invalid answers"), A.Preview(Bad, Preview) != ELHCommandReason::None);
     FLHSaveSnapshot After;
     A.Export(After);
-    TestTrue(TEXT("Invalid preview no state change"), Equal(Before, After));
-    auto CreateRequest = Create(A);
+    TestTrue(TEXT("Invalid preview no state change"), LHCharacterTestsPrivate::Equal(Before, After));
+    auto CreateRequest = LHCharacterTestsPrivate::Create(A);
     TestTrue(TEXT("Create"), A.Execute(CreateRequest).Disposition == ELHCommandDisposition::Accepted);
     FLHAllocateAttributePointsRequest R;
-    R.Request = Request();
-    R.Points = B(-1);
+    R.Request = LHCharacterTestsPrivate::Request();
+    R.Points = LHCharacterTestsPrivate::B(-1);
     A.Export(Before);
     TestTrue(TEXT("Negative allocation rejects"), A.Execute(R).Disposition == ELHCommandDisposition::Rejected);
-    R.Request = Request();
-    R.Points = B(11);
+    R.Request = LHCharacterTestsPrivate::Request();
+    R.Points = LHCharacterTestsPrivate::B(11);
     TestTrue(TEXT("Excess pool rejects"), A.Execute(R).Reason == ELHCommandReason::InsufficientPoints);
-    R.Request = Request();
-    R.Points = B(1);
+    R.Request = LHCharacterTestsPrivate::Request();
+    R.Points = LHCharacterTestsPrivate::B(1);
     R.Points.Wisdom.Resolution = ELHValueResolution::Unresolved;
     TestTrue(TEXT("Missing zero rejects"), A.Execute(R).Disposition == ELHCommandDisposition::Rejected);
-    auto Unknown = Item(A, TEXT("Item.Unknown"));
+    auto Unknown = LHCharacterTestsPrivate::Item(A, TEXT("Item.Unknown"));
     TestTrue(TEXT("Unknown definition"), A.AddItem(Unknown) == ELHCommandReason::UnresolvedRules);
     A.Export(After);
-    TestTrue(TEXT("Rejected commands no partial mutation"), Equal(Before, After));
-    R.Request = Request();
-    R.Points = B(2);
+    TestTrue(TEXT("Rejected commands no partial mutation"), LHCharacterTestsPrivate::Equal(Before, After));
+    R.Request = LHCharacterTestsPrivate::Request();
+    R.Points = LHCharacterTestsPrivate::B(2);
     TestTrue(TEXT("Legal allocation"), A.Execute(R).Disposition == ELHCommandDisposition::Accepted);
     TestEqual(TEXT("Pool conservation"), A.Record().UnspentAttributePoints.Value, int64(8));
     TestEqual(TEXT("Accepted roll remains original"), A.Record().Creation.AcceptedAttributes.Strength.Value, int64(10));
-    auto Bow = Item(A, TEXT("Item.TestBow"));
-    auto Q = Item(A, TEXT("Item.TestQuiver"));
+    auto Bow = LHCharacterTestsPrivate::Item(A, TEXT("Item.TestBow"));
+    auto Q = LHCharacterTestsPrivate::Item(A, TEXT("Item.TestQuiver"));
     TestTrue(TEXT("Add bow"), A.AddItem(Bow) == ELHCommandReason::None);
     TestTrue(TEXT("Add quiver"), A.AddItem(Q) == ELHCommandReason::None);
     A.Export(Before);
-    TestTrue(TEXT("Full capacity"), A.AddItem(Item(A, TEXT("Item.TestQuiver"))) == ELHCommandReason::InventoryFull);
+    TestTrue(TEXT("Full capacity"), A.AddItem(LHCharacterTestsPrivate::Item(A, TEXT("Item.TestQuiver"))) == ELHCommandReason::InventoryFull);
     A.Export(After);
-    TestTrue(TEXT("Capacity atomic"), Equal(Before, After));
+    TestTrue(TEXT("Capacity atomic"), LHCharacterTestsPrivate::Equal(Before, After));
     TestTrue(TEXT("Remove"), A.RemoveItem(Q.Id, 1) == ELHCommandReason::None);
     TestTrue(TEXT("Add after removal"), A.AddItem(Q) == ELHCommandReason::None);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterGrowthTest, "Lighthaven.Character.MultiLevelAndDebt", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterGrowthTest, "Lighthaven.Character.MultiLevelAndDebt", LHCharacterTestsPrivate::Flags)
 bool FLHCharacterGrowthTest::RunTest(const FString &)
 {
+    using namespace LH::Rules;
     FLHCharacterAuthority A;
-    A.Initialize(Profile(), Epoch(), 123);
-    A.Execute(Create(A));
+    A.Initialize(LHCharacterTestsPrivate::Profile(), LHCharacterTestsPrivate::Epoch(), 123);
+    A.Execute(LHCharacterTestsPrivate::Create(A));
     TestTrue(TEXT("Multi-level"), A.GrantExperience(300) == ELHCommandReason::None);
     TestEqual(TEXT("Earned level"), A.Record().EarnedLevel.Value, int64(3));
     TestEqual(TEXT("One record each"), A.Record().GrowthAwards.Num(), 2);
@@ -299,84 +302,86 @@ bool FLHCharacterGrowthTest::RunTest(const FString &)
     TestTrue(TEXT("Overflow rejects"), A.GrantExperience(MAX_int64) == ELHCommandReason::InvalidRequest);
     FLHSaveSnapshot After;
     A.Export(After);
-    TestTrue(TEXT("Overflow atomic"), Equal(Before, After));
+    TestTrue(TEXT("Overflow atomic"), LHCharacterTestsPrivate::Equal(Before, After));
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterEquipmentTest, "Lighthaven.Character.EquipmentQuiverAndSnapshot", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterEquipmentTest, "Lighthaven.Character.EquipmentQuiverAndSnapshot", LHCharacterTestsPrivate::Flags)
 bool FLHCharacterEquipmentTest::RunTest(const FString &)
 {
+    using namespace LH::Rules;
     FLHCharacterAuthority A;
-    A.Initialize(Profile(), Epoch(), 123);
-    A.Execute(Create(A));
-    auto Bow = Item(A, TEXT("Item.TestBow"));
-    auto Q = Item(A, TEXT("Item.TestQuiver"));
+    A.Initialize(LHCharacterTestsPrivate::Profile(), LHCharacterTestsPrivate::Epoch(), 123);
+    A.Execute(LHCharacterTestsPrivate::Create(A));
+    auto Bow = LHCharacterTestsPrivate::Item(A, TEXT("Item.TestBow"));
+    auto Q = LHCharacterTestsPrivate::Item(A, TEXT("Item.TestQuiver"));
     A.AddItem(Bow);
     A.AddItem(Q);
     const auto Base = A.Stats().Value;
     FLHSaveSnapshot Before;
     A.Export(Before);
     TestTrue(TEXT("Backpack quiver insufficient"),
-             A.Execute(Equip(Bow, ELHEquipmentSlot::MainHand)).Reason == ELHCommandReason::Ineligible);
+             A.Execute(LHCharacterTestsPrivate::Equip(Bow, ELHEquipmentSlot::MainHand)).Reason == ELHCommandReason::Ineligible);
     FLHSaveSnapshot After;
     A.Export(After);
-    TestTrue(TEXT("Failed equip atomic"), Equal(Before, After));
+    TestTrue(TEXT("Failed equip atomic"), LHCharacterTestsPrivate::Equal(Before, After));
     TestTrue(TEXT("Quiver first class"),
-             A.Execute(Equip(Q, ELHEquipmentSlot::Quiver)).Disposition == ELHCommandDisposition::Accepted);
+             A.Execute(LHCharacterTestsPrivate::Equip(Q, ELHEquipmentSlot::Quiver)).Disposition == ELHCommandDisposition::Accepted);
     TestTrue(TEXT("Bow with equipped compatible quiver"),
-             A.Execute(Equip(Bow, ELHEquipmentSlot::MainHand)).Disposition == ELHCommandDisposition::Accepted);
+             A.Execute(LHCharacterTestsPrivate::Equip(Bow, ELHEquipmentSlot::MainHand)).Disposition == ELHCommandDisposition::Accepted);
     TestEqual(TEXT("Canonical modifier applied once"), A.Stats().Value.Effective.Strength, int64(12));
     TestEqual(TEXT("Derived modifier"), A.Stats().Value.Accuracy, 4.0);
     TestTrue(TEXT("Cannot remove required quiver"),
-             A.Execute(Equip(Q, ELHEquipmentSlot::Quiver, true)).Disposition == ELHCommandDisposition::Rejected);
+             A.Execute(LHCharacterTestsPrivate::Equip(Q, ELHEquipmentSlot::Quiver, true)).Disposition == ELHCommandDisposition::Rejected);
     TestTrue(TEXT("Equipped inventory removal rejects"), A.RemoveItem(Q.Id, 1) == ELHCommandReason::InvalidEquipment);
     A.Export(Before);
     FLHCharacterAuthority Loaded;
-    Loaded.Initialize(Profile(), Epoch(), 456);
+    Loaded.Initialize(LHCharacterTestsPrivate::Profile(), LHCharacterTestsPrivate::Epoch(), 456);
     TestTrue(TEXT("Import equipped"), Loaded.Import(Before) == ELHCommandReason::None);
     Loaded.Export(After);
-    TestTrue(TEXT("Equal full record roundtrip"), Equal(Before, After));
+    TestTrue(TEXT("Equal full record roundtrip"), LHCharacterTestsPrivate::Equal(Before, After));
     TestEqual(TEXT("Derived rebuild"), Loaded.Stats().Value.Accuracy, 4.0);
     TestTrue(TEXT("Unequip bow"),
-             A.Execute(Equip(Bow, ELHEquipmentSlot::MainHand, true)).Disposition == ELHCommandDisposition::Accepted);
+             A.Execute(LHCharacterTestsPrivate::Equip(Bow, ELHEquipmentSlot::MainHand, true)).Disposition == ELHCommandDisposition::Accepted);
     TestTrue(TEXT("Unequip quiver"),
-             A.Execute(Equip(Q, ELHEquipmentSlot::Quiver, true)).Disposition == ELHCommandDisposition::Accepted);
+             A.Execute(LHCharacterTestsPrivate::Equip(Q, ELHEquipmentSlot::Quiver, true)).Disposition == ELHCommandDisposition::Accepted);
     TestEqual(TEXT("Strength symmetry"), A.Stats().Value.Effective.Strength, Base.Effective.Strength);
     TestEqual(TEXT("Accuracy symmetry"), A.Stats().Value.Accuracy, Base.Accuracy);
     return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterUnresolvedTest, "Lighthaven.Character.UnresolvedAndImportValidation",
-                                 Flags)
+                                 LHCharacterTestsPrivate::Flags)
 bool FLHCharacterUnresolvedTest::RunTest(const FString &)
 {
-    auto P = Profile();
+    using namespace LH::Rules;
+    auto P = LHCharacterTestsPrivate::Profile();
     P.InitialGold.Resolution = ELHValueResolution::Unresolved;
     FLHCharacterAuthority Missing;
-    Missing.Initialize(P, Epoch(), 123);
-    auto C = Create(Missing);
+    Missing.Initialize(P, LHCharacterTestsPrivate::Epoch(), 123);
+    auto C = LHCharacterTestsPrivate::Create(Missing);
     FLHSaveSnapshot Before, After;
     Missing.Export(Before);
     TestTrue(TEXT("Missing starting gold rejects"), Missing.Execute(C).Reason == ELHCommandReason::UnresolvedRules);
     Missing.Export(After);
-    TestTrue(TEXT("No partial creation"), Equal(Before, After));
-    P = Profile();
+    TestTrue(TEXT("No partial creation"), LHCharacterTestsPrivate::Equal(Before, After));
+    P = LHCharacterTestsPrivate::Profile();
     P.Items[1].Eligibility.MinimumAttributes.Wisdom.Resolution = ELHValueResolution::Unresolved;
     FLHCharacterAuthority A;
-    A.Initialize(P, Epoch(), 123);
-    A.Execute(Create(A));
-    auto Q = Item(A, TEXT("Item.TestQuiver"));
+    A.Initialize(P, LHCharacterTestsPrivate::Epoch(), 123);
+    A.Execute(LHCharacterTestsPrivate::Create(A));
+    auto Q = LHCharacterTestsPrivate::Item(A, TEXT("Item.TestQuiver"));
     A.AddItem(Q);
     A.Export(Before);
     TestTrue(TEXT("Unresolved zero is not unrestricted"),
-             A.Execute(Equip(Q, ELHEquipmentSlot::Quiver)).Reason == ELHCommandReason::UnresolvedRules);
+             A.Execute(LHCharacterTestsPrivate::Equip(Q, ELHEquipmentSlot::Quiver)).Reason == ELHCommandReason::UnresolvedRules);
     A.Export(After);
-    TestTrue(TEXT("Requirements reject atomically"), Equal(Before, After));
+    TestTrue(TEXT("Requirements reject atomically"), LHCharacterTestsPrivate::Equal(Before, After));
     FLHCharacterAuthority B;
-    B.Initialize(Profile(), Epoch(), 123);
-    B.Execute(Create(B));
+    B.Initialize(LHCharacterTestsPrivate::Profile(), LHCharacterTestsPrivate::Epoch(), 123);
+    B.Execute(LHCharacterTestsPrivate::Create(B));
     B.GrantExperience(300);
     B.Export(Before);
     FLHCharacterAuthority Loaded;
-    Loaded.Initialize(Profile(), Epoch(), 123);
+    Loaded.Initialize(LHCharacterTestsPrivate::Profile(), LHCharacterTestsPrivate::Epoch(), 123);
     TestTrue(TEXT("Valid history"), Loaded.Import(Before) == ELHCommandReason::None);
     Loaded.Export(After);
     auto Corrupt = Before;
@@ -389,17 +394,17 @@ bool FLHCharacterUnresolvedTest::RunTest(const FString &)
     Corrupt.Character.BaseAttributes.Strength.Value++;
     TestTrue(TEXT("Allocation conservation rejects"), Loaded.Import(Corrupt) == ELHCommandReason::InvalidRequest);
     Corrupt = Before;
-    Corrupt.Character.Inventory.Add(Item(B, TEXT("Item.TestQuiver")));
+    Corrupt.Character.Inventory.Add(LHCharacterTestsPrivate::Item(B, TEXT("Item.TestQuiver")));
     Corrupt.Character.Inventory.Add(Corrupt.Character.Inventory[0]);
     TestTrue(TEXT("Duplicate instance rejects"), Loaded.Import(Corrupt) == ELHCommandReason::InvalidRequest);
     FLHSaveSnapshot Unchanged;
     Loaded.Export(Unchanged);
-    TestTrue(TEXT("Bad loads retain previous state"), Equal(After, Unchanged));
+    TestTrue(TEXT("Bad loads retain previous state"), LHCharacterTestsPrivate::Equal(After, Unchanged));
     TestTrue(TEXT("Continue original"), B.GrantExperience(300) == ELHCommandReason::None);
     TestTrue(TEXT("Continue restored"), Loaded.GrantExperience(300) == ELHCommandReason::None);
     B.Export(Before);
     Loaded.Export(After);
-    TestTrue(TEXT("RNG/history continuation equal"), Equal(Before, After));
+    TestTrue(TEXT("RNG/history continuation equal"), LHCharacterTestsPrivate::Equal(Before, After));
     return true;
 }
 #endif

@@ -15,7 +15,7 @@
 #include "CoreGlobals.h"
 #include "UObject/UObjectGlobals.h"
 #if WITH_DEV_AUTOMATION_TESTS
-namespace
+namespace LHIntegrationTestsPrivate
 {
 FLHNumber Number(double V)
 {
@@ -110,10 +110,10 @@ struct FFixture
 };
 constexpr auto Flags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHControlsCombatIntegration, "Lighthaven.Integration.ControlsCombat", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHControlsCombatIntegration, "Lighthaven.Integration.ControlsCombat", LHIntegrationTestsPrivate::Flags)
 bool FLHControlsCombatIntegration::RunTest(const FString&)
 {
-    FFixture F;
+    LHIntegrationTestsPrivate::FFixture F;
     TestTrue(TEXT("Pawn forwards PlayerState ASC"), F.Source->GetAbilitySystemComponent()==F.Attacker);
     F.Target->SetActorLocation(FVector(300,0,0));
     F.Controller->CycleTarget(1);
@@ -147,10 +147,10 @@ bool FLHControlsCombatIntegration::RunTest(const FString&)
     TestFalse(TEXT("Unpossess clears live combat avatar"), F.Attacker->IsAlive());
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHContextIntegration, "Lighthaven.Integration.ContextClearsMovement", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHContextIntegration, "Lighthaven.Integration.ContextClearsMovement", LHIntegrationTestsPrivate::Flags)
 bool FLHContextIntegration::RunTest(const FString&)
 {
-    FFixture F;
+    LHIntegrationTestsPrivate::FFixture F;
     F.Controller->SubmitMovement(FVector2D::ZeroVector);
     F.Controller->SubmitMovement(FVector2D(1,1));
     F.Source->AddMovementInput(FVector::ForwardVector, 1);
@@ -168,10 +168,10 @@ bool FLHContextIntegration::RunTest(const FString&)
     TestFalse(TEXT("Neutral then new input accepted"), F.Controller->GetHeldMovement().IsNearlyZero());
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeadPlayerMovementTest, "Lighthaven.Integration.DeadPlayerMovement", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeadPlayerMovementTest, "Lighthaven.Integration.DeadPlayerMovement", LHIntegrationTestsPrivate::Flags)
 bool FLHDeadPlayerMovementTest::RunTest(const FString&)
 {
-    FFixture F;
+    LHIntegrationTestsPrivate::FFixture F;
     // This transient world has no floor; flying isolates locomotion from gravity.
     F.Source->GetCharacterMovement()->SetMovementMode(MOVE_Flying);
     F.Attacker->SetNumericAttributeBase(ULHAttributeSet::GetHealthAttribute(), 10);
@@ -222,7 +222,7 @@ bool FLHDeadPlayerMovementTest::RunTest(const FString&)
 }
 // A native subsystem adapter installs the exact runtime mappings without a window
 // or LocalPlayer startup. No movement setter or action injection is used.
-namespace
+namespace LHIntegrationTestsPrivate
 {
 struct FInputFixture : IEnhancedInputSubsystemInterface
 {
@@ -252,10 +252,10 @@ struct FInputFixture : IEnhancedInputSubsystemInterface
     }
 };
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHHeldMovementAttack, "Lighthaven.Integration.HeldMovementThroughAttack", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHHeldMovementAttack, "Lighthaven.Integration.HeldMovementThroughAttack", LHIntegrationTestsPrivate::Flags)
 bool FLHHeldMovementAttack::RunTest(const FString&)
 {
-    FInputFixture F;
+    LHIntegrationTestsPrivate::FInputFixture F;
     F.Key(IE_Pressed); F.Tick();
     TestTrue(TEXT("Real D mapping produces movement"), !F.Game.Controller->GetHeldMovement().IsNearlyZero());
     TestTrue(TEXT("Select target"), F.Game.Controller->SelectTarget(F.Game.Target));
@@ -288,10 +288,10 @@ bool FLHHeldMovementAttack::RunTest(const FString&)
     TestFalse(TEXT("Fresh press moves pawn"), F.Game.Source->GetActorLocation().Equals(Stopped,0.01f));
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHHeldMovementContext, "Lighthaven.Integration.HeldMovementThroughContext", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHHeldMovementContext, "Lighthaven.Integration.HeldMovementThroughContext", LHIntegrationTestsPrivate::Flags)
 bool FLHHeldMovementContext::RunTest(const FString&)
 {
-    FInputFixture F;
+    LHIntegrationTestsPrivate::FInputFixture F;
     F.Key(IE_Pressed); F.Tick();
     TestFalse(TEXT("Mapped movement established"), F.Game.Controller->GetHeldMovement().IsNearlyZero());
     F.Game.Controller->SetControlContext(ELHInputContext::UI);

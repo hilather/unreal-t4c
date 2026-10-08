@@ -6,13 +6,18 @@ if [[ $# -gt 1 || (${1:-} != "" && ${1:-} != "--game") ]]; then
     echo "Usage: $0 [--game] (also build Lighthaven game target)" >&2
     exit 2
 fi
+# Opt in to independent translation units: LH_NO_UNITY=1 bash build/build-linux.sh --game
+unity_args=()
+if [[ ${LH_NO_UNITY:-0} == 1 ]]; then
+    unity_args+=(-DisableUnity)
+fi
 builder="$UE_ROOT/Engine/Build/BatchFiles/Linux/Build.sh"
 [[ -f "$builder" ]] || { echo "Build script missing: $builder" >&2; exit 1; }
 log_dir="$LH_BUILD_DIR/logs/Build-$(date -u +%Y%m%dT%H%M%SZ)-$$"
 mkdir -p -- "$log_dir"
 cd -- "$LH_PROJECT_ROOT"
-bash "$builder" LighthavenEditor Linux Development "-Project=$LH_PROJECT" -WaitMutex 2>&1 | tee "$log_dir/editor.log"
+bash "$builder" LighthavenEditor Linux Development "-Project=$LH_PROJECT" -WaitMutex "${unity_args[@]}" 2>&1 | tee "$log_dir/editor.log"
 if [[ ${1:-} == "--game" ]]; then
-    bash "$builder" Lighthaven Linux Development "-Project=$LH_PROJECT" -WaitMutex 2>&1 | tee "$log_dir/game.log"
+    bash "$builder" Lighthaven Linux Development "-Project=$LH_PROJECT" -WaitMutex "${unity_args[@]}" 2>&1 | tee "$log_dir/game.log"
 fi
 echo "Build logs: $log_dir"
