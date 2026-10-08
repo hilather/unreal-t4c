@@ -253,7 +253,11 @@ bool FLHWave2InputHandoff::RunTest(const FString&)
     // Headless automation has no SViewport: exercise both controllers' runtime
     // input application seams against the same viewport and local subsystem.
     auto* Instance=NewObject<UGameInstance>(GEngine);
-    auto* Local=NewObject<ULocalPlayer>(Instance); Local->PlayerAdded(Viewport,0);
+    auto* Local=NewObject<ULocalPlayer>(GEngine);
+    Instance->AddLocalPlayer(Local,FPlatformUserId::CreateFromInternalId(0));
+    // The standalone test instance has no world context; attach its headless
+    // viewport after registration has initialized the local player subsystems.
+    Local->ViewportClient=Viewport;
     R.Controller->Player=Local; Local->PlayerController=R.Controller;
     auto* Frontend=R.World->SpawnActor<ALHFrontendController>();
     Frontend->EstablishFrontendInput();
@@ -268,7 +272,7 @@ bool FLHWave2InputHandoff::RunTest(const FString&)
     TestTrue(TEXT("pointer remains visible for selection"),R.Controller->bShowMouseCursor);
     Frontend->EstablishFrontendInput(); Frontend->EndPlay(EEndPlayReason::LevelTransition);
     TestFalse(TEXT("frontend handoff restores defaults"),Viewport->IgnoreInput());
-    R.Controller->Player=nullptr; Local->PlayerController=nullptr; Local->PlayerRemoved(); Context->GameViewport=nullptr;
+    R.Controller->Player=nullptr; Local->PlayerController=nullptr; Instance->RemoveLocalPlayer(Local); Context->GameViewport=nullptr;
     return true;
 }
 #endif
