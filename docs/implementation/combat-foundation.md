@@ -73,3 +73,11 @@ replaces onto a second live target. The zero-second cooldown used to expose
 re-entrancy is explicitly synthetic Prototype tuning, not a production change.
 Existing tests and assertions remain in place. Runtime execution is reserved for
 the non-root host; see the G1-FIX report for compilation evidence.
+
+G1-FIX compilation: `UE_ROOT=/home/brewerm/Downloads/unreal bash build/build-linux.sh --game`
+exited 0 against UE 5.8.3; editor (including all test sources) and game both
+reported `Result: Succeeded` (UBT 237.24 s / 177.32 s). UBA cache-store tasks
+reported warnings; compilation and linking succeeded. `git diff --check` passed.
+No Automation, editor session, cook, package or play was run: UID 0 cannot
+initialize Unreal. Coordinator must run all 28 `Lighthaven` tests on the non-root
+host and retain the G1 manual/device checks; no gate result is claimed.

@@ -123,3 +123,11 @@ but mismatched avatar. The floorless transient fixture uses flying movement to
 isolate locomotion from gravity. Both devices share semantic ingress; hardware
 and focused viewport validation remain host checks. All existing 24 tests retain
 their assertions; the four added tests bring the suite to 28.
+
+G1-FIX compilation: `UE_ROOT=/home/brewerm/Downloads/unreal bash build/build-linux.sh --game`
+exited 0 against UE 5.8.3; editor (including all test sources) and game both
+reported `Result: Succeeded` (UBT 237.24 s / 177.32 s). UBA cache-store tasks
+reported warnings; compilation and linking succeeded. `git diff --check` passed.
+No Automation, editor session, cook, package or play was run: UID 0 cannot
+initialize Unreal. Coordinator must run all 28 `Lighthaven` tests on the non-root
+host and retain the G1 manual/device checks; no gate result is claimed.
