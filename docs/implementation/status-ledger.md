@@ -71,3 +71,8 @@ Open (Windows phase): Unreal writes project `Build/` (e.g. Build/Linux/FileOpenO
 | V-03 UI visual style guide | integrated (first pass) | codex-astra | docs/implementation/ui/style/ | Tokens, typography, iconography, controller glyph policy, widget states from approved V-02/A-01/A-02; consumable by W2-03 C++ widgets |
 
 **Incident 2026-10-08 (W2 launch):** W2-01..03 were reserved, then the coordinator wrote project memory (the art-direction record) before their briefs were prepared. The frozen knowledge snapshot went stale and the ticker looped on prepare-brief ("memory changed after knowledge selection"), so the workers never received briefs (usage not_bound). No work was lost. Recovery: cancel-attempt, stop, and relaunch each task in order. **Rule: finish all memory and ledger writes before reserving launches; never write memory between reserve and launch** (farm fix BRIEF-SNAPSHOT-STALE-1). W2-03's relaunch brief includes the V-03 style guide.
+
+| Task | Status | Profile | Owned paths / binary assets | Notes |
+|---|---|---|---|---|
+| W2-02d character on current main + unity-safe helpers | submitted; host build OK; host tests crash | codex-sol | Character/, 8 .cpp namespace edits | Crash in Lighthaven.Character.UnresolvedAndImportValidation: TArray self-aliasing at LHCharacterTests.cpp:398 (test only). 13 tests passed before the crash |
+| W2-02e character test self-aliasing fix | **HELD** (launch refused twice on herdr-farm 4d26d2f) | codex-sol | LighthavenTests/Character/ | Refusal at profile probe: "native probe did not establish prompt readiness (process_observation_failed) … pidfd observation unavailable". Reported to Shepherd |
