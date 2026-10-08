@@ -26,6 +26,12 @@ if [[ -z "${XDG_CONFIG_HOME:-}" ]]; then
     export XDG_CONFIG_HOME="$LH_PROJECT_ROOT/Saved/BuildEnvironment/config"
     mkdir -p -- "$XDG_CONFIG_HOME"
 fi
+# Keep UBA's writable store beside the project's other generated build data.
+# Respect an explicit caller root, as with XDG_CONFIG_HOME above.
+if [[ -z "${UBA_ROOT:-}" ]]; then
+    export UBA_ROOT="$LH_PROJECT_ROOT/Saved/UBA"
+    mkdir -p -- "$UBA_ROOT"
+fi
 if ! command -v python3 >/dev/null 2>&1; then
     echo "python3 is required to read Build.version and Automation reports." >&2
     exit 1
