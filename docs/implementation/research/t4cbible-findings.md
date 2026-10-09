@@ -999,3 +999,14 @@ All raw HTML and PDF files and their text conversions are under `/tmp/claude-100
 - `wb/`: Wayback captures, including `exp.pdf` / `exp.txt` and `chapNN.htm`
 - `other/`: nostalgia HTML and `nostalgia_main.js`, `jol.html`, `pb.html`, `fantasy_monster.html`
 - `cdx_bible2.txt`: CDX listing
+
+
+## 11. R-03 append — Wave 4 lookup, 2026-10-09
+
+Fresh successful live web reads: https://www.t4cbible.com/monster (lowercase), https://www.t4cbible.com/monster1 (lowercase), https://www.t4cbible.com/Spells, /skills, /traders, /Potions, /spelldesciprt, /Items, /Weapon, /Armor, /ArakasQuest and /npc. These are cached web-tool responses accessed2026-10-09; version unstated. Complete value/status/source/Prototype coverage is in [w4-bible-lookup.md](w4-bible-lookup.md). No Source files edited and no runtime tests performed.
+
+Key new facts: Armor cloth pants/vest all requirements0; Light illuminates caster vicinity600s/10 MP; Heal Light restores self/friendly target2 MP but amount not specified. ArakasQuest explicitly puts Undead Bats on B2, confirms Uranos Skull Dagger+2500 XP, and describes Nevanis healing without numeric amount/cost/restrictions. Neither wing count nor odds is stated. Dark Fang's level<6 healing is a separate service. Numeric grants for starting HP/MP/gold/skills/kit remain unrecovered. Monster HP/XP/melee/live gold/loot match §8; classic conflicts are retained. Attack/Dodge/Archery lack the live100 cap. Balork respawn15:00 remains confirmed; owner-selected recurring respawn supersedes old campaign permanent defeat, completion single-claim stays separate.
+
+Classic C1/C2/C3/C5/C6/C7/C8/B1/B2/various.html and id_ retry for C1/C2/C3 could not be accessed via web. Direct shell HTTP to Bible was rejected by sandbox domain allowlist. Thus §§2–8 classic quotations remain inherited2026-10-07 evidence, not new retrievals. No PDF/binary/image downloaded. Missing denotes search/access limitations, not an exhaustive absence claim. Domain-scoped queries for starter grants, death pools/penalties, training units, Dungeon Bat floors, wing count/chance, interaction distance and cleanup did not resolve these classic gaps.
+
+A scoped search surfaced https://www.t4cbible.com/forum/abomination/247-abo-info (post2019-10-20, accessed2026-10-09): Abomination ground cleanup15min. Separate server-specific evidence only; not a classic corpse duration. Saga Palid Bat and Realmud wing ingredients were excluded as separate content. Proposed missing-field values and their reasoning are labelled Prototype in the lookup; none are verified in play or silently promoted to Bible facts.
