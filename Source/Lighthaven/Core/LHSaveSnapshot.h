@@ -1,9 +1,11 @@
-// Schema revision 1 (frozen 2026-10-08, see docs/implementation/schema-rev1-freeze.md)
+// Schema revision 2 proposal; payload shape unchanged from frozen rev 1.
 #pragma once
 
 #include "CoreMinimal.h"
 #include "LHDefinitions.h"
 #include "LHSaveSnapshot.generated.h"
+
+namespace LHSave { constexpr int32 CurrentSchemaVersion = 2; }
 
 UENUM(BlueprintType)
 enum class ELHEncounterLifeState : uint8
@@ -249,7 +251,7 @@ struct LIGHTHAVEN_API FLHSaveHeader
 {
     GENERATED_BODY()
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FString Magic = TEXT("LHSave");
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) int32 SchemaVersion = 1;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) int32 SchemaVersion = LHSave::CurrentSchemaVersion;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) int64 TransactionSequence = 0;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FString BuildId;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHRulesetRef Ruleset;

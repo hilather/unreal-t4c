@@ -165,8 +165,8 @@ LH_TEST(FLHPersistenceCanonical,"CanonicalBytesAndSHA256")
     const FString Directory=FPaths::ProjectSavedDir()/TEXT("Automation/Persistence");
     IPlatformFile& Files=FPlatformFileManager::Get().GetPlatformFile();
     TestTrue(TEXT("Create fixture artifact directory"),Files.CreateDirectoryTree(*Directory));
-    TestTrue(TEXT("Emit encoder-produced fixture"),FFileHelper::SaveArrayToFile(A,*(Directory/TEXT("populated-v1.lhs"))));
-    TestTrue(TEXT("Emit fixture SHA256"),FFileHelper::SaveStringToFile(LHSave::Sha256(A),*(Directory/TEXT("populated-v1.sha256"))));
+    TestTrue(TEXT("Emit encoder-produced fixture"),FFileHelper::SaveArrayToFile(A,*(Directory/TEXT("populated-current.lhs"))));
+    TestTrue(TEXT("Emit fixture SHA256"),FFileHelper::SaveStringToFile(LHSave::Sha256(A),*(Directory/TEXT("populated-current.sha256"))));
     return true;
 }
 LH_TEST(FLHPersistenceChecksumFallback,"BadChecksumFallback")
@@ -202,7 +202,7 @@ LH_TEST(FLHPersistenceFuture,"FutureVersionAndAlgorithms")
     using namespace LHPersistenceTestsPrivate;
     auto S=Fixture(); TArray<uint8> Bytes; FLHSaveError Error; FLHSaveSnapshot Loaded;
     if (!TestTrue(TEXT("Encode fixture"),LHSave::Encode(S,Bytes,Error))) return false;
-    const auto Original=Bytes; SetU32(Bytes,FindField(Bytes,"SchemaVersion"),2); FLHSaveDecodeStats Stats;
+    const auto Original=Bytes; SetU32(Bytes,FindField(Bytes,"SchemaVersion"),3); FLHSaveDecodeStats Stats;
     TestFalse(TEXT("Future schema rejects"),LHSave::Decode(Bytes,S.Header.CharacterId,Compatibility(S),Loaded,Error,&Stats));
     TestTrue(TEXT("Future reason"),Error.Reason==ELHSaveReason::FutureSchema); TestFalse(TEXT("No payload allocations"),Stats.bPayloadAllocationStarted);
     Bytes=Original; SetU32(Bytes,FindField(Bytes,"SchemaVersion"),0);

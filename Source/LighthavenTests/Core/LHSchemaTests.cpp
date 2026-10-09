@@ -54,4 +54,24 @@ bool FLHSchemaLootTest::RunTest(const FString&)
     TestTrue(TEXT("Unresolved quantity rejects"), LHValidateLootTransferPayload(Request) == ELHCommandReason::InvalidRequest);
     return true;
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHUseItemSchemaTest, "Lighthaven.Core.Schema.UseItemRequest", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FLHUseItemSchemaTest::RunTest(const FString&)
+{
+    const FLHUseItemRequest R;
+    TestFalse(TEXT("Default request invalid"),R.Request.Value.IsValid());
+    TestFalse(TEXT("Default epoch invalid"),R.Request.Epoch.IsValid());
+    TestFalse(TEXT("Default item invalid"),R.Item.InstanceId.IsValid());
+    TestTrue(TEXT("Default target entirely unset/self"),!R.Target.RunId.IsValid() && R.Target.Area.Content.Value.IsNone() && !R.Target.InstanceId.IsValid());
+    // Compile-time overload selection: downstream handlers must implement this seam.
+    FLHCommandResult (ILHCommandHandler::*Execute)(const FLHUseItemRequest&)=&ILHCommandHandler::Execute;
+    TestTrue(TEXT("Handler overload exists"),Execute!=nullptr);
+    const UEnum* Reasons=StaticEnum<ELHCommandReason>();
+    for (ELHCommandReason Reason:{ELHCommandReason::NotUsable,ELHCommandReason::NoEffect})
+    {
+        const FString Token=Reasons->GetNameStringByValue(static_cast<int64>(Reason));
+        TestEqual(TEXT("Reason roundtrip by symbolic name"),Reasons->GetValueByNameString(Token),static_cast<int64>(Reason));
+        TestTrue(TEXT("Exact new token"),Token==TEXT("NotUsable") || Token==TEXT("NoEffect"));
+    }
+    return true;
+}
 #endif

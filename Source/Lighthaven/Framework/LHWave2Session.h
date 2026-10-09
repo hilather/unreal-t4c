@@ -51,6 +51,7 @@ public:
 #define LH_UNSUPPORTED(T) FLHCommandResult Execute(const T&) override { FLHCommandResult R; R.Reason=ELHCommandReason::UnresolvedRules; return R; }
     LH_UNSUPPORTED(FLHTrainSkillRequest) LH_UNSUPPORTED(FLHLearnSpellRequest) LH_UNSUPPORTED(FLHBuyItemRequest)
     LH_UNSUPPORTED(FLHSellItemRequest) LH_UNSUPPORTED(FLHUseAbilityRequest) LH_UNSUPPORTED(FLHInteractRequest)
+    LH_UNSUPPORTED(FLHUseItemRequest)
     LH_UNSUPPORTED(FLHTakeLootRequest)
 #undef LH_UNSUPPORTED
 private:
