@@ -1,11 +1,14 @@
 #include "Framework/LHPlayerController.h"
 #include "Framework/LHSessionSubsystem.h"
 #include "UI/LHFrontendWidget.h"
+#include "Rewards/LHEncounterLifecycle.h"
+#include "UI/LHGameplayHud.h"
 #include "Framework/LHCharacter.h"
 #include "Framework/LHPlayerState.h"
 #include "Framework/LHEnemyCharacter.h"
 #include "Framework/LHDevCombatFixture.h"
 #include "Abilities/LHCombatComponent.h"
+#include "Abilities/LHAbilityCatalog.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
@@ -31,6 +34,8 @@ void ALHPlayerController::BeginPlay()
 void ALHPlayerController::EndPlay(const EEndPlayReason::Type Reason)
 {
     CloseJournal();
+    if(HudWidget && GetWorld() && GetWorld()->GetGameViewport()) GetWorld()->GetGameViewport()->RemoveViewportWidgetContent(HudWidget.ToSharedRef());
+    HudWidget.Reset();
     if (LiveSession) LiveSession->Resume=nullptr;
     JournalPresenter.Reset(); LiveSession.Reset();
     FCoreDelegates::ApplicationWillDeactivateDelegate.Remove(DeactivateHandle);
@@ -53,7 +58,13 @@ void ALHPlayerController::OnPossess(APawn* Pawn)
             if (!Session->Bind(State)) return;
             LiveSession=Session; LiveSession->bInGameplay=true;
             LiveSession->Resume=[this]() { bCloseJournalRequested=true; };
-            JournalPresenter=MakeShared<FLHUIPresenter>(*Session,*Session,*Session);
+            if(!JournalPresenter) JournalPresenter=MakeShared<FLHUIPresenter>(*Session,*Session,*Session);
+            if(auto* Viewport=GetWorld()->GetGameViewport(); Viewport && !HudWidget)
+            {
+                SAssignNew(HudWidget,SLHGameplayHud).Presenter(JournalPresenter.Get());
+                HudWidget->SetVisibility(EVisibility::HitTestInvisible);
+                Viewport->AddViewportWidgetContent(HudWidget.ToSharedRef(),10);
+            }
         }
         else LHDevCombat::InitializeForMap(State->GetCombatComponent(), Pawn);
         State->InitializeAvatar(Pawn);
@@ -90,6 +101,7 @@ void ALHPlayerController::SetupInputComponent()
     LH_BIND("ToggleRun",ToggleRun); LH_BIND("Attack",Attack); LH_BIND("Interact",Interact);
     LH_BIND("TargetNext",NextTarget); LH_BIND("TargetPrev",PrevTarget); LH_BIND("CancelTarget",CancelTarget);
     LH_BIND("OpenCharacter",OpenCharacter); LH_BIND("OpenInventory",OpenInventory); LH_BIND("Pause",PauseMenu);
+    LH_BIND("OpenAbilities",OpenAbilities); LH_BIND("Hotbar1",Hotbar1); LH_BIND("Hotbar2",Hotbar2); LH_BIND("Hotbar3",Hotbar3); LH_BIND("Hotbar4",Hotbar4); LH_BIND("Hotbar5",Hotbar5); LH_BIND("Hotbar6",Hotbar6); LH_BIND("HotbarItem",HotbarItem);
     LH_BIND("Confirm",Confirm); LH_BIND("Back",Back);
 #undef LH_BIND
     E->BindAction(InputConfig->Action("Navigate"),ETriggerEvent::Triggered,this,&ALHPlayerController::Navigate);
@@ -151,7 +163,7 @@ void ALHPlayerController::PlayerTick(float DeltaSeconds)
     Super::PlayerTick(DeltaSeconds);
     if (bCloseJournalRequested) { bCloseJournalRequested=false; CloseJournal(); }
     if (LiveSession) LiveSession->Flush();
-    if (JournalPresenter) JournalPresenter->Refresh();
+    if (JournalPresenter) { JournalPresenter->Refresh(); if(JournalPresenter->Hud().bDead && !JournalWidget) OpenScreen("Death"); }
     if (!HasLiveMovementAvatar()) { ClearHeldMovement(); return; }
     auto* V=GetWorld() ? GetWorld()->GetGameViewport() : nullptr;
     // Slate viewport keyboard focus can be valid while SDL native foreground
@@ -166,7 +178,7 @@ void ALHPlayerController::PlayerTick(float DeltaSeconds)
     if (ActiveContext==ELHInputContext::Gameplay) if (auto* C=Cast<ALHCharacter>(GetPawn()))
     {
         auto* State=GetPlayerState<ALHPlayerState>();
-        if (State && State->GetCombatComponent()->IsActionPending()) { C->ConsumeMovementInputVector(); return; }
+        if (!LiveSession && State && State->GetCombatComponent()->IsActionPending()) { C->ConsumeMovementInputVector(); return; }
         const FRotator Yaw(0,C->CameraYaw(),0);
         C->AddMovementInput(Yaw.Vector(),Movement.Held.Y);
         C->AddMovementInput(FRotationMatrix(Yaw).GetUnitAxis(EAxis::Y),Movement.Held.X);
@@ -177,14 +189,15 @@ bool ALHPlayerController::HasLiveMovementAvatar() const
 {
     const auto* State=GetPlayerState<ALHPlayerState>();
     const auto* Combat=State ? State->GetCombatComponent() : nullptr;
-    return (!LiveSession || !LiveSession->IsBlocked()) && GetPawn() && Combat && Combat->IsAlive() && Combat->GetAvatarActor()==GetPawn();
+    if(LiveSession) return !LiveSession->IsBlocked() && GetPawn();
+    return GetPawn() && Combat && Combat->IsAlive() && Combat->GetAvatarActor()==GetPawn();
 }
 void ALHPlayerController::SubmitMovement(FVector2D Axis)
 {
     if (!HasLiveMovementAvatar()) { ClearHeldMovement(); return; }
     if (Axis.IsNearlyZero() && MovementInputsReleased()) bAwaitMoveRelease=false;
     auto* State=GetPlayerState<ALHPlayerState>();
-    if (State && State->GetCombatComponent()->IsActionPending()) { ClearHeldMovement(); return; }
+    if (!LiveSession && State && State->GetCombatComponent()->IsActionPending()) { ClearHeldMovement(); return; }
     if (bHadFocus && !bAwaitMoveRelease && ActiveContext==ELHInputContext::Gameplay)
         Movement.Held=Axis.GetClampedToMaxSize(1);
 }
@@ -203,6 +216,13 @@ void ALHPlayerController::Look(const FInputActionValue& V)
 }
 void ALHPlayerController::Zoom(const FInputActionValue& V) { if (!bHadFocus || ActiveContext!=ELHInputContext::Gameplay) return; if (auto* C=Cast<ALHCharacter>(GetPawn())) { const bool Pad=IsInputKeyDown(EKeys::Gamepad_DPad_Up) || IsInputKeyDown(EKeys::Gamepad_DPad_Down); C->ZoomCamera(V.Get<float>()*(Pad ? GetWorld()->GetDeltaSeconds()*5.f : 1.f)); } }
 void ALHPlayerController::ToggleRun() { if (auto* C=Cast<ALHCharacter>(GetPawn())) C->ToggleRun(); }
+float ALHPlayerController::EffectiveSelectionRange() const
+{
+    float Range=SelectionRange;
+    if(LiveSession && JournalPresenter) for(const auto& Ability:JournalPresenter->AbilityCatalog())
+        if(const auto* Row=LHAbilities::Find(Ability.Id); Row && Row->RangeCm.Resolution==ELHValueResolution::Resolved && FMath::IsFinite(Row->RangeCm.Value)) Range=FMath::Max(Range,float(Row->RangeCm.Value));
+    return Range;
+}
 bool ALHPlayerController::ValidTarget(AActor* A) const
 {
     if (!IsValid(A) || A==GetPawn() || !GetPawn()) return false;
@@ -210,6 +230,7 @@ bool ALHPlayerController::ValidTarget(AActor* A) const
     {
         auto* State=GetPlayerState<ALHPlayerState>();
         if (!State) return false;
+        if(LiveSession) { return Enemy->IsAlive() && FVector::DistSquared(A->GetActorLocation(),GetPawn()->GetActorLocation())<=FMath::Square(EffectiveSelectionRange()) && LineOfSightTo(A); }
         // Reuse authority's life/range/LOS checks. Temporary action/resource rejection
         // does not remove a selectable target; submission still validates everything.
         const auto Reason=State->GetCombatComponent()->ValidateAttack(Enemy->GetCombatComponent());
@@ -223,7 +244,7 @@ bool ALHPlayerController::ValidTarget(AActor* A) const
         if (!A->Implements<ULHControlTarget>()) return false;
         if (!ILHControlTarget::Execute_IsControlTargetAlive(A) || !ILHControlTarget::Execute_IsControlTargetReachable(A,GetPawn())) return false;
     }
-    if (FVector::DistSquared(A->GetActorLocation(),GetPawn()->GetActorLocation())>FMath::Square(SelectionRange)) return false;
+    if (FVector::DistSquared(A->GetActorLocation(),GetPawn()->GetActorLocation())>FMath::Square(EffectiveSelectionRange())) return false;
     FHitResult Hit; FCollisionQueryParams Params; Params.AddIgnoredActor(GetPawn());
     const bool Blocked=GetWorld()->LineTraceSingleByChannel(Hit,GetPawn()->GetActorLocation(),A->GetActorLocation(),ECC_Visibility,Params);
     return !Blocked || Hit.GetActor()==A;
@@ -237,7 +258,7 @@ void ALHPlayerController::Cycle(int32 Direction)
         const FString Key=It->GetPathName(); Actors.Add(Key,*It);
         Candidates.Add({Key,FVector::DistSquared(It->GetActorLocation(),GetPawn()->GetActorLocation()),true,true,true});
     }
-    const auto Order=LHControls::OrderedTargets(Candidates,FMath::Square(SelectionRange));
+    const auto Order=LHControls::OrderedTargets(Candidates,FMath::Square(EffectiveSelectionRange()));
     const FString Key=LHControls::CycleTarget(Order,SelectedTarget.IsValid() ? SelectedTarget->GetPathName() : FString(),Direction);
     SelectedTarget=Actors.FindRef(Key);
 }
@@ -257,7 +278,14 @@ bool ALHPlayerController::SelectTarget(AActor* Target)
 }
 ELHCommandReason ALHPlayerController::RequestSelectedAttack()
 {
-    if (LiveSession) return ELHCommandReason::UnresolvedRules; // Movement entry has no canonical combat settlement owner yet.
+    if (LiveSession)
+    {
+        if(LiveSession->IsBlocked() || ActiveContext!=ELHInputContext::Gameplay) return ELHCommandReason::Busy;
+        if(!JournalPresenter) return ELHCommandReason::UnresolvedRules;
+        auto* Enemy=Cast<ALHEnemyCharacter>(SelectedTarget.Get());
+        const auto Result=JournalPresenter->UseAbility(Enemy?Enemy->GetEntityId(LiveSession->Snapshot().World.RunId):FLHEntityId{});
+        return Result.Reason;
+    }
     if (ActiveContext!=ELHInputContext::Gameplay) return ELHCommandReason::InvalidRequest;
     auto* State=GetPlayerState<ALHPlayerState>();
     auto* Enemy=Cast<ALHEnemyCharacter>(SelectedTarget.Get());
@@ -293,11 +321,23 @@ void ALHPlayerController::Interact()
             LiveSession->Execute(Q); ClearHeldMovement(); return;
         }
     }
+    if(LiveSession && !LiveSession->IsBlocked() && ActiveContext==ELHInputContext::Gameplay && GetPawn())
+    {
+        auto Visible=[this](AActor* A){ FHitResult H; FCollisionQueryParams P; P.AddIgnoredActor(GetPawn()); return !GetWorld()->LineTraceSingleByChannel(H,GetPawn()->GetActorLocation(),A->GetActorLocation()+FVector(0,0,60),ECC_Visibility,P) || H.GetActor()==A; };
+        ALHInteractableMarker* Npc=nullptr; double Best=250*250;
+        for(TActorIterator<ALHInteractableMarker> It(GetWorld());It;++It) { const double D=FVector::DistSquared(It->GetActorLocation(),GetPawn()->GetActorLocation()); if(It->DefinitionId.Value.ToString().StartsWith(TEXT("NPC.")) && D<=Best && Visible(*It)) { Best=D; Npc=*It; } }
+        if(Npc) { ShowTargetScreen("Dialogue",Npc->Materialize(LiveSession->Snapshot().World.RunId)); return; }
+        ALHEnemyCharacter* Corpse=nullptr; Best=200*200;
+        for(TActorIterator<ALHEnemyCharacter> It(GetWorld());It;++It) { const double D=FVector::DistSquared(It->GetActorLocation(),GetPawn()->GetActorLocation()); if(It->IsCorpse() && D<=Best && Visible(*It)) { Best=D; Corpse=*It; } }
+        if(Corpse) { ShowTargetScreen("Loot",LHRewards::CorpseContainerFor(LiveSession->Snapshot().World.RunId,Corpse->GetLife())); return; }
+        return;
+    }
     if (!SelectedTarget.IsValid()) Cycle(1);
     if ((!LiveSession || !LiveSession->IsBlocked()) && ActiveContext==ELHInputContext::Gameplay && ValidTarget(SelectedTarget.Get())) OnInteractRequested.Broadcast(SelectedTarget.Get());
 }
 void ALHPlayerController::OpenScreen(FName Screen)
 {
+    if(LiveSession && GetPlayerState<ALHPlayerState>() && GetPlayerState<ALHPlayerState>()->GetCombatComponent()->IsActionPending()) return;
     SetControlContext(ELHInputContext::UI); OnScreenRequested.Broadcast(Screen);
     if (!JournalPresenter || !GetWorld()->GetGameViewport()) return;
     if (GetPlayerState<ALHPlayerState>()->GetCombatComponent()->IsActionPending()) return;
@@ -306,17 +346,20 @@ void ALHPlayerController::OpenScreen(FName Screen)
         SAssignNew(JournalWidget,SLHFrontendWidget).Presenter(JournalPresenter.Get());
         GetWorld()->GetGameViewport()->AddViewportWidgetContent(JournalWidget.ToSharedRef(),100);
     }
-    JournalWidget->Open(Screen==TEXT("Inventory")?ELHUIScreen::Inventory:ELHUIScreen::CharacterSheet);
+    const ELHUIScreen Destination=Screen==TEXT("Inventory")?ELHUIScreen::Inventory:Screen==TEXT("Abilities")?ELHUIScreen::Hud:Screen==TEXT("Pause")?ELHUIScreen::Pause:Screen==TEXT("Death")?ELHUIScreen::Death:Screen==TEXT("Dialogue")?ELHUIScreen::Dialogue:Screen==TEXT("Loot")?ELHUIScreen::Loot:ELHUIScreen::CharacterSheet;
+    JournalWidget->Open(Destination);
+    JournalPresenter->SetPaused(true);
     SetPause(true);
     FInputModeUIOnly Mode; Mode.SetWidgetToFocus(JournalWidget); SetInputMode(Mode);
 }
 void ALHPlayerController::CloseJournal()
 {
     if (JournalWidget && GetWorld() && GetWorld()->GetGameViewport()) GetWorld()->GetGameViewport()->RemoveViewportWidgetContent(JournalWidget.ToSharedRef());
-    JournalWidget.Reset(); SetPause(false); EstablishGameplayInput();
+    JournalWidget.Reset(); if(JournalPresenter) JournalPresenter->SetPaused(false); SetPause(false); EstablishGameplayInput();
 }
 void ALHPlayerController::OpenCharacter() { OpenScreen("Character"); }
 void ALHPlayerController::OpenInventory() { OpenScreen("Inventory"); }
+void ALHPlayerController::OpenAbilities() { OpenScreen("Abilities"); }
 void ALHPlayerController::PauseMenu() { OpenScreen("Pause"); }
 void ALHPlayerController::Navigate(const FInputActionValue& V) { const auto D=V.Get<FVector2D>(); OnMenuInput.Broadcast(FMath::Abs(D.Y)>FMath::Abs(D.X) ? (D.Y>0 ? "Up" : "Down") : (D.X>0 ? "Right" : "Left")); }
 void ALHPlayerController::Confirm() { OnMenuInput.Broadcast("Confirm"); }
@@ -335,3 +378,17 @@ void ALHPlayerController::EstablishGameplayInput()
     }
     SetControlContext(ELHInputContext::Gameplay);
 }
+
+void ALHPlayerController::ShowTargetScreen(FName Screen,const FLHEntityId& Target)
+{
+    if(!JournalPresenter) return;
+    JournalPresenter->OpenTarget(Screen=="Dialogue"?ELHUIScreen::Dialogue:ELHUIScreen::Loot,Target);
+    OpenScreen(Screen);
+}
+void ALHPlayerController::Hotbar1() { if(JournalPresenter) JournalPresenter->SelectAbility(0); }
+void ALHPlayerController::Hotbar2() { if(JournalPresenter) JournalPresenter->SelectAbility(1); }
+void ALHPlayerController::Hotbar3() { if(JournalPresenter) JournalPresenter->SelectAbility(2); }
+void ALHPlayerController::Hotbar4() { if(JournalPresenter) JournalPresenter->SelectAbility(3); }
+void ALHPlayerController::Hotbar5() { if(JournalPresenter) JournalPresenter->SelectAbility(4); }
+void ALHPlayerController::Hotbar6() { if(JournalPresenter) JournalPresenter->SelectAbility(5); }
+void ALHPlayerController::HotbarItem() { if(JournalPresenter && LiveSession && !LiveSession->IsBlocked()) JournalPresenter->UseHotbarItem(); }
