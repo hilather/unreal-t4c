@@ -129,3 +129,12 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
 | W3-06 G2c UI polish | **integrated** (host pre-check OK; final G3 candidate build/test pending) | codex-sol | | |
 
 **G3 candidate 2026-10-09: build/output/G3-Linux-1109cf2** (fresh clone of main 1109cf2): build OK; **83/83** Lighthaven Automation tests; LHValidateWorld **0 errors**; six-map package (L_Frontend + hub + B1–B4) BUILD SUCCESSFUL; packaged `-LHCheckPackagedContent` exit 0 with every required map PASS. Handed to Shepherd for the Robo-Ilya hand-check of the G3 checklist in docs/implementation/w3-integration.md. G3 has **not** passed until that report.
+
+**Matt decisions 2026-10-09 (Wave 4 open questions, in chat):**
+1–4. **Use the T4C Bible's numbers** (adjustable later) for the Stage 1 starting profile, enemy numbers, the speculative roster rows and Balork. Coordinator reading for Balork: the Bible's live 15:00 respawn applies, while the boss-completion reward stays single-claim across reload and travel (G4). Where the Bible has no number, use labelled Prototype values.
+5. **A real UseItem mechanic** (not a `Consumable.*` ability prefix). This needs a new command, hence **schema rev 2** (Core change), as a separate Wave 4 task before W4-03's potion work.
+6. Vendor stock: **unlimited, not persisted** (no schema change).
+7. Unsourced values: workers may set Prototype values, but **check the Bible first**. Research task **R-03** looks each one up (Nevanis healing, Heal Light, Light, training prices, respawn safety distance, loot cleanup, HP/MP after death respawn, interaction distances, Balork gold/drops, bat floors) before the Wave 4 build tasks.
+8. Bat-wing quest: **deferred**. It needs a quest mechanic where quest completion grants the item (future task).
+9. G3-era saves becoming unloadable after the W4 catalog change: **accepted**.
+10. Plan deviations **accepted**: native C++ AI state machine; native enemy/encounter catalogs instead of DataAssets; W4-06 split into 06a (Stage 1A) and 06b (G4).
