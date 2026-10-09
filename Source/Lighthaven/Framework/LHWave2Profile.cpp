@@ -1,6 +1,8 @@
 #include "Framework/LHWave2Profile.h"
 #include "Framework/LHWave2Closure.h"
 #include "Persistence/LHSaveCodec.h"
+#include "Rules/LHBibleRules.h"
+#include "Data/Items/LHItemCatalog.h"
 namespace LHWave2ProfilePrivate
 {
 using namespace LH::Rules;
@@ -10,7 +12,7 @@ FLHInteger I(int64 V)
     R.Resolution = ELHValueResolution::Resolved;
     R.Value = V;
     R.Provenance.Status = ELHProvenanceStatus::Prototype;
-    R.Provenance.Notes = TEXT("W2-04 synthetic Prototype profile; no historical authenticity claim");
+    R.Provenance.Notes = TEXT("R-03 missing starting grants/creation generator/runtime formula: authored Stage 1A Prototype; replace after evidence and balance review");
     return R;
 }
 FLHNumber N(double V)
@@ -51,71 +53,48 @@ FLHCharacterProfile Profile()
 {
     FLHCharacterProfile P;
     P.Rules = MakeLedgerPrototypeRuleset();
-    P.Rules.Creation.AnswerCount = I(4);
-    P.Rules.Progression.AttributePointsPerLevel = I(5);
-    P.Rules.Progression.SkillPointsPerLevel = I(15);
+    P.Rules.Combat = MakeStage1PrototypeCombat();
     P.Rules.Requirements.BowRequiresQuiver = I(1);
-    P.Reference.Id.Value = TEXT("Ruleset.Wave2Prototype");
-    P.Reference.Revision = 1;
-
+    P.Reference.Id.Value = TEXT("Ruleset.Stage1Prototype");
+    P.Reference.Revision = 4;
     P.Reference.HashAlgorithm = TEXT("SHA256");
-    P.CreationPolicy.Value = TEXT("CreationPolicy.SyntheticTable");
-    P.CreationRevision = I(1);
-    P.InitialHealth = N(20);
+    P.CreationPolicy.Value = TEXT("CreationPolicy.Stage1FiniteTable");
+    P.CreationRevision = I(4);
+    P.InitialHealth = N(30);
     P.InitialMana = N(10);
-    P.InitialGold = I(0);
+    P.InitialGold = I(100);
     P.InitialSkillPoints = I(0);
-    P.InventorySlots = I(2);
+    P.InventorySlots = I(40); // Missing entry-slot limit: authored slice capacity.
     P.GrowthBasis = EAttributeBasis::Base;
     auto &C = P.Rules.Creation;
     C.Minimum = {I(10), I(10), I(10), I(10), I(10)};
-    C.Maximum = {I(20), I(20), I(20), I(20), I(20)};
-    C.TotalPoints = I(60);
+    C.Maximum = {I(22), I(22), I(22), I(22), I(22)};
+    C.TotalPoints = I(80);
     C.OutcomesResolution = ELHValueResolution::Resolved;
     C.OutcomesProvenance = I(0).Provenance;
     FCreationOutcome O;
     O.Answers = Answers();
-    O.Attributes = C.Minimum;
-    O.UnspentPoints = I(10);
-    C.Outcomes.Add(O);
-    P.Rules.Stats = {Linear(1), Linear(1), Linear(1), Linear(1), Linear(100)};
+    O.Attributes = {I(16), I(16), I(16), I(16), I(16)};
+    O.UnspentPoints = I(0);
+    C.Outcomes.Add(O); // Representative classic four-N/A chart; selection law is Prototype.
+    P.Rules.Stats = {Linear(10), Linear(10), Linear(0), Linear(0), Linear(100)};
     auto &G = P.Rules.Progression;
     G.InitialLevel = I(1);
-    G.Thresholds = {I(0), I(100), I(300), I(600)};
-    G.HealthGrowth = Linear(2);
-    G.ManaGrowth = Linear(1);
-    G.HealthRollScale = N(2);
-    G.ManaRollScale = N(2);
+    // Runtime Rules rejects Disputed provenance; preserve the classic/PDF dispute in the note.
+    for (auto X : MakeBibleRuleset().Experience)
+    {
+        X.Threshold.Provenance.Status = ELHProvenanceStatus::Modernized;
+        X.Threshold.Provenance.Notes += TEXT("; Matt selects classic Required XPs; PDF disagreement retained in R-03");
+        G.Thresholds.Add(X.Threshold);
+    }
+    G.HealthGrowth = Linear(7); G.HealthGrowth.Endurance = N(1.0/20);
+    G.ManaGrowth = Linear(4); G.ManaGrowth.Intelligence = N(1.0/30); G.ManaGrowth.Wisdom = N(1.0/60);
+    G.HealthRollScale = N(0); G.ManaRollScale = N(0);
     P.Rules.Requirements.Basis = EAttributeBasis::Base;
     P.Rules.Requirements.BasisProvenance = I(0).Provenance;
-    FLHCharacterItemDefinition Item;
-    Item.Id.Value = TEXT("Item.TestBow");
-    Item.Slot = ELHEquipmentSlot::MainHand;
-    Item.StackLimit = I(1);
-    Item.Weight = N(1);
-    Item.Eligibility.MinimumAttributes = B();
-    Item.Eligibility.MinimumLevel = I(0);
-    Item.Modifier.Attributes = {I(2), I(0), I(0), I(0), I(0)};
-    Item.Modifier.Health = N(0);
-    Item.Modifier.Mana = N(0);
-    Item.Modifier.Accuracy = N(3);
-    Item.Modifier.Avoidance = N(0);
-    Item.Modifier.DamageBonus = N(0);
-    Item.Modifier.Armor = N(0);
-    Item.Modifier.Capacity = N(0);
-    Item.bBow = true;
-    FLHContentId Q;
-    Q.Value = TEXT("Item.TestQuiver");
-    Item.CompatibleQuivers.Add(Q);
-    P.Items.Add(Item);
-    Item.Id = Q;
-    Item.Slot = ELHEquipmentSlot::Quiver;
-    Item.bBow = false;
-    Item.CompatibleQuivers.Empty();
-    Item.Modifier.Attributes.Strength = I(0);
-    Item.Modifier.Accuracy = N(0);
-    P.Items.Add(Item);
-    P.StarterItems = {P.Items[0].Id, P.Items[1].Id};
+    for (const auto& Item : LHItemData::Catalog()) P.Items.Add(Item.Character);
+    for (const auto& Grant : LHItemData::StartingKit())
+        for (int64 Index=0; Index<Grant.Quantity.Value; ++Index) P.StarterItems.Add(Grant.Item);
     P.RequestDigest = LHSave::RequestDigest;
     P.GrowthId = LHSave::GrowthId;
     P.Reference.ContentHash = LHSave::Sha256(LHWave2::MechanicalClosure(P));

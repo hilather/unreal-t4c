@@ -11,6 +11,7 @@ class LIGHTHAVEN_API ALHCharacter : public ACharacter, public IAbilitySystemInte
     GENERATED_BODY()
 public:
     ALHCharacter();
+    virtual void Tick(float DeltaSeconds) override;
     virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
     void ToggleRun();
     void RotateCamera(FVector2D Delta);

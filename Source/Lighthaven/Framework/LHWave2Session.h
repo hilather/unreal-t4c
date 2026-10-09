@@ -3,6 +3,9 @@
 #include "Character/LHCharacterAuthority.h"
 #include "Persistence/LHSaveStore.h"
 class ALHPlayerState;
+class ULHEncounterDirector;
+class ALHInteractableMarker;
+struct FLHHitIdentity;
 // Game-thread owner adapter. Flush runs on the next controller tick, outside command publication.
 class LIGHTHAVEN_API FLHWave2Session : public ILHCommandHandler, public ILHUIReadOwner, public ILHUISessionOwner
 {
@@ -12,7 +15,7 @@ public:
     static FLHSaveCompatibility Compatibility();
     bool Bind(ALHPlayerState* State, bool bFreshCreation = false);
     bool HasCharacter() const { return Complete.Header.CharacterId.Value.IsValid(); }
-    bool IsBlocked() const { return bContentUnavailable || bSaveQueued || bAwaitingSave || bTravel; }
+    bool IsBlocked() const { return bContentUnavailable || bTravel || bWorldTravelFrozen || bDeadAwaitingRespawn; }
     void Flush();
     const FString& Status() const { return Message; }
     bool OwnsPersistenceStatus() const override { return true; }
@@ -50,11 +53,32 @@ public:
     FLHCommandResult Execute(const FLHEquipItemRequest&) override;
 #define LH_UNSUPPORTED(T) FLHCommandResult Execute(const T&) override { FLHCommandResult R; R.Reason=ELHCommandReason::UnresolvedRules; return R; }
     LH_UNSUPPORTED(FLHTrainSkillRequest) LH_UNSUPPORTED(FLHLearnSpellRequest) LH_UNSUPPORTED(FLHBuyItemRequest)
-    LH_UNSUPPORTED(FLHSellItemRequest) LH_UNSUPPORTED(FLHUseAbilityRequest) LH_UNSUPPORTED(FLHInteractRequest)
-    LH_UNSUPPORTED(FLHUseItemRequest)
-    LH_UNSUPPORTED(FLHTakeLootRequest)
+    LH_UNSUPPORTED(FLHSellItemRequest)
+    FLHCommandResult Execute(const FLHUseAbilityRequest&) override;
+    FLHCommandResult Execute(const FLHInteractRequest&) override;
+    FLHCommandResult Execute(const FLHUseItemRequest&) override;
+    FLHCommandResult Execute(const FLHTakeLootRequest&) override;
+    FLHUIHud HudState() const override;
+    TArray<FLHUIDialogueTopic> DialogueTopics(const FLHEntityId&) const override;
+    TArray<FLHUILootRow> CorpseContents(const FLHEntityId&) const override;
+    FString RequestRespawn() override;
+    void SetGameplayPaused(bool) override;
+    bool StartEncounters();
+    void TickGameplay(float Seconds);
+    void HandlePlayerDeath();
+    bool SettleEnemyKill(const FLHSpawnLifeId&, const FLHHitIdentity&, AActor*);
 #undef LH_UNSUPPORTED
 private:
+    bool IsTransactionBlocked() const { return IsBlocked() || bSaveQueued || bAwaitingSave; }
+    bool SyncResources();
+    bool AcceptBoundary(FLHSaveSnapshot&&, bool bInstallResources);
+    FLHEntityId PlayerEntity() const;
+    ALHInteractableMarker* ResolveNpc(const FLHEntityId&) const;
+    bool Spatial(AActor*, double Range) const;
+    FLHCommandResult Persist(const FLHRequestId&, FName, const UScriptStruct*, const void*, TFunctionRef<ELHCommandReason(FLHSaveSnapshot&)>);
+    TWeakObjectPtr<ULHEncounterDirector> Director;
+    bool bDeadAwaitingRespawn=false, bGameplayPaused=false;
+    TMap<FGuid,TPair<FString,FLHCommandResult>> RuntimeAbilities;
     TSharedRef<FLHSaveStore> Saves;
     FDelegateHandle EventHandle;
     TWeakObjectPtr<ALHPlayerState> Owner;

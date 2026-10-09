@@ -1,4 +1,5 @@
 #include "Misc/AutomationTest.h"
+#include "Services/LHServiceCatalog.h"
 #include "World/LHTravelCoordinator.h"
 #include "World/LHTravelSaveAdapter.h"
 #include "World/LHAreaStateSubsystem.h"
@@ -46,6 +47,12 @@ void Placements(TArray<FLHAreaId>& Maps,TArray<FLHPlacedIdentity>& Ids,TArray<FL
         for (const auto& P:A.Portals) { FLHPlacedIdentity I; I.Area=A.Id; I.Id=P.Portal.InstanceId; I.Kind=ELHPlacedIdKind::Portal; I.Source=P.Source; I.Destination=P.Destination; I.bReturn=P.Source.LocalId==TEXT("Entry"); Ids.Add(I); }
         for (const auto& E:A.Entrances) { FLHPlacedEntrance I; I.Id=E.Id; I.Transform=E.SafeTransform; I.bSafetyReviewed=true; Entrances.Add(I); }
     }
+    TMap<FName,FName> Npcs;
+    for (const auto& O:LHServices::Catalog()) Npcs.Add(O.Npc.Value,O.Area==TEXT("B1")?FName(TEXT("Area.TempleB1")):FName(TEXT("Area.LighthavenTempleDistrict")));
+    Npcs.Add(TEXT("NPC.Samaritan"),TEXT("Area.LighthavenTempleDistrict"));
+    Npcs.Add(TEXT("NPC.BrotherKiran"),TEXT("Area.LighthavenTempleDistrict"));
+    Npcs.Add(TEXT("NPC.Nevanis"),TEXT("Area.TempleB1"));
+    for (const auto& N:Npcs) { FLHPlacedIdentity I; I.Area.Content.Value=N.Value; I.Id=FGuid::NewGuid(); I.Definition.Value=N.Key; I.Kind=ELHPlacedIdKind::Interactable; Ids.Add(I); }
 }
 FLHEncounterRecord Encounter(const FLHAreaDefinition& A)
 {

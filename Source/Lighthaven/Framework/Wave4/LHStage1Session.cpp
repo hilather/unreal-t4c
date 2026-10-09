@@ -1,0 +1,303 @@
+#include "Framework/LHWave2Session.h"
+#include "Framework/LHWave2Profile.h"
+#include "Framework/LHPlayerState.h"
+#include "Framework/LHEnemyCharacter.h"
+#include "Framework/LHArrivalReview.h"
+#include "Abilities/LHAbilityCatalog.h"
+#include "Abilities/LHItemUse.h"
+#include "Abilities/LHResourceRecovery.h"
+#include "AI/LHEncounterDirector.h"
+#include "Data/Enemies/LHEnemyCatalog.h"
+#include "Data/Items/LHItemCatalog.h"
+#include "Quests/LHQuests.h"
+#include "Rewards/LHEncounterLifecycle.h"
+#include "World/LHWorldMarkers.h"
+#include "EngineUtils.h"
+#include "GameFramework/Pawn.h"
+namespace LHStage1SessionPrivate
+{
+bool Same(const FLHEntityId& A,const FLHEntityId& B)
+{ return A.RunId==B.RunId && A.Area.Content.Value==B.Area.Content.Value && A.InstanceId==B.InstanceId; }
+const FLHCombatItemData* Item(const FLHContentId& Id)
+{ const auto* Row=LHItemData::Find(Id); return Row?&Row->Combat:nullptr; }
+FLHNumber Health(const FLHContentId& Id)
+{ const auto* Row=LHEnemyData::Find(Id); return Row?Row->Health:FLHNumber{}; }
+FLHAreaRecord* Area(FLHSaveSnapshot& S)
+{ return S.World.Areas.FindByPredicate([&](const auto& A){return LHWorld::SameArea(A.Area,S.Character.ActiveEntrance.Area);}); }
+}
+FLHEntityId FLHWave2Session::PlayerEntity() const
+{
+    FLHEntityId Id; Id.RunId=Complete.World.RunId; Id.Area=Complete.Character.ActiveEntrance.Area;
+    Id.InstanceId=Complete.Header.CharacterId.Value; return Id;
+}
+bool FLHWave2Session::SyncResources()
+{
+    if (!Authority() || !HasCharacter()) return false;
+    Authority()->Export(Complete);
+    if (Owner->GetCombatAvatar())
+    {
+        auto* C=Owner->GetCombatComponent(); auto* A=C->GetCombatAttributes();
+        if (!FMath::IsFinite(A->GetHealth()) || !FMath::IsFinite(A->GetMana())) return false;
+        Complete.Character.CurrentHealth.Value=A->GetHealth(); Complete.Character.CurrentMana.Value=A->GetMana();
+        Complete.Session.ManaRegenFractionalSeconds=LHWave2::PrototypeNumber(C->ManaRegenFractionalSeconds);
+        LHAbilities::CaptureCooldowns(*C,PlayerEntity(),Complete.Session.Cooldowns);
+        auto* Rng=Complete.Session.GameplayRng.FindByPredicate([](const auto& R){return R.StreamId==TEXT("RNG.Combat");});
+        if (Rng)
+        { const uint32 Seed=uint32(C->GetCombatRandomState().GetCurrentSeed()); Rng->State.Reset(); for(int32 B=0;B<4;++B) Rng->State.Add(uint8(Seed>>(B*8))); }
+    }
+    if (Director.IsValid()) if (auto* A=LHStage1SessionPrivate::Area(Complete)) Director->CaptureLive(*A);
+    return Authority()->Import(Complete)==ELHCommandReason::None;
+}
+bool FLHWave2Session::AcceptBoundary(FLHSaveSnapshot&& Next,bool InstallResources)
+{
+    if (!Authority()) return false;
+    auto Check=*Authority(); if (Check.Import(Next)!=ELHCommandReason::None) return false;
+    *Authority()=MoveTemp(Check); Complete=MoveTemp(Next);
+    if (InstallResources && !InstallDerived()) return false;
+    bSaveQueued=true; Message=TEXT("Saving completed action…"); return true;
+}
+FLHCommandResult FLHWave2Session::Persist(const FLHRequestId& Id,FName Name,const UScriptStruct* Type,const void* Payload,TFunctionRef<ELHCommandReason(FLHSaveSnapshot&)> Domain)
+{
+    FLHCommandResult R; R.Request=Id; FString Digest;
+    // Replay does not re-run spatial, life, or resource checks.
+    if (!LHSave::BeginRequest(Complete,Name,Type,Payload,R,Digest)) return R;
+    if (IsTransactionBlocked() || !Authority()) { R.Reason=ELHCommandReason::Busy; return R; }
+    auto* Combat=Owner->GetCombatComponent();
+    if (Combat->IsActionPending() || Combat->IsPublishingActionEvents()) { R.Reason=ELHCommandReason::ActiveAction; return R; }
+    if (!SyncResources()) { R.Reason=ELHCommandReason::InvalidRequest; return R; }
+    auto Next=Complete; R.Reason=Domain(Next); if (R.Reason!=ELHCommandReason::None) return R;
+    auto Check=*Authority(); R.Reason=Check.Import(Next); if (R.Reason!=ELHCommandReason::None) return R;
+    LHSave::CommitRequest(Next,Id,Digest,R);
+    if (R.Disposition==ELHCommandDisposition::Accepted && !R.bReplay && !AcceptBoundary(MoveTemp(Next),true))
+    { R.Disposition=ELHCommandDisposition::Rejected; R.Reason=ELHCommandReason::InvalidRequest; }
+    return R;
+}
+bool FLHWave2Session::Spatial(AActor* Target,double Range) const
+{
+    auto* Pawn=Owner.IsValid()?Owner->GetCombatAvatar():nullptr;
+    if (!Pawn || !IsValid(Target) || Pawn->GetWorld()!=Target->GetWorld() || FVector::Dist(Pawn->GetActorLocation(),Target->GetActorLocation())>Range) return false;
+    FCollisionQueryParams Params(SCENE_QUERY_STAT(LHSessionInteraction),false,Pawn); Params.AddIgnoredActor(Target);
+    return !Pawn->GetWorld()->LineTraceTestByChannel(Pawn->GetActorLocation(),Target->GetActorLocation()+FVector(0,0,60),ECC_Visibility,Params);
+}
+ALHInteractableMarker* FLHWave2Session::ResolveNpc(const FLHEntityId& Id) const
+{
+    if (!Owner.IsValid() || Id.RunId!=Complete.World.RunId || !LHWorld::SameArea(Id.Area,Complete.Character.ActiveEntrance.Area)) return nullptr;
+    ALHInteractableMarker* Found=nullptr;
+    for (TActorIterator<ALHInteractableMarker> It(Owner->GetWorld());It;++It)
+        if (LHStage1SessionPrivate::Same(It->Materialize(Complete.World.RunId),Id))
+        { if (Found) return nullptr; Found=*It; }
+    return Found;
+}
+FLHCommandResult FLHWave2Session::Execute(const FLHInteractRequest& Q)
+{
+    return Persist(Q.Request,TEXT("Interact"),Q.StaticStruct(),&Q,[&](FLHSaveSnapshot& Next){
+        auto* Npc=ResolveNpc(Q.Target); if (!Npc) return ELHCommandReason::NotFound;
+        auto* Pawn=Owner->GetCombatAvatar(); if (!Pawn) return ELHCommandReason::InvalidLifeState;
+        const auto Profile=LHWave2::PrototypeProfile(); FLHInteractContext Context;
+        Context.Npc=Npc->DefinitionId; Context.Entity=Npc->Materialize(Complete.World.RunId); Context.Profile=&Profile;
+        Context.DistanceCm=FVector::Dist(Pawn->GetActorLocation(),Npc->GetActorLocation()); Context.bLineOfSight=Spatial(Npc,250);
+        return LHQuests::ExecuteInteract(Next,Context,Q);
+    });
+}
+FLHCommandResult FLHWave2Session::Execute(const FLHUseItemRequest& Q)
+{
+    return Persist(Q.Request,TEXT("UseItem"),Q.StaticStruct(),&Q,[&](FLHSaveSnapshot& Next){
+        LHAbilities::FLHUseItemContext Context; Context.Snapshot=Next; Context.ItemLookup=LHStage1SessionPrivate::Item;
+        Context.Owner=PlayerEntity(); Context.MaximumMana=Owner->GetCombatComponent()->GetCombatAttributes()->GetMaxMana();
+        Context.bAlive=Owner->GetCombatComponent()->IsAlive();
+        const auto Reason=LHAbilities::ExecuteUseItem(Context,Q); if(Reason==ELHCommandReason::None) Next=MoveTemp(Context.Snapshot); return Reason;
+    });
+}
+FLHCommandResult FLHWave2Session::Execute(const FLHTakeLootRequest& Q)
+{
+    return Persist(Q.Request,TEXT("TakeLoot"),Q.StaticStruct(),&Q,[&](FLHSaveSnapshot& Next){
+        if (!Director.IsValid()) return ELHCommandReason::NotFound;
+        auto* Area=LHStage1SessionPrivate::Area(Next); if (!Area) return ELHCommandReason::NotFound;
+        const auto* Corpse=Area->Corpses.FindByPredicate([&](const auto& C){return LHStage1SessionPrivate::Same(C.Container,Q.Container);});
+        ALHEnemyCharacter* Actor=nullptr;
+        if (Corpse) for (TActorIterator<ALHEnemyCharacter> It(Owner->GetWorld());It;++It)
+            if (It->IsCorpse() && LHAI::SameLife(It->GetLife(),Corpse->SourceLife)) { Actor=*It; break; }
+        if (!Actor || !Actor->IsCorpse()) return ELHCommandReason::NotFound;
+        if (!Spatial(Actor,200)) return ELHCommandReason::OutOfRange;
+        return LHRewards::ExecuteTakeLoot(Next,LHWave2::PrototypeProfile(),Q);
+    });
+}
+FLHCommandResult FLHWave2Session::Execute(const FLHUseAbilityRequest& Q)
+{
+    FLHCommandResult R; R.Request=Q.Request;
+    if (IsBlocked() || bGameplayPaused || !Owner.IsValid()) { R.Reason=ELHCommandReason::Busy; return R; }
+    if (!Q.Request.Value.IsValid() || Q.Request.Epoch!=Complete.Session.RequestEpoch) return R;
+    const FString Digest=LHSave::RequestDigest(TEXT("UseAbility"),Q.StaticStruct(),&Q);
+    if (const auto* Previous=RuntimeAbilities.Find(Q.Request.Value))
+    {
+        if (Previous->Key!=Digest) { R.Reason=ELHCommandReason::ReusedRequestId; return R; }
+        R=Previous->Value; R.bReplay=true; return R;
+    }
+    if (RuntimeAbilities.Num()>=4096) { R.Reason=ELHCommandReason::Busy; return R; }
+    // Stage 1A exposes only legal melee. Ranged/magic is the Stage 1B route.
+    if (Q.Ability.Value!=TEXT("Attack.Melee.Basic")) { R.Reason=ELHCommandReason::UnresolvedRules; return R; }
+    LHAbilities::FLHUseAbilityContext Context; Context.Source=Owner->GetCombatComponent(); Context.Snapshot=Snapshot();
+    Context.SourceId=PlayerEntity(); Context.ItemLookup=LHStage1SessionPrivate::Item;
+    Context.Combat=LHWave2::PrototypeProfile().Rules.Combat;
+    auto* Target=Director.IsValid()?Director->FindByEntity(Q.Target):nullptr;
+    if (Target) { Context.Target=Target->GetCombatComponent(); Context.TargetId=Target->GetEntityId(Complete.World.RunId); }
+    R.Reason=LHAbilities::ExecuteUseAbility(Context,Q);
+    if (R.Reason==ELHCommandReason::None)
+    { R.Disposition=ELHCommandDisposition::Accepted; RuntimeAbilities.Add(Q.Request.Value,{Digest,R}); }
+    // D16: no receipt, sequence advance, or save per activation.
+    return R;
+}
+bool FLHWave2Session::StartEncounters()
+{
+    if (!Owner.IsValid() || !Owner->GetCombatAvatar() || !HasCharacter()) return false;
+    auto* Combat=Owner->GetCombatComponent(); Combat->SetStableEntity(PlayerEntity());
+    Combat->ConfigureManaRegen(LHWave2::PrototypeProfile().Rules.Mana);
+    Combat->ManaRegenFractionalSeconds=Complete.Session.ManaRegenFractionalSeconds.Value;
+    LHAbilities::RestoreCooldowns(*Combat,PlayerEntity(),Complete.Session.Cooldowns);
+    if (const auto* Rng=Complete.Session.GameplayRng.FindByPredicate([](const auto& R){return R.StreamId==TEXT("RNG.Combat");}); Rng && Rng->State.Num()==4)
+    { uint32 Seed=0; for(int32 B=0;B<4;++B) Seed|=uint32(Rng->State[B])<<(B*8); Combat->SetCombatRandomState(FRandomStream(int32(Seed))); }
+    const auto* Definition=LHWorld::FindArea(Complete.Character.ActiveEntrance.Area);
+    if (!Definition) return false;
+    bDeadAwaitingRespawn=Complete.Character.CurrentHealth.Value<=0;
+    // Only church and B1 are playable gameplay destinations for this submission.
+    if (Definition->Id.Content.Value!=TEXT("Area.TempleB1")) return true;
+    auto Next=Complete; auto* Area=LHStage1SessionPrivate::Area(Next);
+    if (!Area) { FLHAreaRecord New; New.Area=Definition->Id; Next.World.Areas.Add(New); Area=&Next.World.Areas.Last(); }
+    const bool FirstVisit=Area->Encounters.IsEmpty();
+    if (LHRewards::PopulateArea(*Area,*Definition,LHStage1SessionPrivate::Health)!=ELHCommandReason::None) return false;
+    if (FirstVisit)
+    {
+        for (auto& E:Area->Encounters)
+        { FLHSaveError Error; if (!LHSave::EnemyLifeRewardId(Next.World.RunId,E.Life,E.KillReward,Error)) return false; }
+        ++Next.Header.TransactionSequence;
+        if (!AcceptBoundary(MoveTemp(Next),false)) return false;
+    }
+    Director=Owner->GetWorld()->GetSubsystem<ULHEncounterDirector>(); if (!Director.IsValid()) return false;
+    Director->RunId=Complete.World.RunId; Director->Player=Owner->GetCombatAvatar();
+    Director->ResolveSpec=[](const FLHContentId& Id)->const FLHEnemyRuntimeSpec* { const auto* Row=LHEnemyData::Find(Id); return Row?&Row->Runtime:nullptr; };
+    // Director lives in the world; weak session callbacks cannot outlive the session owner.
+    Director->SettleKill=[this](const FLHSpawnLifeId& Life,const FLHHitIdentity& Hit,AActor* Killer){return SettleEnemyKill(Life,Hit,Killer);};
+    Director->AdvanceRespawns=[this](float Seconds){
+        auto Next=Complete; auto* Area=LHStage1SessionPrivate::Area(Next); if (!Area || !Director.IsValid()) return;
+        TArray<FLHSpawnLifeId> Lives;
+        if (LHRewards::AdvanceRespawns(*Area,Next.World.RunId,Seconds,[this](const FGuid& Id){return Director->IsSpawnSafe(Id);},LHStage1SessionPrivate::Health,Lives)!=ELHCommandReason::None) return;
+        const auto OldCorpses=Area->Corpses;
+        if (LHRewards::AdvanceLootCleanup(*Area,Seconds,[](const FLHContentId& Id){return Id.Value!=TEXT("Item.Torch");},[](const FLHEntityId&){return false;})!=ELHCommandReason::None) return;
+        // Dialogue/loot pause freezes this callback, so open containers are never expired.
+        for (const auto& Old:OldCorpses)
+            if (!Area->Corpses.ContainsByPredicate([&](const auto& C){return LHStage1SessionPrivate::Same(C.Container,Old.Container);}))
+            {
+                Director->Despawn(Old.SourceLife);
+                for (TActorIterator<ALHEnemyCharacter> It(Owner->GetWorld());It;++It)
+                    if (It->IsCorpse() && LHAI::SameLife(It->GetLife(),Old.SourceLife)) It->Destroy();
+            }
+        // Timer progress is kept in memory until the next completed save/travel boundary.
+        Complete.World=MoveTemp(Next.World); Authority()->Import(Complete);
+        if (!Lives.IsEmpty())
+        {
+            ++Complete.Header.TransactionSequence; Authority()->Import(Complete); bSaveQueued=true;
+            for (const auto& Life:Lives)
+            {
+                Director->SpawnLife(Life);
+            }
+        }
+    };
+    Director->Populate(*LHStage1SessionPrivate::Area(Complete));
+    // Hydrate remaining loot as native corpse actors. Director hydrates only alive encounters.
+    for (const auto& C:LHStage1SessionPrivate::Area(Complete)->Corpses)
+    {
+        if (C.bClaimed) continue;
+        const auto* Spawn=Definition->Spawns.FindByPredicate([&](const auto& S){return S.SpawnId==C.SourceLife.SpawnSlot;});
+        const auto* Row=Spawn?LHEnemyData::Find(Spawn->Enemy):nullptr; if (!Row) continue;
+        bool Exists=false; for (TActorIterator<ALHEnemyCharacter> It(Owner->GetWorld());It;++It) Exists|=It->IsCorpse() && LHAI::SameLife(It->GetLife(),C.SourceLife);
+        if (Exists) continue;
+        FTransform At=Spawn->Anchor; At.AddToTranslation(FVector(0,0,Row->Runtime.CapsuleHalfHeightCm.Value));
+        auto* Actor=Owner->GetWorld()->SpawnActorDeferred<ALHEnemyCharacter>(ALHEnemyCharacter::StaticClass(),At,nullptr,nullptr,ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+        FString Error; auto Hp=Row->Health;
+        if (Actor && Actor->ApplyRuntimeSpec(Row->Runtime,C.SourceLife,Hp,Error)) { Actor->FinishSpawning(At); Actor->GetCombatComponent()->SetNumericAttributeBase(ULHAttributeSet::GetHealthAttribute(),0); Actor->MarkCorpse(); }
+        else if (Actor) Actor->Destroy();
+    }
+    Director->SetSimulationFrozen(bWorldTravelFrozen || bGameplayPaused || bDeadAwaitingRespawn); return true;
+}
+bool FLHWave2Session::SettleEnemyKill(const FLHSpawnLifeId& Life,const FLHHitIdentity&,AActor* Killer)
+{
+    if (!Owner.IsValid() || Killer!=Owner->GetCombatAvatar() || !SyncResources()) return false;
+    const auto* Definition=LHWorld::FindArea(Life.Area);
+    const auto* Spawn=Definition?Definition->Spawns.FindByPredicate([&](const auto& S){return S.SpawnId==Life.SpawnSlot;}):nullptr;
+    const auto* Row=Spawn?LHEnemyData::Find(Spawn->Enemy):nullptr; if (!Row) return false;
+    auto Next=Complete; FLHQuestKillObserver Observer; ILHKillObserver* Observers[]={&Observer};
+    FLHKillFacts Facts; Facts.Area=Life.Area; Facts.Life=Life; Facts.Enemy=Spawn->Enemy; Facts.bKillerIsPlayer=true;
+    if (LHRewards::SettleKill(Next,Facts,Row->Reward,LHWave2::PrototypeProfile(),MakeArrayView(Observers))!=ELHCommandReason::None) return false;
+    if (Next.Header.TransactionSequence==MAX_int64) return false;
+    ++Next.Header.TransactionSequence; return AcceptBoundary(MoveTemp(Next),true);
+}
+void FLHWave2Session::TickGameplay(float Seconds)
+{
+    if (!bInGameplay || IsBlocked() || bGameplayPaused || !Owner.IsValid()) return;
+    if (Director.IsValid()) Director->TickActiveSimulation(Seconds);
+}
+void FLHWave2Session::SetGameplayPaused(bool Paused)
+{
+    bGameplayPaused=Paused;
+    if (Director.IsValid()) Director->SetSimulationFrozen(Paused || IsBlocked());
+    if (Owner.IsValid()) Owner->GetCombatComponent()->SetRecoveryMenuPaused(Paused || IsBlocked());
+}
+void FLHWave2Session::HandlePlayerDeath()
+{
+    if (bDeadAwaitingRespawn || !HasCharacter() || !SyncResources()) return;
+    bDeadAwaitingRespawn=true; if (Complete.Header.TransactionSequence==MAX_int64) { Message=TEXT("Death checkpoint sequence exhausted."); return; }
+    ++Complete.Header.TransactionSequence;
+    Authority()->Import(Complete); bSaveQueued=true; SetGameplayPaused(bGameplayPaused);
+}
+FString FLHWave2Session::RequestRespawn()
+{
+    if (!HasCharacter() || bTravel || bAwaitingSave || bSaveQueued || !Authority()) return TEXT("Wait for death checkpoint durability.");
+    if (Complete.Character.CurrentHealth.Value>0 && !bDeadAwaitingRespawn) return TEXT("Character is alive.");
+    const auto* Entrance=LHWorld::FindEntrance(Complete.Session.SafeRespawn.Entrance);
+    if (!Entrance || !LHArrivalReview::IsReviewed(*Entrance)) return TEXT("Church arrival safety review is missing.");
+    auto Next=Complete;
+    const auto Reason=LHRewards::SettlePlayerDeath(Next,LHWave2::PrototypeProfile(),Next.Session.SafeRespawn,true);
+    if (Reason!=ELHCommandReason::None) return TEXT("Death recovery rejected.");
+    ++Next.Header.TransactionSequence;
+    if (!AcceptBoundary(MoveTemp(Next),false)) return TEXT("Death recovery validation failed.");
+    // Keep the dead movement gate until durability and Bind on the new church avatar.
+    bEnterAfterSave=true; return {};
+}
+FLHUIHud FLHWave2Session::HudState() const
+{
+    FLHUIHud H; H.Player=PlayerEntity(); H.Health=Complete.Character.CurrentHealth; H.Mana=Complete.Character.CurrentMana;
+    if (Owner.IsValid())
+    {
+        const auto* C=Owner->GetCombatComponent(); const auto* A=C->GetCombatAttributes();
+        if (Owner->GetCombatAvatar()) { H.Health.Value=A->GetHealth(); H.Mana.Value=A->GetMana(); }
+        H.MaxHealth=LHWave2::PrototypeNumber(A->GetMaxHealth()); H.MaxMana=LHWave2::PrototypeNumber(A->GetMaxMana());
+    }
+    H.bDead=bDeadAwaitingRespawn || (HasCharacter() && H.Health.Value<=0); H.SaveStatus=OwnerStatus();
+    FLHContentId Melee; Melee.Value=TEXT("Attack.Melee.Basic"); FLHBasicAttackConfig Config; FString Error;
+    H.Abilities.Add({Melee,TEXT("Melee"),Error,false,false});
+    H.Abilities.Last().bAvailable=LHAbilities::BuildAttackConfig(Complete,Melee,LHStage1SessionPrivate::Item,LHWave2::PrototypeProfile().Rules.Combat,Config,Error) && !H.bDead;
+    H.Abilities.Last().Feedback=Error;
+    for (const auto& Q:Complete.World.Quests) if (Q.Quest.Value==TEXT("Quest.SamaritanRats"))
+        H.Objective=Q.bRewarded?TEXT("Samaritan errand completed"):FString::Printf(TEXT("Samaritan rats: %lld / 15 — return for the reward"),Q.EligibleKillCount.Value);
+    return H;
+}
+TArray<FLHUIDialogueTopic> FLHWave2Session::DialogueTopics(const FLHEntityId& Id) const
+{
+    TArray<FLHUIDialogueTopic> Out; const auto* Npc=ResolveNpc(Id); if (!Npc) return Out;
+    for (const auto& T:LHQuests::Topics(Complete,Npc->DefinitionId))
+    {
+        if (T.Id.Value==TEXT("Topic.Services")) continue; // Stage 1B service route.
+        FLHUIDialogueTopic V; V.Id=T.Id; V.Label=T.Label; V.Text=T.Text; V.bEnabled=Spatial(const_cast<ALHInteractableMarker*>(Npc),250); Out.Add(V);
+    }
+    return Out;
+}
+TArray<FLHUILootRow> FLHWave2Session::CorpseContents(const FLHEntityId& Id) const
+{
+    TArray<FLHUILootRow> Out;
+    for (const auto& A:Complete.World.Areas) for (const auto& C:A.Corpses) if (LHStage1SessionPrivate::Same(C.Container,Id) && !C.bClaimed)
+    {
+        if(C.RemainingGold.Value>0) Out.Add({ELHLootTransferKind::Gold,{},C.RemainingGold,TEXT("Gold")});
+        for (const auto& I:C.RemainingItems) Out.Add({ELHLootTransferKind::Item,I.Id,I.Quantity,I.Definition.Value.ToString()});
+    }
+    return Out;
+}

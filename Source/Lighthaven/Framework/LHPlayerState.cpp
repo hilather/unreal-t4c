@@ -3,6 +3,8 @@
 #include "Abilities/LHCombatComponent.h"
 #include "GameFramework/Pawn.h"
 #include "Framework/LHPlayerController.h"
+#include "Framework/LHSessionSubsystem.h"
+#include "Engine/GameInstance.h"
 ALHPlayerState::ALHPlayerState()
 {
     CharacterAuthority = CreateDefaultSubobject<ULHCharacterAuthorityComponent>(TEXT("CharacterAuthority"));
@@ -26,6 +28,8 @@ void ALHPlayerState::HandleAvatarDeath(const FLHHitIdentity&)
 {
     if (auto* Pawn=Cast<APawn>(Combat->GetAvatarActor()))
         if (auto* Controller=Cast<ALHPlayerController>(Pawn->GetController())) Controller->ClearHeldMovement();
+    if (auto* Instance=GetGameInstance()) if (auto* Session=Instance->GetSubsystem<ULHSessionSubsystem>())
+        if (Session->Session()) Session->Session()->HandlePlayerDeath();
     ClearAvatar();
 }
 void ALHPlayerState::ClearAvatar() { Combat->ClearCombatAvatar(); }
