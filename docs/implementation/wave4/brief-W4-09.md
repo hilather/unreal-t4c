@@ -1,0 +1,24 @@
+# Task W4-09: fix the map lighting defect; instrument the render freeze
+
+Base: main 92b8431 (Wave 3 integrated, G3 passed). Runs alongside Wave 4 and touches no Wave 4 code paths.
+
+## Evidence (Robo-Ilya G3 on the packaged Linux build, Vulkan, NVIDIA, Hyprland 1920x1080)
+- **D1:** the hub (`L_LighthavenTempleDistrict`) renders almost fully **white/overexposed**. `r.EyeAdaptationQuality 0` did not help.
+- **D2:** **B1 and B2 render black, B3 is dim** (B4 not reported). Gameplay, UI and travel are unaffected.
+- **Freeze:** render stalls remain a known limitation (`docs/implementation/g2-render-hang.md`: launch stalls at frame 1, presentation-independent). New: the first **in-play freeze**, in hub gameplay ~2 min after load. The log simply stops (last lines are routine viewport/capsule debug lines; no Vulkan error, no DEVICE_LOST, no "GameThread timed out" line). Swapchain: IMMEDIATE present mode, A2B10G10R10, 3 images; `t.MaxFPS=60` is set.
+
+## Part A — lighting (the real fix)
+The five maps are **generated** by `Source/LighthavenEditor/Commandlets/LHGenerateHubMapCommandlet.cpp`, `LHGenerateBasementAMapsCommandlet.cpp`, `LHGenerateBasementBMapsCommandlet.cpp` (A-04 lights/exposure intent is in `hub-graybox.md`, `basement-b1-b2.md`, `basement-b3-b4.md`, and the A-04 lighting brief in `docs/plan/`). Find the cause and fix it **in the generators and/or `Config/DefaultEngine.ini`**. Candidates to check, report each with evidence:
+1. Exposure: post-process volume settings per map (manual vs auto exposure, EV100 min/max, exposure compensation, `bUnbound`), the project default (`r.DefaultFeature.AutoExposure*`, "Extend default luminance range"), and whether the generator's EV100 assumption matches the project setting (`hub-graybox.md` notes it "assumes the project's EV100 range setting").
+2. Light mobility vs built lighting: Static/Stationary lights in maps that never get a lighting build render black or unlit in packaged builds. Movable lights, or `r.AllowStaticLighting=0`, avoid lightmaps. Decide deliberately and document.
+3. Sky/directional/skylight presence and intensities per map (the hub is outdoors, the basements indoors), plus light units and intensity versus exposure.
+4. GI/Lumen/shadow settings in `DefaultEngine.ini` versus the graybox's intent, and whether `-nullrhi` generation leaves anything unbuilt.
+Deliver: a **headless lighting audit test** `Lighthaven.World.LightingAudit` (new file `Source/LighthavenTests/World/LHLightingAuditTests.cpp`). For each of the five maps it loads the map and checks the expected lights exist with the intended mobility and intensity ranges, plus the exposure settings (no static lights without built data, exposure bounds as documented). Also deliver a **host capture script** `build/capture-map-screenshots.sh`: for each map, launch the packaged or editor `-game` build, place the camera at the registry arrival/SafeSpawn, take a screenshot, and print mean/median luminance per map. The coordinator runs it on the host display; you can't render in the sandbox (`-nullrhi`), so don't fake visual results. Don't add collision near arrivals or move arrival transforms (that would un-review them).
+
+## Part B — freeze instrumentation (investigation, no speculative engine changes)
+1. Extend `build/launch-soak.sh` so that when it declares a hang it captures **all thread stacks** of the stuck process before killing it (`gdb -batch -p PID -ex "thread apply all bt"`, or `eu-stack -p PID` if gdb is absent; check availability and fall back gracefully). Save them in the run's evidence directory and classify the hang: startup stall (frame ≤ 3), late hang (frame > 3), or log-quiet false positive (the process still advancing frames). Add an option for an **in-play soak**: N runs of M seconds in the hub with the default `-ExecCmds`-driven camera/movement if feasible, or idle in the hub otherwise.
+2. Review the late "hangs" in the earlier soak data as `launch-soak.sh` classifies them (frames 405–917), and fix the false-positive logic if that's what they are.
+3. Update `docs/implementation/g2-render-hang.md` with what the new instrumentation will capture and a ranked hypothesis list for the in-play freeze. The coordinator will run the soak on the host and send you, or a follow-up task, the stacks.
+
+## Own only
+`Source/LighthavenEditor/Commandlets/LHGenerateHubMapCommandlet.cpp`, `LHGenerateBasementAMapsCommandlet.cpp`, `LHGenerateBasementBMapsCommandlet.cpp` (**lighting/post-process code only**; W4-06 edits these files later, so keep your changes self-contained), `Config/DefaultEngine.ini` (rendering sections only), `Source/LighthavenTests/World/LHLightingAuditTests.cpp` (new), `build/capture-map-screenshots.sh` (new), `build/launch-soak.sh`, `docs/implementation/g2-render-hang.md`, `docs/implementation/lighting.md` (new; your report: cause per map, the fix, audit thresholds, host capture steps).
