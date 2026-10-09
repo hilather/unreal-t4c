@@ -7,7 +7,7 @@ public class LighthavenTests : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         // Direct dependencies for the native PlayerInput/mapping regression fixture.
-        PrivateDependencyModuleNames.AddRange(new string[] { "InputCore", "EnhancedInput" });
+        PrivateDependencyModuleNames.AddRange(new string[] { "InputCore", "EnhancedInput", "UnrealEd", "AIModule", "NavigationSystem" });
         PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "Lighthaven" });
     }
 }
