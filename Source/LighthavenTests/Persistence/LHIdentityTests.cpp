@@ -133,7 +133,7 @@ LH_ID_TEST(FLHRequestMalformed,"Digest.CanonicalAndRejection")
     M=C; M.Creation.QuestionAnswers.SetNum(5); TestTrue(TEXT("Answer bound"),Digest(TEXT("CreateCharacter"),M).IsEmpty());
     M=C; M.AppearanceIds[0].Value=TEXT("bad/id"); TestTrue(TEXT("ID grammar"),Digest(TEXT("CreateCharacter"),M).IsEmpty());
     TestTrue(TEXT("Type mismatch"),LHSave::RequestDigest(TEXT("EquipItem"),C.StaticStruct(),&C).IsEmpty());
-    TestTrue(TEXT("Unsupported type"),LHSave::RequestDigest(TEXT("TrainSkill"),FLHTrainSkillRequest::StaticStruct(),&C).IsEmpty());
+    TestTrue(TEXT("TrainSkill mismatched type"),LHSave::RequestDigest(TEXT("TrainSkill"),C.StaticStruct(),&C).IsEmpty());
     TestTrue(TEXT("Null"),LHSave::RequestDigest(TEXT("CreateCharacter"),C.StaticStruct(),nullptr).IsEmpty());
     auto A=Allocate(); A.Points.Strength.Value=MAX_int64; TestTrue(TEXT("Allocation overflow"),Digest(TEXT("AllocateAttributePoints"),A).IsEmpty());
     auto E=Equip(); E.Slot=static_cast<ELHEquipmentSlot>(255); TestTrue(TEXT("Invalid slot enum"),Digest(TEXT("EquipItem"),E).IsEmpty());

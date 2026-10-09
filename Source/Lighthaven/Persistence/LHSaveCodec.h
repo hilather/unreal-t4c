@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/LHSaveSnapshot.h"
+#include "Core/LHCommands.h"
 
 // Stable reasons for presentation adapters; persistence never substitutes a new character.
 enum class ELHSaveReason : uint8
@@ -82,4 +82,13 @@ namespace LHSave
     LIGHTHAVEN_API TArray<uint8> CanonicalValue(FLHMechanicalField Value, FLHSaveError& Error);
     LIGHTHAVEN_API TArray<uint8> CanonicalValue(FTransform Value, FLHSaveError& Error);
     LIGHTHAVEN_API TArray<uint8> CanonicalValue(ELHEquipmentSlot Value, FLHSaveError& Error);
+}
+
+namespace LHSave
+{
+    LIGHTHAVEN_API bool BeginRequest(const FLHSaveSnapshot&, FName Command, const UScriptStruct*, const void*, FLHCommandResult& Out, FString& Digest);
+    // Call only on a validated candidate after BeginRequest returned true; rechecks retention/epoch.
+    LIGHTHAVEN_API void CommitRequest(FLHSaveSnapshot&, const FLHRequestId&, const FString& Digest, FLHCommandResult& Out);
+    LIGHTHAVEN_API bool QuestTurnInRewardId(const FGuid&, const FLHContentId& Quest, FName Stage, FLHRewardId&, FLHSaveError&);
+    LIGHTHAVEN_API bool BossUniqueRewardId(const FGuid&, const FLHContentId& Boss, FLHRewardId&, FLHSaveError&);
 }

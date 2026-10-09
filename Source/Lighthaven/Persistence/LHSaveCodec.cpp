@@ -356,6 +356,31 @@ static void RequestFields(FWire& W, FLHEquipItemRequest& R)
     FDepth Depth(W); W.Struct(4); Field(W,"Item",R.Item); Field(W,"Request",R.Request);
     Field(W,"Slot",R.Slot); Field(W,"bUnequip",R.bUnequip);
 }
+static bool EntityRequest(const FLHEntityId& E)
+{ return E.RunId.IsValid() && E.InstanceId.IsValid() && LHSaveValidationPrivate::Area(E.Area); }
+static bool PositiveRequest(const FLHInteger& I)
+{ return I.Resolution==ELHValueResolution::Resolved && I.Value>0; }
+static bool Valid(const FLHTrainSkillRequest& R) { return EntityRequest(R.Trainer) && LHSaveValidationPrivate::Id(R.Skill.Value,true) && PositiveRequest(R.Points); }
+static bool Valid(const FLHLearnSpellRequest& R) { return EntityRequest(R.Trainer) && LHSaveValidationPrivate::Id(R.Spell.Value,true); }
+static bool Valid(const FLHBuyItemRequest& R) { return EntityRequest(R.Vendor) && LHSaveValidationPrivate::Id(R.Offer.Value,true) && PositiveRequest(R.Quantity); }
+static bool Valid(const FLHSellItemRequest& R) { return EntityRequest(R.Vendor) && EntityRequest(R.Item) && PositiveRequest(R.Quantity); }
+static bool Valid(const FLHUseAbilityRequest& R) { return LHSaveValidationPrivate::Id(R.Ability.Value,true) && EntityRequest(R.Target); }
+static bool Valid(const FLHInteractRequest& R) { return EntityRequest(R.Target) && LHSaveValidationPrivate::Id(R.Topic.Value,true); }
+static bool Valid(const FLHTakeLootRequest& R) { return EntityRequest(R.Container) && LHValidateLootTransferPayload(R)==ELHCommandReason::None; }
+static void RequestFields(FWire& W, FLHTrainSkillRequest& R)
+{ FDepth D(W); W.Struct(4); Field(W,"Points",R.Points); Field(W,"Request",R.Request); Field(W,"Skill",R.Skill); Field(W,"Trainer",R.Trainer); }
+static void RequestFields(FWire& W, FLHLearnSpellRequest& R)
+{ FDepth D(W); W.Struct(3); Field(W,"Request",R.Request); Field(W,"Spell",R.Spell); Field(W,"Trainer",R.Trainer); }
+static void RequestFields(FWire& W, FLHBuyItemRequest& R)
+{ FDepth D(W); W.Struct(4); Field(W,"Offer",R.Offer); Field(W,"Quantity",R.Quantity); Field(W,"Request",R.Request); Field(W,"Vendor",R.Vendor); }
+static void RequestFields(FWire& W, FLHSellItemRequest& R)
+{ FDepth D(W); W.Struct(4); Field(W,"Item",R.Item); Field(W,"Quantity",R.Quantity); Field(W,"Request",R.Request); Field(W,"Vendor",R.Vendor); }
+static void RequestFields(FWire& W, FLHUseAbilityRequest& R)
+{ FDepth D(W); W.Struct(3); Field(W,"Ability",R.Ability); Field(W,"Request",R.Request); Field(W,"Target",R.Target); }
+static void RequestFields(FWire& W, FLHInteractRequest& R)
+{ FDepth D(W); W.Struct(3); Field(W,"Request",R.Request); Field(W,"Target",R.Target); Field(W,"Topic",R.Topic); }
+static void RequestFields(FWire& W, FLHTakeLootRequest& R)
+{ FDepth D(W); W.Struct(5); Field(W,"Container",R.Container); Field(W,"Item",R.Item); W.Name("Kind"); FName Kind=R.Kind==ELHLootTransferKind::Item?FName(TEXT("Item")):R.Kind==ELHLootTransferKind::Gold?FName(TEXT("Gold")):NAME_None; Visit(W,Kind); if (!W.bWrite) R.Kind=Kind.ToString()==TEXT("Item")?ELHLootTransferKind::Item:Kind.ToString()==TEXT("Gold")?ELHLootTransferKind::Gold:ELHLootTransferKind::Unspecified; Field(W,"Quantity",R.Quantity); Field(W,"Request",R.Request); }
 template<class T> static bool RequestWire(FName Command, const void* Input, TConstArrayView<uint8> Bytes,
     TArray<uint8>& Out, FLHSaveError& Error, bool Read)
 {
@@ -396,6 +421,13 @@ static bool DispatchRequest(FName Command,const UScriptStruct* Type,const void* 
     LH_REQUEST(FLHAllocateAttributePointsRequest,"AllocateAttributePoints")
     LH_REQUEST(FLHEquipItemRequest,"EquipItem")
     LH_REQUEST(FLHUseItemRequest,"UseItem")
+    LH_REQUEST(FLHTrainSkillRequest,"TrainSkill")
+    LH_REQUEST(FLHLearnSpellRequest,"LearnSpell")
+    LH_REQUEST(FLHBuyItemRequest,"BuyItem")
+    LH_REQUEST(FLHSellItemRequest,"SellItem")
+    LH_REQUEST(FLHUseAbilityRequest,"UseAbility")
+    LH_REQUEST(FLHInteractRequest,"Interact")
+    LH_REQUEST(FLHTakeLootRequest,"TakeLoot")
 #undef LH_REQUEST
     return Reject(Error,ELHSaveReason::Malformed,TEXT("Unsupported command or mismatched request type"));
 }
@@ -521,4 +553,21 @@ TArray<uint8> LHSave::CanonicalValue(ELHEquipmentSlot Value, FLHSaveError& Error
 {
     Error={}; LHSaveCodecPrivate::FWire Wire(Error); LHSaveCodecPrivate::Visit(Wire,Value);
     return Wire.Ok()?MoveTemp(Wire.Output):TArray<uint8>();
+}
+
+bool LHSave::QuestTurnInRewardId(const FGuid& Run,const FLHContentId& Quest,FName Stage,FLHRewardId& Reward,FLHSaveError& Error)
+{
+    using namespace LHSaveCodecPrivate; Error={}; Reward={};
+    if (!Run.IsValid() || !LHSaveValidationPrivate::Id(Quest.Value,true) || !LHSaveValidationPrivate::Id(Stage,false)) return Reject(Error,ELHSaveReason::Malformed,TEXT("Invalid quest source"));
+    FWire W(Error); W.Struct(5); W.Name("Domain"); W.Name("LHReward1"); W.Name("Purpose"); W.Name("QuestTurnIn");
+    FGuid R=Run; Field(W,"RunId",R); W.Name("SourceKey"); W.Struct(2); auto Q=Quest; Field(W,"QuestId",Q); Field(W,"Stage",Stage); W.Name("SourceKind"); W.Name("Quest");
+    return W.Ok() && RewardIdFromDigest(Sha256(W.Output),Reward,Error);
+}
+bool LHSave::BossUniqueRewardId(const FGuid& Run,const FLHContentId& Boss,FLHRewardId& Reward,FLHSaveError& Error)
+{
+    using namespace LHSaveCodecPrivate; Error={}; Reward={};
+    if (!Run.IsValid() || !LHSaveValidationPrivate::Id(Boss.Value,true)) return Reject(Error,ELHSaveReason::Malformed,TEXT("Invalid boss source"));
+    FWire W(Error); W.Struct(5); W.Name("Domain"); W.Name("LHReward1"); W.Name("Purpose"); W.Name("BossUnique");
+    FGuid R=Run; Field(W,"RunId",R); W.Name("SourceKey"); W.Struct(2); auto B=Boss; Field(W,"BossId",B); FName Objective=TEXT("PermanentObjective"); Field(W,"Objective",Objective); W.Name("SourceKind"); W.Name("Boss");
+    return W.Ok() && RewardIdFromDigest(Sha256(W.Output),Reward,Error);
 }
