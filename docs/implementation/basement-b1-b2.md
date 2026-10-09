@@ -12,7 +12,7 @@ The exact union of clear room/corridor rectangles is partitioned at their bounda
 
 B1 retains Entry → Hub, independent Hub → Healers and Hub → Descent arms, both closed bays and the descent enclosure with its 240 cm low-Y opening and 300 cm lintel underside. The enclosure's outside perimeter remains available. B2 retains Entry → ring → LowerBay → Junction → +Y/-X/+Y dogleg → LongHall → Descent, both ring lanes, the separate BranchJunction/dead-end/UpperHook branches, the full 10 U Bay seam and 8 U Hook seam. The 2 U Hook–Hall gap, ring void and dogleg interior have no walkable floor. No chest legend becomes loot or an encounter.
 
-Before save, collision capsule sweeps check the flat main routes, both ring lanes, B1 enclosure perimeter and optional branches. B1 uses a conservative combined R40/HH75 cm envelope (Slime radius, Bat height); B2 R55/HH100 cm (Spider radius, Giant Bat height). The written 320 cm corridors, 300 cm stairs and 240 cm B1 enclosure door exceed these envelopes. A-01's largest visible widths are B1 Slime 90 cm and B2 Spider/Giant Bat 170 cm. There is at least 300 cm doorway headroom; ramps have no ceiling. Sweeps do not certify limbs, simultaneous player passing, slope traversal or cooked navigation.
+Before save, collision capsule sweeps check the flat main routes, both ring lanes, B1 enclosure perimeter and optional branches. B1 uses a conservative combined R40/HH75 cm envelope (Slime radius, Bat height); B2 R55/HH100 cm (Spider radius, Giant Bat height). The written 320 cm corridors, 300 cm stairs and 240 cm B1 enclosure door exceed these envelopes. A-01's largest visible widths are B1 Slime 90 cm and B2 Spider/Giant Bat 170 cm. There is at least 300 cm doorway headroom; ramps have no ceiling. Sweeps include stair approach/slope capsule clearance; they do not certify limbs, simultaneous player passing, character movement on slopes or cooked navigation.
 
 Each floor has one NavMeshBoundsVolume covering its floor union. Navigation rebuild/cook and actual AI routes remain separate checks. The generator rejects an unexpected registry roster/count, an anchor outside the floor union or an invalid registry; expected counts are 17 B1 and 25 B2. No enemies are activated by this authoring operation. Nevanis (-25,6) and Shovanis (-25,14) have separate ground-anchor TargetPoints and nonblocking human rulers; actual service bindings remain W4-07.
 
@@ -20,7 +20,7 @@ Each floor has one NavMeshBoundsVolume covering its floor union. Navigation rebu
 
 The registry supplies all marker transforms, spawn GUIDs and portal GUIDs. No identity is derived from coordinates, labels or list indices. Actor names and geometry order are fixed; semantic determinism means equivalent authored transforms/components/IDs, not byte-identical Unreal package metadata.
 
-| Map entrance | Departure ground center, cm / yaw | Destination | Arrival ground center, cm / yaw |
+| Map entrance | Departure ground center, cm / yaw | Destination | Arrival on this map at this entrance, cm / yaw |
 |---|---|---|---|
 | B1 Entry | (450,-2500,100) / -90 | Hub Temple.Descent | (450,-1650,0) / +90 |
 | B1 Descent | (4500,2100,-75) / +90 | B2 Entry | (4500,1400,0) / -90 |
@@ -42,3 +42,14 @@ Deliberate graybox deviations: fixed 120 cm visual wall cutaway with invisible f
 ## Validation and handoff
 
 See the attempt report for exact observed build/generation/test commands, timings, exit codes and evidence. The generator logs a sorted MD5 fingerprint of generated actor names/classes/transforms/tags and portal/spawn identities; it excludes package metadata and does not certify all component properties. Checks still required on the integrated host: generate twice and compare authored IDs/transforms; rebuild/cook navigation; controller walk both floor routes and branches; traverse every paired portal after loading hub/B3; validate facing, quit/reload and invalid-destination recovery; test protected-zone attack/leash rules; inspect lighting, small-target readability and limbs at camera extremes. No Windows checks are claimed (deferred). W3-04b's known base-test fixes are outside these owned paths.
+
+
+### W3-02b execution evidence (2026-10-08 America/Toronto)
+
+Base `6b545f282ac558371ac3f54127960363090fe8a9` already contains the salvaged generator. The first positive-control run failed before saving B1: a freshly loaded engine cube was still compiling, and UE 5.8.3 suppresses static-mesh component physics creation during compilation. The commandlet now explicitly finishes cube compilation before creating either floor. This changes collision-query readiness, not geometry or registry identities.
+
+The initial Linux editor/game build succeeded (UBT 254.63 s / 201.74 s); the changed editor target rebuilt successfully (71.52 s including mutex wait). After the fix, both floors passed the native positive floor control, route and stair capsule checks and saved 17/25 encounter anchors. Generator exit 1 is retained because the checkout's Dev_Combat, Dev_Movement and L_Frontend files are unhydrated LFS pointers; no basement-generation error remained. Observed authored fingerprints: B1 `1b9a9fa12465018f10591ddf8011e949`, B2 `3a1ebf5c804d33ad1f13a798c4509315`. A second generation run (36.607 s, exit 1 for the same baseline pointer errors) produced both identical fingerprints. These fingerprints omit component properties and package metadata.
+
+The wrapper rejected each existing basement map made read-only independently (exit 1, 0.079 s / 0.075 s); SHA-256 checks confirmed both maps' bytes stayed unchanged after each rejection, and original permissions were restored. The requested headless Lighthaven automation run completed **76 tests: 74 Success, 2 Fail**, process exit 255, 90.591 s. Failures were the expected baseline `Lighthaven.World.AreaHydrationAndHighWater` and `Lighthaven.World.RegistryIntegrity`; W3-04b is absent from this base. Counts come from the complete saved engine log (`tests-engine.log`); captured stdout omitted/truncated completion lines.
+
+Generated maps and build/cache files are excluded from the deliverable. Host hydration, regeneration, cooked navigation, controller traversal, paired-map travel and visual review remain integration work. Detailed logs and timing records reside in this attempt's worker-output `library/` and its standard handoff report.

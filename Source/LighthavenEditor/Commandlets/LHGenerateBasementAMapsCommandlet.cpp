@@ -10,6 +10,7 @@
 #include "Components/SkyLightComponent.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/StaticMesh.h"
+#include "StaticMeshCompiler.h"
 #include "Engine/TextureCube.h"
 #include "Engine/PointLight.h"
 #include "Engine/SkyLight.h"
@@ -325,6 +326,9 @@ int32 ULHGenerateBasementAMapsCommandlet::Main(const FString& Params)
     UStaticMesh* Cube=LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube"));
     TArray<FString> Errors;
     if(!GEditor || !Cube || !LHWorld::ValidateRegistry(Errors)) return 1;
+    // A freshly loaded engine mesh can still be compiling in a headless editor.
+    // StaticMeshComponent suppresses physics creation until compilation finishes.
+    FStaticMeshCompilingManager::Get().FinishCompilation({Cube});
     for(bool B1:{true,false})
     {
         const FString Package=B1?TEXT("/Game/Lighthaven/Maps/L_TempleB1"):TEXT("/Game/Lighthaven/Maps/L_TempleB2");
