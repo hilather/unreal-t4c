@@ -153,6 +153,12 @@ struct FBuilder
             A->Settings.bOverride_AutoExposureMaxBrightness = true;
             A->Settings.AutoExposureMinBrightness = 2;
             A->Settings.AutoExposureMaxBrightness = 2;
+        // W4-09: explicit physical-camera exposure, independent of extended range.
+        A->Settings.bOverride_AutoExposureMethod=true; A->Settings.AutoExposureMethod=AEM_Manual;
+        A->Settings.bOverride_AutoExposureApplyPhysicalCameraExposure=true; A->Settings.AutoExposureApplyPhysicalCameraExposure=true;
+        A->Settings.bOverride_CameraISO=true; A->Settings.CameraISO=100;
+        A->Settings.bOverride_CameraShutterSpeed=true; A->Settings.CameraShutterSpeed=1;
+        A->Settings.bOverride_DepthOfFieldFstop=true; A->Settings.DepthOfFieldFstop=2;
             A->Settings.bOverride_AutoExposureBias = true; A->Settings.AutoExposureBias = 0;
         }
         if (auto* A = Actor<ANavMeshBoundsVolume>(TEXT("NavigationBounds"), FVector(bB3 ? 700 : 1400,3500,200)))

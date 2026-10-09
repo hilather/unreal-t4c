@@ -77,3 +77,25 @@ For a separate profiling run use `LH_SOAK_ARGS='["-stdout","-FullStdOutLogOutput
 This attempt runs as uid 0. Native Unreal Automation/editor/game/cook/package/real desktop A/B soaks were not run because Unreal refuses root and this worker has no normal-user desktop session. The expected host test is `Lighthaven.Integration.Wave2.GameplayInputHandoff`; the viewport now has GEngine as its required Within=Engine outer, retaining UI-only ignore-input, gameplay-context and possession assertions. No gate is declared passed. See the attempt report for actual build and controller-fixture checks; W2-06's earlier build timings are not this attempt's results.
 
 Actual build command above exited 0: editor `Result: Succeeded` (102.18 seconds), game `Result: Succeeded` (113.76 seconds). UBA reported some action-result storage tasks did not succeed; both targets nevertheless reported success. Shell syntax, embedded Python syntax, diff whitespace and mocked soak/package-controller scenarios passed. Mock fixtures do not verify Unreal runtime or driver behavior.
+
+## W4-09: silent in-play freeze instrumentation (2026-10-09)
+
+The G3 report adds a hub freeze about two minutes into gameplay with no fatal/Vulkan error: the log simply stops. This is distinct evidence from the frame1 startup timeout, not proof of the same cause. No speculative RHI or driver changes are applied.
+
+`LH_SOAK_IN_PLAY=1 bash build/launch-soak.sh "$archive" 10 180` selects the cooked hub for N runs of M seconds. It idles: reliable timed movement through startup ExecCmds has not been established. Existing `LH_SOAK_ARGS` allows explicit diagnostic commands; preserve those in the evidence. Hub direct load is the control, not the full character-creation path.
+
+Before killing a deadline-expired live process the script writes `run-NNN.stacks.txt`: installed gdb all-thread user backtraces (15-second timeout), or eu-stack if gdb is absent, debugger exit/errors, plus every accessible task's status/wchan/kernel stack. Missing tools and denied ptrace are explicitly recorded. No privilege/sysctl changes. Between M+18 and M+30 it attempts bounded gdb samples of `GFrameCounter` into `run-NNN.frames.txt`; comparing these distinguishes quiet-but-advancing frames from stopped frames when symbols/attach work. Attach pauses the target briefly and changes the experiment; compare against baseline. Log frame samples are fallback evidence and wrap after1000; absence of new logs alone is never proof of no frame progress.
+
+Classification: startup-stall (counter≤3, falling back to last logged frame≤3), late-hang (later frame and counter samples available), late-hang-unconfirmed (later frame without sufficient debugger evidence), log-quiet-false-positive (counter or recent log frames advance despite failure to exit at deadline), or unclassified-exit. False-positive means the **stall diagnosis** was wrong; failure of timed clean exit still fails the run. All deadline-expired processes retain stacks before TERM/KILL. Early/nonzero exits remain failures without being inferred frozen.
+
+Earlier late “hangs” at logged frames405–917 cannot be established as freezes from those frame numbers or quiet logs alone. The old `no-log-growth` reason was unsupported as a standalone stall diagnosis. They are retrospectively **unconfirmed deadline/exit failures**, pending original logs/stacks; the original raw evidence is not present in this checkout. The new counter probes address that ambiguity rather than treating healthy log silence as proof of a hang.
+
+Ranked in-play hypotheses, all unverified:
+
+1. Vulkan GPU/driver synchronization or device work stalls shared with startup failures: look for Render/RHI threads in Vulkan fence/acquire/submit waits and NVIDIA kernel Xid/device evidence.
+2. Game-thread/task dependency deadlock: inspect all thread stacks for a waiting GameThread, task worker dependencies, and ownership cycles; a stopped log with no fatal can fit this too.
+3. Compositor/presentation wait: rank below general GPU synchronization because earlier offscreen stalls were reported presentation-independent. Confirm actual SDL backend and swapchain calls in stacks.
+4. Expensive rendering/resource pressure during hub play: correlate GPU memory, resource creation and trace events. Lighting correction changes visual inputs but is not asserted to fix freezes.
+5. Log-quiet or shutdown false positive in automated soak: live counter advance distinguishes it; the reported visible in-play freeze cannot be dismissed solely on log silence.
+
+Coordinator follow-up: host-run capture and soak, preserve matching executable/symbols, stack/probe errors, process states, kernel/NVIDIA diagnostics and trace if available. Investigate based on those stacks before any engine/config synchronization change. Render stall remains the retained known environment limitation; no gate passes are claimed here.

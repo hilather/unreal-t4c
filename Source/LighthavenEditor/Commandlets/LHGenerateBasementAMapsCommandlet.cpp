@@ -185,14 +185,14 @@ struct FBuilder
         if(auto* A=Actor<APostProcessVolume>(TEXT("ExposureBaseline"),FVector::ZeroVector))
         {
             A->bUnbound=true; auto& S=A->Settings;
-            S.bOverride_AutoExposureMinBrightness=true; S.AutoExposureMinBrightness=6;
-            S.bOverride_AutoExposureMaxBrightness=true; S.AutoExposureMaxBrightness=6;
+            S.bOverride_AutoExposureMinBrightness=true; S.AutoExposureMinBrightness=2;
+            S.bOverride_AutoExposureMaxBrightness=true; S.AutoExposureMaxBrightness=2;
             S.bOverride_AutoExposureBias=true; S.AutoExposureBias=0;
             S.bOverride_AutoExposureMethod=true; S.AutoExposureMethod=AEM_Manual;
             S.bOverride_AutoExposureApplyPhysicalCameraExposure=true; S.AutoExposureApplyPhysicalCameraExposure=true;
             S.bOverride_CameraISO=true; S.CameraISO=100;
-            S.bOverride_CameraShutterSpeed=true; S.CameraShutterSpeed=16;
-            S.bOverride_DepthOfFieldFstop=true; S.DepthOfFieldFstop=2; // log2(2^2 *16)=EV100 6.
+            S.bOverride_CameraShutterSpeed=true; S.CameraShutterSpeed=1;
+            S.bOverride_DepthOfFieldFstop=true; S.DepthOfFieldFstop=2; // Prototype interior EV100 2: log2(2^2 *1).
             S.bOverride_BloomIntensity=true; S.BloomIntensity=0;
             S.bOverride_MotionBlurAmount=true; S.MotionBlurAmount=0;
         }
