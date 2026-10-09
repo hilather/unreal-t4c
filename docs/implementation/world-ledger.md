@@ -42,7 +42,7 @@ Source_url for every row: **S3**, source_baseline **T4C Fantasy Classic Monster 
 | Enemy.DungeonBat | — | P | — | — | prototype | Temple presence confirmed, **source floor null**. Existing contract chooses B2 temporarily; replace when baseline floor verified in W4-02. |
 | Enemy.GreenSlime | C | C | C | C | confirmed | Independent slime definition. |
 | Enemy.GiantBat | — | C | C | C | confirmed | Separate gameplay definition despite bat family. |
-| Enemy.UndeadBat | — | C | — | — | disputed | Select S3 B2; S9 also lists B3. Do not silently union sources. S8 corroborates basement identity, not precise floor. |
+| Enemy.UndeadBat | — | C | — | — | disputed | R-03 Bible ArakasQuest (2026-10-09) confirms B2; S9 secondary also lists B3, which Bible does not establish or exclude. Select Bible B2; do not union sources. |
 | Enemy.GiantSpider | — | C | — | — | confirmed | B2, not tarantula/Gustave B1 content. |
 | Enemy.Goblin | — | — | C | — | confirmed | Separate from Goblin Warrior. |
 | Enemy.GoblinWarrior | — | — | C | — | confirmed | Shared presentation family does not merge stats/rewards. |
@@ -84,7 +84,7 @@ XP +1/+50/+100 are confirmed **printed columns**; their meaning and unconditiona
 | Atrocity | Light Heal | Light Heal, Iron Key | 8-27 | | | disputed | https://web.archive.org/web/20011014151611/http://www.t4cbible.com:80/drops.html; https://www.t4cbible.com/Monster1 | 2026-10-07 |
 | Balork | Flowing Black Robe (dr), Light Heal; boss-table location: AR LH Temple Dungeon Level 4 | Flowing Black Robe (dr), Light Heal | (blank) | AR LH Temple Dungeon Level 4 | 15:00 | confirmed | https://web.archive.org/web/20011014151611/http://www.t4cbible.com:80/drops.html; https://www.t4cbible.com/Monster1 | 2026-10-07 |
 
-Balork: **confirmed** Temple Dungeon Level4, Flowing Black Robe (demi rare) and Light Heal; live respawn15:00 (15 minutes), gold **missing** (blank). Timer origin, pause/offline behavior and drop probabilities are missing. Permanent defeat remains a separate campaign prototype. Rarity labels dr/r/vr have no recovered numeric probabilities.
+Balork: **confirmed** Temple Dungeon Level4, Flowing Black Robe (demi rare) and Light Heal; live respawn15:00 (15 minutes), gold **missing** (blank). Timer origin, pause/offline behavior and drop probabilities are missing. R-03 owner decision supersedes permanent defeat: use900s respawn; completion reward stays single-claim. Rarity labels dr/r/vr have no recovered numeric probabilities.
 
 
 ## Required town and basement services
@@ -97,18 +97,18 @@ The skill/spell/item prices and minima are source candidates recorded in the rul
 | Church/forecourt tutorial and safe arrival | modernized | null | Authored dialogue/arrival; source exact spawn tile null. |
 | Lighthaven Samaritan rat errand | confirmed | S4; S5 | Outside/near temple. Accept, fifteen rats below temple, return for 2500 XP, within Classic guide baseline. |
 | Samaritan exact forecourt side/interaction anchor | needs-visual-check | M5 | Package says outside left-side dungeon wing; no compass or precise transform inferred. |
-| Nevanis healing | confirmed | S4; S5 | B1 “western room” in guide; map-marked room controls placement, not assumed world west. Healing restrictions, amount and cost null. |
+| Nevanis healing | confirmed | S4; S5 | B1 “western room” in guide; map-marked room controls placement, not assumed world west. R-03 Bible ArakasQuest2026-10-09 confirms healing request. Restrictions, amount and cost missing; Prototype full HP/free for alive injured players, no level cap; Dark Fang restriction does not apply. |
 | Nevanis and Shovanis shared healer chamber anchor | needs-visual-check | M1 | Upper-left image branch in package description; verify room/clear interaction space. |
 | Shovanis, Dust Devil training | confirmed | S4; R13 in rules ledger | Temple Dungeon B1; price/prerequisites in rules ledger. |
 | Iraltok Fire Dart, Uranos Stone Shard/bat-wing turn-in | confirmed | R13; S4; S5 | Mage tower; keep there, never relocate into church. |
 | Mage tower route | needs-visual-check | M5 | Small offshore area above-right of church on image. Actual bridge/ground access null until traced; any temporary route must be recorded as reconstruction. |
-| Attack: Murmuntag/Ortanalas; Dodge: Kalastor; Archery: Kalastor/Ortanalas | confirmed | R11 in rules ledger | Lighthaven town trainers; exact individual building/coordinates unresolved in text summary. Prices/scaling null. |
+| Attack: Murmuntag/Ortanalas; Dodge: Kalastor; Archery: Kalastor/Ortanalas | confirmed | R11 in rules ledger | Lighthaven town trainers; exact individual building/coordinates unresolved in text summary. Printed costs Attack10/Dodge10/Archery15 confirmed; currency/points-per-rank/scaling missing; see R-03 lookup. |
 | Trainer building and reachable street route | needs-visual-check | M5 | Package says training building below-left of church; do not assign individual trainers to an invented room. |
 | Sigfried, Ashwood Flatbow and Wooden Arrows quiver | confirmed | S4; R20; R21 in rules ledger | Town weapon shop; prices29/100 gold, unlimited quiver. |
 | Sigfried precise shop anchor | needs-visual-check | M5 | Nearby above-left of church in package summary. |
 | Fali, Potion of Mana | confirmed | S4; R17–R19 in rules ledger | Town potion seller, archival (2900,1068,0); +25 MP for50 gold, not Unreal transform. Yolak is Windhowl, not a local replacement. |
 | Fali/Rolph building anchor | needs-visual-check | M5 | Below-left of church per package. Rolph town armour merchant confirmed S4; upgrade stock/prices unresolved. |
-| Bat-wing route | confirmed | S5; S8 | Undead Bat B2 (S3), wings → Uranos at mage tower → Skull Dagger +2500 XP. Drop chance/count null in package summary; optional Windhowl Marsac Cred need not be staged. |
+| Bat-wing route | confirmed | S5; S8 | Undead Bat B2 (S3), wings → Uranos at mage tower → Skull Dagger +2500 XP. R-03 Bible ArakasQuest2026-10-09 confirms B2 and reward; drop chance/count remain missing (plural name is not a count). Deferred by owner; optional Marsac Cred need not be staged. |
 | Selectable dialogue topics preserving topic IDs | modernized | null | Existing world design replaces keyword-only input. Single-player turn-in omits multiplayer cooldown by design; historical cooldown not inferred. |
 | Gustave ten-corpses/tarantula quest excluded | confirmed | S7 | Neerya-specific content, separate from selected fifteen-rat Samaritan baseline. |
 
@@ -118,14 +118,14 @@ The skill/spell/item prices and minima are source candidates recorded in the rul
 |---|---|---|---|
 | Balork final encounter is on B4 | confirmed | S3 | Exact labelled complex anchor needs M4 visual review. |
 | Defeat Balork → return to church → save finishes slice | modernized | null | Authored Stage 1 objective; no verified historical quest chain/reward attached. Mark's original effects/quest prerequisites are missing, value null. |
-| Boss does not respawn after defeat in default campaign | prototype | null | Existing world design/prototype-policy; replace only via explicit profile migration if recurring historical boss selected. |
+| Balork respawns900s after defeat; completion reward single-claim | confirmed (timer); modernized (reward policy) | https://www.t4cbible.com/monster1 | R-03 live check2026-10-09:15:00. Owner decision supersedes earlier permanent-defeat prototype; timer origin and loaded/unpaused clock are Prototype. |
 | Persist defeated/mark state, return objective, quest stages and reward claims separately | modernized | null | Architecture + world design. Unique completion reward claim cannot be granted by both death and dialogue or duplicated by travel/reload. Numeric completion reward null. |
 | Boss mechanics, extra phases/summons/area attacks | missing | S3 | null; not established, no invented phases in fidelity profile. |
 | Samaritan accepted/completed/rewarded states and single turn-in | modernized | null | Persist fifteen eligible kill count independently of corpse cleanup; source reward2500 XP is distinct from rat kill XP. |
 
 ## Respawn and renewable progression
 
-All tuning below already exists in world design §6/prototype-policy; this ledger introduces no new numbers. Prototype source_url is null, baseline LH_Prototype_v1, snapshot date 2026-10-07. W4-02/04 replace with verified baseline data or reviewed playtest tuning. Historical spawn counts, respawn rates, chest timers and loot weights remain **missing**, source S3/M1–M4, value null.
+Existing tuning below comes from world design §6/prototype-policy, except explicitly marked R-03 proposals in the reconciliation section. Prototype source_url is null, baseline LH_Prototype_v1, snapshot date 2026-10-07. W4-02/04 replace with verified baseline data or reviewed playtest tuning. Historical spawn counts, respawn rates, chest timers and loot weights remain **missing**, source S3/M1–M4, value null.
 
 | Policy/value | status | source_url | notes |
 |---|---|---|---|
@@ -138,7 +138,7 @@ All tuning below already exists in world design §6/prototype-policy; this ledge
 | B1 slot counts: rat12, bat3, slime2 | prototype | null | Existing world-design proposal, not source spawn table; rat quest needs respawns to reach15. Positions null. |
 | B2 slots: rat6, bat3, slime3, Giant Bat4, Undead Bat4, spider3, Dungeon Bat2 | prototype | null | Existing proposal; Dungeon Bat floor also provisional. No inferred source positions. |
 | B3 slots: rat4, slime3, Giant Bat4, goblin6, Goblin Warrior3, atrocity2 | prototype | null | Existing proposal; no B3 Undead Bat in selected profile. |
-| B4 slots: rat3, slime2, Giant Bat4, atrocity3, Balork1 | prototype | null | Existing proposal; boss is permanent-defeat exception. |
+| B4 slots: rat3, slime2, Giant Bat4, atrocity3, Balork1 | prototype | null | Existing slot proposal; R-03 selects900s Balork respawn with separate single-claim completion reward. |
 | Initially one to three active pursuers; live reload reset details | prototype | null | Pursuer suggestion from world design; authoritative alive health/anchor reset details still unresolved. Dead/rewarded lives must retain state. |
 
 ## Source register and reference locations
@@ -172,3 +172,14 @@ R11/R13/R17–R21 resolve in the companion rules ledger. Original map files rema
 - Determine historical Balork mark/quest semantics and recurrence before any fidelity claim; current permanent defeat/return objective is authored, rewards unresolved.
 - W4-04/05: test one-life/one-reward, quest single-claim, remaining timer across travel/pause/reload, renewable fifteen-rat completion and zero-gold/zero-mana recovery.
 - Map artwork rights and original-client validation remain separate research questions. No build/editor/cook/package/play checks or gate passes are asserted by this text ledger.
+
+
+## R-03 Wave 4 world lookup — 2026-10-09
+
+See [one-table lookup](research/w4-bible-lookup.md) for every species' HP/XP/melee/gold/loot and shared missing speed/odds/respawn fields. Existing classic numeric/loot rows retain2026-10-07 provenance because Wayback failed this attempt; fresh live lowercase [monster](https://www.t4cbible.com/monster) and [monster1](https://www.t4cbible.com/monster1) checks agree with retained live values. Classic damage conflicts remain disputed and use the selected classic side. Live gold fills absent classic gold; numeric drop odds remain missing for every species. No archive fetch failure is evidence of absence.
+
+Fresh [ArakasQuest](https://www.t4cbible.com/ArakasQuest) (retrieved2026-10-09, version unstated) explicitly places Undead Bats at temple level2. Dungeon Bat exact floors still missing; B2 stays Prototype. B3 Undead Bat is retained as secondary disagreement, not added. Nevanis heals in B1 on request; no fee/amount/level restriction recovered. Wings→Uranos→Skull Dagger+2500 XP is confirmed, wing count/chance missing, quest deferred.
+
+Balork's live boss row lists B4, robe (demi rare), Light Heal, blank gold,15:00. HP508/melee13–29 are confirmed; exact arena, phases/summons, drop odds, attack speed and timer origin are missing. **Recurring900s respawn supersedes permanent defeat**, while completion reward remains single-claim. A simple melee encounter at the existing B4 anchor is Prototype script behavior, not proof of the original script.
+
+R-03 missing-field **Prototype recommendations**, not tested rules: ordinary120s and boss900s remaining cooldowns tick only loaded/unpaused; respawn needs1000cm clearance from player, outside view/relevancy and valid nav/floor/non-overlap. Ordinary corpse loot300s on that clock with persisted contents/remaining time; unique/quest loot never expires. NPC interaction250cm and loot200cm with LOS/reachability. Nevanis restores full HP/free to alive injured players without level cap; church death recovery full HP/MP, no penalty during development. Bible does not provide these numbers. Wings1 item/10% proposal is deferred record-only; item odds never derived from qualitative rarity. Integration still needs ordinary-play economy/safety tests.
