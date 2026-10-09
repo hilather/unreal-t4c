@@ -125,3 +125,5 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
 | W3-06 G2c UI polish | active | codex-sol | UI/, LHWave2Session.*, LighthavenTests/UI/ + Integration/ (no overlap with W3-05b) | base W3-05 cand 07442a0 |
 | W3-05b ArrivalSafety fix | submitted (cand 4769fe1); host: controls now honest. **All 9 arrivals FAIL with physics=0 knownfloor=0 navdata=1 tiles=0** (no blocking physics in the loaded worlds, although the generators' own floor controls pass at generation). Loaded-world setup is still wrong → **W3-05c**: generate real maps in the worker sandbox and iterate there. Not merged. |
 | W3-06 G2c UI polish | submitted (cand a3c86e3); host pre-check on main + W3-05b + W3-06: build OK, 83 tests, 82 pass; the only failure is ArrivalSafety (W3-05c in progress). Merge after W3-05/05b/05c. |
+| W3-05 + W3-05b + W3-05c Wave 3 integration | **integrated** (81/81 host tests; review-arrivals 9/9 PASS; reviewed list committed; five maps regenerated; LHValidateWorld 0 errors) | codex-sol | | |
+| W3-06 G2c UI polish | **integrated** (host pre-check OK; final G3 candidate build/test pending) | codex-sol | | |
