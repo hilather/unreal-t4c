@@ -13,6 +13,7 @@ exec python3 - "$@" <<'PY'
 import os
 import json
 import shlex
+import shutil
 from pathlib import Path
 import re
 import signal
@@ -97,9 +98,15 @@ try:
             console = evidence / f'run-{index:03d}.console.log'
             command = [str(binary), '-windowed', '-ResX=1280', '-ResY=720',
                        f'-seconds={seconds}', f'-abslog={log}', '-log', '-nosplash']
+            if os.environ.get('LH_SOAK_IN_PLAY', '0') == '1':
+                command += ['/Game/Lighthaven/Maps/L_LighthavenTempleDistrict']
             command += extra
             start = time.monotonic()
             timed_out = False
+            code = None
+            frame_samples = []
+            counter_samples = []
+            next_probe = None
             with console.open('w') as output:
                 active = subprocess.Popen(command, cwd=binary.parent, stdout=output,
                                           stderr=subprocess.STDOUT, start_new_session=True, env=child_env)
@@ -114,6 +121,22 @@ try:
                         if current != signature:
                             signature = current
                             last_growth = now
+                        if next_probe is None: next_probe = start + seconds + 18
+                        if now >= next_probe and shutil.which('gdb'):
+                            # GFrameCounter is independent of normal log verbosity. Attach may be denied.
+                            try:
+                                probe = subprocess.run(['gdb', '-q', '-batch', '-p', str(active.pid),
+                                    '-ex', 'p GFrameCounter', '-ex', 'detach'], capture_output=True, text=True, timeout=3)
+                                with (evidence / f'run-{index:03d}.frames.txt').open('a') as probes:
+                                    probes.write(f't={now-start:.1f}\n{probe.stdout}{probe.stderr}\n')
+                                match = re.search(r'\$\d+ = (\d+)', probe.stdout)
+                                if match: counter_samples.append(int(match.group(1)))
+                            except subprocess.TimeoutExpired:
+                                pass
+                            next_probe = now + 5
+                        sample_text = log.read_text(errors='replace') if log.exists() else ''
+                        sample_frames = re.findall(r'\[\s*(\d+)\]', sample_text)
+                        frame_samples.append((now, int(sample_frames[-1]) if sample_frames else None))
                         code = active.poll()
                         if code is not None:
                             break
@@ -124,6 +147,27 @@ try:
                 finally:
                     elapsed = time.monotonic() - start
                     stalled_for = time.monotonic() - last_growth
+                    # Capture before cleanup. Attach failures/timeouts remain evidence, not empty success.
+                    live = active is not None and active.poll() is None
+                    if live and timed_out:
+                        stack_path = evidence / f'run-{index:03d}.stacks.txt'
+                        with stack_path.open('w') as stacks:
+                            debugger = shutil.which('gdb') or shutil.which('eu-stack')
+                            if debugger:
+                                args = ([debugger, '-q', '-batch', '-p', str(active.pid),
+                                         '-ex', 'set pagination off', '-ex', 'thread apply all bt', '-ex', 'detach']
+                                        if Path(debugger).name == 'gdb' else [debugger, '-p', str(active.pid)])
+                                try:
+                                    result = subprocess.run(args, stdout=stacks, stderr=subprocess.STDOUT, timeout=15)
+                                    stacks.write(f'\ndebugger_exit={result.returncode}\n')
+                                except subprocess.TimeoutExpired:
+                                    stacks.write('Debugger timed out after 15 seconds\n')
+                            else:
+                                stacks.write('gdb/eu-stack absent; full user stacks unavailable\n')
+                            for task in sorted(Path(f'/proc/{active.pid}/task').glob('*')):
+                                for field in ('status', 'wchan', 'stack'):
+                                    try: stacks.write(f'\n{task.name}/{field}: { (task / field).read_text() }\n')
+                                    except OSError as error: stacks.write(f'{task.name}/{field}: {error}\n')
                     reaped = cleanup()
             text = log.read_text(errors='replace') if log.exists() else ''
             timeout_error = bool(re.search(r'GameThread timed out waiting for (?:RenderThread|.*Render)', text))
@@ -131,12 +175,19 @@ try:
             good = code == 0 and clean and not timeout_error and not timed_out and elapsed >= seconds
             frames = re.findall(r'\[\s*(\d+)\]', text)
             last_frame = frames[-1] if frames else 'unknown'
-            stagnant = not clean and stalled_for >= 10 and bool(frames)
-            reason = ('unreaped' if not reaped else 'no-log-growth' if stagnant else 'clean-exit' if good else 'render-timeout' if timeout_error else
+            recent = [f for t, f in frame_samples if t >= start + elapsed - 10 and f is not None]
+            advancing = len(set(counter_samples)) > 1 or len(set(recent)) > 1
+            stagnant = timed_out and not advancing and bool(frames)
+            observed_frame = counter_samples[-1] if counter_samples else int(last_frame) if frames else None
+            classification = ('log-quiet-false-positive' if timed_out and advancing else
+                              'startup-stall' if stagnant and observed_frame <= 3 else
+                              'late-hang' if stagnant and len(counter_samples) >= 2 else
+                              'late-hang-unconfirmed' if stagnant else 'unclassified-exit')
+            reason = ('unreaped' if not reaped else 'deadline-no-frame-progress-evidence' if stagnant else 'clean-exit' if good else 'render-timeout' if timeout_error else
                       'wall-timeout' if timed_out else 'missing-clean-exit/early-exit/nonzero-exit')
             ok += int(good)
             hang += int(not good)
-            line = f'run={index} {"ok" if good else "hang (unreaped)" if not reaped else "hang"} reason={reason} exit={code} elapsed={elapsed:.1f}s last_frame={last_frame} stagnant={stalled_for:.1f}s log={log} console={console}'
+            line = f'run={index} {"ok" if good else "hang (unreaped)" if not reaped else "hang"} reason={reason} class={classification} advancing={advancing} exit={code} elapsed={elapsed:.1f}s last_frame={last_frame} counter_samples={counter_samples} stagnant={stalled_for:.1f}s log={log} console={console}'
             print(line, flush=True)
             summary.write(line + '\n')
             summary.flush()

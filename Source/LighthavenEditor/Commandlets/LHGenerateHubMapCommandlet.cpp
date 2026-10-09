@@ -429,8 +429,14 @@ void FHub::Populate()
     if(auto* PP=Actor<APostProcessVolume>(TEXT("Hub.FixedExposure"),FVector::ZeroVector))
     {
         PP->bUnbound=true;
-        PP->Settings.bOverride_AutoExposureMinBrightness=true; PP->Settings.AutoExposureMinBrightness=6;
-        PP->Settings.bOverride_AutoExposureMaxBrightness=true; PP->Settings.AutoExposureMaxBrightness=6;
+        PP->Settings.bOverride_AutoExposureMinBrightness=true; PP->Settings.AutoExposureMinBrightness=10;
+        PP->Settings.bOverride_AutoExposureMaxBrightness=true; PP->Settings.AutoExposureMaxBrightness=10;
+        // W4-09: explicit physical-camera exposure, independent of extended range.
+        PP->Settings.bOverride_AutoExposureMethod=true; PP->Settings.AutoExposureMethod=AEM_Manual;
+        PP->Settings.bOverride_AutoExposureApplyPhysicalCameraExposure=true; PP->Settings.AutoExposureApplyPhysicalCameraExposure=true;
+        PP->Settings.bOverride_CameraISO=true; PP->Settings.CameraISO=100;
+        PP->Settings.bOverride_CameraShutterSpeed=true; PP->Settings.CameraShutterSpeed=256;
+        PP->Settings.bOverride_DepthOfFieldFstop=true; PP->Settings.DepthOfFieldFstop=2;
         PP->Settings.bOverride_AutoExposureBias=true; PP->Settings.AutoExposureBias=0;
         PP->Settings.bOverride_BloomIntensity=true; PP->Settings.BloomIntensity=0;
         PP->Settings.bOverride_MotionBlurAmount=true; PP->Settings.MotionBlurAmount=0;
