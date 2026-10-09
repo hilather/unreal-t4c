@@ -2,10 +2,11 @@
 #include "InputAction.h"
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
+#include "InputTriggers.h"
 #include "InputCoreTypes.h"
 const TArray<FName>& ULHInputConfig::GameplayActions()
 {
-    static const TArray<FName> Names = {"Move", "Look", "Zoom", "ToggleRun", "Interact", "Attack", "TargetNext", "TargetPrev", "CancelTarget", "OpenCharacter", "OpenInventory", "Pause"};
+    static const TArray<FName> Names = {"Move", "Look", "Zoom", "ToggleRun", "Interact", "Attack", "TargetNext", "TargetPrev", "CancelTarget", "OpenCharacter", "OpenInventory", "Pause", "Hotbar1", "Hotbar2", "Hotbar3", "Hotbar4", "Hotbar5", "Hotbar6", "HotbarItem", "ShoulderSelect", "OpenAbilities"};
     return Names;
 }
 UInputAction* ULHInputConfig::Action(FName Name) const { return Actions.FindRef(Name); }
@@ -40,6 +41,19 @@ void ULHInputConfig::Initialize()
     Map("OpenCharacter", EKeys::C); Map("OpenCharacter", EKeys::Gamepad_FaceButton_Top);
     Map("OpenInventory", EKeys::I); Map("OpenInventory", EKeys::Gamepad_Special_Left);
     Map("Pause", EKeys::Escape); Map("Pause", EKeys::Gamepad_Special_Right);
+    Map("OpenAbilities",EKeys::K); Map("OpenAbilities",EKeys::Gamepad_FaceButton_Left);
+    Map("ShoulderSelect",EKeys::LeftAlt); Map("ShoulderSelect",EKeys::Gamepad_LeftTrigger);
+    const FKey KeyboardSlots[]={EKeys::One,EKeys::Two,EKeys::Three,EKeys::Four,EKeys::Five,EKeys::Six};
+    const FKey PadSlots[]={EKeys::Gamepad_FaceButton_Bottom,EKeys::Gamepad_FaceButton_Right,EKeys::Gamepad_FaceButton_Left,EKeys::Gamepad_FaceButton_Top,EKeys::Gamepad_DPad_Left,EKeys::Gamepad_DPad_Right};
+    for(int32 I=0; I<6; ++I)
+    {
+        const FName Name(*FString::Printf(TEXT("Hotbar%d"),I+1)); Map(Name,KeyboardSlots[I]);
+        auto& M=Contexts[0]->MapKey(Action(Name),PadSlots[I]);
+        auto* Chord=NewObject<UInputTriggerChordAction>(this); Chord->ChordAction=Action("ShoulderSelect"); M.Triggers.Add(Chord);
+    }
+    Map("HotbarItem",EKeys::Seven);
+    auto& ItemMap=Contexts[0]->MapKey(Action("HotbarItem"),EKeys::Gamepad_DPad_Down);
+    auto* ItemChord=NewObject<UInputTriggerChordAction>(this); ItemChord->ChordAction=Action("ShoulderSelect"); ItemMap.Triggers.Add(ItemChord);
     // UI/Creation deliberately contain navigation only; never gameplay movement/attack.
     for (int32 I=1; I<3; ++I)
     {

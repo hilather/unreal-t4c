@@ -92,13 +92,14 @@ FText SLHFrontendWidget::Summary() const
     case ELHUIScreen::Inventory:
         S = FString(P->HasUnsavedChanges() ? TEXT("Inventory (unsaved) | Gold ") : TEXT("Inventory | Gold ")) + FLHUIPresenter::Format(C.Gold) + TEXT("\nOwned items: ") + FString::FromInt(C.Inventory.Num())
             + TEXT("\nRequirements: — (not available in this prototype). Equip is validated by the owner."); break;
+    case ELHUIScreen::Hud: case ELHUIScreen::Dialogue: case ELHUIScreen::Services: case ELHUIScreen::Loot: case ELHUIScreen::Death: case ELHUIScreen::Pause: S=P->GameplaySummary(); break;
     default: S = TEXT("Settings\nUnavailable: settings adapter has not been connected."); break;
     }
     return FText::FromString(S);
 }
 FText SLHFrontendWidget::Label(FName Id) const
 {
-    FString S = Id.ToString();
+    FString S = P->GameplayLabel(Id);
     if (Id == "Profiles") S = P->Profiles().IsValidIndex(ProfileIndex) ? P->Profiles()[ProfileIndex].Name + TEXT(" | Selected") : TEXT("Select character: no selection (left/right)");
     if (Id == "Recovery" && !P->IsControlEnabled(Id)) S = TEXT("Recovery unavailable: no earlier readable generation requires acknowledgment.");
     else if (Id == "Recovery") S = bRecovery ? TEXT("Recovery acknowledged | Selected") : TEXT("Acknowledge earlier save recovery");
@@ -324,7 +325,9 @@ void SLHFrontendWidget::Activate(FName Id)
     if (ModalAction == "Keyboard") { Keyboard(KeyboardFocus); return; }
     if (IsModal()) { Submit(); return; }
     const int32 I = P->FocusOrder().IndexOfByKey(Id); if (I != INDEX_NONE) P->MoveFocus(I - P->FocusOrder().IndexOfByKey(P->FocusedControl()));
-    if (Id == "RetrySave") { P->RetryPersistence(); }
+    if (P->ActivateGameplay(Id)) { Build(); }
+    else if (Id == "Use" || Id == "AssignItem") { const auto Items=P->Snapshot().Character.Inventory; if(Items.IsValidIndex(ItemIndex)) { if(Id=="Use") P->UseItem(Items[ItemIndex].Id); else P->AssignHotbarItem(Items[ItemIndex].Id); } }
+    else if (Id == "RetrySave") { P->RetryPersistence(); }
     else if (Id == "Name") { Modal("Keyboard"); }
     else if (Id == "New") Open(ELHUIScreen::Creation);
     else if (Id == "Characters" || (Id == "Continue" && P->Screen() == ELHUIScreen::Frontend)) Open(ELHUIScreen::Characters);

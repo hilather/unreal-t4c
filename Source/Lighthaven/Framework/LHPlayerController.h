@@ -66,6 +66,10 @@ private:
     void Zoom(const FInputActionValue& Value);
     void ToggleRun();
     void Attack();
+    void Hotbar1(); void Hotbar2(); void Hotbar3(); void Hotbar4(); void Hotbar5(); void Hotbar6(); void HotbarItem();
+    TSharedPtr<class SWidget> HudWidget;
+    void ShowTargetScreen(FName Screen, const FLHEntityId& Target);
+
     void Interact();
     void NextTarget();
     void PrevTarget();
@@ -73,10 +77,12 @@ private:
     void SelectMouse();
     void OpenCharacter();
     void OpenInventory();
+    void OpenAbilities();
     void PauseMenu();
     void Navigate(const FInputActionValue& Value);
     void Confirm();
     void Back();
+    float EffectiveSelectionRange() const;
     bool ValidTarget(AActor* Actor) const;
     void Cycle(int32 Direction);
     void OpenScreen(FName Screen);
