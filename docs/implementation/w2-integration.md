@@ -285,3 +285,7 @@ approximately **220.8 seconds** (build-log creation to final write).
 `library/build-final.log` and `library/checks.txt`. An earlier build was interrupted
 with exit 130 after source edits overlapped generated-header compilation; it is
 not validation of the final source. Native automation is compiled, not run.
+
+## G2 result
+
+**Passed 2026-10-08** on `G2c-Linux-88f9265` (main `04347fc` + ledger `88f9265`): checklist items 3–8 pass, including both item-8 Quit paths. The launch render stall (3/12 launches in the re-check) is recorded as a known environment limitation (see `g2-render-hang.md`); relaunch is the workaround. Gamepad is untested and non-blocking. Six minor UI findings are queued as W3-06 (see the status ledger).
