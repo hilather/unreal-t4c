@@ -138,3 +138,9 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
 8. Bat-wing quest: **deferred**. It needs a quest mechanic where quest completion grants the item (future task).
 9. G3-era saves becoming unloadable after the W4 catalog change: **accepted**.
 10. Plan deviations **accepted**: native C++ AI state machine; native enemy/encounter catalogs instead of DataAssets; W4-06 split into 06a (Stage 1A) and 06b (G4).
+
+**G3 PASSED 2026-10-09 (Matt, via Shepherd 05:32 ET).** Robo-Ilya on build/output/G3-Linux-1109cf2 (report /home/brewerm/robo-ilya/qa-t4c/G3-report-2026-10-09.md, outside repo): (1) hub→B4 and back, no B4→hub portal: PASS; (2) reload at all 9 entrances: PASS; (3) failure cases: PASS; (4) door/stair clearance: PASS for the player walk-through only; (5) all six W3-06 items: PASS.
+**Open for a later gate (G4):** (a) blocked-spawn outcome not observed (the packaged build can't occupy an entrance); (b) largest-enemy door/stair clearance untested (no enemies in the maps yet); (c) B4 interior doors C04 and D05–D07 not walked.
+**Visual defects (Ilya D1/D2):** hub renders almost fully white (overexposed), B1/B2 render black, B3 dim; cause unknown. Render stalls: 6 at launch plus 1 in-session freeze (hub gameplay, 04:47:30 ET) over 23 launches.
+| R-03 Bible lookup for Wave 4 | **integrated** (docs only) | codex-sol | research/w4-bible-lookup.md, rules/world ledgers, ruleset-bible-v1.md | 34 confirmed / 10 disputed / 21 missing (labelled Prototype proposals) |
+- **Matt decision 2026-10-09: start Wave 4 now** (W4-08 UseItem first, per the briefs). Add **W4-09: (a) fix the lighting defect, (b) investigate the in-play render freeze**, alongside Wave 4 within max_parallel_threads. Stagger launches (brewtop load is high from other builds).
