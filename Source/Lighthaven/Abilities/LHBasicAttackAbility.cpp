@@ -11,14 +11,14 @@ ULHBasicAttackAbility::ULHBasicAttackAbility()
 void ULHBasicAttackAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
     const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
-    ++ActivationSerial;
+    const uint64 Serial=++ActivationSerial;
     auto* Combat = Cast<ULHCombatComponent>(ActorInfo->AbilitySystemComponent.Get());
     if (!Combat || !GetWorld() || !CommitAbility(Handle, ActorInfo, ActivationInfo) || Combat->CommitAttack() != ELHCommandReason::None)
     {
         EndAbility(Handle, ActorInfo, ActivationInfo, false, true);
         return;
     }
-    if (!IsActive()) return; // Attribute listeners may cancel during the resource deduction.
+    if (Serial!=ActivationSerial || !IsActive()) return; // Attribute listeners may cancel during the resource deduction.
     if (auto* Character = Cast<ACharacter>(ActorInfo->AvatarActor.Get())) Character->GetCharacterMovement()->StopMovementImmediately();
     // Zero-delay impacts still execute through this explicit path; never an animation notify.
     if (Combat->GetImpactDelay() <= 0) Impact();
@@ -44,6 +44,7 @@ void ULHBasicAttackAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, 
 {
     if (Handle != CurrentSpecHandle || ActorInfo != CurrentActorInfo || !IsEndAbilityValid(Handle, ActorInfo)) return;
     if (GetWorld()) GetWorld()->GetTimerManager().ClearTimer(ImpactTimer);
-    if (ActorInfo) if (auto* Combat = Cast<ULHCombatComponent>(ActorInfo->AbilitySystemComponent.Get())) Combat->FinishAttack();
+    auto* Combat=ActorInfo?Cast<ULHCombatComponent>(ActorInfo->AbilitySystemComponent.Get()):nullptr;
     Super::EndAbility(Handle, ActorInfo, ActivationInfo, false, bWasCancelled);
+    if (Combat) Combat->FinishAttack();
 }

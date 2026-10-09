@@ -107,11 +107,13 @@ struct FRequirementInput
     TArray<FLHContentId> Spells;
     bool bBow = false, bCompatibleQuiverEquipped = false;
 };
+enum class ECombatModel : uint8 { Linear, Stage1Ratio };
 struct FCombatParameters
 {
     // Proposed linear physical chance and flat-armor / fractional-resistance model.
     FLHNumber HitBase, AccuracyScale, AvoidanceScale, MinimumChance, MaximumChance;
     FLHNumber ArmorScale, ResistanceScale, MinimumDamage, DamageQuantum;
+    ECombatModel Model = ECombatModel::Linear;
 };
 struct FCombatInput
 {
@@ -146,4 +148,6 @@ LIGHTHAVEN_API TResult<FCombatResult> ResolveCombat(const FCombatParameters&, co
 LIGHTHAVEN_API TResult<FManaResult> RegenerateMana(const FManaParameters&, const FManaInput&);
 // Only ledger-supported values. Missing creation/combat/growth/XP parameters stay Unresolved.
 LIGHTHAVEN_API FRuleset MakeLedgerPrototypeRuleset();
+LIGHTHAVEN_API FCombatParameters MakeStage1PrototypeCombat();
+LIGHTHAVEN_API double PhysicalAttributeBonus(double Strength, double Agility, bool bBow);
 }

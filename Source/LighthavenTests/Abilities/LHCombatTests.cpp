@@ -7,6 +7,9 @@
 #include "UObject/UObjectGlobals.h"
 #include "TimerManager.h"
 #include "CoreGlobals.h"
+#include "Components/BoxComponent.h"
+#include "Abilities/LHAbilityCatalog.h"
+#include "Abilities/LHResourceRecovery.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 namespace LHCombatTestsPrivate
@@ -282,5 +285,144 @@ bool FLHDeathReplacementTest::RunTest(const FString&)
     TestEqual(TEXT("No extra publications"), Impacts, 2);
     NextCombat->ClearCombatAvatar(); Next->Destroy();
     return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCancellationEvents,"Lighthaven.Abilities.CancellationNoRefund",LHCombatTestsPrivate::Flags)
+bool FLHCancellationEvents::RunTest(const FString&)
+{
+    LHCombatTestsPrivate::FFixture F; int Commits=0,Cancels=0,Finishes=0;
+    F.Attacker->OnAttackCommitted.AddLambda([&](const FLHAttackEvent&){++Commits;});
+    F.Attacker->OnAttackCancelled.AddLambda([&](const FLHAttackEvent&,ELHAttackCancelReason){++Cancels;});
+    F.Attacker->OnAttackFinished.AddLambda([&](const FLHAttackEvent&,ELHAttackOutcome){++Finishes;});
+    F.Target->SetActorLocation(FVector(1000,0,0));
+    TestTrue(TEXT("Precommit free rejection"),F.Attacker->RequestBasicAttack(F.Defender)==ELHCommandReason::OutOfRange);
+    TestEqual(TEXT("No commit"),Commits,0); F.Target->SetActorLocation(FVector(100,0,0));
+    TestTrue(TEXT("Commit"),F.Attacker->RequestBasicAttack(F.Defender)==ELHCommandReason::None);
+    F.Attacker->CancelAttack(ELHAttackCancelReason::Travel); F.Attacker->CancelAllAbilities();
+    TestEqual(TEXT("Cost retained"),F.Attacker->GetCombatAttributes()->GetMana(),8.f);
+    TestTrue(TEXT("Cooldown retained"),F.Attacker->GetRemainingCooldown()>0);
+    TestEqual(TEXT("Commit once"),Commits,1); TestEqual(TEXT("Cancel once"),Cancels,1); TestEqual(TEXT("Finish once"),Finishes,1); return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCooldownPersist,"Lighthaven.Abilities.CooldownPersistence",LHCombatTestsPrivate::Flags)
+bool FLHCooldownPersist::RunTest(const FString&)
+{
+    LHCombatTestsPrivate::FFixture F;
+    TMap<FName,double> R; R.Add(TEXT("Attack.Melee.Basic"),3); R.Add(TEXT("Spell.FireDart"),1.5);
+    TestTrue(TEXT("Restore independent"),F.Attacker->RestoreCooldownMap(R));
+    FLHEntityId Owner; Owner.RunId=FGuid::NewGuid(); Owner.InstanceId=FGuid::NewGuid(); Owner.Area.Content.Value=TEXT("Area.Test");
+    TArray<FLHCooldownRecord> Saved; LHAbilities::CaptureCooldowns(*F.Attacker,Owner,Saved);
+    TestEqual(TEXT("Two records"),Saved.Num(),2); F.Attacker->ClearCombatAvatar(); F.Source->InitializeAfterRestore();
+    TestTrue(TEXT("Restore after travel"),LHAbilities::RestoreCooldowns(*F.Attacker,Owner,Saved));
+    FLHContentId Id; Id.Value=TEXT("Spell.FireDart"); TestEqual(TEXT("No catchup"),F.Attacker->GetRemainingCooldown(Id),1.5);
+    const auto Duplicate=Saved[0]; Saved.Add(Duplicate); TestFalse(TEXT("Duplicate atomic rejection"),LHAbilities::RestoreCooldowns(*F.Attacker,Owner,Saved)); return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHSpellAuthority,"Lighthaven.Abilities.SpellKnowledgeAndMana",LHCombatTestsPrivate::Flags)
+bool FLHSpellAuthority::RunTest(const FString&)
+{
+    LHCombatTestsPrivate::FFixture F; LHAbilities::FLHUseAbilityContext C;
+    C.Source=F.Attacker; C.Target=F.Defender; C.Combat=LH::Rules::MakeStage1PrototypeCombat();
+    C.TargetId.RunId=FGuid::NewGuid(); C.TargetId.InstanceId=FGuid::NewGuid(); C.TargetId.Area.Content.Value=TEXT("Area.Test");
+    auto& B=C.Snapshot.Character.BaseAttributes; B.Strength=LHCombatTestsPrivate::Integer(30); B.Endurance=B.Strength; B.Agility=B.Strength; B.Intelligence=B.Strength; B.Wisdom=B.Strength;
+    C.Snapshot.Character.EarnedLevel=LHCombatTestsPrivate::Integer(6);
+    FLHUseAbilityRequest R; R.Ability.Value=TEXT("Spell.FireDart"); R.Target=C.TargetId;
+    TestTrue(TEXT("Unlearned"),LHAbilities::ExecuteUseAbility(C,R)==ELHCommandReason::Ineligible);
+    C.Snapshot.Character.LearnedSpells.Add(R.Ability); F.Attacker->SetNumericAttributeBase(ULHAttributeSet::GetManaAttribute(),0);
+    TestTrue(TEXT("No mana"),LHAbilities::ExecuteUseAbility(C,R)==ELHCommandReason::InsufficientMana);
+    TestEqual(TEXT("Rejected mana unchanged"),F.Attacker->GetCombatAttributes()->GetMana(),0.f);
+    F.Attacker->SetNumericAttributeBase(ULHAttributeSet::GetManaAttribute(),10);
+    TestTrue(TEXT("Cast"),LHAbilities::ExecuteUseAbility(C,R)==ELHCommandReason::None);
+    TestTrue(TEXT("Measured range prototype output"),F.Defender->GetCombatAttributes()->GetHealth()<=92 && F.Defender->GetCombatAttributes()->GetHealth()>=77);
+    R.Ability.Value=TEXT("Spell.HealLight"); C.Snapshot.Character.LearnedSpells.Add(R.Ability); C.bTargetFriendly=true;
+    F.Defender->SetNumericAttributeBase(ULHAttributeSet::GetHealthAttribute(),99);
+    TestTrue(TEXT("Heal independent cooldown"),LHAbilities::ExecuteUseAbility(C,R)==ELHCommandReason::None);
+    TestEqual(TEXT("Heal clamps"),F.Defender->GetCombatAttributes()->GetHealth(),100.f); return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHBowQuiver,"Lighthaven.Abilities.BowRequiresQuiver",LHCombatTestsPrivate::Flags)
+bool FLHBowQuiver::RunTest(const FString&)
+{
+    LHCombatTestsPrivate::FFixture F; LHAbilities::FLHUseAbilityContext C; C.Source=F.Attacker; C.Target=F.Defender; C.Combat=LH::Rules::MakeStage1PrototypeCombat();
+    C.TargetId.RunId=FGuid::NewGuid(); C.TargetId.InstanceId=FGuid::NewGuid(); C.TargetId.Area.Content.Value=TEXT("Area.Test");
+    auto& B=C.Snapshot.Character.BaseAttributes; B.Strength=LHCombatTestsPrivate::Integer(20); B.Endurance=B.Strength; B.Agility=B.Strength; B.Intelligence=B.Strength; B.Wisdom=B.Strength; C.Snapshot.Character.EarnedLevel=LHCombatTestsPrivate::Integer(1);
+    FLHItemInstance Bow; Bow.Id=C.TargetId; Bow.Id.InstanceId=FGuid::NewGuid(); Bow.Definition.Value=TEXT("Item.AshwoodFlatbow"); Bow.Quantity=LHCombatTestsPrivate::Integer(1); C.Snapshot.Character.Inventory.Add(Bow);
+    FLHEquipmentBinding Binding; Binding.Slot=ELHEquipmentSlot::MainHand; Binding.Item=Bow.Id; C.Snapshot.Character.Equipment.Add(Binding);
+    FLHCombatItemData BowData,QuiverData; BowData.bWeapon=true; BowData.Weapon.bBow=true; BowData.Weapon.MinimumDamage=LHCombatTestsPrivate::Number(1); BowData.Weapon.MaximumDamage=LHCombatTestsPrivate::Number(3); BowData.Weapon.RangeCm=LHCombatTestsPrivate::Number(1200); FLHContentId QId; QId.Value=TEXT("Item.WoodenArrows"); BowData.Weapon.CompatibleQuivers.Add(QId);
+    QuiverData.bQuiver=true; QuiverData.Weapon.QuiverDamageBonus=LHCombatTestsPrivate::Number(1);
+    C.ItemLookup=[&](const FLHContentId& I)->const FLHCombatItemData* {return I.Value==Bow.Definition.Value?&BowData:I.Value==QId.Value?&QuiverData:nullptr;};
+    FLHUseAbilityRequest R; R.Ability.Value=TEXT("Attack.Ranged.Bow"); R.Target=C.TargetId;
+    TestTrue(TEXT("Missing quiver"),LHAbilities::ExecuteUseAbility(C,R)==ELHCommandReason::Ineligible);
+    FLHItemInstance Q=Bow; Q.Id.InstanceId=FGuid::NewGuid(); Q.Definition=QId; C.Snapshot.Character.Inventory.Add(Q); Binding.Slot=ELHEquipmentSlot::Quiver; Binding.Item=Q.Id; C.Snapshot.Character.Equipment.Add(Binding);
+    FLHLearnedSkill Skill; Skill.Skill.Value=TEXT("Skill.Archery"); Skill.TrainedValue=LHCombatTestsPrivate::Integer(100); C.Snapshot.Character.LearnedSkills.Add(Skill);
+    for(int Shot=0;Shot<3;++Shot) { TestTrue(TEXT("With quiver"),LHAbilities::ExecuteUseAbility(C,R)==ELHCommandReason::None); TestTrue(TEXT("Reset fixture cooldown"),F.Attacker->RestoreRemainingCooldown(0)); }
+    TestEqual(TEXT("Unlimited arrows unchanged"),C.Snapshot.Character.Inventory[1].Quantity.Value,int64(1)); return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHMeleeSight,"Lighthaven.Abilities.MeleeRangeAndLOS",LHCombatTestsPrivate::Flags)
+bool FLHMeleeSight::RunTest(const FString&)
+{
+    LHCombatTestsPrivate::FFixture F; F.Target->SetActorLocation(FVector(1000,0,0));
+    TestTrue(TEXT("Out of range"),F.Attacker->RequestBasicAttack(F.Defender)==ELHCommandReason::OutOfRange);
+    F.Target->SetActorLocation(FVector(100,0,0));
+    auto* Wall=F.World->SpawnActor<AActor>(); auto* Box=NewObject<UBoxComponent>(Wall); Wall->SetRootComponent(Box); Box->SetBoxExtent(FVector(5,100,100)); Box->SetCollisionEnabled(ECollisionEnabled::QueryOnly); Box->SetCollisionResponseToAllChannels(ECR_Ignore); Box->SetCollisionResponseToChannel(ECC_Visibility,ECR_Block); Box->RegisterComponent(); Wall->SetActorLocation(FVector(50,0,0)); Box->RecreatePhysicsState();
+    TestTrue(TEXT("Wall rejection"),F.Attacker->RequestBasicAttack(F.Defender)==ELHCommandReason::OutOfRange);
+    TestEqual(TEXT("Free rejections"),F.Attacker->GetCombatAttributes()->GetMana(),10.f);
+    Box->SetCollisionEnabled(ECollisionEnabled::NoCollision); Wall->Destroy();
+    TestTrue(TEXT("Legal melee"),F.Attacker->RequestBasicAttack(F.Defender)==ELHCommandReason::None);
+    TestTrue(TEXT("Legal impact"),F.Attacker->ResolveImpact(F.Attacker->GetPendingIdentity())); return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHZeroManaRecovery,"Lighthaven.Abilities.ZeroManaNoGoldRecovery",LHCombatTestsPrivate::Flags)
+bool FLHZeroManaRecovery::RunTest(const FString&)
+{
+    LHCombatTestsPrivate::FFixture F; F.Attacker->SetNumericAttributeBase(ULHAttributeSet::GetManaAttribute(),0);
+    auto P=LH::Rules::MakeLedgerPrototypeRuleset().Mana;
+    TestTrue(TEXT("Menu time ignored"),F.Attacker->AdvanceManaRegen(100,true,P)); TestEqual(TEXT("Still empty"),F.Attacker->GetCombatAttributes()->GetMana(),0.f);
+    TestTrue(TEXT("Natural recovery"),F.Attacker->AdvanceManaRegen(10,false,P)); TestEqual(TEXT("Cast cost recovered without gold or reload"),F.Attacker->GetCombatAttributes()->GetMana(),2.f);
+    LHAbilities::FLHUseAbilityContext C; C.Source=F.Attacker; C.Target=F.Defender;
+    C.TargetId.RunId=FGuid::NewGuid(); C.TargetId.InstanceId=FGuid::NewGuid(); C.TargetId.Area.Content.Value=TEXT("Area.Test");
+    auto& B=C.Snapshot.Character.BaseAttributes; B.Strength=LHCombatTestsPrivate::Integer(21); B.Endurance=B.Strength; B.Agility=B.Strength; B.Intelligence=B.Strength; B.Wisdom=B.Strength;
+    C.Snapshot.Character.Gold=LHCombatTestsPrivate::Integer(0); C.Snapshot.Character.EarnedLevel=LHCombatTestsPrivate::Integer(2);
+    FLHUseAbilityRequest R; R.Ability.Value=TEXT("Spell.FireDart"); R.Target=C.TargetId; C.Snapshot.Character.LearnedSpells.Add(R.Ability);
+    TestTrue(TEXT("Legal Fire Dart after natural recovery"),LHAbilities::ExecuteUseAbility(C,R)==ELHCommandReason::None); return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCommitReplacement,"Lighthaven.Abilities.CommitReplacement",LHCombatTestsPrivate::Flags)
+bool FLHCommitReplacement::RunTest(const FString&)
+{
+    LHCombatTestsPrivate::FFixture F(true); int Commits=0,Finishes=0; FLHHitIdentity Replacement;
+    F.Attacker->OnAttackFinished.AddLambda([&](const FLHAttackEvent&,ELHAttackOutcome){++Finishes; TestTrue(TEXT("Finish stack blocks snapshots"),F.Attacker->IsPublishingActionEvents());});
+    F.Attacker->OnAttackCommitted.AddLambda([&](const FLHAttackEvent& E){
+        ++Commits; if(Commits!=1) return; const auto First=E.Identity;
+        F.Attacker->CancelAllAbilities();
+        TestTrue(TEXT("Replacement inside commit"),F.Attacker->RequestBasicAttack(F.Defender)==ELHCommandReason::None);
+        Replacement=F.Attacker->GetPendingIdentity(); TestTrue(TEXT("Captured commit identity stable"),E.Identity==First);
+    });
+    F.World->GetTimerManager().Tick(0);
+    TestTrue(TEXT("Original request accepted"),F.Attacker->RequestBasicAttack(F.Defender)==ELHCommandReason::None);
+    TestEqual(TEXT("Both commits"),Commits,2); TestEqual(TEXT("Original finish once"),Finishes,1);
+    TestTrue(TEXT("Replacement remains pending"),F.Attacker->IsActionPending() && F.Attacker->GetPendingIdentity()==Replacement);
+    LHCombatTestsPrivate::AdvanceImpactTimer(F.World,1.1f);
+    TestEqual(TEXT("Only replacement impact"),F.Defender->GetCombatAttributes()->GetHealth(),90.f);
+    TestEqual(TEXT("Both finish once"),Finishes,2); TestEqual(TEXT("Both costs retained"),F.Attacker->GetCombatAttributes()->GetMana(),6.f); return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCostListenerCancel,"Lighthaven.Abilities.CostListenerCancellation",LHCombatTestsPrivate::Flags)
+bool FLHCostListenerCancel::RunTest(const FString&)
+{
+    LHCombatTestsPrivate::FFixture F(true); int Commits=0,Cancels=0,Finishes=0;
+    F.Attacker->GetGameplayAttributeValueChangeDelegate(ULHAttributeSet::GetManaAttribute()).AddLambda([&](const FOnAttributeChangeData&){F.Attacker->CancelAllAbilities();});
+    F.Attacker->OnAttackCommitted.AddLambda([&](const FLHAttackEvent&){++Commits; TestEqual(TEXT("No finish before commit event"),Finishes,0);});
+    F.Attacker->OnAttackCancelled.AddLambda([&](const FLHAttackEvent&,ELHAttackCancelReason){++Cancels;});
+    F.Attacker->OnAttackFinished.AddLambda([&](const FLHAttackEvent&,ELHAttackOutcome O){++Finishes; TestTrue(TEXT("Cancelled outcome"),O==ELHAttackOutcome::Cancelled);});
+    TestTrue(TEXT("Committed request"),F.Attacker->RequestBasicAttack(F.Defender)==ELHCommandReason::None);
+    TestEqual(TEXT("Cost remains"),F.Attacker->GetCombatAttributes()->GetMana(),8.f); TestEqual(TEXT("Commit once"),Commits,1); TestEqual(TEXT("Cancel once"),Cancels,1); TestEqual(TEXT("Finish once"),Finishes,1);
+    TestFalse(TEXT("No pending timer"),F.Attacker->IsActionPending()); return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHLightTransient,"Lighthaven.Abilities.LightTransient",LHCombatTestsPrivate::Flags)
+bool FLHLightTransient::RunTest(const FString&)
+{
+    LHCombatTestsPrivate::FFixture F; LHAbilities::FLHUseAbilityContext C; C.Source=F.Attacker; C.Target=F.Attacker;
+    C.TargetId.RunId=FGuid::NewGuid(); C.TargetId.InstanceId=FGuid::NewGuid(); C.TargetId.Area.Content.Value=TEXT("Area.Test"); C.SourceId=C.TargetId;
+    auto& B=C.Snapshot.Character.BaseAttributes; B.Strength=LHCombatTestsPrivate::Integer(21); B.Endurance=B.Strength; B.Agility=B.Strength; B.Intelligence=B.Strength; B.Wisdom=B.Strength; C.Snapshot.Character.EarnedLevel=LHCombatTestsPrivate::Integer(2);
+    FLHUseAbilityRequest R; R.Ability.Value=TEXT("Spell.Light"); R.Target=C.TargetId; C.Snapshot.Character.LearnedSpells.Add(R.Ability);
+    TestTrue(TEXT("Caster light"),LHAbilities::ExecuteUseAbility(C,R)==ELHCommandReason::None); TestEqual(TEXT("Sourced duration"),F.Attacker->GetLightRemainingSeconds(),600.0); TestEqual(TEXT("No health effect"),F.Attacker->GetCombatAttributes()->GetHealth(),100.f); TestEqual(TEXT("Sourced cost"),F.Attacker->GetCombatAttributes()->GetMana(),0.f);
+    F.Attacker->ClearCombatAvatar(); TestEqual(TEXT("Transient discarded"),F.Attacker->GetLightRemainingSeconds(),0.0); return true;
 }
 #endif

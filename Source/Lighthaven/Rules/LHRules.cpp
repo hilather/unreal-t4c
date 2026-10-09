@@ -299,14 +299,17 @@ TResult<FCombatResult> ResolveCombat(const FCombatParameters& P, const FCombatIn
     if (Min < 0 || Max > 1 || Min > Max || Armor < 0 || Resistance < 0 || Floor < 0 || Quantum <= 0 ||
         I.WeaponMinimum < 0 || I.WeaponMaximum < I.WeaponMinimum || I.Armor < 0 || I.Resistance < 0 || !LHRulesPrivate::Roll(I.HitRoll) || !LHRulesPrivate::Roll(I.DamageRoll))
         return LHRulesPrivate::Reject<FCombatResult>(EReason::InvalidData,TEXT("Invalid combat bounds, quantum or explicit normalized rolls"));
+    if (P.Model != ECombatModel::Linear && P.Model != ECombatModel::Stage1Ratio) return LHRulesPrivate::Reject<FCombatResult>(EReason::Unresolved,TEXT("Unknown combat variant"));
+    if (P.Model==ECombatModel::Stage1Ratio && (std::floor(I.WeaponMinimum)!=I.WeaponMinimum || std::floor(I.WeaponMaximum)!=I.WeaponMaximum)) return LHRulesPrivate::Reject<FCombatResult>(EReason::InvalidData,TEXT("Stage1 integer weapon bounds required"));
     FCombatResult V;
-    const double Chance=Base+Acc*I.Accuracy-Avoid*I.Avoidance;
+    if (P.Model == ECombatModel::Stage1Ratio && (I.Accuracy < 0 || I.Avoidance < 0)) return LHRulesPrivate::Reject<FCombatResult>(EReason::InvalidData,TEXT("Negative skill"));
+    const double Chance=P.Model == ECombatModel::Stage1Ratio ? (I.Accuracy+I.Avoidance == 0 ? 0.5 : I.Accuracy/(I.Accuracy+I.Avoidance)) : Base+Acc*I.Accuracy-Avoid*I.Avoidance;
     if (!LHRulesPrivate::Finite(Chance)) return LHRulesPrivate::Reject<FCombatResult>(EReason::Overflow,TEXT("Hit chance overflow"));
     V.Chance=I.bSpell ? 1 : FMath::Clamp(Chance,Min,Max);
     V.bHit=I.bSpell || I.HitRoll < V.Chance;
     if (V.bHit)
     {
-        V.RawDamage=I.WeaponMinimum+(I.WeaponMaximum-I.WeaponMinimum)*I.DamageRoll+I.DamageBonus+I.QuiverBonus;
+        V.RawDamage=I.WeaponMinimum+(P.Model == ECombatModel::Stage1Ratio ? std::floor((I.WeaponMaximum-I.WeaponMinimum+1)*I.DamageRoll) : (I.WeaponMaximum-I.WeaponMinimum)*I.DamageRoll)+I.DamageBonus+I.QuiverBonus;
         const double ArmorReduction=I.bSpell ? 0 : Armor*I.Armor;
         const double ResistanceProduct=Resistance*I.Resistance;
         if (!LHRulesPrivate::Finite(V.RawDamage)||!LHRulesPrivate::Finite(ArmorReduction)||!LHRulesPrivate::Finite(ResistanceProduct)) return LHRulesPrivate::Reject<FCombatResult>(EReason::Overflow,TEXT("Damage composition overflow"));
