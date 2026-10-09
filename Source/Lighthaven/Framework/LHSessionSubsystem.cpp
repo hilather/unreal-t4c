@@ -55,7 +55,7 @@ void ULHSessionSubsystem::Initialize(FSubsystemCollectionBase& Collection)
     Bindings.SettleAndCapture=[this](FLHSaveSnapshot& Out,FString& Error) { return Live->CaptureTravel(Out,Error); };
     Bindings.CheckpointDurable=[this](const FLHSaveSnapshot& Snapshot) { Live->InstallTravel(Snapshot); };
     Bindings.InstallCheckpoint=[this](const FLHSaveSnapshot& Snapshot,UWorld* World,const FLHEntranceDefinition& Entrance,FString& Error)
-    { return LHSessionSubsystemPrivate::Place(World,Entrance,Error) && Live->InstallTravel(Snapshot); };
+    { return LHSessionSubsystemPrivate::Place(World,Entrance,Error) && Live->InstallTravel(Snapshot) && Live->StartEncounters(); };
     FString Error;
     if (!WorldTravel->Configure(Saves->GetStore().ToSharedRef(),FLHWave2Session::Compatibility(),MoveTemp(Bindings),Error))
         UE_LOG(LogTemp,Error,TEXT("Travel configuration: %s"),*Error);
@@ -76,5 +76,5 @@ bool ULHSessionSubsystem::PlaceSessionArrival(UWorld* World,FString& Error)
 {
     if (!Live || !Live->HasCharacter()) return false;
     const auto* E=LHWorld::FindEntrance(Live->Snapshot().Character.ActiveEntrance);
-    return E && LHSessionSubsystemPrivate::Place(World,*E,Error);
+    return E && LHSessionSubsystemPrivate::Place(World,*E,Error) && Live->StartEncounters();
 }

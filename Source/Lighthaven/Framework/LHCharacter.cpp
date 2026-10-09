@@ -1,5 +1,7 @@
 #include "Framework/LHCharacter.h"
 #include "Framework/LHPlayerState.h"
+#include "Framework/LHSessionSubsystem.h"
+#include "Engine/GameInstance.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -37,4 +39,11 @@ UAbilitySystemComponent* ALHCharacter::GetAbilitySystemComponent() const
 {
     const auto* State = GetPlayerState<ALHPlayerState>();
     return State ? State->GetAbilitySystemComponent() : nullptr;
+}
+
+void ALHCharacter::Tick(float DeltaSeconds)
+{
+    Super::Tick(DeltaSeconds);
+    if (auto* Instance=GetGameInstance()) if (auto* Subsystem=Instance->GetSubsystem<ULHSessionSubsystem>())
+        if (auto Session=Subsystem->Session(); Session && GetPlayerState<ALHPlayerState>()) Session->TickGameplay(DeltaSeconds);
 }

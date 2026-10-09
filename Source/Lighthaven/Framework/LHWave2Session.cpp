@@ -5,6 +5,8 @@
 #include "Abilities/LHAttributeSet.h"
 #include "World/LHAreaRegistry.h"
 #include "World/LHAreaStateSubsystem.h"
+#include "Abilities/LHResourceRecovery.h"
+#include "AI/LHEncounterDirector.h"
 namespace LHWave2SessionPrivate
 {
 bool ValidateReferences(const FLHSaveSnapshot& S, FLHSaveError& E)
@@ -24,23 +26,28 @@ FLHCommandResult Busy() { FLHCommandResult R; R.Reason=ELHCommandReason::Busy; r
 FLHSaveCompatibility FLHWave2Session::Compatibility()
 {
     FLHSaveCompatibility C; C.Ruleset=LHWave2::PrototypeProfile().Reference; C.ContentRevision=LHWave2::CatalogHash();
-    C.MaxGrowthAwards=3; C.ValidateReferences=LHWave2SessionPrivate::ValidateReferences; return C;
+    C.MaxGrowthAwards=LHWave2::PrototypeProfile().Rules.Progression.Thresholds.Num()-1; C.ValidateReferences=LHWave2SessionPrivate::ValidateReferences; return C;
 }
 FLHWave2Session::FLHWave2Session(TSharedRef<FLHSaveStore> Store) : Saves(Store)
 {
     EventHandle=Saves->Events.AddRaw(this,&FLHWave2Session::OnSave);
 }
-FLHWave2Session::~FLHWave2Session() { Saves->Events.Remove(EventHandle); }
+FLHWave2Session::~FLHWave2Session()
+{
+    if (Director.IsValid()) { Director->SettleKill=nullptr; Director->AdvanceRespawns=nullptr; Director->SetSimulationFrozen(true); }
+    Saves->Events.Remove(EventHandle);
+}
 FLHCharacterAuthority* FLHWave2Session::Authority() const
 { return Owner.IsValid() ? &Owner->GetCharacterAuthority()->Authority() : nullptr; }
 bool FLHWave2Session::Bind(ALHPlayerState* State, bool Fresh)
 {
-    if (!State || (Fresh && IsBlocked())) return false;
+    if (!State || (Fresh && IsTransactionBlocked())) return false;
     Owner=State;
     auto* A=Authority(); *A=FLHCharacterAuthority();
     if (!A->Initialize(LHWave2::PrototypeProfile(),FGuid::NewGuid(),123)) return false;
     if (!bWorldTravelFrozen) bTravel=false;
-    if (Fresh) { Complete={}; Message.Empty(); bEnterAfterSave=false; }
+    bDeadAwaitingRespawn=HasCharacter() && Complete.Character.CurrentHealth.Value<=0;
+    if (Fresh) { Complete={}; Message.Empty(); bEnterAfterSave=false; bDeadAwaitingRespawn=false; RuntimeAbilities.Reset(); }
     if (HasCharacter())
     {
         if (A->Import(Complete)!=ELHCommandReason::None || !InstallDerived()) { Message=TEXT("Restore failed; avatar remains unavailable."); return false; }
@@ -108,7 +115,7 @@ FLHUICreationPreview FLHWave2Session::Preview(const FString& Name,const TArray<F
             R.FieldErrors.Add(FName(Category),TEXT("Select an appearance choice."));
     }
     if (!R.FieldErrors.IsEmpty()) return R;
-    if (IsBlocked() || !Authority()) return R;
+    if (IsTransactionBlocked() || !Authority()) return R;
     FLHCharacterPreview V; if (Authority()->Preview(Answers,V)!=ELHCommandReason::None) return R;
     // Validate on a detached copy. Review cannot publish a command or save.
     auto Copy=*Authority(); FLHCreateCharacterRequest Q; Q.Request.Epoch=Complete.Session.RequestEpoch;
@@ -117,7 +124,7 @@ FLHUICreationPreview FLHWave2Session::Preview(const FString& Name,const TArray<F
 }
 FLHUIIntentReview FLHWave2Session::ReviewAllocation(const FLHAttributeBlock& Points) const
 {
-    FLHUIIntentReview R; if (IsBlocked() || !Authority() || !HasCharacter()) return R;
+    FLHUIIntentReview R; if (IsTransactionBlocked() || !Authority() || !HasCharacter()) return R;
     auto Copy=*Authority(); FLHAllocateAttributePointsRequest Q; Q.Request.Epoch=Complete.Session.RequestEpoch;
     Q.Request.Value=FGuid(0xffffffff,0xffffffff,0xffffffff,1); Q.Points=Points;
     R.bLegal=Copy.Execute(Q).Disposition==ELHCommandDisposition::Accepted;
@@ -125,7 +132,7 @@ FLHUIIntentReview FLHWave2Session::ReviewAllocation(const FLHAttributeBlock& Poi
 }
 FLHUIIntentReview FLHWave2Session::ReviewEquipment(const FLHEntityId& Item,ELHEquipmentSlot Slot,bool Undo) const
 {
-    FLHUIIntentReview R; if (IsBlocked() || !Authority() || !HasCharacter()) return R;
+    FLHUIIntentReview R; if (IsTransactionBlocked() || !Authority() || !HasCharacter()) return R;
     auto Copy=*Authority(); FLHEquipItemRequest Q; Q.Request.Epoch=Complete.Session.RequestEpoch;
     Q.Request.Value=FGuid(0xffffffff,0xffffffff,0xffffffff,2); Q.Item=Item; Q.Slot=Slot; Q.bUnequip=Undo;
     R.bLegal=Copy.Execute(Q).Disposition==ELHCommandDisposition::Accepted;
@@ -137,7 +144,7 @@ void FLHWave2Session::Published(const FLHCommandResult& R,bool Creation)
     Authority()->Export(Complete);
     if (Creation)
     {
-        Complete.Header.BuildId=TEXT("Wave3.Prototype.v1"); Complete.Header.ContentRevision=LHWave2::CatalogHash();
+        Complete.Header.BuildId=TEXT("Wave4.Stage1A.Prototype.v1"); Complete.Header.ContentRevision=LHWave2::CatalogHash();
         Complete.Header.ChecksumAlgorithm=TEXT("SHA256"); Complete.Header.PayloadCodec=TEXT("LHCanonicalBinary1");
         FLHAreaRecord Area; Area.Area.Content.Value=TEXT("Area.LighthavenTempleDistrict"); Complete.World.Areas.Add(Area);
         Complete.Character.ActiveEntrance.Area=Area.Area; Complete.Character.ActiveEntrance.LocalId=TEXT("Temple.SafeSpawn");
@@ -146,20 +153,38 @@ void FLHWave2Session::Published(const FLHCommandResult& R,bool Creation)
         Complete.Session.SafeRespawn.SafeTransform=LHWorld::FindEntrance(Complete.Character.ActiveEntrance)->SafeTransform;
         Complete.Session.EffectPolicy=ELHEffectSavePolicy::CompletedActionBoundaryOnly;
         Complete.Session.ManaRegenFractionalSeconds=LHWave2::PrototypeNumber(0);
+        for (const TCHAR* Id : {TEXT("Skill.Attack"),TEXT("Skill.Dodge")})
+        { FLHLearnedSkill Skill; Skill.Skill.Value=Id; Skill.TrainedValue=LHWave2::PrototypeInteger(10); Complete.Character.LearnedSkills.Add(Skill); }
+        for (const auto& Item : Complete.Character.Inventory)
+        {
+            const auto Profile=LHWave2::PrototypeProfile();
+            const auto* Def=Profile.Items.FindByPredicate([&](const auto& D){ return D.Id.Value==Item.Definition.Value; });
+            if (Def && Def->Slot!=ELHEquipmentSlot::Unspecified)
+            { FLHEquipmentBinding Binding; Binding.Slot=Def->Slot; Binding.Item=Item.Id; Complete.Character.Equipment.Add(Binding); }
+        }
+        for (const TCHAR* Id : {TEXT("RNG.Combat"),TEXT("RNG.Loot")})
+        {
+            FLHRngState Rng; Rng.StreamId=Id; Rng.Algorithm=TEXT("UE.FRandomStream"); Rng.AlgorithmRevision=1;
+            const uint32 Seed=GetTypeHash(FGuid::NewGuid());
+            for (int32 B=0; B<4; ++B) Rng.State.Add(uint8(Seed>>(B*8)));
+            Complete.Session.GameplayRng.Add(Rng);
+        }
         // Import the newly completed world fields before any further command exports.
         Authority()->Import(Complete); bEnterAfterSave=true;
     }
     InstallDerived(); bSaveQueued=true; Message=TEXT("Saving completed action…");
 }
 FLHCommandResult FLHWave2Session::Execute(const FLHCreateCharacterRequest& Q)
-{ if (IsBlocked() || !Authority()) return LHWave2SessionPrivate::Busy(); auto R=Authority()->Execute(Q); Published(R,true); return R; }
+{ if (IsTransactionBlocked() || !Authority()) return LHWave2SessionPrivate::Busy(); auto R=Authority()->Execute(Q); Published(R,true); return R; }
 FLHCommandResult FLHWave2Session::Execute(const FLHAllocateAttributePointsRequest& Q)
-{ if (IsBlocked() || !Authority()) return LHWave2SessionPrivate::Busy(); auto R=Authority()->Execute(Q); Published(R,false); return R; }
+{ if (IsTransactionBlocked() || !Authority() || !SyncResources()) return LHWave2SessionPrivate::Busy(); auto R=Authority()->Execute(Q); Published(R,false); return R; }
 FLHCommandResult FLHWave2Session::Execute(const FLHEquipItemRequest& Q)
-{ if (IsBlocked() || !Authority()) return LHWave2SessionPrivate::Busy(); auto R=Authority()->Execute(Q); Published(R,false); return R; }
+{ if (IsTransactionBlocked() || !Authority() || !SyncResources()) return LHWave2SessionPrivate::Busy(); auto R=Authority()->Execute(Q); Published(R,false); return R; }
 void FLHWave2Session::Flush()
 {
-    if (!bSaveQueued) return;
+    if (!bSaveQueued || bAwaitingSave || bWorldTravelFrozen) return;
+    if (Owner.IsValid() && (Owner->GetCombatComponent()->IsActionPending() || Owner->GetCombatComponent()->IsPublishingActionEvents())) return;
+    if (HasCharacter() && !SyncResources()) return;
     bSaveQueued=false; bAwaitingSave=true; AwaitedSequence=Complete.Header.TransactionSequence;
     FLHSaveError E;
     if (!Saves->RequestSave(Complete,Compatibility(),true,E)) { bAwaitingSave=false; Message=TEXT("Save failed: ")+E.Detail; }
@@ -177,16 +202,17 @@ void FLHWave2Session::OnSave(const FLHSaveEvent& E)
     if (!bAwaitingSave || E.Character.Value!=Complete.Header.CharacterId.Value || E.Sequence<AwaitedSequence) return;
     bAwaitingSave=false;
     if (E.Kind==ELHSaveEventKind::Failed) { Message=TEXT("Save failed: ")+E.Error.Detail; return; }
-    Complete.Header.TransactionSequence=E.Sequence;
+    Complete.Header.TransactionSequence=FMath::Max(Complete.Header.TransactionSequence,E.Sequence);
     if (Authority() && Authority()->Import(Complete)!=ELHCommandReason::None)
     { Message=TEXT("Durable sequence synchronization failed; transition blocked."); return; }
     Message.Empty();
+    if (bSaveQueued) return; // A newer completed boundary must become durable before a transition.
     if (bExit) { bExit=false; if (Exit) Exit(); }
     else if (bEnterAfterSave) { bEnterAfterSave=false; bTravel=true; if (Travel) Travel(); }
 }
 FString FLHWave2Session::Continue(FLHCharacterId Id,bool Ack)
 {
-    if (IsBlocked()) return TEXT("Save or travel is pending.");
+    if (IsTransactionBlocked()) return TEXT("Save or travel is pending.");
     if (HasCharacter() && Saves->IsDirty(Complete.Header.CharacterId))
     {
         bAwaitingSave=true; AwaitedSequence=Complete.Header.TransactionSequence; FLHSaveError E;
@@ -205,22 +231,27 @@ FString FLHWave2Session::Continue(FLHCharacterId Id,bool Ack)
 FString FLHWave2Session::RequestExit()
 {
     if (bContentUnavailable) { if (Exit) Exit(); return {}; }
-    if (IsBlocked()) return TEXT("Wait for completed-action durability.");
+    if (bContentUnavailable || bTravel || bWorldTravelFrozen || bSaveQueued || bAwaitingSave) return TEXT("Wait for completed-action durability.");
     if (HasCharacter() && Saves->IsDirty(Complete.Header.CharacterId))
     { bExit=true; return Continue(Complete.Header.CharacterId,false); }
+    if (HasCharacter() && bInGameplay)
+    {
+        if (!SyncResources()) return TEXT("Resource capture failed.");
+        bExit=true; bSaveQueued=true; return {};
+    }
     if (Exit) Exit(); return {};
 }
 
 bool FLHWave2Session::BeginCreation()
 {
-    if (bInGameplay || IsBlocked() || (HasCharacter() && Saves->IsDirty(Complete.Header.CharacterId))) return false;
+    if (bInGameplay || IsTransactionBlocked() || (HasCharacter() && Saves->IsDirty(Complete.Header.CharacterId))) return false;
     return Bind(Owner.Get(),true);
 }
 FString FLHWave2Session::RetryPersistence()
 {
     if (bWorldTravelFrozen && RetryWorldTravel)
     { FString Error; RetryWorldTravel(Error); Message=Error; return Message; }
-    if (IsBlocked()) return TEXT("Save is pending.");
+    if (bTravel || bSaveQueued || bAwaitingSave || bContentUnavailable) return TEXT("Save is pending.");
     if (!HasCharacter() || !Saves->IsDirty(Complete.Header.CharacterId)) return Message;
     bAwaitingSave=true; AwaitedSequence=Complete.Header.TransactionSequence; FLHSaveError E;
     if (!Saves->Retry(Complete.Header.CharacterId,E)) { bAwaitingSave=false; Message=TEXT("Save retry failed: ")+E.Detail; }
@@ -233,23 +264,33 @@ void FLHWave2Session::ClearSelectionError()
     if (Message.StartsWith(TEXT("Unreadable:")) || Message.StartsWith(TEXT("Recovery:"))) Message.Empty();
 }
 
-void FLHWave2Session::FreezeWorldTravel(bool Frozen) { bWorldTravelFrozen=Frozen; bTravel=Frozen; }
+void FLHWave2Session::FreezeWorldTravel(bool Frozen)
+{
+    bWorldTravelFrozen=Frozen; bTravel=Frozen;
+    if (Director.IsValid()) Director->SetSimulationFrozen(Frozen || bGameplayPaused || bDeadAwaitingRespawn);
+    if (Owner.IsValid()) Owner->GetCombatComponent()->SetRecoveryMenuPaused(Frozen || bGameplayPaused || bDeadAwaitingRespawn);
+}
 bool FLHWave2Session::CaptureTravel(FLHSaveSnapshot& Out,FString& Error)
 {
     if (!HasCharacter() || bSaveQueued || bAwaitingSave || !Authority() ||
         Owner->GetCombatComponent()->IsActionPending())
     { Error=TEXT("Travel requires a completed action and durable session"); return false; }
-    Authority()->Export(Complete); Out=Complete; return true;
+    if (!SyncResources()) { Error=TEXT("Resource capture failed"); return false; }
+    Out=Complete; return true;
 }
 bool FLHWave2Session::InstallTravel(const FLHSaveSnapshot& Snapshot)
 {
-    Complete=Snapshot;
-    return Authority() && Authority()->Import(Complete)==ELHCommandReason::None && InstallDerived();
+    if (!Authority()) return false;
+    auto Check=*Authority(); if (Check.Import(Snapshot)!=ELHCommandReason::None) return false;
+    *Authority()=MoveTemp(Check); Complete=Snapshot;
+    return InstallDerived();
 }
 FLHCommandResult FLHWave2Session::Execute(const FLHRequestTravelRequest& Q)
 {
-    if (IsBlocked() || !RequestWorldTravel) return LHWave2SessionPrivate::Busy();
+    if (IsTransactionBlocked() || !RequestWorldTravel) return LHWave2SessionPrivate::Busy();
     FString Error; FLHCommandResult R;
+    if (bInGameplay && Q.Destination.Area.Content.Value!=TEXT("Area.TempleB1") && Q.Destination.Area.Content.Value!=TEXT("Area.LighthavenTempleDistrict"))
+    { R.Reason=ELHCommandReason::UnresolvedRules; Message=TEXT("Deeper-floor gameplay is deferred to Stage 1B."); return R; }
     if (RequestWorldTravel(Q,Error)) R.Disposition=ELHCommandDisposition::Accepted;
     else { R.Reason=ELHCommandReason::InvalidRequest; Message=Error; }
     return R;

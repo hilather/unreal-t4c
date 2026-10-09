@@ -262,9 +262,18 @@ struct FBuilder
             for(const FName Tag:A->Tags) Row+=TEXT("|")+Tag.ToString();
             if(auto* P=Cast<ALHPortal>(A)) Row+=P->PortalId.ToString()+P->Source.LocalId.ToString()+P->Destination.Area.Content.Value.ToString()+P->Destination.LocalId.ToString();
             if(auto* P=Cast<ALHSpawnMarker>(A)) Row+=P->SpawnId.ToString()+P->EnemyDefinitionId.Value.ToString();
+            if(auto* P=Cast<ALHInteractableMarker>(A)) Row+=P->InstanceId.ToString()+P->Area.Content.Value.ToString()+P->DefinitionId.Value.ToString();
             Rows.Add(Row);
         }
         Rows.Sort(); return FMD5::HashAnsiString(*FString::Join(Rows,TEXT("\n")));
+    }
+    void Npc(const TCHAR* Name, const TCHAR* Definition, const FGuid& Guid, FVector Grid)
+    {
+        if (auto* A=Actor<ALHInteractableMarker>(Name,Grid*100))
+        {
+            A->Area.Content.Value=TEXT("Area.TempleB1"); A->DefinitionId.Value=Definition;
+            A->InstanceId=Guid; A->Tags.Add(TEXT("LH.Service.Bound"));
+        }
     }
     void B1()
     {
@@ -285,8 +294,8 @@ struct FBuilder
         Mark(TEXT("B1.Safe.Enclosure"),{45,16,0},{10,12,3},TEXT("LH.Safety.NoCombat.Required"));
         Box({-12,12,1.7},{.8,.15,.15},false);
         Box({-12,12,1.7},{.15,.15,.8},false);
-        Mark(TEXT("B1.NPC.Nevanis"),{-25,6,0},{1,1,1},TEXT("LH.Service.BindingRequired"));
-        Mark(TEXT("B1.NPC.Shovanis"),{-25,14,0},{1,1,1},TEXT("LH.Service.BindingRequired"));
+        Npc(TEXT("B1.NPC.Nevanis"),TEXT("NPC.Nevanis"),FGuid(0x32a8de01,0x573448aa,0x9fa6de27,0x056614c2),{-25,6,0});
+        Npc(TEXT("B1.NPC.Shovanis"),TEXT("NPC.Shovanis"),FGuid(0xc451f507,0xb1d44278,0x8b34a5d0,0x97516bc8),{-25,14,0});
         Box({-25,6,.9},{.7,.7,1.8},false); Box({-25,14,.9},{.7,.7,1.8},false);
         Mark(TEXT("B1.Healer.ServiceCue"),{-12,12,0},{1,1,1},TEXT("LH.Landmark.Healer"));
         Light(1,2,-20,'N'); Light(2,7.7,-5,'T'); Light(3,9,.4,'T'); Light(4,.4,12,'T');
