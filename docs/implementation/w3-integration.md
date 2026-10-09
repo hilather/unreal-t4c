@@ -37,15 +37,40 @@ The largest currently defined player capsule is read from ALHCharacter's CDO
 penetration. Ground tracing allows 5 cm height error and requires upward normal
 Z >= 0.7. These tolerances are Prototype validation policy, not historical values.
 
-Each isolated loaded world finishes static-mesh compilation before creating
-physics/navigation/AI, registers actors, requests
-`RebuildNavigation`, and ticks for a bounded 10 seconds of wall time before querying.
-The test invokes the engine's reflected `K2_ProjectPointToNavigation` function with
-25 cm horizontal and 50 cm vertical extent, enforcing horizontal displacement <=25 cm.
-This is actual Unreal nav projection, not a floor-trace substitute. Missing navigation
-API, navmesh, bounds, build completion or projection fails the ID. Host validation
-must establish that navigation builds on all generated maps; the timeout is not proof.
-No BeginPlay simulation, enemy fights or geometry edits are part of the review.
+Each loaded world uses Editor mode without BeginPlay. Components register first,
+then all static-mesh compilation finishes, transforms update and physics states
+are recreated. Before queries, the test initializes the navigation system for the
+loaded world (InitWorld alone creates it without world initialization), then calls
+`FNavigationSystem::Build`. In UE 5.8.3 that native delegate invokes
+`UNavigationSystemV1::Build`, which calls `EnsureBuildCompletion` for every nav data
+set before returning. No console Exec or arbitrary ten-second sleep remains.
+
+Positive controls require a Pawn-blocking registered query primitive with physics
+state, a real physics scene, a downward hit on a separately authored flat-floor
+probe, main navigation data and valid populated-tile bounds. The latter uses the
+Engine navigation interface's `ComputeNavDataBounds`: Recast `GetBounds` delegates
+to `FPImplRecastNavMesh::GetNavMeshBounds`, which accumulates only Detour tiles
+with headers, not allocated empty tile slots. This avoids an out-of-scope module
+dependency change. Empty nav data therefore fails loudly. Any failed world control
+forces every arrival in that map to FAIL, excluding it from reviewed evidence.
+
+Flat-floor controls in registry order are hub nave (800,1200,0), B1 (900,900,0),
+B2 (1100,1000,0), B3 entry room (3500,500,0), B4 entry room (600,600,0), in cm.
+B1/B2 reuse the generators' route controls; other points sit inside authored floor
+rectangles. Graybox generators use BlockAll for collision, including Pawn and
+Visibility. Floor queries now use Pawn, matching capsule movement semantics.
+Registry SafeTransform locations are foot/ground positions, not capsule centers;
+the capsule center remains ground + half-height + 2 cm. Flat slabs have center
+Z=-10 and thickness 20 cm (basement A uses equivalent meter-scale cubes), so their
+tops are Z=0. The +10/-15 cm trace window, <=5 cm height error and normal Z>=0.7
+remain unchanged; no increased tolerance or placement fix is justified by source.
+
+The test invokes reflected `K2_ProjectPointToNavigation` with 25 cm horizontal
+and 50 cm vertical extent, enforcing horizontal displacement <=25 cm. Each existing
+`ARRIVAL …` line retains its original fields and appends world-control results and
+semicolon-delimited failure reasons. `ARRIVAL_CONTROL` reports each loaded world's
+positive controls. No real geometry result is inferred from compilation or pointer
+package lookup; host review remains required.
 
 `build/review-arrivals.sh` refuses root and LFS pointers, removes stale walk evidence,
 runs only the headless walk-test with the documented W3-04b startup flags, and reads
@@ -132,3 +157,34 @@ No map generation, successful geometry walk, LHValidateWorld, cook, packaged con
 invocation or gameplay check was performed. Missing real LFS maps is the concrete
 prerequisite; coordinator host actions above remain required. Startup refusal and
 checkpoint tests use native seams and do not establish real map/OpenLevel behavior.
+
+## W3-05b collision/navigation test correction
+
+Base `07442a0a765510d78b8f184ca6bc5fdc2e7446be`, contract revision 1.
+Only the arrival test and this document change; review script parsing already accepts
+appended diagnostic fields. No placement changes, maps, or reviewed lists are committed.
+
+Final-source `UE_ROOT=/home/brewerm/Downloads/unreal bash build/build-linux.sh --game`
+returned 0 in 10 seconds combined shell time: editor `Result: Succeeded` (7.81 s UBT,
+explicitly compiled LHWave3ArrivalTests.cpp), game `Result: Succeeded` (1.94 s UBT).
+UID was 1000. `bash -n build/review-arrivals.sh` and `git diff --check` returned 0.
+`UE_ROOT=/home/brewerm/Downloads/unreal bash build/review-arrivals.sh` returned 1
+in under one second at the hub LFS-pointer preflight, before editor/list creation.
+Full automation results and timing are recorded below after the final run.
+
+Real-map floor, physics repair, nav build and tile-control results remain unobserved:
+all five worker maps are LFS pointers. Coordinator must run review-arrivals.sh on
+hydrated maps and investigate any specific FAIL without relaxing these checks.
+No LHValidateWorld, regeneration, cook, package, or gameplay checks are claimed.
+Windows remains deferred. G3 is not passed by this correction.
+
+Final rebuilt-source full headless `Automation RunTests Lighthaven; Quit` returned
+255 in 61 seconds, using memory DDC/nullrhi/unattended/nop4/nosound, disabled
+HomeScreen, worktree XDG_CONFIG_HOME and exported report/absolute log paths.
+Exported report: **80 Success, 1 Fail**, no unfinished tests. Only ArrivalSafety
+failed: five explicit `world=0` control errors and nine FAIL rows, with all controls
+zero and `reason=world-load;...;floor-trace-miss;nav-projection-failed;`.
+The final logs include floorhit/floordelta/floornormal, confirming final diagnostics
+were executed. This verifies failure reporting on pointers, not real-map safety.
+Evidence: this attempt's worker-output `library/automation-current/` report,
+`automation-current-editor.log`, timing files, `ArrivalSafety.tsv`, and build logs.
