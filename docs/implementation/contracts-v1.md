@@ -158,3 +158,5 @@ No new gameplay tuning values are introduced. Structural constants such as schem
 7. Reconcile pending W0-04 visual evidence; freeze portal pairing/landing transforms only after traces and real traversal. Update coordinator-owned status/toolchain ledger after review; these paths were not edited here.
 
 Next work: coordinator runs the full host Lighthaven Automation suite and records the freeze requirement after review. Wave 2/4 owners implement the accepted accompanying behaviours and their validation; no gate pass is asserted here.
+
+> **Schema revision 2 (accepted 2026-10-09):** UseItem, NotUsable/NoEffect and schema 2 with rev-1 migration are defined in `schema-rev2.md`, which supersedes the matching rows here.

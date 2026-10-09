@@ -85,3 +85,5 @@ Native regression assertions cover canonical request rejection with the structur
 ### W2-01f: embedded NUL test inputs
 
 Never use `AppendChar(0)` to build NUL test input: UE 5.8.3 ignores that character. The canonical request, saved character name and diagnostic rejection tests insert `TCHAR(0)` into `GetCharArray()` between a visible prefix and hidden suffix. Each asserts the full `Len()` and the NUL at its expected index before checking rejection with `Malformed`. The defensive product scans remain unchanged.
+
+> **Schema revision 2 (accepted 2026-10-09):** current schema is 2 and rev-1 saves migrate on load; see `schema-rev2.md`.
