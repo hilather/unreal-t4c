@@ -120,8 +120,26 @@ struct FBuilder
             C->SetMobility(EComponentMobility::Movable); C->SetCastShadows(false);
             C->SetIntensityUnits(ELightUnits::Lumens); C->SetUseTemperature(true);
             C->SetTemperature(Profile=='N'?6500:2200);
-            C->SetIntensity(Profile=='N'?1200:Profile=='W'?1000:600);
-            C->SetAttenuationRadius(Profile=='N'?850:Profile=='W'?800:600);
+            // Prototype presentation tuning; neutral coverage complements warm landmarks.
+            C->SetIntensity(Profile=='N'?1800:Profile=='W'?1500:900);
+            C->SetAttenuationRadius(1400);
+        }
+    }
+    void CoverageLighting()
+    {
+        // Prototype presentation: samples at <=8m spacing within each authored floor rectangle.
+        int32 Index=1000;
+        for(const auto& R:Floors)
+        {
+            const int32 NX=FMath::CeilToInt((R.X1-R.X0)/8.);
+            const int32 NY=FMath::CeilToInt((R.Y1-R.Y0)/8.);
+            for(int32 X=0;X<NX;++X) for(int32 Y=0;Y<NY;++Y)
+            {
+                const double PX=R.X0+(X+.5)*(R.X1-R.X0)/NX;
+                const double PY=R.Y0+(Y+.5)*(R.Y1-R.Y0)/NY;
+                if(!Inside(PX,PY)) continue; // Preserve pits/absent floor.
+                Light(Index++,PX,PY,'N');
+            }
         }
     }
     void Mark(const TCHAR* Name,FVector P,FVector Size,const TCHAR* Tag)
@@ -175,7 +193,8 @@ struct FBuilder
         if(auto* A=Actor<ASkyLight>(TEXT("NeutralFill"),{0,0,600}))
         {
             auto* C=A->GetLightComponent(); C->SetMobility(EComponentMobility::Movable);
-            C->SetCastShadows(false); C->SetIntensity(B1?.5:.4);
+            C->SetCastShadows(false); C->SetIntensity(.8f);
+            C->bLowerHemisphereIsBlack=false;
             C->bRealTimeCapture=false; C->LowerHemisphereColor=FLinearColor::White;
             // Fixed engine cubemap, no external HDRI. Capture source is recorded in handoff.
             C->SourceType=SLS_SpecifiedCubemap;
@@ -185,14 +204,14 @@ struct FBuilder
         if(auto* A=Actor<APostProcessVolume>(TEXT("ExposureBaseline"),FVector::ZeroVector))
         {
             A->bUnbound=true; auto& S=A->Settings;
-            S.bOverride_AutoExposureMinBrightness=true; S.AutoExposureMinBrightness=2;
-            S.bOverride_AutoExposureMaxBrightness=true; S.AutoExposureMaxBrightness=2;
+            S.bOverride_AutoExposureMinBrightness=true; S.AutoExposureMinBrightness=1;
+            S.bOverride_AutoExposureMaxBrightness=true; S.AutoExposureMaxBrightness=1;
             S.bOverride_AutoExposureBias=true; S.AutoExposureBias=0;
             S.bOverride_AutoExposureMethod=true; S.AutoExposureMethod=AEM_Manual;
             S.bOverride_AutoExposureApplyPhysicalCameraExposure=true; S.AutoExposureApplyPhysicalCameraExposure=true;
             S.bOverride_CameraISO=true; S.CameraISO=100;
-            S.bOverride_CameraShutterSpeed=true; S.CameraShutterSpeed=1;
-            S.bOverride_DepthOfFieldFstop=true; S.DepthOfFieldFstop=2; // Prototype interior EV100 2: log2(2^2 *1).
+            S.bOverride_CameraShutterSpeed=true; S.CameraShutterSpeed=.5f;
+            S.bOverride_DepthOfFieldFstop=true; S.DepthOfFieldFstop=2; // Prototype interior EV100 1: log2(2^2 *.5).
             S.bOverride_BloomIntensity=true; S.BloomIntensity=0;
             S.bOverride_MotionBlurAmount=true; S.MotionBlurAmount=0;
         }
@@ -347,7 +366,7 @@ int32 ULHGenerateBasementAMapsCommandlet::Main(const FString& Params)
         FLHAreaId Id; Id.Content.Value=B1?TEXT("Area.TempleB1"):TEXT("Area.TempleB2");
         const auto* Area=LHWorld::FindArea(Id); if(!Area) return 1;
         UWorld* World=GEditor->NewMap(false); if(!World) return 1;
-        FBuilder Builder{World,Cube}; if(B1) Builder.B1(); else Builder.B2(); Builder.Authoring(*Area,B1); Builder.CheckRoutes(B1);
+        FBuilder Builder{World,Cube}; if(B1) Builder.B1(); else Builder.B2(); Builder.CoverageLighting(); Builder.Authoring(*Area,B1); Builder.CheckRoutes(B1);
         if(!Builder.bOK || !IFileManager::Get().MakeDirectory(*FPaths::GetPath(Filename),true) || !FEditorFileUtils::SaveMap(World,Filename)) return 1;
         UE_LOG(LogTemp,Display,TEXT("Generated %s: %d encounter anchors; safety unreviewed"),*Package,Area->Spawns.Num());
         UE_LOG(LogTemp,Display,TEXT("Authored actor identity/transform fingerprint %s: %s"),*Package,*Builder.Fingerprint());

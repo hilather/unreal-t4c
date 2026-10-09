@@ -1,28 +1,51 @@
-# W4-09: explicit graybox lighting
+# W4-09c basement lighting and capture framing
 
-Source inspection on 2026-10-09 found three different exposure contracts. This is a code correction with pending host visual calibration, not an observed visual pass.
+The W4-09b brief reports basement arrival captures at mean sRGB luma .023–.050, with near-black walkable areas. This revision adds floor coverage and increases interior exposure; the requested B1–B4 mean .12–.25 and hub .2–.35 remain **host visual acceptance targets**, not observed results here.
 
-| Map | Evidence / likely contribution | Changed exposure |
+All values below are **Prototype presentation tuning**, based on the brief's capture evidence and the existing A-04 graybox lighting, not authentic T4C mechanics. The Bible lookup and rules/world ledgers were checked: they provide gameplay numbers, not Unreal lighting calibration. No gameplay numbers change. Replace these presentation values after a real-RHI capture of regenerated maps; preserve dungeon mood and warm landmark contrast.
+
+| Setting | B1–B4 | Rationale |
 | --- | --- | --- |
-| Hub | Equal bounds 6, no metering override; project did not pin extended luminance. A 3000 lux sun with this low exposure target can clip; disabling adaptation does not establish the correct exposure. | Manual physical EV100 10, ISO100, f/2, shutter256 |
-| B1/B2 | Manual physical EV1006 (f/2, shutter16) despite 600–1200 lm point lights and .5/.4 neutral fill: much less exposure than B3/B4. No automatic adjustment can compensate. | Manual physical EV1002, ISO100, f/2, shutter1 (16× the previous exposure) |
-| B3/B4 | Equal automatic bounds2, inherited metering and unpinned extended-range interpretation. B3 reported dim; B4 not observed. | Manual physical EV1002, same interior camera contract |
+| Manual physical EV100 | 1 (previously 2), ISO100, f/2, reciprocal shutter .5, bias0, equal overridden bounds1 | One stop more exposure; `log2(2² × .5 × 100 / 100)=1` |
+| Neutral / warm / torch locals | 1800 / 1500 / 900 lm | Broader readable floor fill with existing warm landmark profiles |
+| B3 cell local / B4 boss spot | 600 / 4000 lm | Cell detail and boss landmark; existing spot cone50/65 degrees retained |
+| Local attenuation | 1400 cm, boss spot2000 cm | Overlapping corridor and room coverage |
+| Neutral sky | .8, specified `/Engine/EngineResources/GrayLightTextureCube.GrayLightTextureCube`, no realtime capture or shadows, lit lower hemisphere | Consistent replaceable ambient source across the four floors |
+| Coverage locals | Neutral1800 lm, 6500 K, z250 cm, no shadows, Movable | Sample authored floor rectangles/strips at spacing ≤800 cm per axis; B1/B2 skip absent floor/pits, B3/B4 suppress candidates within400 cm of a prior fill |
 
-These are **Prototype presentation tuning**, derived from A-04 intent and UE's installed renderer formula, not historical mechanics. Replace through host neutral-card and gameplay-view calibration. UE 5.8.3 `PostProcessEyeAdaptation.cpp:526` computes `log2(fstop² * shutter * 100 / ISO)`. Manual physical exposure removes dependence on automatic-bound interpretation; explicit equal bounds are retained for audit and future metering changes. Bias remains0; hub/B1/B2 bloom and motion blur remain0. Project extended luminance is explicitly enabled for consistent EV bound semantics.
+Coverage is generated from existing floor descriptions and does not move geometry, arrivals, portals, encounters, NPCs or their identities. B1's GUID-bearing Nevanis/Shovanis interactable placement remains intact. Added point lights have no blocking primitive components. All existing lights remain Movable. The hub generator and project rendering settings retain the W4-09 settings: EV10, sun3000 lux, sky.7, entirely dynamic lights, no Lumen GI/reflections. No renderer stall fix is claimed.
 
-All five generators already use **Movable** local, sun and sky lights. Static/stationary lightmaps are therefore not the identified cause. `r.AllowStaticLighting=False` now deliberately selects an entirely dynamic graybox pipeline. Static geometry remains static. Generation with `-nullrhi` produces no baked lighting or render capture; specified cubemap references and movable direct lights are the intended inputs. Both `GrayLightTextureCube` and `GrayTextureCube` exist in the installed engine. B1/B2 retain the former; B3/B4 retain the latter; hub retains its authored embedded neutral cube. Cubemap filtering/cook and actual sky contribution still need real-RHI host review.
+B1/B2 coverage names start at `A04_T1000`; B3/B4 use `Coverage_###`. B3/B4 collect positions before spawning, avoiding actor-array mutation during iteration. Floor strip order is authored and deterministic. Broad, shadowless fill deliberately prioritizes graybox readability; light overlap, wall leakage and GPU cost need host review on the GTX1050Ti. No emissive materials or fake lightmaps are introduced.
 
-No renderer settings previously pinned GI/reflections. The new rendering section explicitly disables dynamic GI and reflections: A-04 neutral-fill/direct-light grayboxes do not require Lumen or a lighting build. No Vulkan, synchronization, shadow algorithm or engine changes are made. Existing per-light shadows remain authored. Arrival transforms and geometry are unchanged.
+## Capture
 
-## Audit and capture
+Run from this checkout as the desktop user:
 
-`Lighthaven.World.LightingAudit` loads all five registry map packages headlessly and checks local inventories20/12/17/17/13, one sky per map, exactly one sun in the hub, all lights movable, point/spot units lumens and intensities275..3200, sun3000 lux, sky.26...70, specified non-null sky cube, one unbound manual physical-camera volume, overridden physical parameters giving EV10/2, equal overridden bounds and zero overridden bias. Thresholds are the existing authored Prototype inventory, not visual acceptance thresholds. Regenerate maps before running; LFS pointers are not valid input maps.
+```sh
+bash build/capture-map-screenshots.sh /absolute/path/to/Development-Lighthaven-or-UnrealEditor
+bash build/capture-map-screenshots.sh /absolute/path/to/Development-Lighthaven-or-UnrealEditor --overview
+```
 
-Host steps after build:
+The arrival shot uses the current registry ground pivot plus90 cm (capsule center), upright pawn rotation (pitch/roll0), and arrival yaw. **BugItGo teleports/rotates the pawn**, as confirmed in installed UE5.8.3 `CheatManager.cpp::BugItWorker`; it does not set the absolute spring arm. The prior command applied registry pitch and a180 cm offset to the pawn. The current registry pitch is already0; lowering the target by90 cm and explicitly keeping it upright uses native `LHCharacter.cpp` defaults: boom1200 cm, absolute yaw45/pitch-55, horizontal FOV45, collision probe12 cm. These are the selected defaults among `hub-graybox.md`'s review values. Boom collision may shorten the view exactly as in gameplay. No camera property or arrival registry is edited.
 
-1. Regenerate using the three existing generation scripts, preserving reviewed arrival hashes; coordinator owns generated binaries.
-2. Run the headless audit with `Automation RunTests Lighthaven.World.LightingAudit; Quit` (normal-user `UnrealEditor-Cmd`, `-nullrhi`, existing environment recipe).
-3. Package all five maps in a Development archive or use the built editor on the desktop. Run `bash build/capture-map-screenshots.sh /absolute/path/to/Lighthaven` (or `UnrealEditor`) from the checkout. Requires Python3 and ImageMagick already installed; does not install it.
-4. Inspect `Saved/LightingCapture/<timestamp>/`. Each independent launch uses the current registry first arrival/Temple.SafeSpawn and BugItGo with a180cm eye-height offset; this does not edit arrivals. `EnableCheats`/BugItGo must log successful placement or the capture is rejected. HighResShot requests120 delay frames for rendering warmup. Script prints mean/median normalized Rec.709 **sRGB luma**, excluding UI via HighResShot. These are diagnostic screen statistics, not scene luminance or a visual gate. Confirm actual third-person camera framing in the images; controller camera offsets can affect the view.
+Optional overview shots use fixed room-center pawn positions and the same native camera (not a free-flight aerial camera): hub(-400,500,90), B1(900,-1900,90), B2(1000,-5600,90), B3(2900,300,90), B4(0,1000,90), in cm, upright/yaw0. These capture-only prototype vantages are recorded in the script and have no persistence/authoring effect.
 
-No sandbox captures or visual conclusions are claimed. A failed launch/camera command/missing image fails the script and retains logs. Screenshot directory paths should not contain whitespace (Unreal console filename parsing). An editor or Development executable with cheat commands is required; Shipping is unsupported.
+Independent launches retain logs and images under `Saved/LightingCapture/<timestamp>/`. HighResShot requests1280×720 after120 warmup frames; each launch has a55 s timeout and a15 s engine lifetime. Failed placement, launch or missing image fails the script. Screenshot paths containing whitespace are rejected before launch. Requires desktop/display, Development cheat commands, Python3 and ImageMagick; installs nothing. Shipping is unsupported.
+
+Each shot reports mean, median, and **near_black** = fraction of normalized Rec.709 sRGB luma pixels strictly below .02. Statistics cover the whole screenshot, including intentional void; inspect walkable space separately. They are screen diagnostics, not scene-linear illuminance or proof of room readability. Optional overviews are additional evidence, not substitutes for arrival acceptance.
+
+## Audit and integration
+
+`Lighthaven.World.LightingAudit` checks all five registry maps: original landmark inventories20/12/17/17/13 remain after subtracting coverage; ≥10 coverage lights per interior; neutral fill within1400 cm in XY of every encounter and every entrance; no blocking light primitives; interior local radius≥1400, lumens600..4000; Movable lights; one shadowless specified non-null sky at.7/.8 with lit interior lower hemisphere; one manual physical unbound PP at EV10/1 with equal bounds and bias0; hub-only sun3000 lux. This is structural coverage, not a screenshot test; nullRHI cannot certify actual brightness or cubemap rendering.
+
+Coordinator integration sequence: build editor/game, regenerate all five maps using the existing scripts, run the lighting audit, `build/review-arrivals.sh` and `LHValidateWorld`, then package/capture both arrival and overview views on the host. Do not integrate generated binaries from this worker. Judge luma targets plus near-black walkable coverage and dungeon mood; tune if needed. Windows remains deferred. The render-stall limitation remains unchanged.
+
+## Worker evidence (2026-10-09)
+
+UID1000, UE5.8.3 Linux. `UE_ROOT=/home/brewerm/Downloads/unreal bash build/build-linux.sh --game` finished with exit0 and both targets `Result: Succeeded` (editor6.22 s, game18.25 s in final incremental run). Initial complete editor/game builds reported130.87/139.09 s. Sandbox build configuration under ignored `Saved/` disables UBA detouring; UE still uses its local UBA executor, and the final link noted unsuccessful action-cache stores without failing the build.
+
+Regenerated all five playable maps with the three native commandlets, `-nullrhi`, and `-ddc=InstalledNoZenLocalFallback -LocalDataCachePath=<checkout>/DerivedDataCache`. Each saved its maps and returned exit1 due to remaining LFS-pointer startup packages (8/6/4 reported errors for A/B/hub runs). Generated B3/B4 manifests contain91/74 coverage lights respectively. No binary is submitted.
+
+Full `Automation RunTests Lighthaven; Quit` with filesystem DDC fallback returned exit0: **151 completed, 146 clean successes +5 successes with warnings, 0 failed/not-run/in-process**. `Lighthaven.World.LightingAudit` passed; suite test duration5.841235 s excludes editor startup. Warning-bearing tests: BowRequiresQuiver, AI.StateMachine, Wave3.ArrivalSafety, Wave4.Stage1A.ErrandLoop, Wave4.LiveMeleeCommand. Initial memory-cache-only launch stalled at Zen's read-only user config path and was interrupted; filesystem fallback was the successful run.
+
+Shell syntax, embedded Python compilation, five-arrival registry parsing, CLI help and `git diff --check` passed. Real-RHI captures, measured luma targets, overview composition, package/play checks and GPU cost remain unobserved: this worker has no DISPLAY/WAYLAND_DISPLAY. The coordinator must perform host visual review. Complete logs and JSON automation evidence accompany the attempt report outside the repository. Generated map files were restored to their baseline pointers after the tests.
