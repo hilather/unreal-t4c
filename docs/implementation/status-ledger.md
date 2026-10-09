@@ -105,3 +105,15 @@ Host test status (2026-10-08, main incl. W2-01/02/03): 56/56 Lighthaven Automati
 | W3-01 hub graybox generator | **integrated** (76/76 host tests; generator exit 0; map committed via LFS, sha256 21430c34…) | codex-sol | Commandlets/LHGenerateHubMapCommandlet.*, generate-hub-map.sh | LHValidateWorld on hub: B1–B4 absent (expected until W3-02/03); hub entrances Temple_SafeSpawn and Temple_Descent fail only on bSafetyReviewed=false (by design). **Open decision for W3-05:** how arrival markers become reviewed (proposed: an automated host arrival walk-test plus a reviewed-ID list the generators read, so regeneration stays deterministic; no hand edits). |
 | W3-02 B1/B2 generator | **superseded by W3-02b** | codex-sol | (as W3-02) | Worker finished its code (build green; B1/B2 generated twice with identical fingerprints) but stopped at "memory changed after knowledge selection" and never committed; `result capture` refused (snapshot limit 53 MiB: 1.3 GB of Binaries/Intermediate in the worktree). Cause: the task's knowledge was selected during the refused launches, then "G2 passed" memory was recorded before the relaunch. Owned files salvaged verbatim to refs/salvage/w3-02. **Lesson:** after a refused launch, a memory write invalidates the task's knowledge selection; relaunch under a new ID. |
 | W3-03 B3/B4 generator | **integrated** (76/76 host tests; generator exit 0; L_TempleB3/B4 committed via LFS; B3<->B4 portal pair validates) | codex-sol | Commandlets/LHGenerateBasementBMapsCommandlet.*, generate-basement-b-maps.sh | |
+
+**Soak experiments 2026-10-08 (G2c-Linux-88f9265, L_Frontend, 20 × 40 s each, coordinator host, display shared with worker builds; load logged every 30 s, median 17, range 3.5–61):**
+
+| Variant | SDL driver | ok | hang | hang last_frame |
+|---|---|---|---|---|
+| baseline | wayland (native, not XWayland) | 19 | 1 | 1 |
+| SDL_VIDEODRIVER=x11 | x11 (XWayland) | 17 | 3 | 1, 1, 1 |
+| SDL_VIDEODRIVER=wayland | wayland | 20 | 0 | — |
+| __NV_DISABLE_EXPLICIT_SYNC=1 | wayland | 17 | 3 | 510, 490, 405 |
+| -RenderOffscreen | dummy (no window) | 18 | 2 | 14, 917 |
+
+Findings: (1) the default is already native Wayland, so the earlier XWayland hypothesis does not apply; (2) the startup stall (last_frame=1) occurs with and without forced X11 and is not load-correlated (hangs at load 3.5–38); (3) the offscreen control still hangs (dummy driver, no swapchain), so presentation/compositor is not the sole cause; (4) late "hangs" at frames 400–917 may be a different failure or a no-log-growth false positive of launch-soak.sh; unclassified. Samples are small (20 per variant); no variant is a clear fix. Status unchanged: **known environment limitation, non-blocking**; relaunch is the workaround. Optional follow-up (not queued): classify late hangs from the evidence in Saved/LaunchSoak/ and gather GameThread/RenderThread stacks of a frame-1 stall.
