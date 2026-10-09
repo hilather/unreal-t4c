@@ -1,5 +1,6 @@
 #include "LHGenerateBasementBMapsCommandlet.h"
 #include "Editor.h"
+#include "Framework/LHArrivalReview.h"
 #include "FileHelpers.h"
 #include "ActorFactories/ActorFactory.h"
 #include "Builders/CubeBuilder.h"
@@ -163,7 +164,7 @@ struct FBuilder
         {
             const FString Name = TEXT("Arrival_") + E.Id.LocalId.ToString();
             if (auto* A = Actor<ALHEntranceMarker>(*Name,E.SafeTransform.GetLocation(),E.SafeTransform.Rotator()))
-            { A->EntranceId=E.Id; A->SafeArrivalTransform=E.SafeTransform; A->bSafetyReviewed=false; }
+            { A->EntranceId=E.Id; A->SafeArrivalTransform=E.SafeTransform; A->bSafetyReviewed=LHArrivalReview::IsReviewed(E); }
         }
         const auto& Entry = Area.Entrances[0].SafeTransform;
         Actor<APlayerStart>(TEXT("PlayerStart"),Entry.GetLocation()+FVector(0,0,100),Entry.Rotator());

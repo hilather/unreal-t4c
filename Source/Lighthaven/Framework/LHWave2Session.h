@@ -12,13 +12,22 @@ public:
     static FLHSaveCompatibility Compatibility();
     bool Bind(ALHPlayerState* State, bool bFreshCreation = false);
     bool HasCharacter() const { return Complete.Header.CharacterId.Value.IsValid(); }
-    bool IsBlocked() const { return bSaveQueued || bAwaitingSave || bTravel; }
+    bool IsBlocked() const { return bContentUnavailable || bSaveQueued || bAwaitingSave || bTravel; }
     void Flush();
     const FString& Status() const { return Message; }
-    FString OwnerStatus() const override { return Message; }
+    FString OwnerStatus() const override { return bContentUnavailable ? TEXT("Required packaged map content is missing.") : bWorldTravelFrozen && WorldTravelStatus ? WorldTravelStatus() : Message; }
     bool BeginCreation() override;
     void ClearSelectionError() override;
     FString RetryPersistence() override;
+    void FreezeWorldTravel(bool Frozen);
+    void AbortGameplayArrival(const FString& Error);
+    TFunction<FString()> WorldTravelStatus;
+    bool CaptureTravel(FLHSaveSnapshot& Out,FString& Error);
+    bool InstallTravel(const FLHSaveSnapshot& Snapshot);
+    TFunction<bool(const FLHRequestTravelRequest&,FString&)> RequestWorldTravel;
+    FLHCommandResult Execute(const FLHRequestTravelRequest&) override;
+    bool bWorldTravelFrozen=false, bContentUnavailable=false;
+    TFunction<bool(FString&)> RetryWorldTravel;
     TFunction<void()> Travel;
     TFunction<void()> Exit;
     TFunction<void()> Resume;
@@ -39,7 +48,7 @@ public:
 #define LH_UNSUPPORTED(T) FLHCommandResult Execute(const T&) override { FLHCommandResult R; R.Reason=ELHCommandReason::UnresolvedRules; return R; }
     LH_UNSUPPORTED(FLHTrainSkillRequest) LH_UNSUPPORTED(FLHLearnSpellRequest) LH_UNSUPPORTED(FLHBuyItemRequest)
     LH_UNSUPPORTED(FLHSellItemRequest) LH_UNSUPPORTED(FLHUseAbilityRequest) LH_UNSUPPORTED(FLHInteractRequest)
-    LH_UNSUPPORTED(FLHTakeLootRequest) LH_UNSUPPORTED(FLHRequestTravelRequest)
+    LH_UNSUPPORTED(FLHTakeLootRequest)
 #undef LH_UNSUPPORTED
 private:
     TSharedRef<FLHSaveStore> Saves;

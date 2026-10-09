@@ -9,6 +9,7 @@ class LIGHTHAVEN_API ULHSessionSubsystem : public UGameInstanceSubsystem
 public:
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     virtual void Deinitialize() override;
+    bool PlaceSessionArrival(UWorld* World,FString& Error);
     TSharedPtr<FLHWave2Session> Session() const { return Live; }
 private:
     TSharedPtr<FLHWave2Session> Live;

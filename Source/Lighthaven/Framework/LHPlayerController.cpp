@@ -13,6 +13,9 @@
 #include "Engine/GameViewportClient.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "World/LHWorldMarkers.h"
+#include "World/LHWorldTravelSubsystem.h"
+#include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Misc/CoreDelegates.h"
 #include "UnrealClient.h"
@@ -54,6 +57,16 @@ void ALHPlayerController::OnPossess(APawn* Pawn)
         }
         else LHDevCombat::InitializeForMap(State->GetCombatComponent(), Pawn);
         State->InitializeAvatar(Pawn);
+    }
+    if (LiveSession && !LiveSession->bWorldTravelFrozen)
+    {
+        FString Error;
+        if (!GetGameInstance()->GetSubsystem<ULHSessionSubsystem>()->PlaceSessionArrival(GetWorld(),Error))
+        {
+            LiveSession->AbortGameplayArrival(Error);
+            UE_LOG(LogTemp,Warning,TEXT("Session arrival refused: %s"),*Error);
+            UGameplayStatics::OpenLevel(GetGameInstance(),TEXT("/Game/Lighthaven/Maps/L_Frontend"));
+        }
     }
     ClearHeldMovement();
 }
@@ -164,7 +177,7 @@ bool ALHPlayerController::HasLiveMovementAvatar() const
 {
     const auto* State=GetPlayerState<ALHPlayerState>();
     const auto* Combat=State ? State->GetCombatComponent() : nullptr;
-    return GetPawn() && Combat && Combat->IsAlive() && Combat->GetAvatarActor()==GetPawn();
+    return (!LiveSession || !LiveSession->IsBlocked()) && GetPawn() && Combat && Combat->IsAlive() && Combat->GetAvatarActor()==GetPawn();
 }
 void ALHPlayerController::SubmitMovement(FVector2D Axis)
 {
@@ -260,7 +273,29 @@ ELHCommandReason ALHPlayerController::RequestSelectedAttack()
 }
 void ALHPlayerController::Attack() { RequestSelectedAttack(); }
 // Wave 2+: intent notification only, no interaction transaction exists yet.
-void ALHPlayerController::Interact() { if (!SelectedTarget.IsValid()) Cycle(1); if (ActiveContext==ELHInputContext::Gameplay && ValidTarget(SelectedTarget.Get())) OnInteractRequested.Broadcast(SelectedTarget.Get()); }
+void ALHPlayerController::Interact()
+{
+    if (LiveSession && !LiveSession->IsBlocked() && ActiveContext==ELHInputContext::Gameplay && GetPawn())
+    {
+        ALHPortal* Nearest=nullptr; double Distance=250.0*250.0;
+        for (TActorIterator<ALHPortal> It(GetWorld());It;++It)
+        {
+            const double D=FVector::DistSquared(It->GetActorLocation(),GetPawn()->GetActorLocation());
+            if (D<Distance) { Nearest=*It; Distance=D; }
+        }
+        if (Nearest)
+        {
+            FHitResult Hit; FCollisionQueryParams Params; Params.AddIgnoredActor(GetPawn());
+            if (GetWorld()->LineTraceSingleByChannel(Hit,GetPawn()->GetActorLocation(),Nearest->GetActorLocation()+FVector(0,0,90),ECC_Visibility,Params) && Hit.GetActor()!=Nearest) return;
+            const auto S=LiveSession->Snapshot(); FLHRequestTravelRequest Q;
+            Q.Request.Epoch=S.Session.RequestEpoch; Q.Request.Value=FGuid::NewGuid();
+            Q.Portal=Nearest->Materialize(S.World.RunId); Q.Destination=Nearest->Destination;
+            LiveSession->Execute(Q); ClearHeldMovement(); return;
+        }
+    }
+    if (!SelectedTarget.IsValid()) Cycle(1);
+    if ((!LiveSession || !LiveSession->IsBlocked()) && ActiveContext==ELHInputContext::Gameplay && ValidTarget(SelectedTarget.Get())) OnInteractRequested.Broadcast(SelectedTarget.Get());
+}
 void ALHPlayerController::OpenScreen(FName Screen)
 {
     SetControlContext(ELHInputContext::UI); OnScreenRequested.Broadcast(Screen);

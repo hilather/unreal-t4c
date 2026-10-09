@@ -1,6 +1,8 @@
 #include "Framework/LHWave2Closure.h"
 #include "Persistence/LHSaveCodec.h"
 #include "Framework/LHWave2Profile.h"
+#include "World/LHAreaRegistry.h"
+#include "Framework/LHArrivalReview.h"
 namespace LHWave2ClosurePrivate
 {
 using FBytes=TArray<uint8>;
@@ -76,12 +78,16 @@ TArray<uint8> LHWave2::MechanicalClosure(const FLHCharacterProfile& P)
 TArray<uint8> LHWave2::GameplayCatalogClosure()
 {
     using namespace LHWave2ClosurePrivate;
-    // Complete enabled gameplay catalog: its mechanical profile plus one temporary, authored entrance.
-    // Cosmetic presentation choices intentionally do not participate.
-    FLHContentId Area; Area.Value=TEXT("Area.LighthavenTempleDistrict");
-    return Struct({{TEXT("Area"),Value(Area)},{TEXT("Checkpoint"),Value(FTransform::Identity)},
-        {TEXT("CheckpointProvenance"),Value(LHWave2::PrototypeInteger(0).Provenance)},
-        {TEXT("Codec"),Text(TEXT("LHGameplayCatalog1"))},{TEXT("Entrance"),Text(TEXT("Entry"))},
-        {TEXT("Map"),Text(TEXT("/Game/Lighthaven/Maps/Dev_Movement"))},{TEXT("MechanicalClosure"),LHWave2::MechanicalClosure(LHWave2::PrototypeProfile())},
-        {TEXT("Topology"),Ordered({})},{TEXT("WorldPolicy"),Text(TEXT("Empty encounters/objects/corpses/quests/bosses/claims/portals/timers/effects"))}});
+    TArray<FBytes> Areas;
+    for (const auto& A:LHWorld::Registry())
+    {
+        TArray<FBytes> Entrances,Portals,Spawns;
+        for (const auto& E:A.Entrances) Entrances.Add(Struct({{TEXT("Id"),Value(LHArrivalReview::Key(E.Id))},{TEXT("Transform"),Value(E.SafeTransform)}}));
+        for (const auto& P:A.Portals) Portals.Add(Struct({{TEXT("Id"),Value(P.Portal.InstanceId.ToString())},{TEXT("Source"),Value(LHArrivalReview::Key(P.Source))},{TEXT("Destination"),Value(LHArrivalReview::Key(P.Destination))}}));
+        for (const auto& P:A.Spawns) Spawns.Add(Struct({{TEXT("Id"),Value(P.SpawnId.ToString())},{TEXT("Enemy"),Value(P.Enemy)},{TEXT("Anchor"),Value(P.Anchor)}}));
+        Areas.Add(Struct({{TEXT("Area"),Value(A.Id.Content)},{TEXT("Map"),Value(A.Map.ToString())},
+            {TEXT("Entrances"),Ordered(Entrances)},{TEXT("Portals"),Ordered(Portals)},{TEXT("Spawns"),Ordered(Spawns)}}));
+    }
+    return Struct({{TEXT("Codec"),Text(TEXT("LHGameplayCatalog3"))},{TEXT("Areas"),Ordered(Areas)},
+        {TEXT("MechanicalClosure"),LHWave2::MechanicalClosure(LHWave2::PrototypeProfile())}});
 }
