@@ -879,7 +879,7 @@ ELHCommandReason FLHCharacterAuthority::Import(const FLHSaveSnapshot &S)
 {
     using namespace LH::Rules;
     check(IsInGameThread());
-    if (!bInitialized || S.Header.SchemaVersion != 1 || S.Header.TransactionSequence <= 0 ||
+    if (!bInitialized || S.Header.SchemaVersion != LHSave::CurrentSchemaVersion || S.Header.TransactionSequence <= 0 ||
         S.Session.RecentRequests.Num() > 4096)
         return ELHCommandReason::InvalidRequest;
     const auto Valid = Validate(S);

@@ -1,4 +1,4 @@
-// Schema revision 1 (frozen 2026-10-08, see docs/implementation/schema-rev1-freeze.md)
+// Schema revision 2 proposal; see docs/implementation/schema-rev2.md
 #pragma once
 
 #include "CoreMinimal.h"
@@ -14,7 +14,7 @@ enum class ELHCommandDisposition : uint8
 UENUM(BlueprintType)
 enum class ELHCommandReason : uint8
 {
-    None, InvalidRequest, ReusedRequestId, UnresolvedRules, InvalidLifeState, NotFound, OutOfRange, Obstructed, Ineligible, InsufficientPoints, InsufficientGold, InsufficientMana, InventoryFull, InvalidEquipment, Cooldown, ActiveAction, InvalidDestination, SaveRequired, Busy
+    None, InvalidRequest, ReusedRequestId, UnresolvedRules, InvalidLifeState, NotFound, OutOfRange, Obstructed, Ineligible, InsufficientPoints, InsufficientGold, InsufficientMana, InventoryFull, InvalidEquipment, Cooldown, ActiveAction, InvalidDestination, SaveRequired, Busy, NotUsable, NoEffect
 };
 
 // Rejected means no partial mutation; accepted replay returns original outcome/sequence.
@@ -114,6 +114,18 @@ struct LIGHTHAVEN_API FLHUseAbilityRequest
     UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHEntityId Target;
 };
 
+// Owner comes from handler context. Item is an owned inventory instance;
+// an entirely unset Target means self. Persisted consumption requires a receipt
+// and save through the session wrapper, unlike runtime-only UseAbility.
+USTRUCT(BlueprintType)
+struct LIGHTHAVEN_API FLHUseItemRequest
+{
+    GENERATED_BODY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHRequestId Request;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHEntityId Item;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame) FLHEntityId Target;
+};
+
 // Owner resolved from interface context, never from caller identity. Inputs are intents, not trusted state.
 USTRUCT(BlueprintType)
 struct LIGHTHAVEN_API FLHInteractRequest
@@ -186,6 +198,7 @@ public:
     virtual FLHCommandResult Execute(const FLHSellItemRequest& Request) = 0;
     virtual FLHCommandResult Execute(const FLHEquipItemRequest& Request) = 0;
     virtual FLHCommandResult Execute(const FLHUseAbilityRequest& Request) = 0;
+    virtual FLHCommandResult Execute(const FLHUseItemRequest& Request) = 0;
     virtual FLHCommandResult Execute(const FLHInteractRequest& Request) = 0;
     virtual FLHCommandResult Execute(const FLHTakeLootRequest& Request) = 0;
     virtual FLHCommandResult Execute(const FLHRequestTravelRequest& Request) = 0;

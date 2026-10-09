@@ -51,6 +51,7 @@ struct FOwners : ILHCommandHandler, ILHUIReadOwner, ILHUISessionOwner
         V.Reason = bAccept ? ELHCommandReason::None : ELHCommandReason::Ineligible; return V;
     }
     UNUSED_COMMAND(FLHUseAbilityRequest)
+    UNUSED_COMMAND(FLHUseItemRequest)
     UNUSED_COMMAND(FLHInteractRequest)
     UNUSED_COMMAND(FLHTakeLootRequest)
     UNUSED_COMMAND(FLHRequestTravelRequest)

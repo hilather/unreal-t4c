@@ -35,7 +35,8 @@ namespace LHSave
     constexpr int32 MaxFileBytes = 16 * 1024 * 1024;
     constexpr int32 MaxHeaderBytes = 64 * 1024;
     constexpr int32 MaxPayloadBytes = 15 * 1024 * 1024;
-    // Explicit v1 identity migration dispatch; unsupported/ambiguous versions never reinterpret.
+    // CurrentSchemaVersion is published by Core/LHSaveSnapshot.h.
+    // Explicit v1 to v2 migration; unsupported/ambiguous versions never reinterpret.
     LIGHTHAVEN_API bool SupportsVersion(int32 Version);
     LIGHTHAVEN_API FString Sha256(TConstArrayView<uint8> Bytes);
     LIGHTHAVEN_API bool Validate(const FLHSaveSnapshot& Snapshot, FLHSaveError& Error);

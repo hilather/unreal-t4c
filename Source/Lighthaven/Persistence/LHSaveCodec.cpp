@@ -174,11 +174,13 @@ static void Visit(FWire& W, FTransform& V)
 
 #include "LHSaveWireV1.inl"
 
-void Payload(FWire& W, FLHSaveSnapshot& V)
+void PayloadV1(FWire& W, FLHSaveSnapshot& V)
 {
     FDepth Depth(W); W.Struct(3);
     Field(W,"Character",V.Character); Field(W,"Session",V.Session); Field(W,"World",V.World);
 }
+#include "LHSaveWireV2.inl"
+
 bool Hex(const FString& S)
 {
     if (S.Len()!=64) return false;
@@ -190,20 +192,33 @@ bool Reject(FLHSaveError& E, ELHSaveReason R, const TCHAR* D) { E={R,D}; return 
 
 namespace LHSaveCodecPrivate
 {
-bool DecodeIdentityV1(TConstArrayView<uint8> P, const FLHSaveCompatibility& Compatibility,
+bool DecodeCanonicalPayload(TConstArrayView<uint8> P, const FLHSaveCompatibility& Compatibility,
     FLHSaveSnapshot& V, FLHSaveError& Error, FLHSaveDecodeStats* Stats)
 {
     if (Compatibility.MaxGrowthAwards<0 || Compatibility.MaxGrowthAwards>4096) return Reject(Error,ELHSaveReason::IncompatibleRuleset,TEXT("Invalid ruleset growth capacity"));
-    FWire Scan(P,Error,true); Scan.GrowthLimit=Compatibility.MaxGrowthAwards; FLHSaveSnapshot Scratch; Payload(Scan,Scratch);
+    FWire Scan(P,Error,true); Scan.GrowthLimit=Compatibility.MaxGrowthAwards; FLHSaveSnapshot Scratch; PayloadV1(Scan,Scratch);
     if (!Scan.Ok()) return false;
     if (Scan.Remaining()!=0) return Reject(Error,ELHSaveReason::Malformed,TEXT("Trailing payload bytes"));
     if (Stats) Stats->bPayloadAllocationStarted=true;
-    FWire Read(P,Error); Read.GrowthLimit=Compatibility.MaxGrowthAwards; Payload(Read,V);
-    if (!Read.Ok() || !LHSave::Validate(V,Error)) return false;
-    FWire Canonical(Error); Payload(Canonical,V); if (!Canonical.Ok()) return false;
+    FWire Read(P,Error); Read.GrowthLimit=Compatibility.MaxGrowthAwards; PayloadV1(Read,V);
+    if (!Read.Ok()) return false;
+    FWire Canonical(Error); PayloadV1(Canonical,V); if (!Canonical.Ok()) return false;
     if (Canonical.Output.Num()!=P.Num() || FMemory::Memcmp(Canonical.Output.GetData(),P.GetData(),P.Num())!=0)
-        return Reject(Error,ELHSaveReason::Malformed,TEXT("Payload is not canonical v1"));
+        return Reject(Error,ELHSaveReason::Malformed,TEXT("Payload is not canonical"));
     return true;
+}
+bool DecodeV1AndMigrate(TConstArrayView<uint8> P, const FLHSaveCompatibility& C,
+    FLHSaveSnapshot& V, FLHSaveError& E, FLHSaveDecodeStats* Stats)
+{
+    if (!DecodeCanonicalPayload(P,C,V,E,Stats)) return false;
+    // Layout and durable facts are identical. Only the contract version changes.
+    V.Header.SchemaVersion=LHSave::CurrentSchemaVersion;
+    return LHSave::Validate(V,E);
+}
+bool DecodeIdentityV2(TConstArrayView<uint8> P, const FLHSaveCompatibility& C,
+    FLHSaveSnapshot& V, FLHSaveError& E, FLHSaveDecodeStats* Stats)
+{
+    return DecodeCanonicalPayload(P,C,V,E,Stats) && LHSave::Validate(V,E);
 }
 struct FSchemaDispatch
 {
@@ -213,7 +228,7 @@ struct FSchemaDispatch
 const FSchemaDispatch* FindSchema(int32 Version)
 {
     // Each future entry needs a bounded version-specific decoder and an explicit, unambiguous migration.
-    static const FSchemaDispatch Dispatch[] = {{1,&DecodeIdentityV1}};
+    static const FSchemaDispatch Dispatch[] = {{1,&DecodeV1AndMigrate},{2,&DecodeIdentityV2}};
     for (const auto& Entry : Dispatch) if (Entry.Version==Version) return &Entry;
     return nullptr;
 }
@@ -226,7 +241,7 @@ bool LHSave::Encode(const FLHSaveSnapshot& Snapshot, TArray<uint8>& Bytes, FLHSa
     Error={}; Bytes.Reset();
     if (!Validate(Snapshot,Error)) return false;
     FLHSaveSnapshot V=Snapshot;
-    FWire P(Error); Payload(P,V); if (!P.Ok()) return false;
+    FWire P(Error); PayloadV2(P,V); if (!P.Ok()) return false;
     V.Header.PayloadLengthBytes=P.Output.Num(); V.Header.PayloadChecksum=Sha256(P.Output);
     FWire H(Error); H.ByteLimit=MaxHeaderBytes; Visit(H,V.Header); if (!H.Ok()) return false;
     FWire File(Error); File.ByteLimit=MaxFileBytes;
@@ -252,7 +267,7 @@ bool LHSave::Decode(TConstArrayView<uint8> Bytes, const FLHCharacterId& Characte
     if (!H.Ok()) return false;
     if (H.Remaining()!=0) return Reject(Error,ELHSaveReason::Malformed,TEXT("Trailing envelope bytes"));
     File.Position+=N;
-    if (V.Header.SchemaVersion>1) return Reject(Error,ELHSaveReason::FutureSchema,TEXT("Future schema; compatible game required"));
+    if (V.Header.SchemaVersion>CurrentSchemaVersion) return Reject(Error,ELHSaveReason::FutureSchema,TEXT("Future schema; compatible game required"));
     if (!SupportsVersion(V.Header.SchemaVersion)) return Reject(Error,ELHSaveReason::UnsupportedSchema,TEXT("No unambiguous migration"));
     if (V.Header.ChecksumAlgorithm!=TEXT("SHA256") || V.Header.Ruleset.HashAlgorithm!=TEXT("SHA256"))
         return Reject(Error,ELHSaveReason::UnknownAlgorithm,TEXT("Unsupported checksum/rules hash algorithm"));
@@ -268,13 +283,14 @@ bool LHSave::Decode(TConstArrayView<uint8> Bytes, const FLHCharacterId& Characte
     if (V.Header.ContentRevision!=Compatibility.ContentRevision) return Reject(Error,ELHSaveReason::IncompatibleContent,TEXT("Compatible gameplay catalog required"));
     auto P=Bytes.Slice(File.Position,File.Remaining());
     if (!Hex(V.Header.PayloadChecksum) || Sha256(P)!=V.Header.PayloadChecksum) return Reject(Error,ELHSaveReason::BadChecksum,TEXT("Payload SHA256 mismatch"));
-    // Version dispatch is explicit; v1 is identity, never a reinterpretation of another layout.
+    // Preserve original header for canonical comparison after migration.
+    auto OriginalHeader=V.Header;
     const FSchemaDispatch* Dispatch=FindSchema(V.Header.SchemaVersion);
     if (!Dispatch || !Dispatch->DecodeAndMigrate(P,Compatibility,V,Error,Stats)) return false;
-    FWire CanonicalHeader(Error); CanonicalHeader.ByteLimit=MaxHeaderBytes; Visit(CanonicalHeader,V.Header);
+    FWire CanonicalHeader(Error); CanonicalHeader.ByteLimit=MaxHeaderBytes; Visit(CanonicalHeader,OriginalHeader);
     if (!CanonicalHeader.Ok() || CanonicalHeader.Output.Num()!=static_cast<int32>(N) ||
         FMemory::Memcmp(CanonicalHeader.Output.GetData(),Bytes.GetData()+10,N)!=0)
-        return Reject(Error,ELHSaveReason::Malformed,TEXT("Envelope is not canonical v1"));
+        return Reject(Error,ELHSaveReason::Malformed,TEXT("Envelope is not canonical"));
     if (Compatibility.ValidateReferences && !Compatibility.ValidateReferences(V,Error))
     {
         if (Error.Reason==ELHSaveReason::None) return Reject(Error,ELHSaveReason::InvalidSnapshot,TEXT("Authoritative registry rejected snapshot references"));
@@ -316,6 +332,12 @@ static bool Valid(const FLHEquipItemRequest& R)
 {
     return R.Item.RunId.IsValid() && R.Item.InstanceId.IsValid() && LHSaveValidationPrivate::Area(R.Item.Area) &&
         R.Slot!=ELHEquipmentSlot::Unspecified;
+}
+static bool Valid(const FLHUseItemRequest& R)
+{
+    auto Entity=[](const FLHEntityId& E) { return E.RunId.IsValid() && E.InstanceId.IsValid() && LHSaveValidationPrivate::Area(E.Area); };
+    const bool Self=!R.Target.RunId.IsValid() && R.Target.Area.Content.Value.IsNone() && !R.Target.InstanceId.IsValid();
+    return Entity(R.Item) && (Self || Entity(R.Target));
 }
 static void RequestFields(FWire& W, FLHCreateCharacterRequest& R)
 {
@@ -373,6 +395,7 @@ static bool DispatchRequest(FName Command,const UScriptStruct* Type,const void* 
     LH_REQUEST(FLHCreateCharacterRequest,"CreateCharacter")
     LH_REQUEST(FLHAllocateAttributePointsRequest,"AllocateAttributePoints")
     LH_REQUEST(FLHEquipItemRequest,"EquipItem")
+    LH_REQUEST(FLHUseItemRequest,"UseItem")
 #undef LH_REQUEST
     return Reject(Error,ELHSaveReason::Malformed,TEXT("Unsupported command or mismatched request type"));
 }

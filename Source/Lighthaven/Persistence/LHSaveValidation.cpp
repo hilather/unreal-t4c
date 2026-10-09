@@ -55,8 +55,8 @@ bool LHSave::Validate(const FLHSaveSnapshot& S, FLHSaveError& E)
     using namespace LHSaveValidationPrivate;
     E={};
     auto Bad=[&E](const TCHAR* D) { E={ELHSaveReason::InvalidSnapshot,D}; return false; };
-    if (S.Header.SchemaVersion>1) { E={ELHSaveReason::FutureSchema,TEXT("Future schema")}; return false; }
-    if (!SupportsVersion(S.Header.SchemaVersion)) { E={ELHSaveReason::UnsupportedSchema,TEXT("No migration dispatch")}; return false; }
+    if (S.Header.SchemaVersion>CurrentSchemaVersion) { E={ELHSaveReason::FutureSchema,TEXT("Future schema")}; return false; }
+    if (S.Header.SchemaVersion!=CurrentSchemaVersion) { E={ELHSaveReason::UnsupportedSchema,TEXT("Snapshot must be migrated to current schema before writing")}; return false; }
     if (S.Header.ChecksumAlgorithm!=TEXT("SHA256") || S.Header.Ruleset.HashAlgorithm!=TEXT("SHA256"))
     { E={ELHSaveReason::UnknownAlgorithm,TEXT("Explicit SHA256 required")}; return false; }
     if (S.Header.PayloadCodec!=TEXT("LHCanonicalBinary1")) { E={ELHSaveReason::UnknownCodec,TEXT("Explicit LHCanonicalBinary1 required")}; return false; }
