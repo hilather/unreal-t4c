@@ -127,3 +127,5 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
 | W3-06 G2c UI polish | submitted (cand a3c86e3); host pre-check on main + W3-05b + W3-06: build OK, 83 tests, 82 pass; the only failure is ArrivalSafety (W3-05c in progress). Merge after W3-05/05b/05c. |
 | W3-05 + W3-05b + W3-05c Wave 3 integration | **integrated** (81/81 host tests; review-arrivals 9/9 PASS; reviewed list committed; five maps regenerated; LHValidateWorld 0 errors) | codex-sol | | |
 | W3-06 G2c UI polish | **integrated** (host pre-check OK; final G3 candidate build/test pending) | codex-sol | | |
+
+**G3 candidate 2026-10-09: build/output/G3-Linux-1109cf2** (fresh clone of main 1109cf2): build OK; **83/83** Lighthaven Automation tests; LHValidateWorld **0 errors**; six-map package (L_Frontend + hub + B1–B4) BUILD SUCCESSFUL; packaged `-LHCheckPackagedContent` exit 0 with every required map PASS. Handed to Shepherd for the Robo-Ilya hand-check of the G3 checklist in docs/implementation/w3-integration.md. G3 has **not** passed until that report.
