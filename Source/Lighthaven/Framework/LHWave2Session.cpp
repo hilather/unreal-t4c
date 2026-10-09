@@ -260,3 +260,30 @@ void FLHWave2Session::AbortGameplayArrival(const FString& Error)
     FreezeWorldTravel(false); bInGameplay=false;
     Message=TEXT("Arrival refused; save retained: ")+Error;
 }
+
+FString FLHWave2Session::DerivedSummary() const
+{
+    if (!Authority() || !HasCharacter()) return ILHUIReadOwner::DerivedSummary();
+    const auto Stats=Authority()->Stats();
+    if (!Stats.Diagnostic.IsAccepted()) return ILHUIReadOwner::DerivedSummary();
+    const auto& V=Stats.Value;
+    const auto& B=Complete.Character.BaseAttributes;
+    FString Summary=FString::Printf(TEXT("Effective attributes (Prototype): Strength %lld | Endurance %lld | Agility %lld | Intelligence %lld | Wisdom %lld\nGear attribute effects (Prototype): Strength %+lld | Endurance %+lld | Agility %+lld | Intelligence %+lld | Wisdom %+lld\nEffective stats (Prototype): Max HP %g | Max MP %g | Accuracy %g | Avoidance %g | Damage bonus %g | Armor %g | Capacity %g\nTemporary effects: — (not available in this prototype)"),
+        V.Effective.Strength,V.Effective.Endurance,V.Effective.Agility,V.Effective.Intelligence,V.Effective.Wisdom,
+        V.Effective.Strength-B.Strength.Value,V.Effective.Endurance-B.Endurance.Value,V.Effective.Agility-B.Agility.Value,V.Effective.Intelligence-B.Intelligence.Value,V.Effective.Wisdom-B.Wisdom.Value,
+        V.MaxHealth,V.MaxMana,V.Accuracy,V.Avoidance,V.DamageBonus,V.Armor,V.Capacity);
+    const auto Profile=LHWave2::PrototypeProfile();
+    for (const auto& Binding : Complete.Character.Equipment)
+    {
+        const auto* Item=Complete.Character.Inventory.FindByPredicate([&](const auto& I) { return I.Id.InstanceId==Binding.Item.InstanceId; });
+        if (!Item) continue;
+        const auto* Definition=Profile.Items.FindByPredicate([&](const auto& D) { return D.Id.Value==Item->Definition.Value; });
+        if (!Definition) continue;
+        const auto& M=Definition->Modifier;
+        Summary += TEXT("\n")+Definition->Id.Value.ToString()+TEXT(" gear modifiers: HP ")+FLHUIPresenter::Format(M.Health)
+            +TEXT(" | MP ")+FLHUIPresenter::Format(M.Mana)+TEXT(" | Accuracy ")+FLHUIPresenter::Format(M.Accuracy)
+            +TEXT(" | Avoidance ")+FLHUIPresenter::Format(M.Avoidance)+TEXT(" | Damage ")+FLHUIPresenter::Format(M.DamageBonus)
+            +TEXT(" | Armor ")+FLHUIPresenter::Format(M.Armor)+TEXT(" | Capacity ")+FLHUIPresenter::Format(M.Capacity);
+    }
+    return Summary;
+}

@@ -25,6 +25,8 @@ public:
     virtual FReply OnPreviewKeyDown(const FGeometry&, const FKeyEvent&) override;
     virtual FReply OnKeyDown(const FGeometry&, const FKeyEvent&) override;
     virtual FReply OnAnalogValueChanged(const FGeometry&, const FAnalogInputEvent&) override;
+FString SummaryText() const { return Summary().ToString(); }
+    FString MessageText() const { return P->Error().IsEmpty() ? LocalMessage : TEXT("Error: ") + P->Error(); }
 private:
     void Build();
     void Focus();

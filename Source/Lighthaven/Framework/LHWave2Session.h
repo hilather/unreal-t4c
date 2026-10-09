@@ -15,6 +15,9 @@ public:
     bool IsBlocked() const { return bContentUnavailable || bSaveQueued || bAwaitingSave || bTravel; }
     void Flush();
     const FString& Status() const { return Message; }
+    bool OwnsPersistenceStatus() const override { return true; }
+    bool HasUnsavedChanges() const override { return bSaveQueued || bAwaitingSave || (HasCharacter() && Saves->IsDirty(Complete.Header.CharacterId)); }
+    FString DerivedSummary() const override;
     FString OwnerStatus() const override { return bContentUnavailable ? TEXT("Required packaged map content is missing.") : bWorldTravelFrozen && WorldTravelStatus ? WorldTravelStatus() : Message; }
     bool BeginCreation() override;
     void ClearSelectionError() override;

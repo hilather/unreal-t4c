@@ -43,8 +43,9 @@ void FLHUIPresenter::MoveFocus(int32 Delta)
 }
 bool FLHUIPresenter::IsControlEnabled(FName Id) const
 {
-    if (Id!="Continue" || ActiveScreen!=ELHUIScreen::Characters) return true;
+    if ((Id!="Continue" && Id!="Recovery") || ActiveScreen!=ELHUIScreen::Characters) return true;
     const auto* Profile=ProfileView.FindByPredicate([this](const auto& V){ return V.Id.Value==SelectedProfile.Value; });
+    if (Id=="Recovery") return Profile && Profile->bCanContinue && Profile->bRequiresRecoveryAcknowledgment;
     return !Profile || Profile->bCanContinue;
 }
 FName FLHUIPresenter::FocusedControl() const { return Controls.IsValidIndex(Focus) ? Controls[Focus] : NAME_None; }
@@ -125,7 +126,7 @@ bool FLHUIPresenter::Quit()
 }
 FString FLHUIPresenter::Format(const FLHInteger& V)
 {
-    if (V.Resolution != ELHValueResolution::Resolved) return TEXT("— Unknown");
+    if (V.Resolution != ELHValueResolution::Resolved) return TEXT("— (not available in this prototype)");
     FString S = LexToString(V.Value);
     if (V.Provenance.Status == ELHProvenanceStatus::Prototype) S += TEXT(" Prototype");
     if (V.Provenance.Status == ELHProvenanceStatus::Disputed) S += TEXT(" Disputed");
@@ -133,7 +134,7 @@ FString FLHUIPresenter::Format(const FLHInteger& V)
 }
 FString FLHUIPresenter::Format(const FLHNumber& V)
 {
-    if (V.Resolution != ELHValueResolution::Resolved) return TEXT("— Unknown");
+    if (V.Resolution != ELHValueResolution::Resolved) return TEXT("— (not available in this prototype)");
     FString S = FString::SanitizeFloat(V.Value);
     if (V.Provenance.Status == ELHProvenanceStatus::Prototype) S += TEXT(" Prototype");
     if (V.Provenance.Status == ELHProvenanceStatus::Disputed) S += TEXT(" Disputed");

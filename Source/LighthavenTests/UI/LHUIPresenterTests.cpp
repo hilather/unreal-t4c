@@ -13,9 +13,17 @@ struct FOwners : ILHCommandHandler, ILHUIReadOwner, ILHUISessionOwner
     FLHCreateCharacterRequest Last;
     int32 Creates = 0, Loads = 0, Allocates = 0, Equips = 0, Exits = 0;
     bool bReadable = true;
+    bool bOwnsSaveStatus=false;
+    FString SaveStatus;
+    bool OwnsPersistenceStatus() const override { return bOwnsSaveStatus; }
+    FString OwnerStatus() const override { return SaveStatus; }
+    FString RetryPersistence() override { return SaveStatus; }
+    int32 Resumes=0;
+    bool ResumeGameplay() override { ++Resumes; return true; }
     FLHAttributeBlock LastAllocation;
     FLHEquipItemRequest LastEquipment;
     bool bAccept = false;
+    bool bLegalAllocationReview=true;
     FOwners() { State.Session.RequestEpoch = FGuid::NewGuid(); }
     FLHCommandResult Execute(const FLHCreateCharacterRequest& R) override
     {
@@ -30,7 +38,7 @@ struct FOwners : ILHCommandHandler, ILHUIReadOwner, ILHUISessionOwner
         V.Disposition = bAccept ? ELHCommandDisposition::Accepted : ELHCommandDisposition::Rejected;
         V.Reason = bAccept ? ELHCommandReason::None : ELHCommandReason::InsufficientPoints; return V;
     }
-    FLHUIIntentReview ReviewAllocation(const FLHAttributeBlock&) const override { FLHUIIntentReview R; R.bLegal = true; R.Summary = TEXT("Fixture allocation review"); return R; }
+    FLHUIIntentReview ReviewAllocation(const FLHAttributeBlock&) const override { FLHUIIntentReview R; R.bLegal = bLegalAllocationReview; R.Summary = bLegalAllocationReview ? TEXT("Fixture allocation review") : TEXT("Allocation rejected by character authority"); return R; }
     FLHUIIntentReview ReviewEquipment(const FLHEntityId&,ELHEquipmentSlot,bool) const override { FLHUIIntentReview R; R.bLegal = true; R.Summary = TEXT("Fixture equipment review"); return R; }
     UNUSED_COMMAND(FLHTrainSkillRequest)
     UNUSED_COMMAND(FLHLearnSpellRequest)
@@ -112,7 +120,7 @@ bool FLHUIRecoveryTest::RunTest(const FString&)
     TestTrue(TEXT("acknowledged recovery loads"), P.Continue(true));
     TestFalse(TEXT("failed exit remains visible"), P.Quit());
     FLHInteger V; V.Value = 100;
-    TestEqual(TEXT("unresolved storage never shown"), FLHUIPresenter::Format(V), FString(TEXT("— Unknown")));
+    TestEqual(TEXT("unresolved storage never shown"), FLHUIPresenter::Format(V), FString(TEXT("— (not available in this prototype)")));
     V.Resolution = ELHValueResolution::Resolved; V.Value = 0; V.Provenance.Status = ELHProvenanceStatus::Prototype;
     TestEqual(TEXT("resolved prototype zero explicit"), FLHUIPresenter::Format(V), FString(TEXT("0 Prototype")));
     TestEqual(TEXT("720 uniform scale"), FLHUIStyle::Scale(FVector2D(1280,720)), 2.f/3.f);
@@ -182,9 +190,24 @@ bool FLHUIWidgetAllocationTest::RunTest(const FString&)
     TestEqual(TEXT("canonical stats unchanged by UI"),O.State.Character.BaseAttributes.Strength.Value,int64(0));
     W->Activate("Confirm"); Pad(W,ELHUITestKey::Down); Pad(W,ELHUITestKey::South);
     TestEqual(TEXT("rejected allocation draft retained"),O.LastAllocation.Strength.Value,int64(1));
+    W->Activate("Reset");
+    TestTrue(TEXT("reset clears allocation rejection and summary"),W->MessageText().IsEmpty());
+    O.bLegalAllocationReview=false; W->Activate("Strength"); W->Activate("Confirm");
+    TestTrue(TEXT("authority review rejection displayed"),W->MessageText().Contains(TEXT("Allocation rejected by character authority")));
+    W->Activate("Reset"); TestTrue(TEXT("reset clears rejected review summary"),W->MessageText().IsEmpty());
+    O.bLegalAllocationReview=true;
+    W->Activate("Strength");
     O.bAccept = true; W->Activate("Confirm"); Pad(W,ELHUITestKey::Down); Pad(W,ELHUITestKey::South);
+    TestTrue(TEXT("accepted allocation has no stale local acceptance"),W->MessageText().IsEmpty());
     W->Activate("Confirm"); Pad(W,ELHUITestKey::South,true);
     TestEqual(TEXT("accepted allocation duplicate suppressed"),O.Allocates,3);
+    Pad(W,ELHUITestKey::Inventory);
+    TestTrue(TEXT("I switches character to inventory"),P.Screen()==ELHUIScreen::Inventory);
+    Pad(W,ELHUITestKey::Character);
+    TestTrue(TEXT("C switches inventory to character"),P.Screen()==ELHUIScreen::CharacterSheet);
+    Pad(W,ELHUITestKey::Character,true); TestEqual(TEXT("held tab key does not close"),O.Resumes,0);
+    Pad(W,ELHUITestKey::Character); TestEqual(TEXT("current C closes through resume"),O.Resumes,1);
+    Pad(W,ELHUITestKey::Inventory); Pad(W,ELHUITestKey::Inventory); TestEqual(TEXT("current I closes through resume"),O.Resumes,2);
     W->Open(ELHUIScreen::Inventory); W->Activate("Items"); W->Activate("Quiver"); W->Activate("Confirm");
     Pad(W,ELHUITestKey::Down); Pad(W,ELHUITestKey::South); W->Activate("Confirm");
     TestEqual(TEXT("quiver equipment submits once"),O.Equips,1);
@@ -206,6 +229,7 @@ bool FLHUIUnreadableFocusTest::RunTest(const FString&)
     FLHUIPresenter P(O,O,O); const auto W=ILHUIWidgetHarness::Create(P);
     W->Open(ELHUIScreen::Characters); W->Activate("Profiles");
     TestFalse(TEXT("unreadable Continue disabled"),P.IsControlEnabled("Continue"));
+    TestFalse(TEXT("unreadable recovery disabled"),P.IsControlEnabled("Recovery"));
     for (int32 I=0; I<P.FocusOrder().Num(); ++I)
     { TestTrue(TEXT("unreadable Continue skipped by navigation"),P.FocusedControl()!="Continue"); Pad(W,ELHUITestKey::Down); }
     W->Activate("Continue"); TestFalse(TEXT("disabled activation cannot open review"),W->IsModal());
@@ -216,6 +240,19 @@ bool FLHUIUnreadableFocusTest::RunTest(const FString&)
     W->Activate("Recovery"); TestTrue(TEXT("acknowledgment clears stale error"),P.Error().IsEmpty());
     P.Continue(false); P.SelectProfile(O.State.Header.CharacterId);
     TestTrue(TEXT("selection clears stale error"),P.Error().IsEmpty());
+    return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHUIAsyncSaveStatus,"Lighthaven.UI.AsyncSaveStatus",EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FLHUIAsyncSaveStatus::RunTest(const FString&)
+{
+    FOwners O; O.bOwnsSaveStatus=true; O.SaveStatus=TEXT("Save failed: fixture");
+    FLHUIPresenter P(O,O,O); const auto W=ILHUIWidgetHarness::Create(P);
+    W->Activate("RetrySave");
+    TestTrue(TEXT("Failure visible until owner completes retry"),W->MessageText().Contains(TEXT("Save failed")));
+    O.SaveStatus.Empty(); P.Refresh();
+    TestTrue(TEXT("Async owner durability clears copied retry failure"),W->MessageText().IsEmpty());
+    O.SaveStatus=TEXT("Arrival refused; save retained: fixture");
+    TestTrue(TEXT("Transition failure remains visible"),W->MessageText().Contains(TEXT("Arrival refused")));
     return true;
 }
 #endif
