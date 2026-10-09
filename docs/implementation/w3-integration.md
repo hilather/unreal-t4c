@@ -188,3 +188,87 @@ The final logs include floorhit/floordelta/floornormal, confirming final diagnos
 were executed. This verifies failure reporting on pointers, not real-map safety.
 Evidence: this attempt's worker-output `library/automation-current/` report,
 `automation-current-editor.log`, timing files, `ArrivalSafety.tsv`, and build logs.
+
+## W3-05c loaded-world physics and navigation
+
+Base `4769fe1af9f84a65a4ff912d64f2caa77a52ce6b`, contract revision 1.
+Only the arrival test and this document change. No generator/placement fixes,
+map binaries, reviewed lists, schema changes, or altered safety tolerances.
+
+UE 5.8.3 UEditorEngine::OnAssetLoaded initializes Inactive worlds via
+InitializeNewlyCreatedInactiveWorld, with CreatePhysicsScene(false).
+Changing WorldType afterward and checking IsInitialized skips the needed setup.
+The physics-only intermediate run demonstrated initialized=1, scene-before=0,
+scene-after=1 on every map, and physics/floor/capsule controls all passed;
+navigation still failed. Its logs showed missing UNavigationObjectRepository and
+AsyncLoadLock (0x20). The repository is a world subsystem selected at initialization.
+
+The final test sets WorldTypePreLoadMap to Editor around LoadPackage, following
+UE's editor map-loading pattern, then initializes once. It also creates a missing
+physics scene defensively before registration and retains compilation/body repair.
+After finishing all asset compilation, it disables the reflected per-world
+bWaitForAsyncLoadingBeforeBuildingNavigationAutomatically property before navigation
+initialization. UE otherwise requires at least 16 core-ticker frames/two seconds to
+unlock; this synchronous automation command cannot advance that ticker. The
+property change is confined to the destroyed test world, with no global/config
+change. A missing property fails closed. Explicit native Build still builds Recast
+and waits for completion; valid computed nav bounds still prove populated tiles.
+
+UID: 1000. Initial build command:
+`UE_ROOT=/home/brewerm/Downloads/unreal bash build/build-linux.sh --game` returned 0;
+editor Result: Succeeded (144.80 s), game Result: Succeeded (128.74 s).
+Final same-command rebuild returned 0 in 9 shell seconds: editor Result: Succeeded
+(6.85 s), game Result: Succeeded (1.86 s). git diff --check and bash -n
+build/review-arrivals.sh returned 0.
+
+Real maps were generated with the editor scripts, XDG_CONFIG_HOME set to
+$PWD/Saved/BuildEnvironment/config and UE_ROOT=/home/brewerm/Downloads/unreal:
+`bash build/generate-hub-map.sh`, `LH_NO_ZEN=1 bash build/generate-basement-a-maps.sh`,
+`bash build/generate-basement-b-maps.sh`. Each process returned 1 from unrelated
+LFS-pointer asset-registry errors; each commandlet reported result 0 and saved its
+owned maps. B1/B2 native floor/route/stair controls passed. Hub was also regenerated
+with the direct memory-DDC headless commandlet invocation (result 0, process 1).
+Initial pre-build hub script launch returned 1 before map generation.
+Commandlet execution times reported by UE: hub 0.56 s, basement A 0.81 s,
+basement B 0.47 s; total script elapsed time was not independently timed.
+Direct hub invocation: XDG_CONFIG_HOME=$PWD/Saved/BuildEnvironment/config
+/home/brewerm/Downloads/unreal/Engine/Binaries/Linux/UnrealEditor-Cmd
+$PWD/Lighthaven.uproject -run=LHGenerateHubMap -DDC-ForceMemoryCache
+-nullrhi -unattended -nop4 -nosound
+-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0.
+
+`UE_ROOT=/home/brewerm/Downloads/unreal bash build/review-arrivals.sh` returned 0
+in 58 shell seconds on final source. This runs XDG_CONFIG_HOME=$PWD/Saved/BuildEnvironment/config,
+-DDC-ForceMemoryCache -nullrhi -unattended -nop4 -nosound,
+-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0, and
+Automation RunTests Lighthaven.Integration.Wave3.ArrivalSafety; Quit.
+Exported report: one completed Success, reviewed 9/9. All five world controls:
+initialized=1, scene-before=1, scene-after=1, levels=1, physics=1, floor=1,
+navdata=1, tiles=1 (tiles is a boolean populated-bounds control, not a tile count).
+The physics-only intermediate review returned 1 in 61 s (one completed Fail).
+
+Exact final arrival lines:
+
+```text
+ARRIVAL Area.LighthavenTempleDistrict/Temple.SafeSpawn PASS hash=15325072514A4188181BB893ADDD76053B815884 count=1 transform=1 capsule=1 floor=1 nav=1 radius=35.0 halfheight=90.0 controls=1 physics=1 knownfloor=1 navdata=1 tiles=1 floorhit=1 floordelta=0.00 floornormal=1.00 reason=ok
+ARRIVAL Area.LighthavenTempleDistrict/Temple.Descent PASS hash=3F82F0B2AB80F6B3D05D4CCA5D04EA94C7E392A8 count=1 transform=1 capsule=1 floor=1 nav=1 radius=35.0 halfheight=90.0 controls=1 physics=1 knownfloor=1 navdata=1 tiles=1 floorhit=1 floordelta=0.00 floornormal=1.00 reason=ok
+ARRIVAL Area.TempleB1/Entry PASS hash=AB8B6B423CEE70994931146D09060018C82FE3C4 count=1 transform=1 capsule=1 floor=1 nav=1 radius=35.0 halfheight=90.0 controls=1 physics=1 knownfloor=1 navdata=1 tiles=1 floorhit=1 floordelta=0.00 floornormal=1.00 reason=ok
+ARRIVAL Area.TempleB1/Descent PASS hash=53AC035523728DF84A22E7CB1A54309649C4663A count=1 transform=1 capsule=1 floor=1 nav=1 radius=35.0 halfheight=90.0 controls=1 physics=1 knownfloor=1 navdata=1 tiles=1 floorhit=1 floordelta=0.00 floornormal=1.00 reason=ok
+ARRIVAL Area.TempleB2/Entry PASS hash=4213865433DBA97C6C30E22398F288F3E7EAAB20 count=1 transform=1 capsule=1 floor=1 nav=1 radius=35.0 halfheight=90.0 controls=1 physics=1 knownfloor=1 navdata=1 tiles=1 floorhit=1 floordelta=0.00 floornormal=1.00 reason=ok
+ARRIVAL Area.TempleB2/Descent PASS hash=2035638011A03CFB4885C2E5B44EC2EB97E4AC0A count=1 transform=1 capsule=1 floor=1 nav=1 radius=35.0 halfheight=90.0 controls=1 physics=1 knownfloor=1 navdata=1 tiles=1 floorhit=1 floordelta=0.00 floornormal=1.00 reason=ok
+ARRIVAL Area.TempleB3/Entry PASS hash=4DEAF2A2512AE0C5F340F1994D3D5623FB8E5EB0 count=1 transform=1 capsule=1 floor=1 nav=1 radius=35.0 halfheight=90.0 controls=1 physics=1 knownfloor=1 navdata=1 tiles=1 floorhit=1 floordelta=0.00 floornormal=1.00 reason=ok
+ARRIVAL Area.TempleB3/Descent PASS hash=5DA240A639D63847C1E26DD6E828E6C57CE22892 count=1 transform=1 capsule=1 floor=1 nav=1 radius=35.0 halfheight=90.0 controls=1 physics=1 knownfloor=1 navdata=1 tiles=1 floorhit=1 floordelta=0.00 floornormal=1.00 reason=ok
+ARRIVAL Area.TempleB4/Entry PASS hash=DA6D11A5C329A547D75813B928C7E4FD290AD14F count=1 transform=1 capsule=1 floor=1 nav=1 radius=35.0 halfheight=90.0 controls=1 physics=1 knownfloor=1 navdata=1 tiles=1 floorhit=1 floordelta=0.00 floornormal=1.00 reason=ok
+```
+
+Evidence is under this attempt's worker-output/library/: build-final.log/time,
+arrival-final/editor.log and index.json, arrival-lines.txt, ArrivalSafety.tsv,
+ReviewedArrivals.tsv, generator logs, and arrival-physics-only.log/tsv.
+Generated maps and Config/Lighthaven/ReviewedArrivals.tsv were restored/removed
+before submission. The evidence reviewed list is retained only outside the repo.
+
+No full-suite rerun, reviewed-map regeneration/LHValidateWorld, cook, package,
+or gameplay check is claimed. Next coordinator step: review/integrate source,
+run the review on host maps, regenerate using its reviewed list, and run
+LHValidateWorld on all five maps before persisting LFS maps. G3 remains subject
+to that validation and remaining gate items. Windows is deferred.

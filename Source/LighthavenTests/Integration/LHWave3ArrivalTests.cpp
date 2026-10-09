@@ -13,6 +13,7 @@
 #include "Components/PrimitiveComponent.h"
 #if WITH_EDITOR
 #include "StaticMeshCompiler.h"
+#include "AssetCompilingManager.h"
 #endif
 #if WITH_DEV_AUTOMATION_TESTS
 namespace LHWave3ArrivalTestsPrivate
@@ -47,7 +48,13 @@ bool FLHWave3ArrivalSafety::RunTest(const FString&)
     const float Radius=Capsule->GetUnscaledCapsuleRadius(),Height=Capsule->GetUnscaledCapsuleHalfHeight();
     for (const auto& Area:LHWorld::Registry())
     {
+        // Select Editor before PostLoad/OnAssetLoaded: inactive-world initialization
+        // omits physics and Editor-only world subsystems (navigation repository).
+        // Changing WorldType after that initialization cannot create those subsystems.
+        const FName PackageName(*Area.Map.GetLongPackageName());
+        UWorld::WorldTypePreLoadMap.Add(PackageName,EWorldType::Editor);
         UPackage* Package=LoadPackage(nullptr,*Area.Map.GetLongPackageName(),LOAD_None);
+        UWorld::WorldTypePreLoadMap.Remove(PackageName);
         UWorld* World=Package ? UWorld::FindWorldInPackage(Package) : nullptr;
         bool PhysicsControl=false,FloorControl=false,NavDataControl=false,TilesControl=false;
         if (World)
@@ -55,7 +62,14 @@ bool FLHWave3ArrivalSafety::RunTest(const FString&)
             auto& Context=GEngine->CreateNewWorldContext(EWorldType::Editor); Context.SetCurrentWorld(World);
             World->WorldType=EWorldType::Editor;
             if (!World->IsInitialized()) World->InitWorld(UWorld::InitializationValues().AllowAudioPlayback(false).CreatePhysicsScene(true).CreateNavigation(true).CreateAISystem(true));
+            // Package loading can leave an initialized editor world without a
+            // physics scene. InitWorld is single-use, so repair the missing scene
+            // before registration rather than reinitializing the loaded world.
+            const bool HadPhysicsScene=World->GetPhysicsScene()!=nullptr;
+            if (!HadPhysicsScene) World->CreatePhysicsScene();
             World->UpdateWorldComponents(true,false);
+            AddInfo(FString::Printf(TEXT("ARRIVAL_SETUP %s initialized=%d scene-before=%d scene-after=%d levels=%d"),
+                *Area.Map.ToString(),World->IsInitialized(),HadPhysicsScene,World->GetPhysicsScene()!=nullptr,World->GetNumLevels()));
 #if WITH_EDITOR
             // Registration can start additional compilation. Finish after registration,
             // then recreate bodies that registration skipped while the mesh was compiling.
@@ -84,6 +98,17 @@ bool FLHWave3ArrivalSafety::RunTest(const FString&)
             // InitWorld creates the system without initializing it for this loaded world.
             // Initialize bounds/octree after component repair, then use the native Build
             // delegate. UE 5.8.3 Build calls EnsureBuildCompletion on every nav data set.
+#if WITH_EDITOR
+            // This synchronous automation command cannot service the editor's
+            // 16-frame/two-second delayed async-load unlock. Finish all assets,
+            // then disable that automatic-build delay on this test world only.
+            // Explicit Build still performs the real Recast build to completion.
+            FAssetCompilingManager::Get().FinishAllCompilation();
+            auto* LoadedNavSystem=World->GetNavigationSystem();
+            auto* WaitProperty=LoadedNavSystem ? FindFProperty<FBoolProperty>(LoadedNavSystem->GetClass(),TEXT("bWaitForAsyncLoadingBeforeBuildingNavigationAutomatically")) : nullptr;
+            if (WaitProperty) WaitProperty->SetPropertyValue_InContainer(LoadedNavSystem,false);
+            else AddError(TEXT("Missing navigation async-load wait property"));
+#endif
             FNavigationSystem::AddNavigationSystemToWorld(*World,FNavigationSystemRunMode::EditorMode);
             FNavigationSystem::Build(*World);
             auto* NavSystem=World->GetNavigationSystem();
