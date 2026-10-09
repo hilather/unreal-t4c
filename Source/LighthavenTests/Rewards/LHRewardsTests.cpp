@@ -74,7 +74,11 @@ LH_REWARD_TEST(FLHOneKillOneReward,"OneKillOneReward")
 }
 LH_REWARD_TEST(FLHFullInventoryLootIntact,"FullInventoryLootIntact")
 {
-    using namespace LHRewardsTestsPrivate; FFixture F; if (!TestTrue(TEXT("Fixture"),F.Init())) return false;
+    using namespace LHRewardsTestsPrivate; FFixture F;
+    // Creation grants one inventory entry per starter item. Fill this fixture exactly.
+    F.Profile.InventorySlots=I(F.Profile.StarterItems.Num());
+    if (!TestTrue(TEXT("Fixture"),F.Init())) return false;
+    TestEqual(TEXT("Fixture inventory fills every slot"),int64(F.S.Character.Inventory.Num()),F.Profile.InventorySlots.Value);
     if (!TestTrue(TEXT("Kill"),F.Kill()==ELHCommandReason::None)) return false; const auto Before=Bytes(F.S); auto R=Loot(F);
     TestTrue(TEXT("Full inventory rejects"),LHRewards::ExecuteTakeLoot(F.S,F.Profile,R)==ELHCommandReason::InventoryFull);
     TestTrue(TEXT("Both sides byte identical"),Bytes(F.S)==Before);
@@ -124,6 +128,11 @@ LH_REWARD_TEST(FLHBossRespawnSingleClaim,"BossRespawnSingleClaim")
 LH_REWARD_TEST(FLHPlayerDeathSettlesOnce,"PlayerDeathSettlesOnce")
 {
     using namespace LHRewardsTestsPrivate; FFixture F; if (!TestTrue(TEXT("Fixture"),F.Init())) return false;
+    FLHCharacterAuthority Character;
+    if (!TestTrue(TEXT("Recovery stats authority initializes"),Character.Initialize(F.Profile,F.S.Session.RequestEpoch,0))) return false;
+    if (!TestTrue(TEXT("Recovery stats import"),Character.Import(F.S)==ELHCommandReason::None)) return false;
+    const auto Stats=Character.Stats();
+    if (!TestTrue(TEXT("Recovery maxima resolve"),Stats.Diagnostic.IsAccepted())) return false;
     F.S.Character.CurrentHealth=N(0); F.S.Character.CurrentMana=N(0); const auto Before=F.S;
     TestTrue(TEXT("Unreviewed fails"),LHRewards::SettlePlayerDeath(F.S,F.Profile,F.S.Session.SafeRespawn,false)==ELHCommandReason::InvalidDestination);
     const auto Recovery=F.S.Session.SafeRespawn;
@@ -132,13 +141,15 @@ LH_REWARD_TEST(FLHPlayerDeathSettlesOnce,"PlayerDeathSettlesOnce")
     TestEqual(TEXT("XP retained"),F.S.Character.ExperienceBalance.Value,Before.Character.ExperienceBalance.Value); TestEqual(TEXT("Level retained"),F.S.Character.EarnedLevel.Value,Before.Character.EarnedLevel.Value);
     TestEqual(TEXT("Gold retained"),F.S.Character.Gold.Value,Before.Character.Gold.Value); auto Expected=Before.Character; Expected.ActiveEntrance=F.S.Character.ActiveEntrance; Expected.CurrentHealth=F.S.Character.CurrentHealth; Expected.CurrentMana=F.S.Character.CurrentMana;
     TestTrue(TEXT("All non-recovery character fields identical"),FLHCharacterRecord::StaticStruct()->CompareScriptStruct(&F.S.Character,&Expected,0));
-    TestEqual(TEXT("Full HP"),F.S.Character.CurrentHealth.Value,20.0); TestEqual(TEXT("Full MP"),F.S.Character.CurrentMana.Value,10.0); return true;
+    TestEqual(TEXT("Full HP"),F.S.Character.CurrentHealth.Value,Stats.Value.MaxHealth); TestEqual(TEXT("Full MP"),F.S.Character.CurrentMana.Value,Stats.Value.MaxMana); return true;
 }
 LH_REWARD_TEST(FLHRenewableRatRoute,"RenewableRatRoute")
 {
     using namespace LHRewardsTestsPrivate; FFixture F; if (!TestTrue(TEXT("Fixture"),F.Init())) return false;
     int32 Rats=0,Bats=0,Slimes=0; for (const auto& E:F.B1().Encounters) { if (E.Definition.Value==TEXT("Enemy.BrownRat")) ++Rats; if (E.Definition.Value==TEXT("Enemy.Bat")) ++Bats; if (E.Definition.Value==TEXT("Enemy.GreenSlime")) ++Slimes; }
     TestEqual(TEXT("B1 rat slots"),Rats,12); TestEqual(TEXT("B1 bat slots"),Bats,3); TestEqual(TEXT("B1 slime slots"),Slimes,2);
+    const int64 StartingGold=F.S.Character.Gold.Value;
+    const int64 StartingXP=F.S.Character.ExperienceBalance.Value;
     int32 Kills=0;
     for (int32 Round=0;Round<2;++Round)
     {
@@ -150,7 +161,7 @@ LH_REWARD_TEST(FLHRenewableRatRoute,"RenewableRatRoute")
         }
         if (Kills<15) { TArray<FLHSpawnLifeId> Lives; LHRewards::AdvanceRespawns(F.B1(),F.S.World.RunId,120,[](const auto&) { return true; },[](const auto&) { return N(25); },Lives); TestTrue(TEXT("Round reload"),F.Reload()); }
     }
-    TestEqual(TEXT("Fifteen rat kills"),Kills,15); TestEqual(TEXT("Earned gold without grants"),F.S.Character.Gold.Value,int64(30)); TestEqual(TEXT("Earned XP"),F.S.Character.ExperienceBalance.Value,int64(150)); return true;
+    TestEqual(TEXT("Fifteen rat kills"),Kills,15); TestEqual(TEXT("Earned gold without grants"),F.S.Character.Gold.Value-StartingGold,int64(30)); TestEqual(TEXT("Earned XP"),F.S.Character.ExperienceBalance.Value-StartingXP,int64(150)); return true;
 }
 LH_REWARD_TEST(FLHLootCleanupProtection,"LootCleanupProtection")
 {

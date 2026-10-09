@@ -19,7 +19,10 @@ template<class T> bool Ready(const T& V)
 FLHContentId Id(const TCHAR* S) { FLHContentId I; I.Value=S; return I; }
 bool RewardFixture(const FLHEnemyCatalogRow& Enemy, FLHSaveSnapshot& S, FLHCharacterProfile& P, FLHKillFacts& Facts)
 {
-    P=LHWave2::PrototypeProfile(); for (const auto& Item:LHItemData::Catalog()) P.Items.Add(Item.Character);
+    P=LHWave2::PrototypeProfile();
+    // Own the fixture catalog explicitly; the production profile is already populated.
+    P.Items.Reset();
+    for (const auto& Item:LHItemData::Catalog()) P.Items.Add(Item.Character);
     FLHCharacterAuthority A; if (!A.Initialize(P,FGuid(1,2,3,4),42)) return false;
     FLHCharacterPreview V; if (A.Preview(LHWave2::PrototypeAnswers(),V)!=ELHCommandReason::None) return false;
     FLHCreateCharacterRequest R; R.Request.Epoch=FGuid(1,2,3,4); R.Request.Value=FGuid(5,6,7,8); R.DisplayName=TEXT("Data fixture"); R.Creation=V.Creation; R.PreviewToken=V.Token;
