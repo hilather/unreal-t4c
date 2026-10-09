@@ -127,6 +127,13 @@ bool FLHWave2Equipment::RunTest(const FString&)
         TestTrue(TEXT("Canonical growth IDs"),Runtime.State->GetCharacterAuthority()->Authority().GrantExperience(300)==ELHCommandReason::None);
         TestTrue(TEXT("Persist growth at completed command boundary"),Runtime.UI->Allocate(Points()).Disposition==ELHCommandDisposition::Accepted); Runtime.Flush();
         Saved=Runtime.Session->Snapshot(); TestEqual(TEXT("Growth retained"),Saved.Character.GrowthAwards.Num(),2);
+        Runtime.UI->Refresh(); const auto Sheet=ILHUIWidgetHarness::Create(*Runtime.UI); Sheet->Open(ELHUIScreen::CharacterSheet);
+        const FString Text=Sheet->SummaryText();
+        const auto Stats=Runtime.State->GetCharacterAuthority()->Authority().Stats();
+        TestTrue(TEXT("Effective strength comes from authority"),Text.Contains(FString::Printf(TEXT("Strength %lld"),Stats.Value.Effective.Strength)));
+        TestTrue(TEXT("Gear effects shown"),Text.Contains(TEXT("Gear attribute effects (Prototype)")));
+        TestTrue(TEXT("Actual growth awards shown"),Text.Contains(TEXT("Growth awards: 2")) && Text.Contains(TEXT("HP +")));
+        TestFalse(TEXT("No Unknown placeholders"),Text.Contains(TEXT("Unknown")));
     }
     FRuntime Restored(Disk); TestTrue(TEXT("Restore equipped character"),Restored.Restore(Saved.Header.CharacterId));
     TestTrue(TEXT("Inventory equipment attributes growth resources and session equal"),Equal(Saved,Restored.Session->Snapshot()));
@@ -201,6 +208,30 @@ bool FLHWave2ClosureTest::RunTest(const FString&)
     P=LHWave2::PrototypeProfile(); P.InitialHealth.Provenance.Notes+=TEXT(" edited");
     TestTrue(TEXT("Provenance participates"),LHSave::Sha256(LHWave2::MechanicalClosure(P))!=LHSave::Sha256(Bytes));
     TestEqual(TEXT("Gameplay catalog hash"),LHSave::Sha256(LHWave2::GameplayCatalogClosure()),LHWave2::CatalogHash());
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2UnsavedSheet,"Lighthaven.Integration.Wave2.UnsavedSheetRetry",LHWave2TestsPrivate::Flags)
+bool FLHWave2UnsavedSheet::RunTest(const FString&)
+{
+    using namespace LHWave2TestsPrivate;
+    auto Disk=MakeShared<FStorage>(); FRuntime Runtime(Disk);
+    Runtime.Create(); Runtime.Flush(); Runtime.Session->Bind(Runtime.State);
+    Runtime.UI->Refresh(); const auto W=ILHUIWidgetHarness::Create(*Runtime.UI); W->Open(ELHUIScreen::CharacterSheet);
+    const auto Previous=Runtime.Session->Snapshot();
+    Disk->bFail=true; W->Activate("Strength"); W->Activate("Confirm"); W->Key(ELHUITestKey::Down); W->Key(ELHUITestKey::South);
+    TestTrue(TEXT("Queued action marked unsaved"),W->SummaryText().Contains(TEXT("(unsaved)")));
+    Runtime.Flush(); Runtime.UI->Refresh();
+    TestTrue(TEXT("Failed action retains unsaved badge"),W->SummaryText().Contains(TEXT("(unsaved)")));
+    TestEqual(TEXT("In-memory allocation retained"),Runtime.UI->Snapshot().Character.BaseAttributes.Strength.Value,Previous.Character.BaseAttributes.Strength.Value+1);
+    FLHSaveStore Reader(Disk); FLHSaveSnapshot Loaded; FLHSaveError Error;
+    TestTrue(TEXT("Previous disk generation readable"),Reader.Load(Previous.Header.CharacterId,FLHWave2Session::Compatibility(),Loaded,Error));
+    TestEqual(TEXT("Disk still holds previous strength"),Loaded.Character.BaseAttributes.Strength.Value,Previous.Character.BaseAttributes.Strength.Value);
+    TestTrue(TEXT("Failure replaces acceptance"),W->MessageText().Contains(TEXT("Save failed")));
+    W->Activate("Reset"); TestTrue(TEXT("Reset preserves save failure"),W->MessageText().Contains(TEXT("Save failed")));
+    Disk->bFail=false; W->Activate("RetrySave"); Runtime.UI->Refresh();
+    TestFalse(TEXT("Durability removes unsaved badge"),W->SummaryText().Contains(TEXT("(unsaved)")));
+    TestTrue(TEXT("Durability removes stale acceptance and failure"),W->MessageText().IsEmpty());
     return true;
 }
 

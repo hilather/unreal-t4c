@@ -11,7 +11,7 @@
 #include "Framework/Application/SlateApplication.h"
 #include "InputCoreTypes.h"
 #include "Brushes/SlateColorBrush.h"
-namespace
+namespace LHFrontendWidgetPrivate
 {
 FLHInteger* Attribute(FLHAttributeBlock& A, FName Id)
 {
@@ -37,7 +37,7 @@ void SLHFrontendWidget::Construct(const FArguments& Args)
     Appearance = P->AppearanceInput(); Answers = P->AnswerInput();
     for (FName Id : {"Strength", "Endurance", "Agility", "Intelligence", "Wisdom"})
     {
-        auto* A = Attribute(Allocation, Id); A->Resolution = ELHValueResolution::Resolved;
+        auto* A = LHFrontendWidgetPrivate::Attribute(Allocation, Id); A->Resolution = ELHValueResolution::Resolved;
         A->Provenance.Status = ELHProvenanceStatus::Prototype;
         A->Provenance.Notes = TEXT("UI staged command delta, not a canonical stat");
     }
@@ -68,25 +68,30 @@ FText SLHFrontendWidget::Summary() const
         }
         break;
     case ELHUIScreen::Creation:
-        S = TEXT("New Character\nAppearance and questions are owner supplied. Roll, review, then Confirm.\nInitial resources / starter kit / learned abilities: Unknown until owner review.");
+        S = TEXT("New Character\nAppearance and questions are owner supplied. Roll, review, then Confirm.\nInitial resources / starter kit / learned abilities: — (not available before owner confirmation).");
         if (P->CreationPreview().Token.IsValid())
         {
             auto A = P->CreationPreview().Record.AcceptedAttributes;
-            for (FName Id : {"Strength", "Endurance", "Agility", "Intelligence", "Wisdom"}) S += TEXT("\n") + Id.ToString() + TEXT(": ") + FLHUIPresenter::Format(*Attribute(A,Id));
+            for (FName Id : {"Strength", "Endurance", "Agility", "Intelligence", "Wisdom"}) S += TEXT("\n") + Id.ToString() + TEXT(": ") + FLHUIPresenter::Format(*LHFrontendWidgetPrivate::Attribute(A,Id));
             for (const auto& E : P->CreationPreview().FieldErrors) S += TEXT("\nError: ") + E.Key.ToString() + TEXT(": ") + E.Value;
         }
         break;
     case ELHUIScreen::CharacterSheet:
-        S = TEXT("Character | ") + C.DisplayName + TEXT("\nLevel ") + FLHUIPresenter::Format(C.EarnedLevel)
+        S = TEXT("Character | ") + C.DisplayName + (P->HasUnsavedChanges() ? TEXT(" (unsaved)") : TEXT("")) + TEXT("\nLevel ") + FLHUIPresenter::Format(C.EarnedLevel)
             + TEXT(" | XP ") + FLHUIPresenter::Format(C.ExperienceBalance) + TEXT(" | Debt ") + FLHUIPresenter::Format(C.ExperienceDebt)
             + TEXT("\nAttribute points ") + FLHUIPresenter::Format(C.UnspentAttributePoints)
             + TEXT(" | Skill points ") + FLHUIPresenter::Format(C.UnspentSkillPoints)
             + TEXT("\nHealth ") + FLHUIPresenter::Format(C.CurrentHealth) + TEXT(" / Earned maximum ") + FLHUIPresenter::Format(C.EarnedBaseHealth)
             + TEXT(" | Mana ") + FLHUIPresenter::Format(C.CurrentMana) + TEXT(" / Earned maximum ") + FLHUIPresenter::Format(C.EarnedBaseMana)
-            + TEXT("\nGear / effects / effective totals / next level: Unknown"); break;
+            + TEXT("\n") + P->DerivedSummary() + TEXT("\nGrowth awards: ") + FString::FromInt(C.GrowthAwards.Num());
+        for (const auto& G : C.GrowthAwards)
+            S += TEXT("\nLevel ") + FLHUIPresenter::Format(G.FromLevel) + TEXT(" → ") + FLHUIPresenter::Format(G.ToLevel)
+                + TEXT(" | HP +") + FLHUIPresenter::Format(G.HealthIncrement) + TEXT(" | MP +") + FLHUIPresenter::Format(G.ManaIncrement)
+                + TEXT(" | Attribute points +") + FLHUIPresenter::Format(G.AttributePoints) + TEXT(" | Skill points +") + FLHUIPresenter::Format(G.SkillPoints);
+        S += TEXT("\nNext-level preview: — (not available in this prototype)"); break;
     case ELHUIScreen::Inventory:
-        S = TEXT("Inventory | Gold ") + FLHUIPresenter::Format(C.Gold) + TEXT("\nOwned items: ") + FString::FromInt(C.Inventory.Num())
-            + TEXT("\nRequirements and modifiers: Unknown. Equip is validated by the owner."); break;
+        S = FString(P->HasUnsavedChanges() ? TEXT("Inventory (unsaved) | Gold ") : TEXT("Inventory | Gold ")) + FLHUIPresenter::Format(C.Gold) + TEXT("\nOwned items: ") + FString::FromInt(C.Inventory.Num())
+            + TEXT("\nRequirements: — (not available in this prototype). Equip is validated by the owner."); break;
     default: S = TEXT("Settings\nUnavailable: settings adapter has not been connected."); break;
     }
     return FText::FromString(S);
@@ -95,7 +100,8 @@ FText SLHFrontendWidget::Label(FName Id) const
 {
     FString S = Id.ToString();
     if (Id == "Profiles") S = P->Profiles().IsValidIndex(ProfileIndex) ? P->Profiles()[ProfileIndex].Name + TEXT(" | Selected") : TEXT("Select character: no selection (left/right)");
-    if (Id == "Recovery") S = bRecovery ? TEXT("Recovery acknowledged | Selected") : TEXT("Acknowledge earlier save recovery");
+    if (Id == "Recovery" && !P->IsControlEnabled(Id)) S = TEXT("Recovery unavailable: no earlier readable generation requires acknowledgment.");
+    else if (Id == "Recovery") S = bRecovery ? TEXT("Recovery acknowledged | Selected") : TEXT("Acknowledge earlier save recovery");
     if (Id=="Body" || Id=="Hair" || Id=="Skin" || Id=="Outfit")
     {
         const FString Prefix=TEXT("Presentation.Player.")+Id.ToString()+TEXT(".");
@@ -111,7 +117,7 @@ FText SLHFrontendWidget::Label(FName Id) const
         if (Answers.IsValidIndex(I)) S += TEXT(" | ") + Answers[I].Answer.Value.ToString();
     }
     auto Draft = Allocation; auto Base = P->Snapshot().Character.BaseAttributes;
-    if (auto* A = Attribute(Draft,Id)) S += TEXT(" | Base ") + FLHUIPresenter::Format(*Attribute(Base,Id)) + TEXT(" | Pending +") + FString::Printf(TEXT("%lld"), A->Value);
+    if (auto* A = LHFrontendWidgetPrivate::Attribute(Draft,Id)) S += TEXT(" | Base ") + FLHUIPresenter::Format(*LHFrontendWidgetPrivate::Attribute(Base,Id)) + TEXT(" | Pending +") + FString::Printf(TEXT("%lld"), A->Value);
     if (Id == "Items")
     {
         const auto& Items = P->Snapshot().Character.Inventory;
@@ -137,7 +143,7 @@ void SLHFrontendWidget::AddControl(FName Id)
     if (Id == "Name")
     {
         SAssignNew(NameField, SEditableTextBox).Style(&EditStyle).Text(FText::FromString(P->NameInput()))
-            .HintText(FText::FromString(TEXT("Character name"))).Font(Font(Style.Control))
+            .HintText(FText::FromString(TEXT("Character name"))).Font(LHFrontendWidgetPrivate::Font(Style.Control))
             .OnTextChanged_Lambda([this](const FText& T) { EditName(T.ToString()); });
         W = NameField;
     }
@@ -146,18 +152,18 @@ void SLHFrontendWidget::AddControl(FName Id)
         W = SNew(SButton).ButtonStyle(&ButtonStyle).IsFocusable(true).IsEnabled_Lambda([this,Id]() { return P->IsControlEnabled(Id); })
             .OnClicked_Lambda([this,Id]() { Activate(Id); return FReply::Handled(); })
             [ SNew(STextBlock).Text_Lambda([this,Id]() { return Label(Id); })
-                .ColorAndOpacity(Style.TextPrimary).Font(Font(Style.Control)).AutoWrapText(true) ];
+                .ColorAndOpacity(Style.TextPrimary).Font(LHFrontendWidgetPrivate::Font(Style.Control)).AutoWrapText(true) ];
     }
     TSharedPtr<SHorizontalBox> Group;
     SAssignNew(Group,SHorizontalBox);
     if (Id == "Name") Group->AddSlot().AutoWidth().VAlign(VAlign_Center).Padding(Style.ControlInset)
-        [SNew(STextBlock).Text_Lambda([this]() { return FText::FromString(P->FocusedControl() == "Name" ? TEXT("> Name") : TEXT("Name")); }).Font(Font(Style.Control)).ColorAndOpacity(Style.TextPrimary)];
+        [SNew(STextBlock).Text_Lambda([this]() { return FText::FromString(P->FocusedControl() == "Name" ? TEXT("> Name") : TEXT("Name")); }).Font(LHFrontendWidgetPrivate::Font(Style.Control)).ColorAndOpacity(Style.TextPrimary)];
     Group->AddSlot().FillWidth(1)[W.ToSharedRef()];
-    if (Id == "Profiles" || (Id=="Body" || Id=="Hair" || Id=="Skin" || Id=="Outfit") || Id == "Items" || Id.ToString().StartsWith(TEXT("Question")) || Attribute(Allocation,Id))
+    if (Id == "Profiles" || (Id=="Body" || Id=="Hair" || Id=="Skin" || Id=="Outfit") || Id == "Items" || Id.ToString().StartsWith(TEXT("Question")) || LHFrontendWidgetPrivate::Attribute(Allocation,Id))
     {
         for (int32 D : {-1,1}) Group->AddSlot().AutoWidth().Padding(Style.RowGap,0)
             [SNew(SButton).ButtonStyle(&ButtonStyle).IsFocusable(false).OnClicked_Lambda([this,Id,D]() { Adjust(Id,D); return FReply::Handled(); })
-                [SNew(STextBlock).Text(FText::FromString(D<0 ? TEXT("Previous / Minus") : TEXT("Next / Plus"))).Font(Font(Style.Control)).ColorAndOpacity(Style.TextPrimary)]];
+                [SNew(STextBlock).Text(FText::FromString(D<0 ? TEXT("Previous / Minus") : TEXT("Next / Plus"))).Font(LHFrontendWidgetPrivate::Font(Style.Control)).ColorAndOpacity(Style.TextPrimary)]];
     }
     Targets.Add(Id,W);
     Rows->AddSlot().AutoHeight().Padding(Style.FocusGap, Style.RowGap/2)
@@ -176,18 +182,19 @@ void SLHFrontendWidget::Build()
             [ SNew(SBox).WidthOverride(1920).HeightOverride(1080)
                 [ SNew(SBorder).BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush")).BorderBackgroundColor(Style.Panel).Padding(FMargin(72,54))
                     [ SAssignNew(Layout,SVerticalBox) ] ] ] ] ];
-    Layout->AddSlot().AutoHeight().Padding(0,0,0,Style.Gutter)
-    [ SNew(STextBlock).Text_Lambda([this]() { return Summary(); }).Font(Font(Style.Body)).ColorAndOpacity(Style.TextPrimary).AutoWrapText(true) ];
     Layout->AddSlot().FillHeight(1)
     [ SAssignNew(Scroll,SScrollBox) + SScrollBox::Slot()[SAssignNew(Rows,SVerticalBox)] ];
+    // Detailed gear/growth records share the scroll area so they cannot crowd out controls.
+    Rows->AddSlot().AutoHeight().Padding(0,0,0,Style.Gutter)
+    [ SNew(STextBlock).Text_Lambda([this]() { return Summary(); }).Font(LHFrontendWidgetPrivate::Font(Style.Body)).ColorAndOpacity(Style.TextPrimary).AutoWrapText(true) ];
     if (ModalAction.IsNone()) for (FName Id : P->FocusOrder()) AddControl(Id);
     else if (ModalAction == "Keyboard")
     {
-        Rows->AddSlot().AutoHeight()[SNew(STextBlock).Text_Lambda([this]() { return FText::FromString(TEXT("Name: ") + P->NameInput() + TEXT(" | Letter: ") + FString::Chr(TEXT("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -'")[Letter])); }).Font(Font(Style.Body)).ColorAndOpacity(Style.TextPrimary)];
+        Rows->AddSlot().AutoHeight()[SNew(STextBlock).Text_Lambda([this]() { return FText::FromString(TEXT("Name: ") + P->NameInput() + TEXT(" | Letter: ") + FString::Chr(TEXT("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -'")[Letter])); }).Font(LHFrontendWidgetPrivate::Font(Style.Body)).ColorAndOpacity(Style.TextPrimary)];
         for (FName Id : {"PreviousLetter", "NextLetter", "AppendLetter", "EraseLetter", "Done"})
         {
             auto B = SNew(SButton).ButtonStyle(&ButtonStyle).OnClicked_Lambda([this,Id]() { Keyboard(Id); return FReply::Handled(); })
-                [SNew(STextBlock).Text_Lambda([this,Id]() { return FText::FromString((KeyboardFocus == Id ? TEXT("> ") : TEXT("")) + Id.ToString()); }).Font(Font(Style.Control)).ColorAndOpacity(Style.TextPrimary)];
+                [SNew(STextBlock).Text_Lambda([this,Id]() { return FText::FromString((KeyboardFocus == Id ? TEXT("> ") : TEXT("")) + Id.ToString()); }).Font(LHFrontendWidgetPrivate::Font(Style.Control)).ColorAndOpacity(Style.TextPrimary)];
             Targets.Add(Id,B); Rows->AddSlot().AutoHeight().Padding(Style.FocusGap,Style.RowGap)
                 [SNew(SBorder).BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
                     .BorderBackgroundColor_Lambda([this,Id]() { const bool Focused = ModalAction == "Keyboard" ? KeyboardFocus == Id : (bModalConfirm ? Id == "ModalConfirm" : Id == "ModalCancel"); return Focused ? Style.FocusRing : Style.Edge; })
@@ -196,12 +203,12 @@ void SLHFrontendWidget::Build()
     }
     else
     {
-        Rows->AddSlot().AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("Review: ") + ModalAction.ToString() + TEXT("? Cancel is the default."))).Font(Font(Style.Body)).ColorAndOpacity(Style.TextPrimary)];
+        Rows->AddSlot().AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("Review: ") + ModalAction.ToString() + TEXT("? Cancel is the default."))).Font(LHFrontendWidgetPrivate::Font(Style.Body)).ColorAndOpacity(Style.TextPrimary)];
         for (bool Accept : {false,true})
         {
             const FName Id = Accept ? FName("ModalConfirm") : FName("ModalCancel");
             auto B = SNew(SButton).ButtonStyle(&ButtonStyle).OnClicked_Lambda([this,Accept]() { bModalConfirm = Accept; Submit(); return FReply::Handled(); })
-            [ SNew(STextBlock).Text_Lambda([this,Accept]() { return FText::FromString(FString(bModalConfirm == Accept ? TEXT("> ") : TEXT("")) + (Accept ? TEXT("Apply") : TEXT("Cancel"))); }).Font(Font(Style.Control)).ColorAndOpacity(Style.TextPrimary) ];
+            [ SNew(STextBlock).Text_Lambda([this,Accept]() { return FText::FromString(FString(bModalConfirm == Accept ? TEXT("> ") : TEXT("")) + (Accept ? TEXT("Apply") : TEXT("Cancel"))); }).Font(LHFrontendWidgetPrivate::Font(Style.Control)).ColorAndOpacity(Style.TextPrimary) ];
             Targets.Add(Id,B); Rows->AddSlot().AutoHeight().Padding(Style.FocusGap,Style.RowGap)
                 [SNew(SBorder).BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
                     .BorderBackgroundColor_Lambda([this,Id]() { const bool Focused = ModalAction == "Keyboard" ? KeyboardFocus == Id : (bModalConfirm ? Id == "ModalConfirm" : Id == "ModalCancel"); return Focused ? Style.FocusRing : Style.Edge; })
@@ -209,8 +216,8 @@ void SLHFrontendWidget::Build()
         }
     }
     Layout->AddSlot().AutoHeight().Padding(0,Style.Gutter)
-    [ SNew(STextBlock).Text_Lambda([this]() { return FText::FromString(P->Error().IsEmpty() ? LocalMessage : TEXT("Error: ") + P->Error()); }).Font(Font(Style.Body)).ColorAndOpacity(Style.Error).AutoWrapText(true) ];
-    Layout->AddSlot().AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("Arrows / D-pad: focus | Left / Right: change | Enter / South: confirm | Escape / East: back | LB / RB: journal tabs"))).Font(Font(Style.Metadata)).ColorAndOpacity(Style.TextSecondary).AutoWrapText(true)];
+    [ SNew(STextBlock).Text_Lambda([this]() { return FText::FromString(P->Error().IsEmpty() ? LocalMessage : TEXT("Error: ") + P->Error()); }).Font(LHFrontendWidgetPrivate::Font(Style.Body)).ColorAndOpacity(Style.Error).AutoWrapText(true) ];
+    Layout->AddSlot().AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("Arrows / D-pad: focus | Left / Right: change | Enter / South: confirm | Escape / East: back | LB / RB: journal tabs"))).Font(LHFrontendWidgetPrivate::Font(Style.Metadata)).ColorAndOpacity(Style.TextSecondary).AutoWrapText(true)];
 }
 void SLHFrontendWidget::Focus()
 {
@@ -265,7 +272,7 @@ void SLHFrontendWidget::Adjust(FName Id, int32 D)
         int32 Index = Q[I].Answers.IndexOfByPredicate([this,I](const FLHContentId& A) { return A.Value == Answers[I].Answer.Value; });
         Index = FMath::Clamp(Index+D,0,Q[I].Answers.Num()-1); Answers[I].Question = Q[I].Id; Answers[I].Answer = Q[I].Answers[Index]; StageCreation();
     }
-    else if (auto* A = Attribute(Allocation,Id))
+    else if (auto* A = LHFrontendWidgetPrivate::Attribute(Allocation,Id))
     {
         if (D > 0 && A->Value < TNumericLimits<int64>::Max()) ++A->Value;
         else if (D < 0 && A->Value > 0) --A->Value;
@@ -292,16 +299,16 @@ void SLHFrontendWidget::Submit()
             SubmittedAction = R.Disposition == ELHCommandDisposition::Accepted ? Action : NAME_None;
             if (SubmittedAction == Action)
             {
-                LocalMessage = TEXT("Accepted. Await owner durability/transition.");
+                LocalMessage.Empty(); // Owner status reports pending save, failure, or completed transition.
                 if (P->Screen() == ELHUIScreen::CharacterSheet)
-                    for (FName Id : {"Strength", "Endurance", "Agility", "Intelligence", "Wisdom"}) Attribute(Allocation,Id)->Value = 0;
+                    for (FName Id : {"Strength", "Endurance", "Agility", "Intelligence", "Wisdom"}) LHFrontendWidgetPrivate::Attribute(Allocation,Id)->Value = 0;
             }
         }
         else if (Action == "Continue") SubmittedAction = P->Continue(bRecovery) ? Action : NAME_None;
         else if (Action == "Quit") P->Quit();
         else if (Action == "Discard")
         {
-            for (FName Id : {"Strength", "Endurance", "Agility", "Intelligence", "Wisdom"}) Attribute(Allocation,Id)->Value = 0;
+            for (FName Id : {"Strength", "Endurance", "Agility", "Intelligence", "Wisdom"}) LHFrontendWidgetPrivate::Attribute(Allocation,Id)->Value = 0;
             if (P->Screen() == ELHUIScreen::Creation)
             { Appearance.Empty(); Answers.Empty(); P->EditCreation(TEXT(""),{},{}); }
             SubmittedAction = NAME_None;
@@ -335,7 +342,7 @@ void SLHFrontendWidget::Activate(FName Id)
             Review = P->ReviewAllocation(Allocation);
             auto Draft = Allocation;
             for (FName A : {"Strength", "Endurance", "Agility", "Intelligence", "Wisdom"})
-                Review.Summary += TEXT("\n") + A.ToString() + TEXT(" pending +") + FString::Printf(TEXT("%lld"),Attribute(Draft,A)->Value);
+                Review.Summary += TEXT("\n") + A.ToString() + TEXT(" pending +") + FString::Printf(TEXT("%lld"),LHFrontendWidgetPrivate::Attribute(Draft,A)->Value);
         }
         else if (P->Screen() == ELHUIScreen::Inventory) Review = P->ReviewEquipment(SelectedItem,Slot,bUnequip);
         else { Review.bLegal = P->CreationPreview().bLegal; Review.Summary = TEXT("Create ") + P->NameInput() + TEXT(" with the reviewed attributes?"); }
@@ -345,7 +352,7 @@ void SLHFrontendWidget::Activate(FName Id)
         if (Review.bLegal && SubmittedAction != Id) Modal(Id);
     }
     else if (Id == "Continue" || Id == "Quit") Modal(Id);
-    else if (Id == "Profiles" || (Id=="Body" || Id=="Hair" || Id=="Skin" || Id=="Outfit") || Id == "Items" || Id.ToString().StartsWith(TEXT("Question")) || Attribute(Allocation,Id)) Adjust(Id,1);
+    else if (Id == "Profiles" || (Id=="Body" || Id=="Hair" || Id=="Skin" || Id=="Outfit") || Id == "Items" || Id.ToString().StartsWith(TEXT("Question")) || LHFrontendWidgetPrivate::Attribute(Allocation,Id)) Adjust(Id,1);
     else if (Id == "Equip")
     {
         const auto& Items = P->Snapshot().Character.Inventory;
@@ -360,10 +367,10 @@ void SLHFrontendWidget::Activate(FName Id)
     }
     else if (Id == "Reset")
     {
-        for (FName A : {"Strength", "Endurance", "Agility", "Intelligence", "Wisdom"}) Attribute(Allocation,A)->Value = 0;
-        SubmittedAction = NAME_None;
+        for (FName A : {"Strength", "Endurance", "Agility", "Intelligence", "Wisdom"}) LHFrontendWidgetPrivate::Attribute(Allocation,A)->Value = 0;
+        SubmittedAction = NAME_None; LocalMessage.Empty(); P->ClearSelectionError();
     }
-    else if (Id == "Details") LocalMessage = TEXT("Details: owner-provided rules and provenance only. Missing derived values and eligibility are Unknown.");
+    else if (Id == "Details") LocalMessage = TEXT("Details: owner-provided rules and provenance only. Missing values: — (not available in this prototype).");
     else
     {
         static const TMap<FName,ELHEquipmentSlot> Slots = {{"Head",ELHEquipmentSlot::Head},{"Torso",ELHEquipmentSlot::Torso},{"MainHand",ELHEquipmentSlot::MainHand},{"OffHand",ELHEquipmentSlot::OffHand},{"Legs",ELHEquipmentSlot::Legs},{"Feet",ELHEquipmentSlot::Feet},{"Accessory",ELHEquipmentSlot::Accessory},{"Quiver",ELHEquipmentSlot::Quiver}};
@@ -404,7 +411,7 @@ FReply SLHFrontendWidget::OnPreviewKeyDown(const FGeometry&, const FKeyEvent& E)
             }
     const FKey K = E.GetKey();
     const bool Confirm = K == EKeys::Enter || K == EKeys::SpaceBar || K == EKeys::Gamepad_FaceButton_Bottom;
-    if (E.IsRepeat() && (Confirm || K == EKeys::Escape || K == EKeys::Gamepad_FaceButton_Right)) return FReply::Handled();
+    if (E.IsRepeat() && (Confirm || K == EKeys::C || K == EKeys::I || K == EKeys::Escape || K == EKeys::Gamepad_FaceButton_Right)) return FReply::Handled();
     if (K == EKeys::Up || K == EKeys::Gamepad_DPad_Up) Navigate(-1);
     else if (K == EKeys::Down || K == EKeys::Gamepad_DPad_Down || K == EKeys::Tab) Navigate(K == EKeys::Tab && E.IsShiftDown() ? -1 : 1);
     else if (K == EKeys::Escape || K == EKeys::Gamepad_FaceButton_Right) Back();
@@ -413,6 +420,12 @@ FReply SLHFrontendWidget::OnPreviewKeyDown(const FGeometry&, const FKeyEvent& E)
     {
         const int32 D = K == EKeys::Left || K == EKeys::Gamepad_DPad_Left ? -1 : 1;
         if (IsModal()) Navigate(D); else Adjust(P->FocusedControl(),D);
+    }
+    else if ((K == EKeys::C || K == EKeys::I) && !IsModal()
+        && (P->Screen() == ELHUIScreen::CharacterSheet || P->Screen() == ELHUIScreen::Inventory))
+    {
+        const auto Destination = K == EKeys::C ? ELHUIScreen::CharacterSheet : ELHUIScreen::Inventory;
+        if (P->Screen() == Destination) Back(); else Open(Destination);
     }
     else if ((K == EKeys::Gamepad_LeftShoulder || K == EKeys::Gamepad_RightShoulder) && !IsModal()
         && (P->Screen() == ELHUIScreen::CharacterSheet || P->Screen() == ELHUIScreen::Inventory))

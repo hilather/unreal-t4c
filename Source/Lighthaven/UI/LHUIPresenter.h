@@ -33,6 +33,9 @@ class LIGHTHAVEN_API ILHUIReadOwner
 public:
     virtual ~ILHUIReadOwner() = default;
     virtual FString OwnerStatus() const { return {}; }
+    virtual bool OwnsPersistenceStatus() const { return false; }
+    virtual bool HasUnsavedChanges() const { return false; }
+    virtual FString DerivedSummary() const { return TEXT("Effective attributes / gear effects: — (not available in this prototype)"); }
     virtual void ClearSelectionError() {}
     virtual bool BeginCreation() { return true; }
     virtual FLHSaveSnapshot Snapshot() const = 0;
@@ -75,7 +78,9 @@ public:
     const FLHSaveSnapshot& Snapshot() const { return View; }
     const TArray<FLHUIProfile>& Profiles() const { return ProfileView; }
     FString Error() const { const FString Status=Read.OwnerStatus(); return Status.IsEmpty()?Message:Status; }
-    void RetryPersistence() { Message=Session.RetryPersistence(); }
+    void RetryPersistence() { Message=Session.RetryPersistence(); if (Read.OwnsPersistenceStatus()) Message.Empty(); }
+    bool HasUnsavedChanges() const { return Read.HasUnsavedChanges(); }
+    FString DerivedSummary() const { return Read.DerivedSummary(); }
     bool IsPending() const { return bPending; }
     bool IsConfirmed() const { return bConfirmed; }
 
