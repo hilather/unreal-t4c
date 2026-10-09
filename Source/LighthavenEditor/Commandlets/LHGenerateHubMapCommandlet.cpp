@@ -1,5 +1,6 @@
 #include "LHGenerateHubMapCommandlet.h"
 #include "Editor.h"
+#include "Framework/LHArrivalReview.h"
 #include "FileHelpers.h"
 #include "ActorFactories/ActorFactory.h"
 #include "Builders/CubeBuilder.h"
@@ -358,7 +359,7 @@ void FHub::Populate()
     for(const auto& E:Area->Entrances)
     {
         auto* A=Actor<ALHEntranceMarker>(E.Id.LocalId.ToString(),E.SafeTransform.GetLocation(),E.SafeTransform.Rotator());
-        if(A) { A->EntranceId=E.Id; A->SafeArrivalTransform=E.SafeTransform; A->bSafetyReviewed=false; }
+        if(A) { A->EntranceId=E.Id; A->SafeArrivalTransform=E.SafeTransform; A->bSafetyReviewed=LHArrivalReview::IsReviewed(E); }
     }
     const auto& P=Area->Portals[0];
     auto* Portal=Actor<ALHPortal>(TEXT("Temple.Descent.Departure"),FVector(-1000,500,-50));

@@ -1,5 +1,6 @@
 #include "LHGenerateBasementAMapsCommandlet.h"
 #include "Editor.h"
+#include "Framework/LHArrivalReview.h"
 #include "EngineUtils.h"
 #include "Misc/SecureHash.h"
 #include "FileHelpers.h"
@@ -142,7 +143,7 @@ struct FBuilder
         for(const auto& E:Area.Entrances)
         {
             if(auto* A=Actor<ALHEntranceMarker>(TEXT("Entrance_")+E.Id.LocalId.ToString(),E.SafeTransform.GetLocation(),E.SafeTransform.Rotator()))
-            { A->EntranceId=E.Id; A->SafeArrivalTransform=E.SafeTransform; A->bSafetyReviewed=false; }
+            { A->EntranceId=E.Id; A->SafeArrivalTransform=E.SafeTransform; A->bSafetyReviewed=LHArrivalReview::IsReviewed(E); }
         }
         for(const auto& P:Area.Portals)
         {

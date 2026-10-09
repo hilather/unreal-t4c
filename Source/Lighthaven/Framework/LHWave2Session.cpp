@@ -3,21 +3,18 @@
 #include "Framework/LHPlayerState.h"
 #include "Abilities/LHCombatComponent.h"
 #include "Abilities/LHAttributeSet.h"
+#include "World/LHAreaRegistry.h"
+#include "World/LHAreaStateSubsystem.h"
 namespace LHWave2SessionPrivate
 {
 bool ValidateReferences(const FLHSaveSnapshot& S, FLHSaveError& E)
 {
-    auto Bad=[&E]() { E={ELHSaveReason::InvalidSnapshot,TEXT("Unsupported Wave 2 Prototype reference or lifecycle")}; return false; };
-    // Wave 2 has no world settlement owner. Preserve records, but reject unsupported lifecycle data.
-    if (S.World.Areas.Num()!=1 || S.World.Areas[0].Area.Content.Value!=TEXT("Area.LighthavenTempleDistrict") ||
-        !S.World.Areas[0].Encounters.IsEmpty() || !S.World.Areas[0].Corpses.IsEmpty() || !S.World.Areas[0].Objects.IsEmpty() ||
-        !S.World.Quests.IsEmpty() || !S.World.Bosses.IsEmpty() || !S.World.ClaimedUniqueRewards.IsEmpty() ||
-        !S.World.UnlockedPortals.IsEmpty() || !S.Session.Cooldowns.IsEmpty() || !S.Session.DurableEffects.IsEmpty() ||
-        !S.Character.LearnedSkills.IsEmpty() || !S.Character.LearnedSpells.IsEmpty() ||
-        S.Character.ActiveEntrance.LocalId!=TEXT("Entry") || S.Session.SafeRespawn.Entrance.LocalId!=TEXT("Entry") ||
-        S.Character.ActiveEntrance.Area.Content.Value!=TEXT("Area.LighthavenTempleDistrict") ||
-        S.Session.SafeRespawn.Entrance.Area.Content.Value!=TEXT("Area.LighthavenTempleDistrict") ||
-        !S.Session.SafeRespawn.SafeTransform.Equals(FTransform::Identity)) return Bad();
+    auto Bad=[&E]() { E={ELHSaveReason::InvalidSnapshot,TEXT("Unsupported Wave 3 Prototype reference or lifecycle")}; return false; };
+    FString WorldError;
+    const auto* Respawn=LHWorld::FindEntrance(S.Session.SafeRespawn.Entrance);
+    if (!LHWorld::FindEntrance(S.Character.ActiveEntrance) || !Respawn ||
+        !S.Session.SafeRespawn.SafeTransform.Equals(Respawn->SafeTransform) ||
+        !LHWorld::ValidateWorld(S.World,WorldError)) return Bad();
     FLHCharacterAuthority Check;
     if (!Check.Initialize(LHWave2::PrototypeProfile(),FGuid::NewGuid(),123) || Check.Import(S)!=ELHCommandReason::None) return Bad();
     return true;
@@ -42,7 +39,7 @@ bool FLHWave2Session::Bind(ALHPlayerState* State, bool Fresh)
     Owner=State;
     auto* A=Authority(); *A=FLHCharacterAuthority();
     if (!A->Initialize(LHWave2::PrototypeProfile(),FGuid::NewGuid(),123)) return false;
-    bTravel=false;
+    if (!bWorldTravelFrozen) bTravel=false;
     if (Fresh) { Complete={}; Message.Empty(); bEnterAfterSave=false; }
     if (HasCharacter())
     {
@@ -140,13 +137,13 @@ void FLHWave2Session::Published(const FLHCommandResult& R,bool Creation)
     Authority()->Export(Complete);
     if (Creation)
     {
-        Complete.Header.BuildId=TEXT("Wave2.Prototype.v1"); Complete.Header.ContentRevision=LHWave2::CatalogHash();
+        Complete.Header.BuildId=TEXT("Wave3.Prototype.v1"); Complete.Header.ContentRevision=LHWave2::CatalogHash();
         Complete.Header.ChecksumAlgorithm=TEXT("SHA256"); Complete.Header.PayloadCodec=TEXT("LHCanonicalBinary1");
         FLHAreaRecord Area; Area.Area.Content.Value=TEXT("Area.LighthavenTempleDistrict"); Complete.World.Areas.Add(Area);
-        Complete.Character.ActiveEntrance.Area=Area.Area; Complete.Character.ActiveEntrance.LocalId=TEXT("Entry");
+        Complete.Character.ActiveEntrance.Area=Area.Area; Complete.Character.ActiveEntrance.LocalId=TEXT("Temple.SafeSpawn");
         Complete.Session.SafeRespawn.Entrance=Complete.Character.ActiveEntrance;
         Complete.Session.SafeRespawn.TransformResolution=ELHValueResolution::Resolved;
-        Complete.Session.SafeRespawn.SafeTransform=FTransform::Identity;
+        Complete.Session.SafeRespawn.SafeTransform=LHWorld::FindEntrance(Complete.Character.ActiveEntrance)->SafeTransform;
         Complete.Session.EffectPolicy=ELHEffectSavePolicy::CompletedActionBoundaryOnly;
         Complete.Session.ManaRegenFractionalSeconds=LHWave2::PrototypeNumber(0);
         // Import the newly completed world fields before any further command exports.
@@ -207,6 +204,7 @@ FString FLHWave2Session::Continue(FLHCharacterId Id,bool Ack)
 }
 FString FLHWave2Session::RequestExit()
 {
+    if (bContentUnavailable) { if (Exit) Exit(); return {}; }
     if (IsBlocked()) return TEXT("Wait for completed-action durability.");
     if (HasCharacter() && Saves->IsDirty(Complete.Header.CharacterId))
     { bExit=true; return Continue(Complete.Header.CharacterId,false); }
@@ -220,6 +218,8 @@ bool FLHWave2Session::BeginCreation()
 }
 FString FLHWave2Session::RetryPersistence()
 {
+    if (bWorldTravelFrozen && RetryWorldTravel)
+    { FString Error; RetryWorldTravel(Error); Message=Error; return Message; }
     if (IsBlocked()) return TEXT("Save is pending.");
     if (!HasCharacter() || !Saves->IsDirty(Complete.Header.CharacterId)) return Message;
     bAwaitingSave=true; AwaitedSequence=Complete.Header.TransactionSequence; FLHSaveError E;
@@ -231,4 +231,32 @@ void FLHWave2Session::ClearSelectionError()
 {
     // Save failures remain visible until durability succeeds. Profile errors live on each row.
     if (Message.StartsWith(TEXT("Unreadable:")) || Message.StartsWith(TEXT("Recovery:"))) Message.Empty();
+}
+
+void FLHWave2Session::FreezeWorldTravel(bool Frozen) { bWorldTravelFrozen=Frozen; bTravel=Frozen; }
+bool FLHWave2Session::CaptureTravel(FLHSaveSnapshot& Out,FString& Error)
+{
+    if (!HasCharacter() || bSaveQueued || bAwaitingSave || !Authority() ||
+        Owner->GetCombatComponent()->IsActionPending())
+    { Error=TEXT("Travel requires a completed action and durable session"); return false; }
+    Authority()->Export(Complete); Out=Complete; return true;
+}
+bool FLHWave2Session::InstallTravel(const FLHSaveSnapshot& Snapshot)
+{
+    Complete=Snapshot;
+    return Authority() && Authority()->Import(Complete)==ELHCommandReason::None && InstallDerived();
+}
+FLHCommandResult FLHWave2Session::Execute(const FLHRequestTravelRequest& Q)
+{
+    if (IsBlocked() || !RequestWorldTravel) return LHWave2SessionPrivate::Busy();
+    FString Error; FLHCommandResult R;
+    if (RequestWorldTravel(Q,Error)) R.Disposition=ELHCommandDisposition::Accepted;
+    else { R.Reason=ELHCommandReason::InvalidRequest; Message=Error; }
+    return R;
+}
+
+void FLHWave2Session::AbortGameplayArrival(const FString& Error)
+{
+    FreezeWorldTravel(false); bInGameplay=false;
+    Message=TEXT("Arrival refused; save retained: ")+Error;
 }

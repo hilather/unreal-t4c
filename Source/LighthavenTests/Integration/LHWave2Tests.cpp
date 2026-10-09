@@ -2,6 +2,7 @@
 #include "Framework/LHWave2Session.h"
 #include "Framework/LHWave2Profile.h"
 #include "Framework/LHWave2Closure.h"
+#include "World/LHTravelSaveAdapter.h"
 #include "Framework/LHPlayerState.h"
 #include "Framework/LHPlayerController.h"
 #include "Framework/LHCharacter.h"
@@ -36,6 +37,7 @@ struct FRuntime
     UWorld* World=nullptr;
     ALHPlayerState* State=nullptr;
     ALHPlayerController* Controller=nullptr;
+    TSharedPtr<FLHSaveStore> Store;
     TSharedPtr<FLHWave2Session> Session;
     TSharedPtr<FLHUIPresenter> UI;
     explicit FRuntime(TSharedRef<FStorage> Disk)
@@ -48,7 +50,7 @@ struct FRuntime
         Context.SetCurrentWorld(World); World->InitializeActorsForPlay(FURL());
         Controller=World->SpawnActor<ALHPlayerController>(); Controller->SetAsLocalPlayerController();
         State=World->SpawnActor<ALHPlayerState>(); Controller->SetPlayerState(State); Controller->InitInputSystem();
-        Session=MakeShared<FLHWave2Session>(MakeShared<FLHSaveStore>(Disk)); Session->Bind(State);
+        Store=MakeShared<FLHSaveStore>(Disk); Session=MakeShared<FLHWave2Session>(Store.ToSharedRef()); Session->Bind(State);
         UI=MakeShared<FLHUIPresenter>(*Session,*Session,*Session);
     }
     ~FRuntime()
@@ -274,5 +276,50 @@ bool FLHWave2InputHandoff::RunTest(const FString&)
     TestFalse(TEXT("frontend handoff restores defaults"),Viewport->IgnoreInput());
     R.Controller->Player=nullptr; Local->PlayerController=nullptr; Instance->RemoveLocalPlayer(Local); Context->GameViewport=nullptr;
     return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave3LiveSession,"Lighthaven.Integration.Wave3.SessionCheckpoints",LHWave2TestsPrivate::Flags)
+bool FLHWave3LiveSession::RunTest(const FString&)
+{
+    using namespace LHWave2TestsPrivate;
+    auto Disk=MakeShared<FStorage>(); FRuntime R(Disk);
+    TestTrue(TEXT("Create production session"),R.Create().Disposition==ELHCommandDisposition::Accepted); R.Flush();
+    TestTrue(TEXT("Bind initial hub avatar authority"),R.Session->Bind(R.State));
+    const auto Initial=R.Session->Snapshot();
+    TestTrue(TEXT("Creation uses hub safe spawn"),LHWorld::SameEntrance(Initial.Character.ActiveEntrance,LHWorld::Registry()[0].SafeFallback));
+    FLHSaveError SaveError; auto Old=Initial; Old.Character.ActiveEntrance.LocalId=TEXT("Entry");
+    TestFalse(TEXT("Temporary Wave2 entrance not silently reinterpreted"),FLHWave2Session::Compatibility().ValidateReferences(Old,SaveError));
+    FLHTravelSaveAdapter* Adapter=nullptr;
+    FLHTravelSaveAdapter::FHooks Hooks;
+    Hooks.Freeze=[&](bool Frozen) { R.Session->FreezeWorldTravel(Frozen); };
+    Hooks.Capture=[&](FLHSaveSnapshot& Out,FString& Error) { return R.Session->CaptureTravel(Out,Error); };
+    Hooks.Durable=[&](const FLHSaveSnapshot& Snapshot) { TestTrue(TEXT("Publish durable canonical session"),R.Session->InstallTravel(Snapshot)); };
+    Hooks.Load=[](const FLHAreaDefinition&,uint64) {};
+    Hooks.Install=[&](const FLHSaveSnapshot& Snapshot,const FLHEntranceDefinition&,FString&) { return R.Session->InstallTravel(Snapshot); };
+    Hooks.Restore=[&](const FLHSaveSnapshot& Snapshot,const FLHEntranceDefinition&,uint64 Token) { R.Session->InstallTravel(Snapshot); Adapter->Travel().OnSourceRestored(Token,true,TEXT("")); };
+    FLHTravelSaveAdapter Travel(R.Store.ToSharedRef(),FLHWave2Session::Compatibility(),MoveTemp(Hooks)); Adapter=&Travel;
+    R.Session->RequestWorldTravel=[&](const FLHRequestTravelRequest& Q,FString& Error) { return Travel.Travel().Begin(Q,Error); };
+    const int32 Route[]={1,2,3,4,3,2,1,0};
+    for (int32 Destination:Route)
+    {
+        const auto S=R.Session->Snapshot(); const auto* Area=LHWorld::FindArea(S.Character.ActiveEntrance.Area);
+        const auto* Edge=Area->Portals.FindByPredicate([&](const auto& P) { return LHWorld::SameArea(P.Destination.Area,LHWorld::Registry()[Destination].Id); });
+        if (!TestNotNull(TEXT("Session registered edge"),Edge)) return false;
+        FLHRequestTravelRequest Q; Q.Request.Value=FGuid::NewGuid(); Q.Request.Epoch=S.Session.RequestEpoch;
+        Q.Portal=Edge->Portal; Q.Portal.RunId=S.World.RunId; Q.Destination=Edge->Destination;
+        TestTrue(TEXT("Production session dispatches travel"),R.Session->Execute(Q).Disposition==ELHCommandDisposition::Accepted);
+        TestTrue(TEXT("Session blocked during load"),R.Session->IsBlocked());
+        Travel.Travel().OnDestinationLoaded(Travel.Travel().GetToken(),true,Q.Destination,TEXT(""));
+        TestFalse(TEXT("Session resumes after durable arrival"),R.Session->IsBlocked());
+        FLHSaveStore Reload(Disk); FLHSaveSnapshot Loaded;
+        TestTrue(TEXT("Reload using production catalog compatibility"),Reload.Load(S.Header.CharacterId,FLHWave2Session::Compatibility(),Loaded,SaveError));
+        TestTrue(TEXT("Production reload destination entrance"),LHWorld::SameEntrance(Loaded.Character.ActiveEntrance,Q.Destination));
+        TestTrue(TEXT("Authority capture after reload install"),R.Session->InstallTravel(Loaded));
+        TestEqual(TEXT("No travel rewards"),Loaded.Character.Gold.Value,Initial.Character.Gold.Value);
+    }
+    R.Session->RequestWorldTravel=nullptr;
+    R.Session->AbortGameplayArrival(TEXT("Injected invalid spawn"));
+    TestFalse(TEXT("Refused startup permits frontend recovery"),R.Session->IsBlocked());
+    TestTrue(TEXT("Refusal is visible"),R.Session->OwnerStatus().Contains(TEXT("save retained")));
+    return !HasAnyErrors();
 }
 #endif
