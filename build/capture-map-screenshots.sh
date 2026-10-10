@@ -43,23 +43,22 @@ for area, view, position, yaw in shots:
     label = map_name if view == 'arrival' else map_name + '-overview'
     shot = out / (label + '.png')
     log = out / (label + '.log')
-    # BugItGo sets pawn/control rotation, not the absolute native spring arm.
-    # Drive its target rotation from control rotation for this capture process only;
-    # keep the pawn upright and retain the game's sphere collision probe and camera.
-    # Camera Default avoids the engine's generic ThirdPerson camera implementation.
+    # BugItGo moves the pawn and controller, while LHCharacter's absolute boom
+    # retains its native -55/45 rotation. Use that camera without changing its
+    # rotation source: control-rotation overrides can corrupt capture framing.
+    # Default camera style calls the view target's CalcCamera (active Camera).
     commands = ','.join([
         'EnableCheats', f'BugItGo {x} {y} {z} 0 {yaw} 0', 'Camera Default',
-        'setnopec SpringArmComponent TargetArmLength 1200',
-        'setnopec SpringArmComponent bUsePawnControlRotation True',
-        # Separate struct members avoid ExecCmds' comma separator; omitted members persist.
-        'setnopec LHPlayerController ControlRotation (Pitch=-55)',
-        'setnopec LHPlayerController ControlRotation (Yaw=45)',
-        'setnopec LHPlayerController ControlRotation (Roll=0)',
-        'setnopec CameraComponent FieldOfView 45',
-        'getall LHPlayerController ControlRotation',
+        'getall PlayerCameraManager',
+        'getall LHPlayerController Pawn',
+        'getall SpringArmComponent RelativeRotation',
+        'getall SpringArmComponent bAbsoluteRotation',
         'getall SpringArmComponent TargetArmLength',
         'getall SpringArmComponent bUsePawnControlRotation',
+        'getall SpringArmComponent bDoCollisionTest',
+        'getall CameraComponent RelativeLocation',
         'getall CameraComponent FieldOfView',
+        'getall CameraComponent bUsePawnControlRotation',
         'r.HighResScreenshotDelay 120', f'HighResShot 1280x720 filename={shot}'])
     print(f'{label}: target=({x},{y},{z}) boom=1200 pitch=-55 yaw=45 FOV=45; native collision may shorten boom', flush=True)
     args = [str(binary)]
