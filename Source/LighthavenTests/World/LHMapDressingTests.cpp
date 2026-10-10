@@ -1,0 +1,116 @@
+#include "Misc/AutomationTest.h"
+#include "Visual/LHVisualKit.h"
+#include "World/LHAreaRegistry.h"
+#include "World/LHWorldMarkers.h"
+#include "Engine/World.h"
+#include "EngineUtils.h"
+#include "Camera/CameraActor.h"
+#include "Components/BoxComponent.h"
+#include "UObject/Package.h"
+
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FLHMapDressingTest,"Lighthaven.World.Dressing.Maps",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+void FLHMapDressingTest::GetTests(TArray<FString>& Names,TArray<FString>& Commands) const
+{
+    for(const auto& Area:LHWorld::Registry()) { Names.Add(Area.Id.Content.Value.ToString()); Commands.Add(Area.Id.Content.Value.ToString()); }
+}
+bool FLHMapDressingTest::RunTest(const FString& Parameters)
+{
+    const auto* Area=LHWorld::Registry().FindByPredicate([&](const FLHAreaDefinition& A){return A.Id.Content.Value.ToString()==Parameters;});
+    if(!Area) return false;
+    auto* Package=LoadPackage(nullptr,*Area->Map.GetLongPackageName(),LOAD_None);
+    auto* World=Package?UWorld::FindWorldInPackage(Package):nullptr;
+    if(!TestNotNull(TEXT("Generated map required"),World)) return false;
+    TArray<ALHVisualPiece*> Pieces;
+    TSet<FGuid> Spawns,Portals,NPCs;
+    TSet<FName> Entrances;
+    struct FNPCBaseline { const TCHAR* Alias; const TCHAR* Guid; FVector Position; double Yaw; };
+    const FNPCBaseline BaselineNPCs[] = {
+        {TEXT("NPC.BrotherKiran"),TEXT("cad1834f92084c3484f48b9c4c077a7b"),FVector(300,2100,0),-90},
+        {TEXT("NPC.Kilhiam"),TEXT("6dfd770dbf874ac09dd2efba40bcd81e"),FVector(300,1400,0),0},
+        {TEXT("NPC.Moonrock"),TEXT("5ef65f0ad7cf450ca6554e17c4115287"),FVector(1300,2000,0),180},
+        {TEXT("NPC.Samaritan"),TEXT("7aed0467432c4f868c81e65ede50f1b2"),FVector(-200,-300,0),-90},
+        {TEXT("NPC.Sigfried"),TEXT("36351285404c489f8accd6b6e3a9d2ab"),FVector(-2500,1800,0),0},
+        {TEXT("NPC.Fali"),TEXT("0d1ff670d056496ca68fac87dec830c5"),FVector(-1800,-1900,0),0},
+        {TEXT("NPC.Rolph"),TEXT("461bc4749f07451aa01ef2bec941aff0"),FVector(-900,-1900,0),180},
+        {TEXT("NPC.Ortanalas"),TEXT("16e51f72d20d4efc8bc725cc47c2cdb7"),FVector(1500,-2900,0),180},
+        {TEXT("NPC.JagarKar"),TEXT("4522396925a0480fbafbde5975c3cb30"),FVector(700,-2900,0),90},
+        {TEXT("NPC.Kalastor"),TEXT("8cb18c8e2d2c47a48a59a0a99375c1cf"),FVector(1500,-5900,0),180},
+        {TEXT("NPC.Murmuntag"),TEXT("6ef21e05308e465cb6add6ce34e0d150"),FVector(-1700,-6200,0),0},
+        {TEXT("NPC.Uranos"),TEXT("ea0144a11a54417487447d0c02d9706e"),FVector(-4300,7200,0),0},
+        {TEXT("NPC.Iraltok"),TEXT("448469187fbd4606b5767ff3b8b87218"),FVector(-2200,7700,0),180},
+        {TEXT("NPC.Nevanis"),TEXT("32a8de01573448aa9fa6de27056614c2"),FVector(-2500,600,0),0},
+        {TEXT("NPC.Shovanis"),TEXT("c451f507b1d442788b34a5d097516bc8"),FVector(-2500,1400,0),0},
+    };
+    int32 Cameras=0;
+    for(TActorIterator<AActor> It(World);It;++It)
+    {
+        if(auto* P=Cast<ALHVisualPiece>(*It))
+        {
+            // Explicit rebuild proves serialized recipes reconstruct the same assembly.
+            const auto Recipe=P->GetRecipe();
+            const int32 StyleIndex=LHWorld::Registry().IndexOfByPredicate([&](const FLHAreaDefinition& V){return &V==Area;});
+            TestEqual(TEXT("Per-map kit style"),int32(Recipe.Style),StyleIndex); const auto Fingerprint=Recipe.Fingerprint();
+            TestTrue(TEXT("Serialized recipe rebuilds"),P->Build(Recipe));
+            TestEqual(TEXT("Recipe stable"),P->GetRecipe().Fingerprint(),Fingerprint);
+            Pieces.Add(P);
+            // Stronger than pad intersection: all dressing is nonblocking, everywhere.
+            TestEqual(TEXT("No dressing collision at any pad/route"),P->GetBlockers().Num(),0);
+            TestEqual(TEXT("No serialized collision recipe"),Recipe.Collision.Num(),0);
+        }
+        if(auto* E=Cast<ALHEntranceMarker>(*It))
+        {
+            const auto* Expected=Area->Entrances.FindByPredicate([&](const FLHEntranceDefinition& V){return LHWorld::SameEntrance(V.Id,E->EntranceId);});
+            TestNotNull(TEXT("Canonical entrance ID"),Expected);
+            if(Expected) { TestTrue(TEXT("Arrival transform unchanged"),E->SafeArrivalTransform.Equals(Expected->SafeTransform,0)); TestTrue(TEXT("Entrance marker transform unchanged"),E->GetActorTransform().Equals(Expected->SafeTransform,.01)); }
+            TestFalse(TEXT("Unique entrance"),Entrances.Contains(E->EntranceId.LocalId)); Entrances.Add(E->EntranceId.LocalId);
+        }
+        if(auto* S=Cast<ALHSpawnMarker>(*It))
+        {
+            const auto* Expected=Area->Spawns.FindByPredicate([&](const FLHSpawnAuthoring& V){return V.SpawnId==S->SpawnId;});
+            TestNotNull(TEXT("Canonical spawn ID"),Expected);
+            if(Expected) { TestEqual(TEXT("Enemy unchanged"),S->EnemyDefinitionId.Value,Expected->Enemy.Value); TestTrue(TEXT("Anchor unchanged"),S->GetActorTransform().Equals(Expected->Anchor,.01)); }
+            TestFalse(TEXT("Unique spawn"),Spawns.Contains(S->SpawnId)); Spawns.Add(S->SpawnId);
+        }
+        if(auto* P=Cast<ALHPortal>(*It))
+        {
+            TestTrue(TEXT("Canonical portal ID"),Area->Portals.ContainsByPredicate([&](const FLHPortalDefinition& V){return V.Portal.InstanceId==P->PortalId && LHWorld::SameEntrance(V.Source,P->Source) && LHWorld::SameEntrance(V.Destination,P->Destination); }));
+            const bool Return=P->Source.LocalId==TEXT("Entry");
+            const int32 Index=LHWorld::Registry().IndexOfByPredicate([&](const FLHAreaDefinition& V){return &V==Area;});
+            FVector Position(-1000,500,-50); double Yaw=0;
+            if(Index==1) { Position=Return?FVector(450,-2500,100):FVector(4500,2100,-75); Yaw=Return?-90:90; }
+            if(Index==2) { Position=Return?FVector(500,-6300,100):FVector(5300,6600,-100); Yaw=Return?-90:90; }
+            if(Index==3) { Position=Return?FVector(3200,1360,80):FVector(4700,7060,-80); Yaw=90; }
+            if(Index==4) { Position=FVector(-210,600,80); Yaw=180; }
+            TestTrue(TEXT("Portal transform unchanged"),P->GetActorTransform().Equals(FTransform(FRotator(0,Yaw,0),Position),.01));
+            TestEqual(TEXT("Portal direction unchanged"),P->Direction,Return?ELHPortalDirection::Return:ELHPortalDirection::Descent);
+            TestFalse(TEXT("Unique portal"),Portals.Contains(P->PortalId)); Portals.Add(P->PortalId);
+        }
+        if(auto* N=Cast<ALHInteractableMarker>(*It))
+        {
+            const FNPCBaseline* Expected=nullptr;
+            for(const auto& Row:BaselineNPCs) if(N->DefinitionId.Value.ToString().Equals(Row.Alias,ESearchCase::CaseSensitive)) Expected=&Row;
+            TestNotNull(TEXT("Baseline NPC alias"),Expected);
+            TestTrue(TEXT("NPC area unchanged"),LHWorld::SameArea(N->Area,Area->Id));
+            if(Expected)
+            {
+                FGuid Guid; FGuid::Parse(Expected->Guid,Guid);
+                TestEqual(TEXT("NPC identity unchanged"),N->InstanceId,Guid);
+                TestTrue(TEXT("NPC transform unchanged"),N->GetActorTransform().Equals(FTransform(FRotator(0,Expected->Yaw,0),Expected->Position),.01));
+            }
+            TestFalse(TEXT("Unique NPC"),NPCs.Contains(N->InstanceId)); NPCs.Add(N->InstanceId);
+        }
+        if(It->IsA<ACameraActor>() && It->Tags.Contains(TEXT("LH.Capture"))) ++Cameras;
+    }
+    const auto Totals=LHVisual::ValidatePlacedSet(Pieces);
+    for(const auto& Error:Totals.Errors) AddError(Error);
+    TestTrue(TEXT("Dressing present and map piece budget"),Totals.Pieces>=20 && Totals.Pieces<=6000);
+    TestTrue(TEXT("Map triangle budget"),Totals.Triangles<=2000000);
+    TestTrue(TEXT("Map section budget"),Totals.DrawCalls<=12000);
+    TestEqual(TEXT("Three fixed capture views"),Cameras,3);
+    TestEqual(TEXT("Entrance inventory unchanged"),Entrances.Num(),Area->Entrances.Num());
+    TestEqual(TEXT("Spawn inventory unchanged"),Spawns.Num(),Area->Spawns.Num());
+    TestEqual(TEXT("Portal inventory unchanged"),Portals.Num(),Area->Portals.Num());
+    TestEqual(TEXT("NPC inventory unchanged"),NPCs.Num(),Area->Spawns.IsEmpty()?13:(Parameters==TEXT("Area.TempleB1")?2:0));
+    AddInfo(FString::Printf(TEXT("%s: pieces=%d triangles=%d sections=%d blockers=%d"),*Parameters,Totals.Pieces,Totals.Triangles,Totals.DrawCalls,Totals.CollisionBoxes));
+    return true;
+}

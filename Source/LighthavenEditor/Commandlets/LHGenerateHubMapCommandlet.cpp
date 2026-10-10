@@ -1,4 +1,5 @@
 #include "LHGenerateHubMapCommandlet.h"
+#include "LHMapDressing.h"
 #include "Editor.h"
 #include "Framework/LHArrivalReview.h"
 #include "FileHelpers.h"
@@ -179,6 +180,14 @@ struct FHub
         }
         for(const auto& G:Groups)
         {
+            TArray<double> UniqueDoors;
+            for (double Door : G.Doors) UniqueDoors.AddUnique(Door);
+            for (double Door : UniqueDoors)
+            {
+                auto* Arch=LHMapDressing::Piece(World,TEXT("Presentation.Environment.Shared.Arch320"),ELHVisualStyle::Church,
+                    G.bX?FVector(G.Fixed*100,Door*100,0):FVector(Door*100,G.Fixed*100,0),FRotator(0,G.bX?90:0,0));
+                if(!Arch) bOK=false;
+            }
             TArray<double> Cuts;
             for(const auto& W:Walls) if(W.bX==G.bX && FMath::IsNearlyEqual(W.Fixed,G.Fixed)) { Cuts.Add(W.Lo); Cuts.Add(W.Hi); }
             for(double Door:G.Doors) { Cuts.Add(Door-1.6); Cuts.Add(Door+1.6); }
@@ -467,6 +476,9 @@ int32 ULHGenerateHubMapCommandlet::Main(const FString& Params)
     if(!LHWorld::ValidateRegistry(Errors)) { for(const auto& E:Errors) UE_LOG(LogTemp,Error,TEXT("%s"),*E); return 1; }
     Hub.World=GEditor->NewMap(false); if(!Hub.World) return 1;
     Hub.Populate();
+    Hub.bOK &= LHMapDressing::Dress(Hub.World,ELHVisualStyle::Church,
+        {{1450,100,1100},{-1100,100,700},{-3700,6800,900}},
+        {{700,1200,100},{-600,500,0},{-3300,7400,100}});
     TArray<FString> Manifest;
     TSet<FGuid> Ids;
     for(TActorIterator<AActor> It(Hub.World);It;++It)
