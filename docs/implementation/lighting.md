@@ -1,5 +1,59 @@
 # Lighting and native capture camera
 
+## W5-09b runtime registration correction (2026-10-10)
+
+The W5-09 host captures supersede its predicted means: B1 actually measured
+.0062/.0008/.0006, with near-black shares .92/.9995/.9995. Its component-count
+audit missed a render lifecycle defect. A diagnostic-only `UnrealEditor-Cmd
+-game -nullrhi` baseline recorded **all 59 torches registered during PostLoad
+before world initialization and before a scene existed**. Their physical settings,
+world positions and visibility were correct. UE5.8's registration code skips
+render-state creation without a scene, subsequently skips already registered
+components, and cannot repair a nonexistent render state by dirtying it during
+flicker. NullRHI itself never creates render states; the before-init registration
+is the observed defect, and the missing rendered-light consequence follows from
+the installed engine source. See the appended [W5-09b evidence](lighting-b1-w5-09.md).
+
+`Configure` now attaches/positions the transient torch first and registers only
+after `World->IsInitialized()`, including a retry for an existing unregistered
+component. Normal actor registration after world initialization handles loaded
+fixtures. `RF_Transient` is retained: the saved recipe reconstructs the light.
+No lumen, radius, exposure, sky, player fill, geometry, post-process or shadow
+setting changes. Game-world diagnostic receipts report each fixture at creation,
+PostLoad and BeginPlay, including registration, render state, position, intensity,
+units, attenuation, visibility, mobility, world influence and draw distance.
+
+`Lighthaven.World.B1LoadedGameLightingAudit` loads serialized B1 into a fresh
+Game world, checks all 59 lights **before** scene initialization, then initializes
+the world and runs actor BeginPlay. It checks registration, flame positions and
+physical settings, and checks render states when a render-capable RHI is present.
+It computes nominal unoccluded direct illuminance from those registered visible
+lights, using the UE lumen conversion and inverse-square/radius falloff:
+
+`E = lm * 10000 / (4*pi) * max(0, 1 - (d²/R²)²)² / (d² + 1) * max(0, N·L)`
+
+Distances are in cm; results are lux before temperature/tint. Receiver probes
+below and beside every torch require at least 19 floor lux and 80 vertical lux.
+The floor is z0 (264 cm below the flame); the vertical receiver is 100 cm sideways
+and 64 cm below it. These probes test light delivery; the freestanding fixtures
+do not necessarily have a physical wall at the receiver. Four room centres must
+exceed 10 torch lux, and four selected dark corners remain below 6 torch lux.
+The test independently reconstructs the old 12 landmark + 47 coverage lights and
+compares both layouts at identical points. References are UE5.8
+`PointLightComponent.cpp:145`, `DeferredLightingCommon.ush:260,309` and
+`CapsuleLightIntegrate.ush:56,59`. The estimate excludes finite-source horizon
+wrapping, RGB temperature/tint, materials, sky/fill, fog, exposure and tonemapping;
+it is a delivery regression, not a rendered luminance measurement.
+
+Nominal torch-only centre illuminance is 11.43–19.77 lux versus the old grid's
+15.92–29.85; selected corners are 2.69–5.46 versus 4.54–10.88 lux. This is
+consistent with less broad fill than the old grid (host mean approximately .3 at
+EV100 2.5). The **new capture prediction is .20 ± .05**, aiming at the unchanged
+.15–.25 band. This is a Prototype hypothesis with substantial uncertainty, not a
+linear lux-to-sRGB conversion or a measured result. Full-frame near-black <.05
+and visual readability still require fresh rendered captures; intentional void
+and the reduced sky may continue to miss that criterion.
+
 ## W5-09 B1 atmosphere (2026-10-10)
 
 B1 now has a separate **Prototype presentation** profile. `ALHVisualPiece::Build` attaches one transient warm light to every B1 Torch/Sconce recipe, including pieces loaded from existing maps. Each uses 2000 K, 1800 lm, inverse-square falloff, 700 cm attenuation radius and a 12 cm source radius. Two deterministic game-time sine waves modulate intensity by at most 6%; the phase derives from fixture position, not actor names, random state or wall-clock time. Comparing identical simulation times reproduces the intensity; waiting a fixed number of frames with variable frame durations does not imply identical game time.

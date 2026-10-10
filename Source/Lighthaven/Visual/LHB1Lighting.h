@@ -15,6 +15,8 @@ public:
     ULHB1TorchLightComponent();
     static ULHB1TorchLightComponent* Configure(ALHVisualPiece* Piece, FVector FlameLocal = FVector(0,25,14));
     static float Flicker(double GameSeconds, uint32 Seed);
+    // One fixture receipt after runtime rebuilding; also usable by world audits.
+    void LogRuntimeState(const TCHAR* Stage) const;
     virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 private:
     uint32 PhaseSeed = 0;

@@ -239,6 +239,8 @@ void ALHVisualPiece::PostLoad()
 {
     Super::PostLoad();
     if(!BuiltRecipe.Geometry.IsEmpty()) { const FLHVisualRecipe Copy=BuiltRecipe; Build(Copy); }
+    if(const auto* Light=FindComponentByClass<ULHB1TorchLightComponent>())
+        Light->LogRuntimeState(TEXT("PostLoad"));
 }
 void ALHVisualPiece::OnConstruction(const FTransform& Transform)
 {
@@ -250,6 +252,8 @@ void ALHVisualPiece::BeginPlay()
     Super::BeginPlay();
     // Regenerate dynamic materials and simple collision from serialized source at runtime.
     if(!BuiltRecipe.Geometry.IsEmpty()) { const FLHVisualRecipe Copy=BuiltRecipe; Build(Copy); }
+    if(const auto* Light=FindComponentByClass<ULHB1TorchLightComponent>())
+        Light->LogRuntimeState(TEXT("BeginPlay"));
 }
 bool ALHVisualPiece::Build(const FLHVisualRecipe& R)
 {

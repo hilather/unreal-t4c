@@ -5,6 +5,8 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Pawn.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogLHB1Lighting, Log, All);
+
 ULHB1TorchLightComponent::ULHB1TorchLightComponent()
 {
     PrimaryComponentTick.bCanEverTick=true;
@@ -22,6 +24,22 @@ float ULHB1TorchLightComponent::Flicker(double GameSeconds, uint32 Seed)
     const double Phase=(Seed%4096)*2.0*PI/4096.0;
     return 1.f+.04f*FMath::Sin(GameSeconds*3.7+Phase)+.02f*FMath::Sin(GameSeconds*7.1+Phase*1.7);
 }
+void ULHB1TorchLightComponent::LogRuntimeState(const TCHAR* Stage) const
+{
+    const UWorld* World=GetWorld();
+    if(!World || !World->IsGameWorld()) return;
+    const AActor* Owner=GetOwner();
+    UE_LOG(LogLHB1Lighting, Display,
+        TEXT("B1Torch stage=%s owner=%s world=%s game=%d initialized=%d scene=%d registered=%d renderState=%d renderDirty=%d actorPos=%s worldPos=%s relativePos=%s intensity=%.3f units=%s radius=%.3f visible=%d hidden=%d ownerHidden=%d mobility=%s affectsWorld=%d shadows=%d inverseSquared=%d maxDrawDistance=%.3f fadeRange=%.3f"),
+        Stage,*GetNameSafe(Owner),*GetNameSafe(World),World && World->IsGameWorld(),
+        World->IsInitialized(),World->Scene!=nullptr,
+        IsRegistered(),IsRenderStateCreated(),IsRenderStateDirty(),
+        *(Owner?Owner->GetActorLocation():FVector::ZeroVector).ToString(),
+        *GetComponentLocation().ToString(),*GetRelativeLocation().ToString(),Intensity,
+        *UEnum::GetValueAsString(IntensityUnits),AttenuationRadius,IsVisible(),bHiddenInGame,
+        Owner && Owner->IsHidden(),*UEnum::GetValueAsString(GetMobility()),bAffectsWorld,
+        CastShadows,bUseInverseSquaredFalloff,MaxDrawDistance,MaxDistanceFadeRange);
+}
 ULHB1TorchLightComponent* ULHB1TorchLightComponent::Configure(ALHVisualPiece* Piece,FVector FlameLocal)
 {
     if(!Piece) return nullptr;
@@ -35,12 +53,18 @@ ULHB1TorchLightComponent* ULHB1TorchLightComponent::Configure(ALHVisualPiece* Pi
     {
         Piece->AddInstanceComponent(Light);
         Light->SetupAttachment(Piece->GetRootComponent());
-        Light->RegisterComponent();
     }
     Light->SetRelativeLocation(FlameLocal);
     // Position is stable across loads; actor names may change in PIE or cooking.
     const FVector P=Piece->GetActorLocation();
     Light->PhaseSeed=HashCombine(HashCombine(GetTypeHash(FMath::RoundToInt(P.X)),GetTypeHash(FMath::RoundToInt(P.Y))),GetTypeHash(FMath::RoundToInt(P.Z)));
+    // PostLoad runs before InitWorld allocates the scene. Registering then marks
+    // the component registered without creating its render state, so normal
+    // actor registration skips it later. Leave it for that normal lifecycle;
+    // Build/BeginPlay also retry existing lights once the world is ready.
+    if(UWorld* World=Piece->GetWorld(); World && World->IsInitialized() && !Light->IsRegistered())
+        Light->RegisterComponent();
+    if(!Existing) Light->LogRuntimeState(TEXT("ConfigureCreated"));
     return Light;
 }
 void ULHB1TorchLightComponent::TickComponent(float DeltaTime,ELevelTick TickType,FActorComponentTickFunction* ThisTickFunction)
