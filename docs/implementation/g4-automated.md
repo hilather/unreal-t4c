@@ -164,3 +164,15 @@ All exported test states agree across repetitions and full/focused context.
 This is automated evidence, not G4 gate approval or hands-on coverage.
 Measurements, exact counts, commands and remaining limits:
 [W6-03fixe report](reviews/w6-03-fixes-f6.md).
+
+## W6-03fixg F8 scope checkpoint
+
+W6-03fixg submits replay-lifetime analysis and a proposed ordered runtime request
+window in [w6-03-fixes-f8.md](reviews/w6-03-fixes-f8.md). **No F8 gameplay fix is
+submitted**: the actual attack issuer/retry closure is in the unowned UI presenter;
+a safe window needs a narrow UI/session issuance seam. Random GUID eviction or
+clearing the cache at a save is unsafe because the current campaign epoch remains
+valid. Campaign rotation instead requires the D06 UI/durability handshake.
+The report records the unchanged-baseline pointer and generated-map test counts
+and focused inventory progress. Inventory filling and rollback must remain
+unverified until an authorized replay-policy implementation reaches them.
