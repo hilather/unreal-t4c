@@ -76,3 +76,69 @@ Results and evidence paths: this document; canonical attempt `report.md`, `libra
 Checks not run and concrete missing prerequisite: new over4096/replay/stale-window native regressions require the proposed issuer/policy implementation and additional UI ownership; no such implementation is submitted. Full-inventory rollback assertions require fixing F8 first. Graphical/hardware/gamepad checks require their sessions; Windows deferred.
 Known defects or remaining decisions: F8 remains; choose/authorize the two UI seam files for the proposed window, or implement a fully tested D06 campaign rotation handshake. No claim that every possible Framework-only rotation implementation is impossible; the proposed minimal runtime-window implementation crosses the specified ownership boundary. No further inventory defect established because earning still stops before inventory filling.
 Next task and integration notes: coordinator review of proposal and scope, then implementation and required native regressions; rerun focused inventory and full suites. Do not treat this evidence submission as task repair, gate approval, capacity release or integration. No push, merge, system installation or SQLite edits.
+
+## W6-03fixh: compact session receipts without combat capacity refusal
+
+Evidence candidate for coordinator review, not gate approval. Base `2255d09270a1a6629cfe23e998757194547a9dd5`. Implements the coordinator's chosen unbounded runtime policy, superseding fixg's proposed ordered-window solution. No UI, Core, saved shape, epoch rotation or map-generator change.
+
+`FLHAbilityReplayLog`, used directly by `FLHWave2Session::Execute(UseAbility)`, retains every accepted GUID mapped to a 256-bit BLAKE3 hash of the UTF-8 canonical `LHSave::RequestDigest`. There is no entry capacity refusal or eviction. Canonical encoding failure rejects without activation. Non-accepted requests remain unrecorded. Matching duplicates reconstruct Request, Accepted, None, sequence0 and bReplay=true; changed payloads return ReusedRequestId without invoking activation. Inspection of ExecuteUseAbility confirms it returns only a reason; the session's original acceptance sets no additional result fields. No historical full-result window is necessary. RuntimeAbilities.Reset remains exclusively at Fresh binding, as before; Continue preserves it. Existing blocked/paused/invalid epoch checks retain their prior order.
+
+Native regression `Lighthaven.Review.W603.AbilityReplayLifetime` exercises the same helper used by Execute:5000 accepted activations; replay of first and last; original result reconstruction; changed digests for both; activation callback count stays5000; rejected retry; reset. It also casts Light through a real session, checks replay and changed payload, checks Continue binding, and checks Fresh clearing by reinstalling the same epoch fixture and accepting the original request anew. Light learning/requirements are isolated native fixture setup, not production freebies or inventory workarounds. The first synthetic test run failed because its target IDs were incomplete; fixed fixture canonical validity, then rebuilt and passed. Focused final replay run:1 completed,0 success,1 success-with-warnings,0 failures,0 not-run/in-process,0.4528588057s, exit0. Warning is existing GameplayCueNotifyPaths configuration.
+
+### Memory
+
+An entry's payload is16-byte FGuid +32-byte FBlake3Hash =48 bytes, with no FString allocation and no FLHCommandResult. Container links, allocation slack, sparse bits and hash buckets are additional. A native TMap probe using this exact key/value type and insertion order measures `GetAllocatedSize()` (container allocations, not allocator bookkeeping or process RSS):
+
+| Accepted IDs | Payload bytes | Measured container bytes | MiB allocated |
+|---:|---:|---:|---:|
+|10,000|480,000|648,336|0.6183|
+|100,000|4,800,000|6,000,092|5.7221|
+|1,000,000|48,000,000|75,441,704|71.9468|
+
+Measured amortized allocations are64.83,60.00 and75.44 bytes/entry respectively; they vary with TMap growth/slack. These are Linux UE5.8.3 measurements, not a contractual allocation guarantee. The request/digest temporaries are freed after each call. Memory grows for the accepted session lifetime by explicit policy. Ordered IDs or a coordinated D06 campaign rotation remain possible later refinements, outside this change. Hash comparison has the usual cryptographic collision assumption; no probabilistic eviction filter is used.
+
+### Validation and further inventory finding
+
+Linux UE5.8.3, uid1000. Initial two UBA builds stalled and were interrupted (exit130), despite the prescribed checkout-local XML. The engine's log still reported memfd backing. A temporary `/tmp/fixh-build-engine` wrapper passed `-UBASharedMemoryTempFile=true -NoUBA` directly to the real Build.sh; no engine or system file was changed. UE5.8 still uses its local UBA executor under NoUBA, with detouring disabled. Editor/game both Result: Succeeded,72.79s/122.28s. Final build after correcting fixture and adding memory probe:editor13.00s/game2.44s, exit0. The temporary wrapper and commands are retained in the canonical library. No large downloads.
+
+Headless tests use the brief's checkout-local XDG_CONFIG_HOME, LocalDataCachePath, memory DDC/InstalledNoZenLocalFallback, nullrhi, unattended, nosound, nop4, noshaderworker, HomeScreen disabled and analytics/privacy overrides. All five playable maps were locally regenerated through the three existing scripts with a temporary command-editor wrapper adding those options. All three commandlets returned0 and saved expected maps; script exit1 followed baseline-pointer package errors. No fake packages, map edits or generated binaries are proposed for submission.
+
+Focused `Lighthaven.Integration.G4.SessionInventoryRollback`:exit255;1 completed,0 success,0 success-with-warnings,1 failed,0 not-run/in-process;90.7994995117s. Farming400 kills now completes, legal vendor purchases fill40 slots, a real item-drop corpse is obtained, and full-inventory loot transfer reaches its assertions. The InventoryFull rejection and no-storage-write checks pass. Exactly two assertions fail:
+
+- `exact live state rollback incl corpse and request journal`
+- `independent durable rollback`
+
+No fixture reload, synthetic drop, free reward or skipped assertion was introduced. This is a newly reached further defect, documented without patching around it. These equality failures alone do not establish inventory/corpse corruption. Source inspection identifies a candidate cause: Persist calls SyncResources before the domain rejects InventoryFull; SyncResources mutates Complete with component cooldowns/RNG/recovery and encounter clocks, while the fixture's reference S is the pre-call cached Snapshot. The last clock/Flush can also leave runtime state newer than durable state. Root cause and exact differing fields remain unverified; a follow-up should compare pre-call live/durable baselines and changed fields before choosing an atomicity repair or fixture boundary correction.
+
+Full `Lighthaven` with generated maps (`GeneratedFull`):exit0;197 completed,188 success,9 success-with-warnings,0 failures,0 not-run/in-process;314.1766967773s. **SessionInventoryRollback passes in full-suite context**,120.4706954956s, including all full-inventory live/durable equality and no-write assertions; replay regression passes,0.8093720078s. Thus the focused equality failures above are context-dependent and were not reproduced by this full run. They are retained as unresolved evidence, not asserted to be a consistently reproduced production rollback bug. No code or fixture changed between focused and full runs. Investigation must account for this disagreement; no gate/hands-on conclusion is inferred.
+
+Full `Lighthaven` with pointer maps (`PointerFull`):exit255;197 completed,181 success,5 success-with-warnings,11 failures,0 not-run/in-process;66.4662322998s. All failures have missing/unloadable generated-map evidence; inventory stops at the hub precondition. Exact failing names:
+
+- `Lighthaven.Integration.G4.DeathAndChurchRespawn`
+- `Lighthaven.Integration.G4.DoorClearance`
+- `Lighthaven.Integration.G4.EarnedMagicRoute`
+- `Lighthaven.Integration.G4.EarnedMeleeRoute`
+- `Lighthaven.Integration.G4.EarnedRangedRoute`
+- `Lighthaven.Integration.G4.SessionFloorRouteAndReload`
+- `Lighthaven.Integration.G4.SessionInventoryRollback`
+- `Lighthaven.Integration.Wave3.ArrivalSafety`
+- `Lighthaven.Integration.Wave4.B1SpawnOnContinue`
+- `Lighthaven.Integration.Wave4.B1SpawnOnTravelArrival`
+- `Lighthaven.World.LightingAudit`
+
+All five playable .umap LFS pointers and ReviewedArrivals.tsv are restored. Final git diff --check passes. Canonical worker output contains only summary counts, exact failure names, relevant failure excerpts, memory measurements and invocation scripts, below 1 MiB; no full index.json or full run logs. No binary assets are included.
+
+### W6-03fixh handoff
+
+Task ID: W6-03fixh.
+Base revision / result revision: `2255d09270a1a6629cfe23e998757194547a9dd5` / Deliverable candidate on this attempt branch; exact OID in submission receipt and canonical report.
+Contract revision: 1.
+Owned paths / binary assets: Framework helper and session files, Review regression, this report and g4-automated.md; no Integration fixture changes or submitted binary assets.
+Behavior changed: no UseAbility capacity refusal; compact accepted receipts retain replay protection for the existing runtime lifetime; original accepted results reconstructed with replay flag.
+Source-backed mechanics: none changed.
+Provisional tuning introduced: none.
+Build/editor/cook/package/play checks actually run: Linux editor/game build; local generation of five maps; focused native replay and inventory tests; full suites once with generated maps and once with pointer maps. Exact exits, counts and durations above. No cook/package/graphical play.
+Results and evidence paths: this review and canonical report.md; library/build-summary.txt, replay-summary.txt, memory-measurements.txt, inventory-summary.txt, inventory-failure-excerpt.log, generated-summary.txt, generated-inventory-result.txt, pointer-summary.txt and pointer-failure-excerpt.log; wrapper/run scripts and generation excerpts.
+Checks not run and concrete missing prerequisite: focused/full inventory disagreement requires changed-field/baseline diagnostics to establish its cause; no such diagnostic rerun claimed. Graphical/hardware/gamepad coverage requires separate sessions; Windows packaging remains deferred because there is no Windows machine. No gates are approved by this submission.
+Known defects or remaining decisions: focused inventory equality failures occur despite all full-suite assertions passing; retained unresolved. Runtime receipt memory grows by accepted-ID count as authorized. Ordered IDs or D06 rotation are later refinements. No UI/Core/saved-shape changes, push, merge, system installation or SQLite edits.
+Next task and integration notes: coordinator review/integration; investigate context-dependent inventory equality failures without bypassing earning or rollback checks. Restore/generated map handling and privacy invocation scripts are recorded for reproducibility. This report is an evidence candidate, not task verification, gate approval or worker-capacity release.

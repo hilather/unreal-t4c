@@ -263,4 +263,80 @@ bool FLHW603Corpse::RunTest(const FString&)
     TestEqual(TEXT("living solid still blocks attack sight"),Attacker->GetCombatComponent()->ValidateAttack(Living->GetCombatComponent()),ELHCommandReason::OutOfRange);
     return !HasAnyErrors();
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHW603AbilityReplay,"Lighthaven.Review.W603.AbilityReplayLifetime",LHW603TestsPrivate::Flags)
+bool FLHW603AbilityReplay::RunTest(const FString&)
+{
+    FLHAbilityReplayLog Log; int32 Executions=0;
+    FLHUseAbilityRequest First,Recent;
+    First.Request.Epoch=FGuid::NewGuid(); First.Ability.Value=TEXT("Attack.Melee.Basic");
+    First.Target.RunId=FGuid::NewGuid(); First.Target.InstanceId=FGuid::NewGuid(); First.Target.Area.Content.Value=TEXT("Area.TempleB1");
+    for(int32 I=0;I<5000;++I)
+    {
+        auto Q=First; Q.Request.Value=FGuid::NewGuid();
+        if(I==0) First=Q;
+        Recent=Q;
+        const auto R=Log.Execute(Q,[&](){++Executions; return ELHCommandReason::None;});
+        if(!TestEqual(TEXT("activation accepted beyond capacity"),R.Disposition,ELHCommandDisposition::Accepted)) return false;
+    }
+    for(const auto& Q:{First,Recent})
+    {
+        const auto R=Log.Execute(Q,[&](){++Executions; return ELHCommandReason::None;});
+        TestTrue(TEXT("old and recent replay"),R.bReplay);
+        TestEqual(TEXT("original disposition"),R.Disposition,ELHCommandDisposition::Accepted);
+        TestEqual(TEXT("original reason"),R.Reason,ELHCommandReason::None);
+        TestEqual(TEXT("original sequence"),R.CommittedSequence,int64(0));
+        TestEqual(TEXT("original request"),R.Request.Value,Q.Request.Value);
+        auto Changed=Q; Changed.Ability.Value=TEXT("Spell.Light");
+        TestEqual(TEXT("old and recent changed payload"),Log.Execute(Changed,[]{return ELHCommandReason::None;}).Reason,ELHCommandReason::ReusedRequestId);
+    }
+    TestEqual(TEXT("duplicates never activate"),Executions,5000);
+    auto Rejected=First; Rejected.Request.Value=FGuid::NewGuid();
+    Log.Execute(Rejected,[]{return ELHCommandReason::Cooldown;});
+    TestFalse(TEXT("rejected request can retry"),Log.Execute(Rejected,[]{return ELHCommandReason::None;}).bReplay);
+    Log.Reset();
+    TestFalse(TEXT("reset clears receipts"),Log.Execute(First,[]{return ELHCommandReason::None;}).bReplay);
+    UE_LOG(LogTemp,Display,TEXT("Ability replay payload bytes: key=%llu digest=%llu"),uint64(sizeof(FGuid)),uint64(sizeof(FBlake3Hash)));
+    TMap<FGuid,FBlake3Hash> MemoryProbe;
+    for(int32 I=1;I<=1000000;++I)
+    {
+        MemoryProbe.Add(FGuid(uint32(I),0,0,0),FBlake3Hash{});
+        if(I==10000 || I==100000 || I==1000000)
+            UE_LOG(LogTemp,Display,TEXT("Ability replay allocated at %d entries: %llu bytes"),I,uint64(MemoryProbe.GetAllocatedSize()));
+    }
+    MemoryProbe.Empty();
+    using namespace LHW603TestsPrivate;
+    FRuntime Runtime(MakeShared<FStorage>()); Runtime.Create(); Runtime.Flush(); Runtime.Session->Bind(Runtime.State);
+    auto* Pawn=Runtime.World->SpawnActor<ALHCharacter>(); Runtime.State->InitializeAvatar(Pawn);
+    Runtime.EarnAllocationPoints();
+    FLHAllocateAttributePointsRequest Allocate; Allocate.Request.Value=FGuid::NewGuid();
+    Allocate.Request.Epoch=Runtime.Session->Snapshot().Session.RequestEpoch; Allocate.Points=Points();
+    Allocate.Points.Strength=LHWave2::PrototypeInteger(0); Allocate.Points.Intelligence=LHWave2::PrototypeInteger(2);
+    if(!TestEqual(TEXT("Light requirements"),Runtime.Session->Execute(Allocate).Disposition,ELHCommandDisposition::Accepted)) return false;
+    Runtime.Flush(); Runtime.Session->bInGameplay=true;
+    auto S=Runtime.Session->Snapshot(); FLHContentId Spell; Spell.Value=TEXT("Spell.Light"); S.Character.LearnedSpells.Add(Spell);
+    if(!TestTrue(TEXT("install Light fixture"),Runtime.Session->InstallTravel(S))) return false;
+    if(!TestTrue(TEXT("start session"),Runtime.Session->StartEncounters())) return false;
+    FLHUseAbilityRequest Q; Q.Request.Value=FGuid::NewGuid(); Q.Request.Epoch=S.Session.RequestEpoch;
+    Q.Ability=Spell; Q.Target=Runtime.Session->HudState().Player;
+    const auto Original=Runtime.Session->Execute(Q);
+    if(!TestEqual(TEXT("session accepted"),Original.Disposition,ELHCommandDisposition::Accepted)) return false;
+    Runtime.World->GetTimerManager().Tick(0.1f);
+    const auto Replay=Runtime.Session->Execute(Q);
+    TestTrue(TEXT("session replay"),Replay.bReplay);
+    TestEqual(TEXT("session original reason"),Replay.Reason,Original.Reason);
+    TestEqual(TEXT("session original sequence"),Replay.CommittedSequence,Original.CommittedSequence);
+    auto Changed=Q; Changed.Ability.Value=TEXT("Missing.Ability");
+    TestEqual(TEXT("session changed digest"),Runtime.Session->Execute(Changed).Reason,ELHCommandReason::ReusedRequestId);
+    TestTrue(TEXT("Continue bind preserves receipts"),Runtime.Session->Bind(Runtime.State));
+    TestTrue(TEXT("replay after Continue bind"),Runtime.Session->Execute(Q).bReplay);
+    TestTrue(TEXT("Fresh bind"),Runtime.Session->Bind(Runtime.State,true));
+    // Restore the same epoch/request fixture so this checks clearing rather than epoch rejection.
+    TestTrue(TEXT("reinstall same fixture"),Runtime.Session->InstallTravel(S));
+    TestTrue(TEXT("restart fresh gameplay"),Runtime.Session->StartEncounters());
+    Runtime.State->GetCombatComponent()->RestoreCooldownMap({});
+    const auto AfterFresh=Runtime.Session->Execute(Q);
+    TestFalse(TEXT("Fresh cleared receipt"),AfterFresh.bReplay);
+    TestEqual(TEXT("Fresh permits original activation again"),AfterFresh.Disposition,ELHCommandDisposition::Accepted);
+    return !HasAnyErrors();
+}
 #endif

@@ -176,3 +176,21 @@ valid. Campaign rotation instead requires the D06 UI/durability handshake.
 The report records the unchanged-baseline pointer and generated-map test counts
 and focused inventory progress. Inventory filling and rollback must remain
 unverified until an authorized replay-policy implementation reaches them.
+
+## W6-03fixh F8 runtime receipt policy
+
+UseAbility now retains compact accepted-ID/digest receipts for the existing runtime
+session lifetime without a4096-entry refusal. Fresh binding clears them; Continue
+retains them. Native helper/session replay regression passes, including5000
+activations, oldest/recent replay, changed payloads, and Fresh clearing.
+See [W6-03fixh evidence](reviews/w6-03-fixes-f8.md#w6-03fixh-compact-session-receipts-without-combat-capacity-refusal).
+
+Generated-map full suite completes197 tests:188 success,9 success-with-warnings,
+0 failures. SessionInventoryRollback reaches and passes all assertions in that
+run. The focused inventory run also finishes400 kills and fills40 slots, rejects
+loot as InventoryFull and performs no write, but fails exact live and independent
+durable equality. No fixture or code differs between these two runs; the focused
+failures remain unresolved context-dependent evidence. Automated observations
+are not G4 gate approval or hands-on coverage.
+
+Pointer-map full suite:197 completed,181 success,5 success-with-warnings,11 failures; all failures have missing/unloadable generated-map evidence. Exact names and durations are in the W6-03fixh review. Five playable pointers and ReviewedArrivals.tsv are restored.
