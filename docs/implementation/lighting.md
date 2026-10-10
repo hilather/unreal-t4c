@@ -100,3 +100,23 @@ The script retains independent launches,1280×720 screenshots after120 warmup fr
 Worker validation details and limitations are recorded in the attempt report. No W4-09e rendered image, measured final luminance or visual acceptance is claimed.
 
 Final worker checks: editor/game builds succeeded (exit0). LightingAudit JSON reports1 succeeded/0 failed after local regeneration (exit0). B3 editor-game nullRHI smoke exited0 and logged the native character boom−55/45, absolute True, arm1200, collision True, control-rotation False and FOV45. This is property validation, not rendered framing. Maps restored before submission.
+
+## W5-11b capture retries (2026-10-10)
+
+Map captures use `build/lh_capture_common.py` for up to three attempts per view.
+The existing 55 s launch timeout and 5 s SIGTERM grace stay unchanged; after
+SIGKILL the helper waits at most 60 s, then records the surviving PID plus Linux
+`status`, `wchan`, and up to 20 stack lines (or read errors) in an
+`<map-view>.attempt<N>.process.txt` file and continues. It cannot repair or reap
+a process stuck in the GPU driver. Each attempt is recorded immediately in
+`attempts.jsonl`; failed attempt images/logs are retained with attempt suffixes,
+while successful output paths, camera commands and luminance calculations stay
+unchanged. Stale images are removed from the canonical path before each retry.
+Launch, placement and measurement failures retry; exhausted views do not stop
+later views, but make the final exit non-zero. Every view prints captured/failed
+and its attempt count. `luminance.tsv` still contains successful measurements.
+
+Run `bash build/capture-map-screenshots.sh --self-test` without a binary, display
+or ImageMagick to test normal/nonzero exits, missing executables, hangs, ignored
+SIGTERM, retries and continuation. A SIGKILL survivor is simulated in this test;
+a real driver-stuck process and rendered captures still require the host check.
