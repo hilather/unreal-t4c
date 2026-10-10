@@ -459,7 +459,6 @@ ELHCommandReason FLHCharacterAuthority::Validate(const FLHSaveSnapshot &S) const
             return ELHCommandReason::InvalidRequest;
         SpellIDs.Add(Spell.Value);
     }
-    double Weight = 0;
     TSet<FGuid> ItemIds;
     for (const auto &I : C.Inventory)
     {
@@ -472,7 +471,6 @@ ELHCommandReason FLHCharacterAuthority::Validate(const FLHSaveSnapshot &S) const
             return ELHCommandReason::UnresolvedRules;
         if (I.Quantity.Value > D->StackLimit.Value)
             return ELHCommandReason::InvalidRequest;
-        Weight += I.Quantity.Value * D->Weight.Value;
     }
     TSet<ELHEquipmentSlot> Slots;
     TSet<FGuid> Bound;
@@ -487,8 +485,9 @@ ELHCommandReason FLHCharacterAuthority::Validate(const FLHSaveSnapshot &S) const
     const auto Derived = Stats(C);
     if (!Derived.Diagnostic.IsAccepted())
         return LHCharacterAuthorityPrivate::Reason(Derived.Diagnostic);
-    if (!FMath::IsFinite(Weight) || Weight > Derived.Value.Capacity)
-        return ELHCommandReason::InventoryFull;
+    // Unlimited carry weight: deferred by owner decision (Matt, 2026-10-09).
+    // Replacement point: enforce a reviewed capacity policy here when authorized.
+    // Item weight metadata validation and inventory entry limits remain independent.
     FRequirementInput Req;
     LHCharacterAuthorityPrivate::Attributes(C.BaseAttributes, Req.Base);
     Req.Effective = Derived.Value.Effective;
