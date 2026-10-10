@@ -254,3 +254,11 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
   4. **Equipment, loot, item drops and corpses.**
   5. **Effects:** impact, spell, resource and target cues; then HUD/UI art and icons.
   6. **Environments:** church/hub interior and the exterior village (left half of `temple-and-basement-concept.png`), then the B2, B3 and B4 kits and lighting, once B1 proves the approach (W5-09 host capture pending).
+- **Farm df7e66e deployed (orch):** LOST-OWNERSHIP-1 and WORKER-OUTPUT-BUDGET-1 are live. Keep the 40 MiB output habit. LAUNCH-LEASE-EXPIRED-1 is still open: if a launch goes ambiguous with "lease expired", ping the orch.
+- **W5-09 (653ed5e) not merged.**
+  - **Host (main 4c284df + 653ed5e, B1/B2 regenerated):** build OK, 211/211, arrivals 9/9 unchanged, validator 0, package OK after clearing a /tmp quota (old host clones).
+  - **But B1 renders almost black:** room means .006 / .0008 / .0006 against a predicted ~.20. The flames glow and the cool player fill shows, but the 59 torch lights light nothing in the packaged game.
+  - → **W5-09b:** find the root cause in a game world and fix it, with a native illuminance check. It launches after W5-10 frees `LighthavenTests/Visual/`. Captures are in `scratch/captures/w5-09/`.
+  - Other floors are unchanged: B2 .21–.23, B3 .18–.25, B4 .22–.33. The player figure lies flat in B1 room 1 again (player backlog).
+- **W6-03fixi (F9) submitted (b5ca1ff):** root cause measured. On a rejected command, `Persist` imported runtime mana-regeneration progress, cooldowns and RNG into live state. Now the update is captured into a candidate snapshot and published only on acceptance; allocation and equipment had the same pattern and are fixed too. Regression `Review.W603.RejectedResourceCapture`. Host check running.
+- **W5-10 (sol) running:** creature import.
