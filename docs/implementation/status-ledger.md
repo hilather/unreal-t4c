@@ -235,3 +235,9 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
   - **Lighting pass:** after the W5-07 host capture.
 
   Open visual observation: in the B1-room1 and B4-room1 captures the player figure is lying down or tilted.
+- **Visual pilots (2026-10-10 evening).**
+  - **W5-07:** only confirmed that Blender runs in the sandbox, then stopped at a path checkpoint. My brief said `ArtSource/`; project memory requires lowercase `artsource/`. Visual work also belongs on **codex-astra** (memory), not codex-sol.
+  - **W5-07b (astra, 62790e2):** `artsource/blender/build_env.py` builds 12 B1Cellar pieces: 26.5k triangles, 4.8 MB exported (GLB plus nine shared 512 px baked textures), deterministic. Its Blender mock room reads in the concept's direction (warm torch pools, masonry, props); stone is still too regular.
+  - **W5-08b (sol, a8a579a):** a technical creature pilot (rat, bat, slime; rigged, five actions, GLB validated). It still looks toy-like and uses an uppercase path. Superseded in look by **W5-08c (astra)**, now running.
+  - **W5-07c (sol):** now running. It imports the kit into Unreal and binds B1Cellar in code, with no map regeneration; the coordinator commits the imported assets.
+  - **Matt:** send him visuals only once they look great.
