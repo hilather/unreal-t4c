@@ -178,9 +178,27 @@ FLHCommandResult FLHWave2Session::Execute(const FLHUseAbilityRequest& Q)
     // D16: no receipt, sequence advance, or save per activation.
     return R;
 }
+bool FLHWave2Session::PopulateEncounterCheckpoint(FLHSaveSnapshot& Snapshot,FString& Error)
+{
+    const auto* Definition=LHWorld::FindArea(Snapshot.Character.ActiveEntrance.Area);
+    if (!Definition) { Error=TEXT("Encounter area missing from registry"); UE_LOG(LogTemp,Warning,TEXT("LH populate refused: %s"),*Error); return false; }
+    if (Definition->Spawns.IsEmpty()) return true;
+    auto Next=Snapshot;
+    auto* Area=LHStage1SessionPrivate::Area(Next);
+    if (!Area) { FLHAreaRecord New; New.Area=Definition->Id; Next.World.Areas.Add(New); Area=&Next.World.Areas.Last(); }
+    const auto Reason=LHRewards::PopulateArea(*Area,*Definition,LHStage1SessionPrivate::Health);
+    if (Reason!=ELHCommandReason::None) { Error=FString::Printf(TEXT("PopulateArea area=%s reason=%d"),*Definition->Id.Content.Value.ToString(),int32(Reason)); UE_LOG(LogTemp,Warning,TEXT("LH populate refused: %s"),*Error); return false; }
+    for (auto& E:Area->Encounters)
+    {
+        FLHSaveError SaveError;
+        if (!LHSave::EnemyLifeRewardId(Next.World.RunId,E.Life,E.KillReward,SaveError))
+        { Error=SaveError.Detail; UE_LOG(LogTemp,Warning,TEXT("LH populate refused marker=%s: %s"),*E.Life.SpawnSlot.ToString(),*Error); return false; }
+    }
+    Snapshot=MoveTemp(Next); return true;
+}
 bool FLHWave2Session::StartEncounters()
 {
-    if (!Owner.IsValid() || !Owner->GetCombatAvatar() || !HasCharacter()) return false;
+    if (!Owner.IsValid() || !Owner->GetCombatAvatar() || !HasCharacter()) { UE_LOG(LogTemp,Warning,TEXT("LH populate refused: owner=%d avatar=%d character=%d"),Owner.IsValid(),Owner.IsValid() && Owner->GetCombatAvatar()!=nullptr,HasCharacter()); return false; }
     auto* Combat=Owner->GetCombatComponent(); Combat->SetStableEntity(PlayerEntity());
     Combat->ConfigureManaRegen(LHWave2::PrototypeProfile().Rules.Mana);
     Combat->ManaRegenFractionalSeconds=Complete.Session.ManaRegenFractionalSeconds.Value;
@@ -188,21 +206,21 @@ bool FLHWave2Session::StartEncounters()
     if (const auto* Rng=Complete.Session.GameplayRng.FindByPredicate([](const auto& R){return R.StreamId==TEXT("RNG.Combat");}); Rng && Rng->State.Num()==4)
     { uint32 Seed=0; for(int32 B=0;B<4;++B) Seed|=uint32(Rng->State[B])<<(B*8); Combat->SetCombatRandomState(FRandomStream(int32(Seed))); }
     const auto* Definition=LHWorld::FindArea(Complete.Character.ActiveEntrance.Area);
-    if (!Definition) return false;
+    if (!Definition) { UE_LOG(LogTemp,Warning,TEXT("LH populate refused: registry area=%s missing"),*Complete.Character.ActiveEntrance.Area.Content.Value.ToString()); return false; }
     bDeadAwaitingRespawn=Complete.Character.CurrentHealth.Value<=0;
     if (Definition->Spawns.IsEmpty()) return true;
     auto Next=Complete; auto* Area=LHStage1SessionPrivate::Area(Next);
     if (!Area) { FLHAreaRecord New; New.Area=Definition->Id; Next.World.Areas.Add(New); Area=&Next.World.Areas.Last(); }
     const bool FirstVisit=Area->Encounters.IsEmpty();
-    if (LHRewards::PopulateArea(*Area,*Definition,LHStage1SessionPrivate::Health)!=ELHCommandReason::None) return false;
+    FString PopulateError;
+    if (!PopulateEncounterCheckpoint(Next,PopulateError)) return false;
     if (FirstVisit)
     {
-        for (auto& E:Area->Encounters)
-        { FLHSaveError Error; if (!LHSave::EnemyLifeRewardId(Next.World.RunId,E.Life,E.KillReward,Error)) return false; }
+        if (Next.Header.TransactionSequence==MAX_int64) { UE_LOG(LogTemp,Warning,TEXT("LH populate refused: transaction sequence exhausted")); return false; }
         ++Next.Header.TransactionSequence;
-        if (!AcceptBoundary(MoveTemp(Next),false)) return false;
+        if (!AcceptBoundary(MoveTemp(Next),false)) { UE_LOG(LogTemp,Warning,TEXT("LH populate refused: checkpoint authority validation failed")); return false; }
     }
-    Director=Owner->GetWorld()->GetSubsystem<ULHEncounterDirector>(); if (!Director.IsValid()) return false;
+    Director=Owner->GetWorld()->GetSubsystem<ULHEncounterDirector>(); if (!Director.IsValid()) { UE_LOG(LogTemp,Warning,TEXT("LH populate refused: loaded world director missing")); return false; }
     Director->RunId=Complete.World.RunId; Director->Player=Owner->GetCombatAvatar();
     Director->ResolveSpec=[](const FLHContentId& Id)->const FLHEnemyRuntimeSpec* { const auto* Row=LHEnemyData::Find(Id); return Row?&Row->Runtime:nullptr; };
     // Director lives in the world; weak session callbacks cannot outlive the session owner.

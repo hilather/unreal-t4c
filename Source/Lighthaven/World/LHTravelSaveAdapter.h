@@ -9,6 +9,7 @@ class LIGHTHAVEN_API FLHTravelSaveAdapter : public ILHTravelHost
 public:
     struct FHooks
     {
+        TFunction<bool(FLHSaveSnapshot&,FString&)> PrepareArrival;
         TFunction<void(bool)> Freeze;
         TFunction<bool(FLHSaveSnapshot&,FString&)> Capture;
         TFunction<void(const FLHSaveSnapshot&)> Durable;
@@ -24,6 +25,7 @@ public:
     virtual void SaveCheckpoint(const FLHSaveSnapshot& Snapshot,uint64 Token) override;
     virtual void CheckpointDurable(const FLHSaveSnapshot& Snapshot) override;
     virtual void LoadDestination(const FLHAreaDefinition& Area,uint64 Token) override;
+    virtual bool PrepareArrival(FLHSaveSnapshot& Snapshot,FString& Error) override;
     virtual bool ValidateAndInstallArrival(const FLHSaveSnapshot& Snapshot,const FLHEntranceDefinition& Entrance,FString& Error) override;
     virtual void RestoreSource(const FLHSaveSnapshot& Snapshot,const FLHEntranceDefinition& Entrance,uint64 Token) override;
 private:
