@@ -1,4 +1,5 @@
 #include "LHGenerateBasementAMapsCommandlet.h"
+#include "LHMapDressing.h"
 #include "Editor.h"
 #include "Framework/LHArrivalReview.h"
 #include "EngineUtils.h"
@@ -367,6 +368,9 @@ int32 ULHGenerateBasementAMapsCommandlet::Main(const FString& Params)
         const auto* Area=LHWorld::FindArea(Id); if(!Area) return 1;
         UWorld* World=GEditor->NewMap(false); if(!World) return 1;
         FBuilder Builder{World,Cube}; if(B1) Builder.B1(); else Builder.B2(); Builder.CoverageLighting(); Builder.Authoring(*Area,B1); Builder.CheckRoutes(B1);
+        Builder.bOK &= LHMapDressing::Dress(World,B1?ELHVisualStyle::B1Cellar:ELHVisualStyle::B2Damp,
+            B1?TArray<FVector>{{1400,-2400,900},{-2500,200,900},{5000,200,1000}}:TArray<FVector>{{1600,-6200,1000},{-2200,300,1000},{4500,5400,1000}},
+            B1?TArray<FVector>{{800,-1600,0},{-1800,1100,0},{4100,1500,0}}:TArray<FVector>{{900,-5200,0},{-1400,1400,0},{3600,6300,0}});
         if(!Builder.bOK || !IFileManager::Get().MakeDirectory(*FPaths::GetPath(Filename),true) || !FEditorFileUtils::SaveMap(World,Filename)) return 1;
         UE_LOG(LogTemp,Display,TEXT("Generated %s: %d encounter anchors; safety unreviewed"),*Package,Area->Spawns.Num());
         UE_LOG(LogTemp,Display,TEXT("Authored actor identity/transform fingerprint %s: %s"),*Package,*Builder.Fingerprint());
