@@ -298,3 +298,26 @@ bool FLHServiceCatalogTest::RunTest(const FString&)
     TestEqual(TEXT("No Rolph invention"),LHServices::Offers(Id(TEXT("NPC.Rolph")),Fixture().S).Num(),0); return true;
 }
 #endif
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServicePolicyTest,"Lighthaven.Services.AuthoredPolicyReadiness",LHServiceTestsPrivate::Flags)
+bool FLHServicePolicyTest::RunTest(const FString&)
+{
+    using namespace LHServiceTestsPrivate;
+    Fixture F;
+    for(auto& D:F.P.Items) { D.StackLimit.Provenance.Status=ELHProvenanceStatus::Modernized; D.Weight=N(1000000); }
+    F.P.InventorySlots.Provenance.Status=ELHProvenanceStatus::Modernized;
+    TestEqual(TEXT("Authored stack/slots and weight above legacy capacity"),LHServices::Execute(F.C,F.S,F.Buy()),ELHCommandReason::None);
+    for(auto Status:{ELHProvenanceStatus::Missing,ELHProvenanceStatus::Disputed}) {
+        for(auto& D:F.P.Items) D.StackLimit.Provenance.Status=Status;
+        const auto Before=F.S;
+        TestEqual(TEXT("Unresolved policy rejected"),LHServices::Execute(F.C,F.S,F.Buy()),ELHCommandReason::UnresolvedRules);
+        TestTrue(TEXT("No charge or mutation"),Equal(Before,F.S));
+    }
+    for(auto& D:F.P.Items) D.StackLimit.Provenance.Status=ELHProvenanceStatus::Modernized;
+    F.S.Character.Gold.Provenance.Status=ELHProvenanceStatus::Modernized;
+    TestEqual(TEXT("Authored policy cannot authorize a balance"),LHServices::Execute(F.C,F.S,F.Buy()),ELHCommandReason::UnresolvedRules);
+    F.S.Character.Gold.Provenance.Status=ELHProvenanceStatus::Prototype;
+    for(auto& D:F.P.Items) D.StackLimit.Resolution=ELHValueResolution::Unresolved;
+    TestEqual(TEXT("Null policy rejected"),LHServices::Execute(F.C,F.S,F.Buy()),ELHCommandReason::UnresolvedRules);
+    return true;
+}
