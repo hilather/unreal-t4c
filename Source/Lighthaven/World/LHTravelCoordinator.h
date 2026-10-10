@@ -19,6 +19,7 @@ public:
     virtual void CheckpointDurable(const FLHSaveSnapshot& Snapshot) {}
     virtual void LoadDestination(const FLHAreaDefinition& Area, uint64 Token) = 0;
     // Validate actual loaded map, entrance marker, collision/enemy safety; install before arrival save.
+    virtual bool PrepareArrival(FLHSaveSnapshot& Snapshot, FString& Error) { return true; }
     virtual bool ValidateAndInstallArrival(const FLHSaveSnapshot& Snapshot, const FLHEntranceDefinition& Entrance, FString& Error) = 0;
     // Reload/rebuild canonical source and place at its source entrance; notify restoration completion.
     virtual void RestoreSource(const FLHSaveSnapshot& Snapshot, const FLHEntranceDefinition& Entrance, uint64 Token) = 0;

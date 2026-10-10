@@ -423,6 +423,6 @@ bool FLHLightTransient::RunTest(const FString&)
     auto& B=C.Snapshot.Character.BaseAttributes; B.Strength=LHCombatTestsPrivate::Integer(21); B.Endurance=B.Strength; B.Agility=B.Strength; B.Intelligence=B.Strength; B.Wisdom=B.Strength; C.Snapshot.Character.EarnedLevel=LHCombatTestsPrivate::Integer(2);
     FLHUseAbilityRequest R; R.Ability.Value=TEXT("Spell.Light"); R.Target=C.TargetId; C.Snapshot.Character.LearnedSpells.Add(R.Ability);
     TestTrue(TEXT("Caster light"),LHAbilities::ExecuteUseAbility(C,R)==ELHCommandReason::None); TestEqual(TEXT("Sourced duration"),F.Attacker->GetLightRemainingSeconds(),600.0); TestEqual(TEXT("No health effect"),F.Attacker->GetCombatAttributes()->GetHealth(),100.f); TestEqual(TEXT("Sourced cost"),F.Attacker->GetCombatAttributes()->GetMana(),0.f);
-    F.Attacker->ClearCombatAvatar(); TestEqual(TEXT("Transient discarded"),F.Attacker->GetLightRemainingSeconds(),0.0); return true;
+    F.Attacker->ClearCombatAvatar(); TestEqual(TEXT("Travel detachment preserves Light"),F.Attacker->GetLightRemainingSeconds(),600.0); return true;
 }
 #endif

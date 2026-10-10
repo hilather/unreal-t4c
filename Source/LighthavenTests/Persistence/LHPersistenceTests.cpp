@@ -1,3 +1,4 @@
+#include "Persistence/LHDurableEffects.h"
 #include "Algo/Reverse.h"
 #include "HAL/PlatformTime.h"
 #include "Misc/AutomationTest.h"
@@ -432,6 +433,30 @@ LH_TEST(FLHPersistenceLocalAsync,"LocalAsyncWriteAndReopen")
     FLHSaveError Error;
     if (!TestTrue(TEXT("Request local asynchronous write"),Context->Store->RequestSave(Context->Snapshot,Compatibility(Context->Snapshot),true,Error))) { AddError(Error.Detail); return false; }
     AddCommand(new FWaitForLocalSave(Context));
+    return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDurableAllowlistTest,"Lighthaven.Persistence.DurableEffectAllowlist",EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FLHDurableAllowlistTest::RunTest(const FString&)
+{
+    using namespace LHPersistenceTestsPrivate;
+    auto S=Fixture(); FLHSaveError E; TArray<uint8> Bytes,Again;
+    S.Session.DurableEffects.Add(LHSave::MakeDurableLight(Entity(S,4),S.Session.RequestEpoch,321.25));
+    TestTrue(TEXT("Light encodes"),LHSave::Encode(S,Bytes,E));
+    FLHSaveSnapshot Reload;
+    TestTrue(TEXT("Light decodes"),LHSave::Decode(Bytes,S.Header.CharacterId,Compatibility(S),Reload,E));
+    if(Reload.Session.DurableEffects.Num()==1) TestEqual(TEXT("Remaining preserved"),Reload.Session.DurableEffects[0].RemainingSeconds.Value,321.25);
+    else AddError(TEXT("Expected one restored effect"));
+    TestTrue(TEXT("Reencode"),LHSave::Encode(Reload,Again,E)); TestTrue(TEXT("Canonical bytes"),Bytes==Again);
+    const auto Good=S.Session.DurableEffects[0];
+    auto Reject=[&](const TCHAR* Label,FLHDurableEffectRecord R) {S.Session.DurableEffects={R}; TestFalse(Label,LHSave::Encode(S,Again,E));};
+    auto R=Good; R.Effect.Value=TEXT("Effect.Unknown"); Reject(TEXT("Unknown rejected"),R);
+    R=Good; R.RemainingSeconds.Value=601; Reject(TEXT("Overflow rejected"),R);
+    R=Good; R.RemainingSeconds.Value=0; Reject(TEXT("Expired record rejected"),R);
+    R=Good; R.Source.InstanceId=FGuid(1,1,1,1); Reject(TEXT("Nonself source rejected"),R);
+    R=Good; R.CanonicalInputs[0].Value.Value+=1; Reject(TEXT("Epoch mismatch rejected"),R);
+    R=Good; R.Stacks.Value=2; Reject(TEXT("Stack rejected"),R);
+    R=Good; auto Extra=R.CanonicalInputs[0]; R.CanonicalInputs.Add(Extra); Reject(TEXT("Extra input rejected"),R);
+    S.Session.DurableEffects={Good,Good}; TestFalse(TEXT("Duplicate rejected"),LHSave::Encode(S,Again,E));
     return true;
 }
 #undef LH_TEST

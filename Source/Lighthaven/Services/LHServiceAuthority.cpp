@@ -1,7 +1,15 @@
 #include "Services/LHServiceAuthority.h"
 namespace LHServiceAuthorityPrivate
 {
-bool Ready(const FLHInteger& I) { return I.Resolution==ELHValueResolution::Resolved && I.Value>=0 && (I.Provenance.Status==ELHProvenanceStatus::Confirmed || I.Provenance.Status==ELHProvenanceStatus::Prototype); }
+// Modernized authorizes authored policy only, never historical costs or balances.
+bool Ready(const FLHInteger& I, bool AuthoredPolicy=false)
+{
+    return I.Resolution==ELHValueResolution::Resolved && I.Value>=0 &&
+        (I.Provenance.Status==ELHProvenanceStatus::Confirmed ||
+         I.Provenance.Status==ELHProvenanceStatus::VerifiedT4C ||
+         I.Provenance.Status==ELHProvenanceStatus::Prototype ||
+         (AuthoredPolicy && I.Provenance.Status==ELHProvenanceStatus::Modernized));
+}
 bool Same(const FLHEntityId& A,const FLHEntityId& B) { return A.RunId==B.RunId && A.Area.Content.Value==B.Area.Content.Value && A.InstanceId==B.InstanceId; }
 const FLHServiceOffer* Find(const FLHServiceContext& C,ELHServiceKind K,FName Subject,bool ById=false) { return LHServices::Catalog().FindByPredicate([&](const auto& O){return O.Npc.Value==C.Npc.Value && O.Kind==K && (ById?O.Id.Value:O.Subject.Value)==Subject;}); }
 ELHCommandReason Common(const FLHServiceContext& C,const FLHSaveSnapshot& S,const FLHEntityId& Target)
@@ -78,7 +86,7 @@ ELHCommandReason Execute(const FLHServiceContext& C,FLHSaveSnapshot& S,const FLH
     if(!Ready(R.Quantity) || R.Quantity.Value<=0) return ELHCommandReason::InvalidRequest;
     const auto* O=Find(C,ELHServiceKind::BuyItem,R.Offer.Value,true); if(!O) return ELHCommandReason::NotFound;
     const auto* D=C.ItemLookup?C.ItemLookup(O->Subject):C.Profile->Items.FindByPredicate([&](const auto& I){return I.Id.Value==O->Subject.Value;});
-    if(!D || D->Id.Value!=O->Subject.Value || !Ready(D->StackLimit) || D->StackLimit.Value<=0 || !Ready(C.Profile->InventorySlots)) return ELHCommandReason::UnresolvedRules;
+    if(!D || D->Id.Value!=O->Subject.Value || !Ready(D->StackLimit,true) || D->StackLimit.Value<=0 || !Ready(C.Profile->InventorySlots,true)) return ELHCommandReason::UnresolvedRules;
     const int64 Slots=R.Quantity.Value/D->StackLimit.Value+(R.Quantity.Value%D->StackLimit.Value!=0);
     if(Slots>512-S.Character.Inventory.Num() || Slots>C.Profile->InventorySlots.Value-S.Character.Inventory.Num()) return ELHCommandReason::InventoryFull;
     auto N=S; Reason=Cost(N,*O,R.Quantity.Value); if(Reason!=ELHCommandReason::None) return Reason;

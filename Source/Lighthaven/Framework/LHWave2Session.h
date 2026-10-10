@@ -51,9 +51,10 @@ public:
     FLHCommandResult Execute(const FLHCreateCharacterRequest&) override;
     FLHCommandResult Execute(const FLHAllocateAttributePointsRequest&) override;
     FLHCommandResult Execute(const FLHEquipItemRequest&) override;
-#define LH_UNSUPPORTED(T) FLHCommandResult Execute(const T&) override { FLHCommandResult R; R.Reason=ELHCommandReason::UnresolvedRules; return R; }
-    LH_UNSUPPORTED(FLHTrainSkillRequest) LH_UNSUPPORTED(FLHLearnSpellRequest) LH_UNSUPPORTED(FLHBuyItemRequest)
-    LH_UNSUPPORTED(FLHSellItemRequest)
+    FLHCommandResult Execute(const FLHTrainSkillRequest&) override;
+    FLHCommandResult Execute(const FLHLearnSpellRequest&) override;
+    FLHCommandResult Execute(const FLHBuyItemRequest&) override;
+    FLHCommandResult Execute(const FLHSellItemRequest&) override;
     FLHCommandResult Execute(const FLHUseAbilityRequest&) override;
     FLHCommandResult Execute(const FLHInteractRequest&) override;
     FLHCommandResult Execute(const FLHUseItemRequest&) override;
@@ -63,13 +64,15 @@ public:
     TArray<FLHUILootRow> CorpseContents(const FLHEntityId&) const override;
     FString RequestRespawn() override;
     void SetGameplayPaused(bool) override;
+    static bool PopulateEncounterCheckpoint(FLHSaveSnapshot& Snapshot,FString& Error);
     bool StartEncounters();
     void TickGameplay(float Seconds);
     void HandlePlayerDeath();
     bool SettleEnemyKill(const FLHSpawnLifeId&, const FLHHitIdentity&, AActor*);
-#undef LH_UNSUPPORTED
+    TArray<FLHUIServiceOffer> ServiceOffers(const FLHEntityId&) const override;
 private:
-    bool IsTransactionBlocked() const { return IsBlocked() || bSaveQueued || bAwaitingSave; }
+    bool HasPendingCombat() const;
+    bool IsTransactionBlocked() const { return IsBlocked() || bSaveQueued || bAwaitingSave || HasPendingCombat(); }
     bool SyncResources();
     bool AcceptBoundary(FLHSaveSnapshot&&, bool bInstallResources);
     FLHEntityId PlayerEntity() const;
@@ -93,5 +96,5 @@ private:
     FLHCharacterAuthority* Authority() const;
     void OnSave(const FLHSaveEvent& Event);
     void Published(const FLHCommandResult&, bool bCreation);
-    bool InstallDerived();
+    bool InstallDerived(bool bRestoreEffects = false);
 };

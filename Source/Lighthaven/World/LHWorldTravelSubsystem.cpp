@@ -26,6 +26,7 @@ bool ULHWorldTravelSubsystem::Configure(TSharedRef<FLHSaveStore> Store,const FLH
     { Error=TEXT("Configure once with complete session and compatibility adapters"); return false; }
     SessionBindings=MoveTemp(Bindings);
     FLHTravelSaveAdapter::FHooks Hooks;
+    Hooks.PrepareArrival=SessionBindings.PrepareArrival;
     Hooks.Freeze=[this](bool Frozen) { SessionBindings.FreezeInteractionAndAutosaves(Frozen); };
     Hooks.Capture=[this](FLHSaveSnapshot& Snapshot,FString& CaptureError) { return SessionBindings.SettleAndCapture(Snapshot,CaptureError); };
     Hooks.Durable=[this](const FLHSaveSnapshot& Snapshot) { SessionBindings.CheckpointDurable(Snapshot); };

@@ -1,0 +1,14 @@
+# W4-14 Stage 1A UI polish
+
+1. Fixed in source: successful dialogue uses plain information feedback; rejected commands retain the orange Error prefix. Cover: `Lighthaven.UI.Polish.DialogueFeedback` (widget text and presenter severity).
+2. Fixed presenter feedback on dialogue exit/new target and arrival entrance change; deferred any stale session-owned persistence/travel status, which is authored in excluded Framework paths. Cover: `Lighthaven.UI.Polish.DialogueFeedback` (exit, arrival refresh, owner failure preserved).
+3. Fixed in source: rejected `Topic.Heal` with `NoEffect` says “You are already at full health.” Item-use refusal retains its item-specific wording. Cover: `Lighthaven.UI.Polish.DialogueFeedback` and existing `Lighthaven.UI.InventoryUseItem`.
+4. Fixed in source: inventory/equipment resolve item instances through the native item catalog; vendor/loot labels replace catalog IDs with display names. Catalog currently has no display-name field, so the UI owns a complete mapping of its fourteen entries and an Unknown item fallback. Cover: `Lighthaven.UI.Polish.ItemLabels`.
+5. Deferred live binding: dialogue/service heading now supports `ILHUIReadOwner::DialogueName(Target)` and fixture NPC names render; the coordinator must override this in `FLHWave2Session` using `ResolveNpc(Target)->DefinitionId`. No NPC definition is available in the current UI snapshot/read view. Cover of rendering seam: `Lighthaven.UI.Polish.DialogueFeedback`; live name check remains unrun.
+6. Deferred: selection and authoritative spatial checks both live in excluded `Framework/LHPlayerController.cpp` and `Framework/Wave4/LHStage1Session.cpp`. Integrator must use XY distance for NPC and portal selection, and NPC Spatial/context distance; preserve Prototype 250 cm, add a labelled Prototype vertical tolerance (suggest 150 cm capsule-centre to ground marker), retain LOS. Tests needed: XY 249/250 accepted with capsule Z=92, XY 251 rejected, other-floor vertical offset rejected, both NPC and portal paths. No covering test claimed.
+
+Assumptions: persistent owner failures remain visible, and clearing transient UI feedback never clears durability errors. No mechanics values or binary assets changed. The new UI read seam is held for integrator wiring; no Framework or Integration tests modified.
+
+Validation evidence and exact commands are in the attempt report; no package/play result is claimed.
+
+Observed validation: UE 5.8.3 Linux editor target succeeded (83.62 s), game target succeeded (133.43 s); 16/16 `Lighthaven.UI` tests passed, including both new tests, 0 failed/not run (0.464 s test duration). Headless startup needed `-DDC=(InstalledEnginePak) -DDC-NoDefaultGraph -DDC-ForceMemoryCache`; build needed `-NoUBA -NoUBTMakefiles` and a git-ignored local BuildConfiguration.xml disabling UBA to avoid the read-only home/cache issue. No packaged visual check or live name/reach test was performed.

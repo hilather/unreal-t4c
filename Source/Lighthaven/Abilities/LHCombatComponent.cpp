@@ -35,7 +35,7 @@ void ULHCombatComponent::ClearCombatAvatar()
 {
     TGuardValue<bool> Transition(bLifecycleTransition,true);
     CancelAttack(ELHAttackCancelReason::AvatarCleared);
-    LightEnd=0;
+    // Light survives avatar detachment during travel; capture/restore is session-owned.
     ClearActorInfo();
 }
 void ULHCombatComponent::ConfigureAttack(const FLHBasicAttackConfig& Config, const LH::Rules::FRequirementInput& Requirements)
@@ -69,6 +69,7 @@ ELHCommandReason ULHCombatComponent::ValidateAttack(ULHCombatComponent* Target) 
     if (GetRemainingCooldown() > 0) return ELHCommandReason::Cooldown;
     if (!bRandomReady || !LHCombatComponentPrivate::Ready(Attack.ManaCost) || !LHCombatComponentPrivate::Ready(Attack.CooldownSeconds) || !LHCombatComponentPrivate::Ready(Attack.ImpactSeconds) ||
         !LHCombatComponentPrivate::Ready(Attack.RangeCm) || !LHCombatComponentPrivate::Ready(Attack.WeaponMinimum) || !LHCombatComponentPrivate::Ready(Attack.WeaponMaximum)) return ELHCommandReason::UnresolvedRules;
+    if (Attack.bLight && (!FMath::IsFinite(Attack.LightDuration) || Attack.LightDuration<=0 || Attack.LightDuration>600)) return ELHCommandReason::UnresolvedRules;
     const auto Eligibility = LH::Rules::CheckRequirements(Attack.RequirementPolicy, Attack.Eligibility, RequirementInput);
     if (!Eligibility.Diagnostic.IsAccepted()) return Eligibility.Diagnostic.Reason == LH::Rules::EReason::Ineligible ? ELHCommandReason::Ineligible : ELHCommandReason::UnresolvedRules;
     // Validate formula parameters without consuming the combat random stream or mutating state.
@@ -144,7 +145,7 @@ bool ULHCombatComponent::ResolveImpact(const FLHHitIdentity& Id)
     const FLHHitIdentity CapturedId=Id;
     PendingOutcome=Result.Value.bHit?ELHAttackOutcome::ResolvedHit:ELHAttackOutcome::ResolvedMiss;
     if (Attack.bHeal) Target->SetNumericAttributeBase(ULHAttributeSet::GetHealthAttribute(),FMath::Min(Target->Attributes->GetMaxHealth(),Target->Attributes->GetHealth()+static_cast<float>(Result.Value.Damage)));
-    else if (Attack.bLight) LightEnd=GetWorld()->GetTimeSeconds()+Attack.LightDuration;
+    else if (Attack.bLight) { if (!FMath::IsFinite(Attack.LightDuration) || Attack.LightDuration<=0 || Attack.LightDuration>600) return false; LightRemaining=Attack.LightDuration; }
     else if (Result.Value.bHit && !Target->ApplyResolvedDamage(CapturedId, Result.Value.Damage)) return false;
     OnImpact.Broadcast(CapturedId, Result.Value);
     return true;
@@ -208,7 +209,18 @@ bool ULHCombatComponent::AdvanceManaRegen(double Seconds,bool bPaused,const LH::
     const auto R=LH::Rules::RegenerateMana(P,I); if(!R.Diagnostic.IsAccepted()) return false;
     ManaRegenFractionalSeconds=R.Value.FractionalSeconds; SetNumericAttributeBase(ULHAttributeSet::GetManaAttribute(),R.Value.Current); return true;
 }
-double ULHCombatComponent::GetLightRemainingSeconds() const { return GetWorld()?FMath::Max(0.0,LightEnd-GetWorld()->GetTimeSeconds()):0; }
+double ULHCombatComponent::GetLightRemainingSeconds() const { return LightRemaining; }
+bool ULHCombatComponent::RestoreLightRemainingSeconds(double Seconds)
+{
+    if (bPending || IsPublishingActionEvents() || !FMath::IsFinite(Seconds) || Seconds<0 || Seconds>600) return false;
+    LightRemaining=Seconds; return true;
+}
+bool ULHCombatComponent::AdvanceLightEffect(double Seconds,bool GamePaused,bool AIPaused,bool Travel)
+{
+    if (!FMath::IsFinite(Seconds) || Seconds<0) return false;
+    if (!GamePaused && !AIPaused && !Travel) LightRemaining=FMath::Max(0.0,LightRemaining-Seconds);
+    return true;
+}
 
 void ULHCombatComponent::SetNumericAttributeBase(const FGameplayAttribute& Attribute, float NewBaseValue)
 {

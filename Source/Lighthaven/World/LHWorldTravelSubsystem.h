@@ -12,6 +12,7 @@ struct LIGHTHAVEN_API FLHWorldTravelBindings
     TFunction<void(const FLHSaveSnapshot&)> CheckpointDurable;
     // Rebuild canonical session/avatar, check enemy safety/collision, and place capsule at ground pivot.
     // Must not grant rewards, advance clocks or alter the provided canonical snapshot.
+    TFunction<bool(FLHSaveSnapshot&,FString&)> PrepareArrival;
     TFunction<bool(const FLHSaveSnapshot&,UWorld*,const FLHEntranceDefinition&,FString&)> InstallCheckpoint;
 };
 UCLASS()

@@ -58,36 +58,55 @@ void ULHEncounterDirector::Populate(const FLHAreaRecord& Area)
 }
 void ULHEncounterDirector::SpawnRecord(const FLHEncounterRecord& R)
 {
-    if (!bLoaded || R.Life.Area.Content.Value != ActiveArea.Content.Value || !ResolveSpec || !SettleKill || FindByLife(R.Life) ||
-        PublishedDeaths.ContainsByPredicate([&](const FLHSpawnLifeId& L) { return LHAI::SameLife(L,R.Life); })) return;
+    auto Refuse=[&](const FString& Reason) {
+        UE_LOG(LogTemp,Warning,TEXT("LH spawn refused marker=%s encounter=%s area=%s generation=%lld: %s"),
+            *R.Life.SpawnSlot.ToString(),*R.Definition.Value.ToString(),*R.Life.Area.Content.Value.ToString(),R.Life.LifeGeneration,*Reason);
+    };
+    if (!bLoaded) { Refuse(TEXT("director not loaded")); return; }
+    if (R.Life.Area.Content.Value != ActiveArea.Content.Value) { Refuse(TEXT("active area mismatch")); return; }
+    if (!ResolveSpec || !SettleKill) { Refuse(TEXT("runtime callbacks missing")); return; }
+    if (FindByLife(R.Life)) { Refuse(TEXT("life already registered")); return; }
+    if (PublishedDeaths.ContainsByPredicate([&](const FLHSpawnLifeId& L) { return LHAI::SameLife(L,R.Life); }))
+    { Refuse(TEXT("life death already published")); return; }
     auto* Marker = LHEncounterDirectorPrivate::Marker(GetWorld(), R.Life);
+    if (!Marker) { Refuse(TEXT("marker missing")); return; }
     const auto* Spec = ResolveSpec(R.Definition);
     FString Error;
-    if (!Marker || Marker->EnemyDefinitionId.Value != R.Definition.Value || !Spec || Spec->ContentId.Value != R.Definition.Value || !LHAI::ValidateSpec(*Spec, Error))
-    { UE_LOG(LogTemp, Warning, TEXT("LH enemy spawn rejected: %s"), *Error); return; }
-    FVector Anchor = Marker->GetActorLocation() + FVector(0,0,Spec->CapsuleHalfHeightCm.Value);
+    if (Marker->EnemyDefinitionId.Value != R.Definition.Value) { Refuse(TEXT("marker definition mismatch actual=")+Marker->EnemyDefinitionId.Value.ToString()); return; }
+    if (!Spec || Spec->ContentId.Value != R.Definition.Value) { Refuse(TEXT("catalog spec missing/mismatched")); return; }
+    if (!LHAI::ValidateSpec(*Spec,Error)) { Refuse(TEXT("ValidateSpec: ")+Error); return; }
+    // Markers are floor contacts. Collision must use the runtime capsule, not
+    // ACharacter's larger class-default capsule before ApplyRuntimeSpec.
+    const FVector Anchor = Marker->GetActorLocation() + FVector(0,0,Spec->CapsuleHalfHeightCm.Value+2);
     FVector Home = Anchor;
     if (Spec->bBoss)
     {
         ATargetPoint* Arena = nullptr;
         for (TActorIterator<ATargetPoint> It(GetWorld()); It; ++It) if (It->ActorHasTag(TEXT("B4.BalorkArena")) || It->GetFName() == FName(TEXT("B4.BalorkArena"))) { Arena = *It; break; }
-        if (!Arena) { UE_LOG(LogTemp, Warning, TEXT("LH boss requires B4.BalorkArena")); return; }
-        Home = Arena->GetActorLocation() + FVector(0,0,Spec->CapsuleHalfHeightCm.Value);
-        if (FVector::Dist2D(Anchor,Home) > Spec->LeashRadiusCm.Value) return;
+        if (!Arena) { Refuse(TEXT("B4.BalorkArena missing")); return; }
+        Home = Arena->GetActorLocation() + FVector(0,0,Spec->CapsuleHalfHeightCm.Value+2);
+        if (FVector::Dist2D(Anchor,Home) > Spec->LeashRadiusCm.Value) { Refuse(FString::Printf(TEXT("boss leash distance=%g limit=%g"),FVector::Dist2D(Anchor,Home),Spec->LeashRadiusCm.Value)); return; }
     }
-    if (!IsSafeSegment(Anchor, Anchor, Spec->CapsuleRadiusCm.Value, Spec->CapsuleHalfHeightCm.Value)) return;
+    const FString Dimensions=FString::Printf(TEXT("center=%s radius=%g halfHeight=%g"),*Anchor.ToString(),Spec->CapsuleRadiusCm.Value,Spec->CapsuleHalfHeightCm.Value);
+    if (!IsSafeSegment(Anchor, Anchor, Spec->CapsuleRadiusCm.Value, Spec->CapsuleHalfHeightCm.Value))
+    { Refuse(TEXT("NoCombat safety box ")+Dimensions); return; }
+    FCollisionQueryParams Params(SCENE_QUERY_STAT(LHInitialSpawn),false,Marker);
+    if (GetWorld()->OverlapBlockingTestByChannel(Anchor,Marker->GetActorQuat(),ECC_Pawn,
+        FCollisionShape::MakeCapsule(Spec->CapsuleRadiusCm.Value,Spec->CapsuleHalfHeightCm.Value),Params))
+    { Refuse(TEXT("runtime capsule blocked ")+Dimensions); return; }
     const FTransform Transform(Marker->GetActorRotation(), Anchor);
     auto* E = GetWorld()->SpawnActorDeferred<ALHEnemyCharacter>(ALHEnemyCharacter::StaticClass(), Transform, nullptr, nullptr,
-        ESpawnActorCollisionHandlingMethod::DontSpawnIfColliding);
-    if (!E) return;
-    if (!E->ApplyRuntimeSpec(*Spec, R.Life, R.CurrentHealth, Error)) { E->Destroy(); return; }
+        ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+    if (!E) { Refuse(TEXT("SpawnActorDeferred failed ")+Dimensions); return; }
+    if (!E->ApplyRuntimeSpec(*Spec, R.Life, R.CurrentHealth, Error)) { Refuse(FString::Printf(TEXT("ApplyRuntimeSpec health=%g max=%g: %s"),R.CurrentHealth.Value,Spec->MaxHealth.Value,*Error)); E->Destroy(); return; }
     E->FinishSpawning(Transform);
-    if (!IsValid(E) || E->IsActorBeingDestroyed()) return;
+    if (!IsValid(E) || E->IsActorBeingDestroyed()) { Refuse(TEXT("FinishSpawning destroyed actor ")+Dimensions); return; }
     Enemies.Add(E);
     E->GetCombatComponent()->OnDeath.AddWeakLambda(this, [this, Weak = TWeakObjectPtr<ALHEnemyCharacter>(E)](const FLHHitIdentity& Hit)
         { if (auto* Actor = Weak.Get()) HandleDeath(Actor,Hit); });
     auto* Controller = GetWorld()->SpawnActor<ALHEnemyAIController>();
     if (Controller) Controller->InitializeRuntime(E,this,Home);
+    else UE_LOG(LogTemp,Warning,TEXT("LH spawn marker=%s controller creation failed"),*R.Life.SpawnSlot.ToString());
 }
 void ULHEncounterDirector::HandleDeath(ALHEnemyCharacter* E, const FLHHitIdentity& Hit)
 {
@@ -108,10 +127,14 @@ void ULHEncounterDirector::CaptureLive(FLHAreaRecord& Area) const
 }
 void ULHEncounterDirector::SpawnLife(const FLHSpawnLifeId& Life)
 {
-    if (!IsSimulationEnabled() || FindByLife(Life)) return;
+    auto Refuse=[&](const TCHAR* Reason) { UE_LOG(LogTemp,Warning,TEXT("LH respawn refused marker=%s area=%s generation=%lld: %s"),*Life.SpawnSlot.ToString(),*Life.Area.Content.Value.ToString(),Life.LifeGeneration,Reason); };
+    if (!IsSimulationEnabled()) { Refuse(TEXT("simulation disabled")); return; }
+    if (FindByLife(Life)) { Refuse(TEXT("life already registered")); return; }
     auto* M = LHEncounterDirectorPrivate::Marker(GetWorld(),Life);
-    if (!M || !ResolveSpec || !IsSpawnSafe(Life.SpawnSlot)) return;
-    const auto* S = ResolveSpec(M->EnemyDefinitionId); if (!S) return;
+    if (!M || !ResolveSpec) { Refuse(TEXT("marker or catalog callback missing")); return; }
+    FString SafetyError;
+    if (!IsSpawnSafe(Life.SpawnSlot,&SafetyError)) { Refuse(*SafetyError); return; }
+    const auto* S = ResolveSpec(M->EnemyDefinitionId); if (!S) { Refuse(TEXT("catalog spec missing")); return; }
     // W4-06 calls only AFTER committed Alive/new-generation respawn; this method never advances generation.
     FLHEncounterRecord R; R.Life = Life; R.Definition = M->EnemyDefinitionId; R.State = ELHEncounterLifeState::Alive; R.CurrentHealth = S->MaxHealth;
     SpawnRecord(R);
@@ -139,22 +162,29 @@ void ULHEncounterDirector::TickActiveSimulation(float Seconds)
     auto Copy = Enemies;
     for (ALHEnemyCharacter* E : Copy) if (IsValid(E) && !E->IsActorBeingDestroyed()) if (auto* C = Cast<ALHEnemyAIController>(E->GetController())) C->Advance(Seconds);
 }
-bool ULHEncounterDirector::IsSpawnSafe(const FGuid& SpawnId) const
+bool ULHEncounterDirector::IsSpawnSafe(const FGuid& SpawnId,FString* Refusal) const
 {
-    if (!IsSimulationEnabled() || !Player.IsValid() || !ResolveSpec) return false;
+    // Respawn polling is not an attempted spawn. Supply diagnostics for SpawnLife
+    // without logging every frame while a legitimate D09 gate remains closed.
+    auto Fail=[&](const FString& Why) { if (Refusal) *Refusal=Why; return false; };
+    if (!IsSimulationEnabled() || !Player.IsValid() || !ResolveSpec) return Fail(TEXT("simulation/player/catalog unavailable"));
     FLHSpawnLifeId L; L.Area = ActiveArea; L.SpawnSlot = SpawnId;
-    auto* M = LHEncounterDirectorPrivate::Marker(GetWorld(), L); if (!M) return false;
+    auto* M = LHEncounterDirectorPrivate::Marker(GetWorld(), L); if (!M) return Fail(TEXT("marker missing"));
     const auto* S = ResolveSpec(M->EnemyDefinitionId); FString Error;
-    if (!S || !LHAI::ValidateSpec(*S,Error)) return false;
-    const FVector At = M->GetActorLocation() + FVector(0,0,S->CapsuleHalfHeightCm.Value);
-    if (FVector::Dist(At,Player->GetActorLocation()) <= S->SpawnSafetyDistanceCm.Value || HasSight(Player.Get(),M) ||
-        !IsSafeSegment(At,At,S->CapsuleRadiusCm.Value,S->CapsuleHalfHeightCm.Value)) return false;
+    if (!S || !LHAI::ValidateSpec(*S,Error)) return Fail(TEXT("invalid catalog spec: ")+Error);
+    const FVector At = M->GetActorLocation() + FVector(0,0,S->CapsuleHalfHeightCm.Value+2);
+    const FString Values=FString::Printf(TEXT(" center=%s radius=%g halfHeight=%g"),*At.ToString(),S->CapsuleRadiusCm.Value,S->CapsuleHalfHeightCm.Value);
+    const double Distance=FVector::Dist(At,Player->GetActorLocation());
+    if (Distance <= S->SpawnSafetyDistanceCm.Value) return Fail(FString::Printf(TEXT("player distance=%g minimum=%g"),Distance,S->SpawnSafetyDistanceCm.Value)+Values);
+    if (HasSight(Player.Get(),M)) return Fail(TEXT("visible to player")+Values);
+    if (!IsSafeSegment(At,At,S->CapsuleRadiusCm.Value,S->CapsuleHalfHeightCm.Value)) return Fail(TEXT("NoCombat safety box")+Values);
     auto* Nav = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld()); FNavLocation Projected;
-    if (!Nav || !Nav->ProjectPointToNavigation(M->GetActorLocation(),Projected)) return false;
+    if (!Nav || !Nav->ProjectPointToNavigation(M->GetActorLocation(),Projected)) return Fail(TEXT("navigation projection missing")+Values);
     FCollisionQueryParams Params(SCENE_QUERY_STAT(LHSpawnSafety), false, M);
-    if (GetWorld()->OverlapBlockingTestByChannel(At,FQuat::Identity,ECC_Pawn,FCollisionShape::MakeCapsule(S->CapsuleRadiusCm.Value,S->CapsuleHalfHeightCm.Value),Params)) return false;
+    if (GetWorld()->OverlapBlockingTestByChannel(At,FQuat::Identity,ECC_Pawn,FCollisionShape::MakeCapsule(S->CapsuleRadiusCm.Value,S->CapsuleHalfHeightCm.Value),Params)) return Fail(TEXT("runtime capsule blocked")+Values);
     FHitResult Floor;
-    return GetWorld()->LineTraceSingleByChannel(Floor,At,At-FVector(0,0,S->CapsuleHalfHeightCm.Value*2),ECC_WorldStatic,Params);
+    if (!GetWorld()->LineTraceSingleByChannel(Floor,At,At-FVector(0,0,S->CapsuleHalfHeightCm.Value*2),ECC_WorldStatic,Params)) return Fail(TEXT("floor trace missed")+Values);
+    return true;
 }
 void ULHEncounterDirector::Deinitialize()
 {

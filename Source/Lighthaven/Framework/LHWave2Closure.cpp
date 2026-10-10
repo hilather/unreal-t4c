@@ -151,7 +151,7 @@ FBytes Stage1Catalogs()
         {TEXT("Encounters"),Ordered(Encounters)},{TEXT("Offers"),Ordered(Offers)},
         {TEXT("Quests"),Text(TEXT("LHQuests.v1/SamaritanRats.15.2500/Nevanis.FullHP.0Gold/BalorkReturn.Kiran.SingleClaim"))},
         {TEXT("StarterSkills"),Text(TEXT("Attack.10/Dodge.10"))},
-        {TEXT("RuntimePolicies"),Text(TEXT("Stage1A.MeleeOnly/Npc250.LOS/Loot200.LOS/Death.FullPools.NoPenalty/Corpse300/NativeCatalogs.v1"))}});
+        {TEXT("RuntimePolicies"),Text(TEXT("G4.CatalogAbilities.Services.AllFloors/EnemyLifeRng.Cooldowns.v1/Npc250.LOS/Loot200.LOS/Death.FullPools.NoPenalty.LightClear/Light.ActiveOnly.CaptureRestore.AreaRemap.v1/Corpse300/NativeCatalogs.v1"))}});
 }
 
 }
@@ -170,7 +170,7 @@ TArray<uint8> LHWave2::MechanicalClosure(const FLHCharacterProfile& P)
         {TEXT("HealthRollScale"),Value(G.HealthRollScale)},{TEXT("InitialLevel"),Value(G.InitialLevel)},{TEXT("ManaGrowth"),Linear(G.ManaGrowth)},
         {TEXT("ManaRollScale"),Value(G.ManaRollScale)},{TEXT("SkillPointsPerLevel"),Value(G.SkillPointsPerLevel)},{TEXT("Thresholds"),Ordered(Thresholds)}});
     const auto Stats=Struct({{TEXT("Accuracy"),Linear(S.Accuracy)},{TEXT("Armor"),Linear(S.Armor)},{TEXT("Avoidance"),Linear(S.Avoidance)},
-        {TEXT("Capacity"),Linear(S.Capacity)},{TEXT("DamageBonus"),Linear(S.DamageBonus)}});
+        {TEXT("CarryCapacityPolicy"),Text(LHWave2::CarryCapacityPolicy().bUnlimited?TEXT("Unlimited; deferred by owner decision"):TEXT("Limited"))},{TEXT("Capacity"),Linear(S.Capacity)},{TEXT("DamageBonus"),Linear(S.DamageBonus)}});
     return Struct({{TEXT("Algorithms"),Text(TEXT("LHMechanicalClosure1/LHCanonicalBinary1/LHRequest1/LHReward1/UE.FRandomStream.1/finiteTable.1"))},
         {TEXT("CombatPolicy"),Combat(P.Rules.Combat)},{TEXT("Creation"),Creation},{TEXT("CreationPolicy"),Value(P.CreationPolicy)},
         {TEXT("CreationRevision"),Value(P.CreationRevision)},{TEXT("GrowthBasis"),Basis(P.GrowthBasis)},{TEXT("InitialGold"),Value(P.InitialGold)},
@@ -194,6 +194,6 @@ TArray<uint8> LHWave2::GameplayCatalogClosure()
         Areas.Add(Struct({{TEXT("Area"),Value(A.Id.Content)},{TEXT("Map"),Value(A.Map.ToString())},
             {TEXT("Entrances"),Ordered(Entrances)},{TEXT("Portals"),Ordered(Portals)},{TEXT("Spawns"),Ordered(Spawns)}}));
     }
-    return Struct({{TEXT("Codec"),Text(TEXT("LHGameplayCatalog4"))},{TEXT("Stage1Catalogs"),Stage1Catalogs()},{TEXT("Areas"),Ordered(Areas)},
+    return Struct({{TEXT("Codec"),Text(TEXT("LHGameplayCatalog5"))},{TEXT("Stage1Catalogs"),Stage1Catalogs()},{TEXT("Areas"),Ordered(Areas)},
         {TEXT("MechanicalClosure"),LHWave2::MechanicalClosure(LHWave2::PrototypeProfile())}});
 }

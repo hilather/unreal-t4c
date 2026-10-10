@@ -122,7 +122,7 @@ FText SLHFrontendWidget::Label(FName Id) const
     if (Id == "Items")
     {
         const auto& Items = P->Snapshot().Character.Inventory;
-        S = Items.IsValidIndex(ItemIndex) ? Items[ItemIndex].Definition.Value.ToString() + TEXT(" | Quantity ") + FLHUIPresenter::Format(Items[ItemIndex].Quantity) : TEXT("Items: no selection (left/right)");
+        S = Items.IsValidIndex(ItemIndex) ? FLHUIPresenter::ItemName(Items[ItemIndex].Definition) + TEXT(" | Quantity ") + FLHUIPresenter::Format(Items[ItemIndex].Quantity) : TEXT("Items: no selection (left/right)");
     }
     if (Id == "Reset") S = TEXT("Reset allocation draft");
     if (P->Screen() == ELHUIScreen::Inventory)
@@ -131,7 +131,7 @@ FText SLHFrontendWidget::Label(FName Id) const
         if (const auto* TargetSlot = SlotLabels.Find(Id))
         {
             const auto* Binding = P->Snapshot().Character.Equipment.FindByPredicate([TargetSlot](const auto& B) { return B.Slot == *TargetSlot; });
-            S += Binding ? TEXT(" | Equipped ") + Binding->Item.InstanceId.ToString() : TEXT(" | Empty");
+            S += Binding ? TEXT(" | Equipped ") + P->EquippedItemName(Binding->Item) : TEXT(" | Empty");
         }
     }
     if (Id == "Confirm") S = TEXT("Confirm — review before applying");
@@ -217,7 +217,7 @@ void SLHFrontendWidget::Build()
         }
     }
     Layout->AddSlot().AutoHeight().Padding(0,Style.Gutter)
-    [ SNew(STextBlock).Text_Lambda([this]() { return FText::FromString(P->Error().IsEmpty() ? LocalMessage : TEXT("Error: ") + P->Error()); }).Font(LHFrontendWidgetPrivate::Font(Style.Body)).ColorAndOpacity(Style.Error).AutoWrapText(true) ];
+    [ SNew(STextBlock).Text_Lambda([this]() { return FText::FromString(P->Error().IsEmpty() ? LocalMessage : P->FeedbackText()); }).Font(LHFrontendWidgetPrivate::Font(Style.Body)).ColorAndOpacity_Lambda([this]() { return P->HasError()?Style.Error:Style.Info; }).AutoWrapText(true) ];
     Layout->AddSlot().AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("Arrows / D-pad: focus | Left / Right: change | Enter / South: confirm | Escape / East: back | LB / RB: journal tabs"))).Font(LHFrontendWidgetPrivate::Font(Style.Metadata)).ColorAndOpacity(Style.TextSecondary).AutoWrapText(true)];
 }
 void SLHFrontendWidget::Focus()

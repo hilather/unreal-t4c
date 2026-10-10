@@ -2,6 +2,7 @@
 #include "UI/LHUIPresenter.h"
 #include "UI/LHUIWidgetHarness.h"
 #include "Input/LHInputConfig.h"
+#include "Data/Items/LHItemCatalog.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "GameFramework/WorldSettings.h"
@@ -13,10 +14,12 @@ struct FGameplayOwners : ILHCommandHandler, ILHUIReadOwner, ILHUISessionOwner
 {
     UWorld* World=nullptr; APlayerState* Pauser=nullptr;
     bool Paused=false; int32 Respawns=0;
+    bool bHealing=false, bRefuseHealing=false;
     void SetGameplayPaused(bool V) override { Paused=V; if(World) World->GetWorldSettings()->SetPauserPlayerState(V?Pauser:nullptr); }
     FString RequestRespawn() override { ++Respawns; return {}; }
     FLHUIHud HudState() const override { FLHUIHud H; H.Objective=TEXT("Return to church"); H.SaveStatus=TEXT("Not saved"); H.bDead=true; FLHUIAbility A; A.Id.Value=TEXT("Attack.Melee.Basic"); A.Label=TEXT("Melee"); A.bAvailable=true; H.Abilities.Add(A); return H; }
-    TArray<FLHUIDialogueTopic> DialogueTopics(const FLHEntityId&) const override { FLHUIDialogueTopic T; T.Id.Value=TEXT("Topic.Services"); T.Label=TEXT("Services"); return {T}; }
+    FString DialogueName(const FLHEntityId&) const override { return TEXT("Nevanis"); }
+    TArray<FLHUIDialogueTopic> DialogueTopics(const FLHEntityId&) const override { FLHUIDialogueTopic T; T.Id.Value=bHealing?TEXT("Topic.Heal"):TEXT("Topic.Services"); T.Label=TEXT("Services"); T.Text=TEXT("Dialogue succeeded."); return {T}; }
     TArray<FLHUIServiceOffer> ServiceOffers(const FLHEntityId&) const override { FLHUIServiceOffer O; O.Kind=ELHUIOfferKind::Buy; O.Id.Value=TEXT("Offer.ManaPotion"); O.Quantity.Value=1; O.Quantity.Resolution=ELHValueResolution::Resolved; O.Price=TEXT("50 gold"); O.bEnabled=true; return {O}; }
     TArray<FLHUILootRow> CorpseContents(const FLHEntityId&) const override { FLHUILootRow L; L.Kind=ELHLootTransferKind::Item; L.Item.RunId=FGuid(1,2,3,4); L.Item.Area.Content.Value=TEXT("Area.TempleB1"); L.Item.InstanceId=FGuid(4,3,2,1); L.Quantity.Value=3; L.Quantity.Resolution=ELHValueResolution::Resolved; FLHUILootRow G=L; G.Kind=ELHLootTransferKind::Gold; G.Item={}; return {L,G}; }
     FLHSaveSnapshot State;
@@ -66,7 +69,7 @@ struct FGameplayOwners : ILHCommandHandler, ILHUIReadOwner, ILHUISessionOwner
     FLHUseItemRequest Item;
     FLHCommandResult Execute(const FLHUseItemRequest& R) override { Item=R; FLHCommandResult V; V.Request=R.Request; V.Reason=ELHCommandReason::NoEffect; return V; }
     FLHInteractRequest Topic;
-    FLHCommandResult Execute(const FLHInteractRequest& R) override { Topic=R; FLHCommandResult V; V.Request=R.Request; V.Disposition=ELHCommandDisposition::Accepted; V.Reason=ELHCommandReason::None; return V; }
+    FLHCommandResult Execute(const FLHInteractRequest& R) override { Topic=R; FLHCommandResult V; V.Request=R.Request; V.Disposition=bRefuseHealing?ELHCommandDisposition::Rejected:ELHCommandDisposition::Accepted; V.Reason=bRefuseHealing?ELHCommandReason::NoEffect:ELHCommandReason::None; return V; }
     FLHTakeLootRequest Loot;
     FLHCommandResult Execute(const FLHTakeLootRequest& R) override { Loot=R; FLHCommandResult V; V.Request=R.Request; V.Reason=ELHCommandReason::InventoryFull; return V; }
     UNUSED_COMMAND(FLHRequestTravelRequest)
@@ -87,6 +90,43 @@ struct FGameplayOwners : ILHCommandHandler, ILHUIReadOwner, ILHUISessionOwner
 FLHEntityId Entity() { FLHEntityId E; E.RunId=FGuid(1,2,3,4); E.Area.Content.Value=TEXT("Area.TempleB1"); E.InstanceId=FGuid(5,6,7,8); return E; }
 }
 #define LH_UI_TEST(C,N) IMPLEMENT_SIMPLE_AUTOMATION_TEST(C,"Lighthaven.UI." N,EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter) bool C::RunTest(const FString&)
+LH_UI_TEST(FLHDialogueFeedbackPolishTest,"Polish.DialogueFeedback")
+{
+    using namespace LHGameplayUITestsPrivate; FGameplayOwners O; O.bHealing=true;
+    FLHUIPresenter P(O,O,O); P.OpenTarget(ELHUIScreen::Dialogue,Entity());
+    auto W=ILHUIWidgetHarness::Create(P);
+    TestTrue(TEXT("dialogue heading shows owner NPC name"),W->SummaryText().StartsWith(TEXT("Nevanis\n")));
+    W->Activate("Topic0");
+    TestEqual(TEXT("success uses plain text"),W->MessageText(),FString(TEXT("Dialogue succeeded.")));
+    TestFalse(TEXT("success uses information color"),P.HasError());
+    O.bRefuseHealing=true; W->Activate("Topic0");
+    TestEqual(TEXT("full HP refusal reason"),W->MessageText(),FString(TEXT("Error: You are already at full health.")));
+    TestTrue(TEXT("refusal uses error color"),P.HasError());
+    W->Open(ELHUIScreen::Hud); TestTrue(TEXT("closing dialogue clears feedback"),P.Error().IsEmpty());
+    O.bRefuseHealing=false; P.OpenTarget(ELHUIScreen::Dialogue,Entity()); P.ActivateGameplay("Topic0");
+    O.State.Character.ActiveEntrance.Area.Content.Value=TEXT("Area.TempleB2"); P.Refresh();
+    TestTrue(TEXT("arrival refresh clears prior feedback"),P.Error().IsEmpty());
+    O.SaveStatus=TEXT("Save failed: fixture"); P.Refresh();
+    TestTrue(TEXT("owner failure is preserved"),P.Error().Contains(TEXT("Save failed")));
+    return true;
+}
+LH_UI_TEST(FLHItemLabelsPolishTest,"Polish.ItemLabels")
+{
+    using namespace LHGameplayUITestsPrivate; FGameplayOwners O;
+    for (const auto& Row:LHItemData::Catalog())
+    {
+        const auto Name=FLHUIPresenter::ItemName(Row.Id);
+        TestFalse(TEXT("all catalog entries have display names"),Name==TEXT("Unknown item"));
+        TestFalse(TEXT("display names do not expose content prefix"),Name.Contains(TEXT("Item.")));
+    }
+    FLHItemInstance Item; Item.Id=Entity(); Item.Definition.Value=TEXT("Item.RustedDirk"); O.State.Character.Inventory.Add(Item);
+    FLHUIPresenter P(O,O,O);
+    TestEqual(TEXT("equipment instance resolves via inventory and catalog"),P.EquippedItemName(Item.Id),FString(TEXT("Rusted Dirk")));
+    TestEqual(TEXT("vendor and loot labels replace raw IDs"),P.DisplayItemNames(TEXT("Sell Item.PotionOfMana")),FString(TEXT("Sell Potion of Mana")));
+    FLHContentId Unknown; Unknown.Value=TEXT("Item.Missing");
+    TestEqual(TEXT("missing catalog entry has readable fallback"),P.ItemName(Unknown),FString(TEXT("Unknown item")));
+    return true;
+}
 LH_UI_TEST(FLHHudSpellBarTest,"HudAndSpellBar")
 {
     using namespace LHGameplayUITestsPrivate; FGameplayOwners O; FLHUIPresenter P(O,O,O); P.Open(ELHUIScreen::Hud);

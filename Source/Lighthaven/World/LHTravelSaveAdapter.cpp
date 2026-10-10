@@ -40,3 +40,6 @@ bool FLHTravelSaveAdapter::ValidateAndInstallArrival(const FLHSaveSnapshot& Snap
 { return Hooks.Install(Snapshot,Entrance,Error); }
 void FLHTravelSaveAdapter::RestoreSource(const FLHSaveSnapshot& Snapshot,const FLHEntranceDefinition& Entrance,uint64 Token)
 { Hooks.Restore(Snapshot,Entrance,Token); }
+
+bool FLHTravelSaveAdapter::PrepareArrival(FLHSaveSnapshot& Snapshot,FString& Error)
+{ return !Hooks.PrepareArrival || Hooks.PrepareArrival(Snapshot,Error); }

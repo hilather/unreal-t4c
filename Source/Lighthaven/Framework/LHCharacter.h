@@ -5,6 +5,7 @@
 #include "LHCharacter.generated.h"
 class USpringArmComponent;
 class UCameraComponent;
+class UPointLightComponent;
 UCLASS()
 class LIGHTHAVEN_API ALHCharacter : public ACharacter, public IAbilitySystemInterface
 {
@@ -22,5 +23,6 @@ public:
     UPROPERTY(VisibleAnywhere) TObjectPtr<USpringArmComponent> CameraBoom;
     UPROPERTY(VisibleAnywhere) TObjectPtr<UCameraComponent> Camera;
 private:
+    UPROPERTY() TObjectPtr<UPointLightComponent> SpellLight;
     bool bRunning=false;
 };

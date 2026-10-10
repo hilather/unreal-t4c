@@ -77,7 +77,8 @@ FLHCharacterProfile Profile()
     O.Attributes = {I(16), I(16), I(16), I(16), I(16)};
     O.UnspentPoints = I(0);
     C.Outcomes.Add(O); // Representative classic four-N/A chart; selection law is Prototype.
-    P.Rules.Stats = {Linear(10), Linear(10), Linear(0), Linear(0), Linear(100)};
+    P.Rules.Stats = {Linear(10), Linear(10), Linear(0), Linear(0), Linear(0)};
+    P.Rules.Stats.Capacity.Constant.Provenance.Notes = TEXT("Unlimited carry capacity; deferred by owner decision (Matt, 2026-10-09); zero is an unused finite Rules placeholder, not a weight limit");
     auto &G = P.Rules.Progression;
     G.InitialLevel = I(1);
     // Runtime Rules rejects Disputed provenance; preserve the classic/PDF dispute in the note.
@@ -106,3 +107,5 @@ FLHNumber LHWave2::PrototypeNumber(double V) { return LHWave2ProfilePrivate::N(V
 FLHInteger LHWave2::PrototypeInteger(int64 V) { return LHWave2ProfilePrivate::I(V); }
 TArray<FLHQuestionAnswer> LHWave2::PrototypeAnswers() { return LHWave2ProfilePrivate::Answers(); }
 FString LHWave2::CatalogHash() { static const FString Hash=LHSave::Sha256(LHWave2::GameplayCatalogClosure()); return Hash; }
+
+LHWave2::FLHCarryCapacityPolicy LHWave2::CarryCapacityPolicy() { return {}; }
