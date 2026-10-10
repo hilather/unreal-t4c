@@ -68,3 +68,40 @@ NullRHI tests cannot establish visual quality, masked-material shader appearance
 Next task: coordinator reruns the art script on the host, reviews/imports the actual binary assets under LFS, reproduces the Linux cook and exercises package/launch dependency inclusion, and assigns the subsequent visual/lighting pass. Windows packaging stays deferred. This report is an evidence candidate, not a G5 acceptance or task-success declaration.
 
 Submission preparation: all eight locally regenerated `.umap` files were restored to their original Git LFS pointer bytes; the 26 untracked imported `.uasset` files were removed after testing/cook. `Config/Lighthaven/ReviewedArrivals.tsv` remained byte-identical (`e56cc528fcbdee98194c878edf84347d5a71f49eb6c23cf927e47634a724e5fc`). Only owned source/tool/test/document paths are submitted. `bash -n build/build-art.sh` and `git diff --check` pass. Trimmed evidence is in the canonical attempt output `library/`; no binary assets or full logs are included there.
+
+### W5-07d — unity test namespace collision (2026-10-10)
+
+The anonymous namespace in `LHRulesTests.cpp` exposed generic `Flags` to later engine headers in the same unity translation unit, producing `-Werror,-Wshadow`. All generic test flag constants now have file-specific names. The remaining anonymous helper namespaces (rules, Bible rules, UI presenter) are named per file; helper imports are scoped to test bodies, including the formerly global world-test import. Test registrations, flag values and assertions are unchanged.
+
+Validation used UE 5.8.3, uid 1000, and fresh project intermediates: move `Intermediate/Build/Linux` aside under ignored `Saved/` before the build. Ignored `Saved/UnrealBuildTool/BuildConfiguration.xml` sets `BuildConfiguration.bUseUnityBuild=true`, `bUseAdaptiveUnityBuild=false`, `bAllowUBAExecutor=false` (also the deprecated `bAllowUBALocalExecutor=false`) and `UnrealBuildAccelerator.SharedMemoryTempFile=true`. The generated `Module.LighthavenTests.cpp` included every test `.cpp`, including both implicated files; no adaptive exclusions were observed.
+
+```sh
+export UE_ROOT=/home/brewerm/Downloads/unreal
+export XDG_CONFIG_HOME="$PWD/Saved/BuildEnvironment/config"
+export UBA_ROOT="$PWD/Saved/UBA"
+# Clean fallback build, following slow/interrupted wrapper attempts:
+for target in LighthavenEditor Lighthaven; do
+  bash "$UE_ROOT/Engine/Build/BatchFiles/Linux/Build.sh" "$target" Linux Development \
+    "-Project=$PWD/Lighthaven.uproject" -WaitMutex -DisableAdaptiveUnity \
+    -UBASharedMemoryTempFile=true -NoUBA
+done
+# Subsequent wrapper confirmation:
+bash build/build-linux.sh --game
+```
+
+Clean fallback: editor `Result: Succeeded` (exit 0, 146.76 s); game `Result: Succeeded` (exit 0, 130.43 s). Wrapper confirmation: both `Result: Succeeded` (exit 0 overall; 14.55 s editor, 24.82 s game). UE 5.8 still uses its UBA executor with detouring disabled under `-NoUBA`; nonfatal action-result-store warnings occurred.
+
+After locally generating the five playable maps and running `build/build-art.sh` with the pinned Blender, the scoped headless invocation was:
+
+```sh
+"$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$PWD/Lighthaven.uproject" \
+  '-ExecCmds=Automation RunTests Lighthaven.Visual+Lighthaven.World.Dressing+Lighthaven.Rules; Quit' \
+  '-DDC=(Local)' "-LocalDataCachePath=$PWD/Saved/DerivedDataCache" \
+  -nullrhi -unattended -nosound -nop4 -NoCrashDialog \
+  '-ini:EditorSettings:[/Script/UnrealEd.AnalyticsPrivacySettings]:bSendUsageData=False' \
+  '-ini:EditorSettings:[/Script/UnrealEd.CrashReportsPrivacySettings]:bSendUnattendedBugReports=False' \
+  '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0' \
+  "-ReportExportPath=$PWD/Saved/W507dAutomationReport" '-TestExit=Automation Test Queue Empty'
+```
+
+Observed exit 0: 38 successful tests (Rules 14, Visual 14, World.Dressing 10), zero failed/not-run/in-process; one success with a GameplayCueNotifyPaths fallback warning in `Lighthaven.Visual.Monsters.CatalogDeterminism`. Map generation and art import returned 1 from baseline pointer-package AssetRegistry errors; the generated playable maps and 4,454,854-byte art receipt existed, and scoped tests exercised them successfully. Map pointers were restored and generated art moved under ignored `Saved/` before submission. No package, rendered review, Windows build, or gameplay gate is claimed by this compile fix.

@@ -87,7 +87,7 @@ struct FFixture
     FFixture& operator=(const FFixture&) = delete;
 };
 
-constexpr auto Flags=EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter;
+constexpr auto LHPlayerVisualTestsFlags=EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter;
 FLHCharacterRecord Looks(int32 Body,int32 Hair,int32 Skin)
 {
     FLHCharacterRecord C;
@@ -100,7 +100,7 @@ void Equip(FLHCharacterRecord& C,const TCHAR* Id,ELHEquipmentSlot Slot)
     FLHEquipmentBinding B; B.Item=I.Id; B.Slot=Slot; C.Equipment.Add(B);
 }
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHPlayerLooksTest,"Lighthaven.Visual.Player.DeterministicAppearance",LHPlayerTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHPlayerLooksTest,"Lighthaven.Visual.Player.DeterministicAppearance",LHPlayerTestsPrivate::LHPlayerVisualTestsFlags)
 bool FLHPlayerLooksTest::RunTest(const FString&)
 {
     TSet<uint32> Hashes;
@@ -113,7 +113,7 @@ bool FLHPlayerLooksTest::RunTest(const FString&)
     }
     TestEqual(TEXT("All 12 creation combinations distinct"),Hashes.Num(),12); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHPlayerSocketsTest,"Lighthaven.Visual.Player.SocketsCollisionAndMovement",LHPlayerTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHPlayerSocketsTest,"Lighthaven.Visual.Player.SocketsCollisionAndMovement",LHPlayerTestsPrivate::LHPlayerVisualTestsFlags)
 bool FLHPlayerSocketsTest::RunTest(const FString&)
 {
     LHPlayerTestsPrivate::FFixture F;
@@ -136,7 +136,7 @@ bool FLHPlayerSocketsTest::RunTest(const FString&)
     V->Present(&C,nullptr,0,.1f); TestTrue(TEXT("Dirk right hand after rebuild"),V->Socket(TEXT("Weapon"))->GetAttachParent()==V->Socket(TEXT("Socket.Weapon.R")));
     P->Destroy(); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHPlayerEventsTest,"Lighthaven.Visual.Player.CombatEventsAndSettlementGuard",LHPlayerTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHPlayerEventsTest,"Lighthaven.Visual.Player.CombatEventsAndSettlementGuard",LHPlayerTestsPrivate::LHPlayerVisualTestsFlags)
 bool FLHPlayerEventsTest::RunTest(const FString&)
 {
     using namespace LHPlayerTestsPrivate;

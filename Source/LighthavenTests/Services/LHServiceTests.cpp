@@ -8,7 +8,7 @@
 namespace LHServiceTestsPrivate
 {
 using namespace LH::Rules;
-constexpr auto Flags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
+constexpr auto LHServiceTestsFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 FLHInteger I(int64 V)
 {
     FLHInteger R;
@@ -210,7 +210,7 @@ struct Fixture
     FLHTrainSkillRequest Train(int64 Count) { FLHTrainSkillRequest R; R.Request=Request(); R.Trainer=C.Entity; R.Skill=Id(TEXT("Skill.Attack")); R.Points=I(Count); return R; }
 };
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServiceTrainTest,"Lighthaven.Services.TrainSkillSuccessAndPool",LHServiceTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServiceTrainTest,"Lighthaven.Services.TrainSkillSuccessAndPool",LHServiceTestsPrivate::LHServiceTestsFlags)
 bool FLHServiceTrainTest::RunTest(const FString&)
 {
     using namespace LHServiceTestsPrivate; Fixture F(TEXT("NPC.Murmuntag")); auto R=F.Train(3);
@@ -221,7 +221,7 @@ bool FLHServiceTrainTest::RunTest(const FString&)
     F.S.Character.UnspentSkillPoints=I(0); Before=F.S; TestEqual(TEXT("Pool exhausted"),LHServices::Execute(F.C,F.S,F.Train(1)),ELHCommandReason::InsufficientPoints); TestTrue(TEXT("Pool rejection intact"),Equal(Before,F.S));
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServiceLearnTest,"Lighthaven.Services.LearnSpellPrerequisites",LHServiceTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServiceLearnTest,"Lighthaven.Services.LearnSpellPrerequisites",LHServiceTestsPrivate::LHServiceTestsFlags)
 bool FLHServiceLearnTest::RunTest(const FString&)
 {
     using namespace LHServiceTestsPrivate; Fixture F(TEXT("NPC.Kilhiam")); FLHLearnSpellRequest R; R.Request=Request(); R.Trainer=F.C.Entity; R.Spell=Id(TEXT("Spell.Light"));
@@ -236,7 +236,7 @@ bool FLHServiceLearnTest::RunTest(const FString&)
     TestEqual(TEXT("Mana unchanged"),F.S.Character.CurrentMana.Value,Mana);
     TestEqual(TEXT("Relearn"),LHServices::Execute(F.C,F.S,R),ELHCommandReason::Ineligible); TestEqual(TEXT("Once"),F.S.Character.LearnedSpells.Num(),1); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServiceBuyTest,"Lighthaven.Services.BuyBowAndQuiver",LHServiceTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServiceBuyTest,"Lighthaven.Services.BuyBowAndQuiver",LHServiceTestsPrivate::LHServiceTestsFlags)
 bool FLHServiceBuyTest::RunTest(const FString&)
 {
     using namespace LHServiceTestsPrivate; Fixture F;
@@ -250,13 +250,13 @@ bool FLHServiceBuyTest::RunTest(const FString&)
     FLHBasicAttackConfig Config; FString Error; TestTrue(TEXT("Bought gear builds ranged config"),LHAbilities::BuildAttackConfig(Equipped,Id(TEXT("Attack.Ranged.Bow")),Lookup,MakeStage1PrototypeCombat(),Config,Error)); TestEqual(TEXT("Unlimited quiver policy"),Quiver.Weapon.QuiverConsumption,ELHQuiverConsumption::Unlimited); TestEqual(TEXT("Quiver bonus"),Config.QuiverBonus,1.0);
     F.S.Character.Gold=I(0); auto Before=F.S; TestEqual(TEXT("No gold"),LHServices::Execute(F.C,F.S,F.Buy()),ELHCommandReason::InsufficientGold); TestTrue(TEXT("Intact"),Equal(Before,F.S)); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServiceFullTest,"Lighthaven.Services.FullInventoryRejectsIntact",LHServiceTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServiceFullTest,"Lighthaven.Services.FullInventoryRejectsIntact",LHServiceTestsPrivate::LHServiceTestsFlags)
 bool FLHServiceFullTest::RunTest(const FString&)
 {
     using namespace LHServiceTestsPrivate; Fixture F; F.P.InventorySlots=I(0); auto Before=F.S;
     TestEqual(TEXT("Full"),LHServices::Execute(F.C,F.S,F.Buy()),ELHCommandReason::InventoryFull); TestTrue(TEXT("Intact"),Equal(Before,F.S)); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServiceReplayTest,"Lighthaven.Services.DoubleClickIdempotent",LHServiceTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServiceReplayTest,"Lighthaven.Services.DoubleClickIdempotent",LHServiceTestsPrivate::LHServiceTestsFlags)
 bool FLHServiceReplayTest::RunTest(const FString&)
 {
     using namespace LHServiceTestsPrivate; Fixture F; auto R=F.Buy(); FLHCommandResult Out; FString Digest;
@@ -270,7 +270,7 @@ bool FLHServiceReplayTest::RunTest(const FString&)
     TestFalse(TEXT("Train replay skips"),LHSave::BeginRequest(T.S,TEXT("TrainSkill"),FLHTrainSkillRequest::StaticStruct(),&Train,Out,Digest)); TestTrue(TEXT("Train replay flag"),Out.bReplay); TestTrue(TEXT("Train once"),Equal(Trained,T.S));
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServiceRangeTest,"Lighthaven.Services.WrongNpcOrRange",LHServiceTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServiceRangeTest,"Lighthaven.Services.WrongNpcOrRange",LHServiceTestsPrivate::LHServiceTestsFlags)
 bool FLHServiceRangeTest::RunTest(const FString&)
 {
     using namespace LHServiceTestsPrivate; Fixture F; auto R=F.Buy(); auto Before=F.S; F.C.Npc=Id(TEXT("NPC.Kilhiam")); TestEqual(TEXT("Wrong NPC"),LHServices::Execute(F.C,F.S,R),ELHCommandReason::NotFound);
@@ -279,7 +279,7 @@ bool FLHServiceRangeTest::RunTest(const FString&)
     R.Vendor.InstanceId=FGuid::NewGuid(); TestEqual(TEXT("Wrong entity"),LHServices::Execute(F.C,F.S,R),ELHCommandReason::NotFound); R.Vendor=F.C.Entity;
     F.S.Character.CurrentHealth=N(0); TestEqual(TEXT("Dead"),LHServices::Execute(F.C,F.S,R),ELHCommandReason::InvalidLifeState); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServiceSellTest,"Lighthaven.Services.SellRules",LHServiceTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServiceSellTest,"Lighthaven.Services.SellRules",LHServiceTestsPrivate::LHServiceTestsFlags)
 bool FLHServiceSellTest::RunTest(const FString&)
 {
     using namespace LHServiceTestsPrivate; Fixture F; FLHItemInstance I0; I0.Id=F.C.Entity; I0.Id.InstanceId=FGuid::NewGuid(); I0.Definition=Id(TEXT("Item.RustedDirk")); I0.Quantity=I(1); F.S.Character.Inventory.Add(I0);
@@ -290,7 +290,7 @@ bool FLHServiceSellTest::RunTest(const FString&)
     F.S.Character.Gold=I(MAX_int64); Before=F.S; TestEqual(TEXT("Overflow"),LHServices::Execute(F.C,F.S,R),ELHCommandReason::InvalidRequest); TestTrue(TEXT("Overflow intact"),Equal(Before,F.S)); F.S.Character.Gold=I(0);
     TestEqual(TEXT("Sell"),LHServices::Execute(F.C,F.S,R),ELHCommandReason::None); TestEqual(TEXT("Price"),F.S.Character.Gold.Value,int64(9)); TestEqual(TEXT("Removed"),F.S.Character.Inventory.Num(),0); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServiceCatalogTest,"Lighthaven.Services.CatalogSourcePositions",LHServiceTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServiceCatalogTest,"Lighthaven.Services.CatalogSourcePositions",LHServiceTestsPrivate::LHServiceTestsFlags)
 bool FLHServiceCatalogTest::RunTest(const FString&)
 {
     using namespace LHServiceTestsPrivate; TestEqual(TEXT("Offer count"),LHServices::Catalog().Num(),13);
@@ -299,7 +299,7 @@ bool FLHServiceCatalogTest::RunTest(const FString&)
 }
 #endif
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServicePolicyTest,"Lighthaven.Services.AuthoredPolicyReadiness",LHServiceTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHServicePolicyTest,"Lighthaven.Services.AuthoredPolicyReadiness",LHServiceTestsPrivate::LHServiceTestsFlags)
 bool FLHServicePolicyTest::RunTest(const FString&)
 {
     using namespace LHServiceTestsPrivate;

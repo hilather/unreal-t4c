@@ -44,7 +44,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 namespace LHW603TestsPrivate
 {
-constexpr auto Flags=EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter;
+constexpr auto LHW603TestsFlags=EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter;
 class FStorage : public ILHSaveStorage
 {
 public:
@@ -136,7 +136,7 @@ FLHAttributeBlock Points()
     FLHAttributeBlock P; P.Strength=LHWave2::PrototypeInteger(1); P.Endurance=P.Agility=P.Intelligence=P.Wisdom=LHWave2::PrototypeInteger(0); return P;
 }
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHW603References,"Lighthaven.Review.W603.References",LHW603TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHW603References,"Lighthaven.Review.W603.References",LHW603TestsPrivate::LHW603TestsFlags)
 bool FLHW603References::RunTest(const FString&)
 {
     using namespace LHW603TestsPrivate;
@@ -184,7 +184,7 @@ bool FLHW603References::RunTest(const FString&)
     TestEqual(TEXT("duplicate life rejected"),LHRewards::SettleKill(S,Facts,Row->Reward,LHWave2::PrototypeProfile(),Observers),ELHCommandReason::InvalidLifeState);
     return !HasAnyErrors();
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHW603Travel,"Lighthaven.Review.W603.TravelCooldownAndResult",LHW603TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHW603Travel,"Lighthaven.Review.W603.TravelCooldownAndResult",LHW603TestsPrivate::LHW603TestsFlags)
 bool FLHW603Travel::RunTest(const FString&)
 {
     using namespace LHW603TestsPrivate;
@@ -224,7 +224,7 @@ bool FLHW603Travel::RunTest(const FString&)
     R.Session->RequestWorldTravel=nullptr; Result=R.Session->Execute(Q); TestEqual(TEXT("reject correlation"),Result.Request.Value,Q.Request.Value); TestEqual(TEXT("reject reason"),Result.Reason,ELHCommandReason::Busy);
     return !HasAnyErrors();
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHW603Corpse,"Lighthaven.Review.W603.LiveGenerationLookup",LHW603TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHW603Corpse,"Lighthaven.Review.W603.LiveGenerationLookup",LHW603TestsPrivate::LHW603TestsFlags)
 bool FLHW603Corpse::RunTest(const FString&)
 {
     using namespace LHW603TestsPrivate;
@@ -263,7 +263,7 @@ bool FLHW603Corpse::RunTest(const FString&)
     TestEqual(TEXT("living solid still blocks attack sight"),Attacker->GetCombatComponent()->ValidateAttack(Living->GetCombatComponent()),ELHCommandReason::OutOfRange);
     return !HasAnyErrors();
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHW603AbilityReplay,"Lighthaven.Review.W603.AbilityReplayLifetime",LHW603TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHW603AbilityReplay,"Lighthaven.Review.W603.AbilityReplayLifetime",LHW603TestsPrivate::LHW603TestsFlags)
 bool FLHW603AbilityReplay::RunTest(const FString&)
 {
     FLHAbilityReplayLog Log; int32 Executions=0;

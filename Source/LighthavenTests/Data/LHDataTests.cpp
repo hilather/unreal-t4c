@@ -11,7 +11,7 @@
 #include "Persistence/LHSaveCodec.h"
 namespace LHDataTestsPrivate
 {
-constexpr auto Flags=EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter;
+constexpr auto LHDataTestsFlags=EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter;
 bool Provenance(const FLHFieldProvenance& P)
 { return !P.FieldPath.IsNone() && !P.SourceBaseline.IsEmpty() && !P.RetrievedDate.IsEmpty() && !P.Notes.IsEmpty() && P.Status!=ELHProvenanceStatus::Missing && (P.Status==ELHProvenanceStatus::Prototype || P.Status==ELHProvenanceStatus::Modernized || !P.SourceUrl.IsEmpty()); }
 template<class T> bool Ready(const T& V)
@@ -46,7 +46,7 @@ bool RewardFixture(const FLHEnemyCatalogRow& Enemy, FLHSaveSnapshot& S, FLHChara
     FLHSaveError Error; return LHSave::Validate(S,Error);
 }
 }
-#define LH_DATA_TEST(Class,Name) IMPLEMENT_SIMPLE_AUTOMATION_TEST(Class,"Lighthaven.Data." Name,LHDataTestsPrivate::Flags) bool Class::RunTest(const FString&)
+#define LH_DATA_TEST(Class,Name) IMPLEMENT_SIMPLE_AUTOMATION_TEST(Class,"Lighthaven.Data." Name,LHDataTestsPrivate::LHDataTestsFlags) bool Class::RunTest(const FString&)
 LH_DATA_TEST(FLHDataRoster,"RosterContractParity")
 {
     FString Text; if (!TestTrue(TEXT("Roster contract readable"),FFileHelper::LoadFileToString(Text,*(FPaths::ProjectDir()/TEXT("docs/plan/contracts/enemy-roster.json"))))) return false;

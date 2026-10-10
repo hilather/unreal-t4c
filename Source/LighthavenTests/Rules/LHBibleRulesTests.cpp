@@ -1,11 +1,15 @@
 #include "Misc/AutomationTest.h"
 #include "Rules/LHBibleRules.h"
 #if WITH_DEV_AUTOMATION_TESTS
-using namespace LH::Rules;
-namespace { constexpr auto BibleFlags=EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter; }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHBibleBands,"Lighthaven.Rules.Bible.BandBoundaries",BibleFlags)
+namespace LHBibleRulesTestsPrivate
+{
+constexpr auto BibleFlags=EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHBibleBands,"Lighthaven.Rules.Bible.BandBoundaries",LHBibleRulesTestsPrivate::BibleFlags)
 bool FLHBibleBands::RunTest(const FString&)
 {
+    using namespace LHBibleRulesTestsPrivate;
+    using namespace LH::Rules;
     auto R=MakeBibleRuleset();
     TestEqual(TEXT("HP bands"),R.Health.Num(),16); TestEqual(TEXT("INT bands"),R.IntelligenceMana.Num(),20); TestEqual(TEXT("WIS bands"),R.WisdomMana.Num(),9);
     for (const auto* Bands:{&R.Health,&R.IntelligenceMana,&R.WisdomMana}) for (const auto& B:*Bands)
@@ -24,9 +28,11 @@ bool FLHBibleBands::RunTest(const FString&)
     R.Health[0].Minimum.Resolution=ELHValueResolution::Unresolved;
     TestTrue(TEXT("Missing rejects"),LookupBibleBand(R.Health,19).Diagnostic.Reason==EReason::Unresolved); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHBibleXPTest,"Lighthaven.Rules.Bible.XPLevelEdges",BibleFlags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHBibleXPTest,"Lighthaven.Rules.Bible.XPLevelEdges",LHBibleRulesTestsPrivate::BibleFlags)
 bool FLHBibleXPTest::RunTest(const FString&)
 {
+    using namespace LHBibleRulesTestsPrivate;
+    using namespace LH::Rules;
     auto R=MakeBibleRuleset(); TestEqual(TEXT("200 rows"),R.Experience.Num(),200);
     for (int64 Level=1;Level<=200;++Level) { auto X=LookupBibleXP(R,Level); TestTrue(TEXT("Each level accepted"),X.Diagnostic.IsAccepted()); TestEqual(TEXT("Explicit level"),X.Value.Level.Value,Level); }
     TestEqual(TEXT("Level1"),LookupBibleXP(R,1).Value.Threshold.Value,int64(0));
@@ -36,9 +42,11 @@ bool FLHBibleXPTest::RunTest(const FString&)
     TestTrue(TEXT("201 unresolved, not capped"),LookupBibleXP(R,201).Diagnostic.Reason==EReason::Unresolved);
     TestFalse(TEXT("Level0 invalid"),LookupBibleXP(R,0).Diagnostic.IsAccepted()); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHBibleCreation,"Lighthaven.Rules.Bible.CreationChartAndCap",BibleFlags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHBibleCreation,"Lighthaven.Rules.Bible.CreationChartAndCap",LHBibleRulesTestsPrivate::BibleFlags)
 bool FLHBibleCreation::RunTest(const FString&)
 {
+    using namespace LHBibleRulesTestsPrivate;
+    using namespace LH::Rules;
     auto R=MakeBibleRuleset(); TestEqual(TEXT("65 chart rows"),R.Rolls.Num(),65); TestEqual(TEXT("40 answers"),R.Answers.Num(),40);
     TestTrue(TEXT("22 allowed"),ValidateBibleStatCap(R,{22,22,22,22,22}).Diagnostic.IsAccepted());
     for (FAttributes A:{FAttributes{23,1,1,1,1},FAttributes{1,23,1,1,1},FAttributes{1,1,23,1,1},FAttributes{1,1,1,23,1},FAttributes{1,1,1,1,23}}) TestFalse(TEXT("23 rejects each stat"),ValidateBibleStatCap(R,A).Diagnostic.IsAccepted());
@@ -48,18 +56,22 @@ bool FLHBibleCreation::RunTest(const FString&)
     auto Owl=LookupBibleAnswer(R,TEXT("Dream"),TEXT("owl")); TestTrue(TEXT("Owl found"),Owl.Diagnostic.IsAccepted()); TestEqual(TEXT("Owl WIS"),Owl.Value.Affinity.Wisdom,int64(1));
     TestTrue(TEXT("RNG missing rejects"),BibleCost(R.CreationRNG).Diagnostic.Reason==EReason::Unresolved); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHBibleCapacity,"Lighthaven.Rules.Bible.Encumbrance",BibleFlags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHBibleCapacity,"Lighthaven.Rules.Bible.Encumbrance",LHBibleRulesTestsPrivate::BibleFlags)
 bool FLHBibleCapacity::RunTest(const FString&)
 {
+    using namespace LHBibleRulesTestsPrivate;
+    using namespace LH::Rules;
     auto R=MakeBibleRuleset();
     const int64 Strengths[]={0,25,50,100,200,400,610}; const double Expected[]={0,100,500.0/3,250,1000.0/3,400,305000.0/710};
     for (int32 I=0;I<7;++I) { auto V=BibleEncumbrance(R,Strengths[I]); TestTrue(TEXT("Capacity accepted"),V.Diagnostic.IsAccepted()); TestTrue(TEXT("Unrounded formula"),FMath::Abs(V.Value-Expected[I])<1e-9); }
     TestFalse(TEXT("Negative invalid"),BibleEncumbrance(R,-1).Diagnostic.IsAccepted()); R.CapacityScale.Resolution=ELHValueResolution::Unresolved;
     TestTrue(TEXT("Missing rejects"),BibleEncumbrance(R,25).Diagnostic.Reason==EReason::Unresolved); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHBibleRequirements,"Lighthaven.Rules.Bible.RequirementsAndCosts",BibleFlags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHBibleRequirements,"Lighthaven.Rules.Bible.RequirementsAndCosts",LHBibleRulesTestsPrivate::BibleFlags)
 bool FLHBibleRequirements::RunTest(const FString&)
 {
+    using namespace LHBibleRulesTestsPrivate;
+    using namespace LH::Rules;
     auto R=MakeBibleRuleset(); TestEqual(TEXT("Classic skills only"),R.Skills.Num(),16);
     const auto* Fire=R.Spells.FindByPredicate([](const auto& S){return S.Name==TEXT("Fire Dart");});
     const auto* Arrow=R.Spells.FindByPredicate([](const auto& S){return S.Name==TEXT("Flaming Arrow");});
@@ -76,9 +88,11 @@ bool FLHBibleRequirements::RunTest(const FString&)
     TestTrue(TEXT("Skill costs need unit"),BibleSkillCost(*Stun,true).Diagnostic.Reason==EReason::Unresolved);
     auto Missing=*Fire; Missing.Level.Resolution=ELHValueResolution::Unresolved; TestTrue(TEXT("Missing requirement rejects"),CheckBibleRequirements(Missing,EAttributeBasis::Base,I).Diagnostic.Reason==EReason::Unresolved); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHBibleMissingProvenance,"Lighthaven.Rules.Bible.MissingValueProvenance",BibleFlags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHBibleMissingProvenance,"Lighthaven.Rules.Bible.MissingValueProvenance",LHBibleRulesTestsPrivate::BibleFlags)
 bool FLHBibleMissingProvenance::RunTest(const FString&)
 {
+    using namespace LHBibleRulesTestsPrivate;
+    using namespace LH::Rules;
     const auto R=MakeBibleRuleset();
     const auto CheckMissing=[this](const FLHInteger& V)
     {

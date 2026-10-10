@@ -42,7 +42,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 namespace LHWave2TestsPrivate
 {
-constexpr auto Flags=EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter;
+constexpr auto LHWave2TestsFlags=EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter;
 class FStorage : public ILHSaveStorage
 {
 public:
@@ -134,7 +134,7 @@ FLHAttributeBlock Points()
     FLHAttributeBlock P; P.Strength=LHWave2::PrototypeInteger(1); P.Endurance=P.Agility=P.Intelligence=P.Wisdom=LHWave2::PrototypeInteger(0); return P;
 }
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2Independence,"Lighthaven.Integration.Wave2.IndependentRebuild",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2Independence,"Lighthaven.Integration.Wave2.IndependentRebuild",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHWave2Independence::RunTest(const FString&)
 {
     using namespace LHWave2TestsPrivate;
@@ -160,7 +160,7 @@ bool FLHWave2Independence::RunTest(const FString&)
     }
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2Equipment,"Lighthaven.Integration.Wave2.EquipmentAllocationRebuild",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2Equipment,"Lighthaven.Integration.Wave2.EquipmentAllocationRebuild",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHWave2Equipment::RunTest(const FString&)
 {
     using namespace LHWave2TestsPrivate;
@@ -197,7 +197,7 @@ bool FLHWave2Equipment::RunTest(const FString&)
     TestTrue(TEXT("Equipment/allocation did not change other character"),Equal(Untouched,Other.Session->Snapshot()));
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2Recovery,"Lighthaven.Integration.Wave2.RecoveryAndUnreadable",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2Recovery,"Lighthaven.Integration.Wave2.RecoveryAndUnreadable",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHWave2Recovery::RunTest(const FString&)
 {
     using namespace LHWave2TestsPrivate;
@@ -228,7 +228,7 @@ bool FLHWave2Recovery::RunTest(const FString&)
     TestEqual(TEXT("Bad generations retained"),Disk->Slots[0][Newest.Header.CharacterId.Value].Num(),3);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2SaveFailure,"Lighthaven.Integration.Wave2.SaveFailureRetry",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2SaveFailure,"Lighthaven.Integration.Wave2.SaveFailureRetry",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHWave2SaveFailure::RunTest(const FString&)
 {
     using namespace LHWave2TestsPrivate;
@@ -248,7 +248,7 @@ bool FLHWave2SaveFailure::RunTest(const FString&)
     return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2ClosureTest,"Lighthaven.Integration.Wave2.CanonicalClosure",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2ClosureTest,"Lighthaven.Integration.Wave2.CanonicalClosure",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHWave2ClosureTest::RunTest(const FString&)
 {
     auto P=LHWave2::PrototypeProfile(); const auto Bytes=LHWave2::MechanicalClosure(P);
@@ -266,7 +266,7 @@ bool FLHWave2ClosureTest::RunTest(const FString&)
     return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2UnsavedSheet,"Lighthaven.Integration.Wave2.UnsavedSheetRetry",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2UnsavedSheet,"Lighthaven.Integration.Wave2.UnsavedSheetRetry",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHWave2UnsavedSheet::RunTest(const FString&)
 {
     using namespace LHWave2TestsPrivate;
@@ -291,7 +291,7 @@ bool FLHWave2UnsavedSheet::RunTest(const FString&)
     return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2ReadbackFailure,"Lighthaven.Integration.Wave2.ReadbackRetryHighWater",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2ReadbackFailure,"Lighthaven.Integration.Wave2.ReadbackRetryHighWater",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHWave2ReadbackFailure::RunTest(const FString&)
 {
     using namespace LHWave2TestsPrivate;
@@ -307,7 +307,7 @@ bool FLHWave2ReadbackFailure::RunTest(const FString&)
     TestEqual(TEXT("Next authority command advances from durable high-water"),Runtime.Session->Snapshot().Header.TransactionSequence,Saved.Header.TransactionSequence+2);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2WidgetQuit,"Lighthaven.Integration.Wave2.WidgetCreationFailureQuitRetry",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2WidgetQuit,"Lighthaven.Integration.Wave2.WidgetCreationFailureQuitRetry",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHWave2WidgetQuit::RunTest(const FString&)
 {
     using namespace LHWave2TestsPrivate;
@@ -332,7 +332,7 @@ bool FLHWave2WidgetQuit::RunTest(const FString&)
     TestEqual(TEXT("confirmed quit suppresses creation travel"),Travels,0);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2InputHandoff,"Lighthaven.Integration.Wave2.GameplayInputHandoff",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave2InputHandoff,"Lighthaven.Integration.Wave2.GameplayInputHandoff",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHWave2InputHandoff::RunTest(const FString&)
 {
     using namespace LHWave2TestsPrivate;
@@ -364,7 +364,7 @@ bool FLHWave2InputHandoff::RunTest(const FString&)
     R.Controller->Player=nullptr; Local->PlayerController=nullptr; Instance->RemoveLocalPlayer(Local); Context->GameViewport=nullptr;
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave3LiveSession,"Lighthaven.Integration.Wave3.SessionCheckpoints",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWave3LiveSession,"Lighthaven.Integration.Wave3.SessionCheckpoints",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHWave3LiveSession::RunTest(const FString&)
 {
     using namespace LHWave2TestsPrivate;
@@ -463,7 +463,7 @@ bool Kill(FRuntime& R,ALHCharacter* Pawn,ALHEnemyCharacter* Enemy)
     return Enemy->IsCorpse();
 }
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHStage1Errand,"Lighthaven.Integration.Wave4.Stage1A.ErrandLoop",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHStage1Errand,"Lighthaven.Integration.Wave4.Stage1A.ErrandLoop",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHStage1Errand::RunTest(const FString&)
 {
     using namespace LHStage1IntegrationTestsPrivate;
@@ -506,7 +506,7 @@ bool FLHStage1Errand::RunTest(const FString&)
     FRuntime Reload(Disk); TestTrue(TEXT("reload completed errand"),Reload.Restore(Finished.Header.CharacterId));
     TestTrue(TEXT("canonical errand state and claims persist"),Equal(Finished,Reload.Session->Snapshot())); return !HasAnyErrors();
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHStage1Melee,"Lighthaven.Integration.Wave4.LiveMeleeCommand",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHStage1Melee,"Lighthaven.Integration.Wave4.LiveMeleeCommand",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHStage1Melee::RunTest(const FString&)
 {
     using namespace LHStage1IntegrationTestsPrivate;
@@ -526,7 +526,7 @@ bool FLHStage1Melee::RunTest(const FString&)
     TestTrue(TEXT("kill and gold reload"),Read.Load(After.Header.CharacterId,FLHWave2Session::Compatibility(),Loaded,Error));
     TestEqual(TEXT("durable XP"),Loaded.Character.ExperienceBalance.Value,int64(45)); TestEqual(TEXT("durable gold"),Loaded.Character.Gold.Value,int64(103)); return !HasAnyErrors();
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHStage1Resources,"Lighthaven.Integration.Wave4.ResourceSyncAtBoundary",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHStage1Resources,"Lighthaven.Integration.Wave4.ResourceSyncAtBoundary",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHStage1Resources::RunTest(const FString&)
 {
     using namespace LHStage1IntegrationTestsPrivate;
@@ -542,7 +542,7 @@ bool FLHStage1Resources::RunTest(const FString&)
     TestEqual(TEXT("damage survives reload"),Loaded.Character.CurrentHealth.Value,13.0); TestEqual(TEXT("spent mana survives reload"),Loaded.Character.CurrentMana.Value,2.0);
     TestEqual(TEXT("no extra regen tick"),Loaded.Session.ManaRegenFractionalSeconds.Value,4.75); return !HasAnyErrors();
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHStage1Catalog,"Lighthaven.Integration.Wave4.CatalogCrossRefs",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHStage1Catalog,"Lighthaven.Integration.Wave4.CatalogCrossRefs",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHStage1Catalog::RunTest(const FString&)
 {
     TestEqual(TEXT("eleven enemies"),LHEnemyData::Catalog().Num(),11); TestEqual(TEXT("77 slots"),LHEncounterData::Catalog().Num(),77);
@@ -553,7 +553,7 @@ bool FLHStage1Catalog::RunTest(const FString&)
     TestEqual(TEXT("six individual kit instances"),P.StarterItems.Num(),6); return !HasAnyErrors();
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHStage1Death,"Lighthaven.Integration.Wave4.DeathRespawnSafe",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHStage1Death,"Lighthaven.Integration.Wave4.DeathRespawnSafe",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHStage1Death::RunTest(const FString&)
 {
     using namespace LHStage1IntegrationTestsPrivate;
@@ -627,7 +627,7 @@ bool Earn(FRuntime& R,ALHCharacter* Pawn,int32 Count)
 FLHBuyItemRequest Buy(FRuntime& R,ALHInteractableMarker* N,const TCHAR* Offer)
 { FLHBuyItemRequest Q; Q.Request=Request(R); Q.Vendor=N->Materialize(R.Session->Snapshot().World.RunId); Q.Offer.Value=Offer; Q.Quantity=LHWave2::PrototypeInteger(1); return Q; }
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4Services,"Lighthaven.Integration.Wave4.ServicesThroughSession",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4Services,"Lighthaven.Integration.Wave4.ServicesThroughSession",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHG4Services::RunTest(const FString&)
 {
     using namespace LHG4TestsPrivate; auto Disk=MakeShared<FStorage>(); FRuntime R(Disk);
@@ -664,7 +664,7 @@ bool FLHG4Services::RunTest(const FString&)
     FRuntime Reload(Disk); TestTrue(TEXT("reload earned purchases and spell"),Reload.Restore(S.Header.CharacterId));
     TestTrue(TEXT("same durable state"),Equal(R.Session->Snapshot(),Reload.Session->Snapshot())); return !HasAnyErrors();
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4Potion,"Lighthaven.Integration.Wave4.UseItemThroughSession",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4Potion,"Lighthaven.Integration.Wave4.UseItemThroughSession",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHG4Potion::RunTest(const FString&)
 {
     using namespace LHG4TestsPrivate; auto Disk=MakeShared<FStorage>(); FRuntime R(Disk); R.Create(); R.Flush(); R.Session->Bind(R.State); auto* Pawn=Avatar(R);
@@ -676,7 +676,7 @@ bool FLHG4Potion::RunTest(const FString&)
     TestEqual(TEXT("live mana clamped"),R.State->GetCombatComponent()->GetCombatAttributes()->GetMana(),10.f);
     TestTrue(TEXT("potion replay"),R.Session->Execute(Q).bReplay); TestFalse(TEXT("one consumed"),R.Session->Snapshot().Character.Inventory.ContainsByPredicate([&](const auto& I){return I.Id.InstanceId==Q.Item.InstanceId;})); return !HasAnyErrors();
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4Balork,"Lighthaven.Integration.Wave4.BalorkSingleClaim",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4Balork,"Lighthaven.Integration.Wave4.BalorkSingleClaim",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHG4Balork::RunTest(const FString&)
 {
     using namespace LHG4TestsPrivate; auto Disk=MakeShared<FStorage>(); FLHSaveSnapshot Finished;
@@ -715,7 +715,7 @@ bool FLHG4Balork::RunTest(const FString&)
     TestTrue(TEXT("new return intent cannot complete twice"),R.Session->Execute(Interact(R,Kiran,TEXT("Topic.BalorkReturn"))).Disposition==ELHCommandDisposition::Rejected); return !HasAnyErrors();
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4Economy,"Lighthaven.Integration.Wave4.ProgressionRouteAffordable",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4Economy,"Lighthaven.Integration.Wave4.ProgressionRouteAffordable",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHG4Economy::RunTest(const FString&)
 {
     using namespace LHG4TestsPrivate; auto Disk=MakeShared<FStorage>(); FRuntime R(Disk); R.Create(); R.Flush(); R.Session->Bind(R.State); auto* Pawn=Avatar(R);
@@ -741,7 +741,7 @@ bool FLHG4Economy::RunTest(const FString&)
     TestTrue(TEXT("activation replay"),R.Session->Execute(Attack).bReplay); return !HasAnyErrors();
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4EnemyContinuation,"Lighthaven.Integration.Wave4.EnemyContinuation",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4EnemyContinuation,"Lighthaven.Integration.Wave4.EnemyContinuation",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHG4EnemyContinuation::RunTest(const FString&)
 {
     using namespace LHG4TestsPrivate; auto Disk=MakeShared<FStorage>(); FLHSaveSnapshot Captured; FLHSpawnLifeId Life; int32 ExpectedSeed=0;
@@ -885,7 +885,7 @@ bool Check(FAutomationTestBase& Test,FRuntime& R)
     return true;
 }
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHB1TravelSpawn,"Lighthaven.Integration.Wave4.B1SpawnOnTravelArrival",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHB1TravelSpawn,"Lighthaven.Integration.Wave4.B1SpawnOnTravelArrival",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHB1TravelSpawn::RunTest(const FString&)
 {
     using namespace LHB1SpawnTestsPrivate;
@@ -911,7 +911,7 @@ bool FLHB1TravelSpawn::RunTest(const FString&)
     TestTrue(TEXT("repeated population succeeds"),R.Session->StartEncounters()); Check(*this,R);
     return !HasAnyErrors();
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHB1ContinueSpawn,"Lighthaven.Integration.Wave4.B1SpawnOnContinue",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHB1ContinueSpawn,"Lighthaven.Integration.Wave4.B1SpawnOnContinue",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHB1ContinueSpawn::RunTest(const FString&)
 {
     using namespace LHB1SpawnTestsPrivate;
@@ -941,7 +941,7 @@ bool FLHB1ContinueSpawn::RunTest(const FString&)
     R.Session->Travel=nullptr;
     return !HasAnyErrors();
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4LightPersistence,"Lighthaven.Integration.Wave4.LightPersistsAcrossReloadAndTravel",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4LightPersistence,"Lighthaven.Integration.Wave4.LightPersistsAcrossReloadAndTravel",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHG4LightPersistence::RunTest(const FString&)
 {
     using namespace LHG4TestsPrivate;
@@ -1000,7 +1000,7 @@ bool FLHG4LightPersistence::RunTest(const FString&)
     return !HasAnyErrors();
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHReachHorizontal,"Lighthaven.Integration.Wave4.InteractReachHorizontal",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHReachHorizontal,"Lighthaven.Integration.Wave4.InteractReachHorizontal",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHReachHorizontal::RunTest(const FString&)
 {
     using namespace LHWave2TestsPrivate;
@@ -1041,7 +1041,7 @@ bool FLHReachHorizontal::RunTest(const FString&)
     R.Controller->LiveSession.Reset(); R.Controller->JournalPresenter.Reset();
     return !HasAnyErrors();
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDialogueNpcName,"Lighthaven.Integration.Wave4.DialogueShowsNpcName",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDialogueNpcName,"Lighthaven.Integration.Wave4.DialogueShowsNpcName",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHDialogueNpcName::RunTest(const FString&)
 {
     using namespace LHWave2TestsPrivate;
@@ -1053,7 +1053,7 @@ bool FLHDialogueNpcName::RunTest(const FString&)
     Npc->DefinitionId.Value=TEXT("NPC.Unknown"); TestEqual(TEXT("unknown fallback"),R.Session->DialogueName(Id),FString(TEXT("Unknown NPC")));
     return !HasAnyErrors();
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHStaleStatus,"Lighthaven.Integration.Wave4.StaleStatusClears",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHStaleStatus,"Lighthaven.Integration.Wave4.StaleStatusClears",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHStaleStatus::RunTest(const FString&)
 {
     using namespace LHWave2TestsPrivate;
@@ -1073,7 +1073,7 @@ bool FLHStaleStatus::RunTest(const FString&)
     R.Session->FreezeWorldTravel(false); TestTrue(TEXT("successful travel retry clears old feedback"),R.Session->Status().IsEmpty());
     return !HasAnyErrors();
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4LegalReplay,"Lighthaven.Integration.G4.LegalPurchaseReplayAndRetrySave",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4LegalReplay,"Lighthaven.Integration.G4.LegalPurchaseReplayAndRetrySave",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHG4LegalReplay::RunTest(const FString&)
 {
     using namespace LHG4TestsPrivate;
@@ -1103,7 +1103,7 @@ bool FLHG4LegalReplay::RunTest(const FString&)
     return !HasAnyErrors();
 }
 // Travel-only prefix of the requested build routes. Does not claim earned combat completion.
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4SessionRoute,"Lighthaven.Integration.G4.SessionFloorRouteAndReload",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4SessionRoute,"Lighthaven.Integration.G4.SessionFloorRouteAndReload",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHG4SessionRoute::RunTest(const FString&)
 {
     using namespace LHB1SpawnTestsPrivate;
@@ -1276,7 +1276,7 @@ bool FLHG4SessionRoute::RunTest(const FString&)
     return !HasAnyErrors();
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4DeathChurch,"Lighthaven.Integration.G4.DeathAndChurchRespawn",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4DeathChurch,"Lighthaven.Integration.G4.DeathAndChurchRespawn",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHG4DeathChurch::RunTest(const FString&)
 {
     using namespace LHB1SpawnTestsPrivate;
@@ -1590,13 +1590,13 @@ bool EarnedRoute(FAutomationTestBase& Test,int32 Build)
     F.R.Flush(); Test.TestTrue(TEXT("opposed enemy windups observed"),F.EnemyWindups>0); return !Test.HasAnyErrors();
 }
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4EarnedMelee,"Lighthaven.Integration.G4.EarnedMeleeRoute",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4EarnedMelee,"Lighthaven.Integration.G4.EarnedMeleeRoute",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHG4EarnedMelee::RunTest(const FString&){return LHG4EarnedPrivate::EarnedRoute(*this,0);}
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4EarnedRanged,"Lighthaven.Integration.G4.EarnedRangedRoute",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4EarnedRanged,"Lighthaven.Integration.G4.EarnedRangedRoute",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHG4EarnedRanged::RunTest(const FString&){return LHG4EarnedPrivate::EarnedRoute(*this,1);}
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4EarnedMagic,"Lighthaven.Integration.G4.EarnedMagicRoute",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4EarnedMagic,"Lighthaven.Integration.G4.EarnedMagicRoute",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHG4EarnedMagic::RunTest(const FString&){return LHG4EarnedPrivate::EarnedRoute(*this,2);}
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4InventoryRollback,"Lighthaven.Integration.G4.SessionInventoryRollback",LHWave2TestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4InventoryRollback,"Lighthaven.Integration.G4.SessionInventoryRollback",LHWave2TestsPrivate::LHWave2TestsFlags)
 bool FLHG4InventoryRollback::RunTest(const FString&)
 {
     using namespace LHG4EarnedPrivate;

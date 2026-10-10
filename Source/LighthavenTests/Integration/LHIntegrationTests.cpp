@@ -108,9 +108,9 @@ struct FFixture
     FFixture(const FFixture&) = delete;
     FFixture& operator=(const FFixture&) = delete;
 };
-constexpr auto Flags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
+constexpr auto LHIntegrationTestsFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHControlsCombatIntegration, "Lighthaven.Integration.ControlsCombat", LHIntegrationTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHControlsCombatIntegration, "Lighthaven.Integration.ControlsCombat", LHIntegrationTestsPrivate::LHIntegrationTestsFlags)
 bool FLHControlsCombatIntegration::RunTest(const FString&)
 {
     LHIntegrationTestsPrivate::FFixture F;
@@ -147,7 +147,7 @@ bool FLHControlsCombatIntegration::RunTest(const FString&)
     TestFalse(TEXT("Unpossess clears live combat avatar"), F.Attacker->IsAlive());
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHContextIntegration, "Lighthaven.Integration.ContextClearsMovement", LHIntegrationTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHContextIntegration, "Lighthaven.Integration.ContextClearsMovement", LHIntegrationTestsPrivate::LHIntegrationTestsFlags)
 bool FLHContextIntegration::RunTest(const FString&)
 {
     LHIntegrationTestsPrivate::FFixture F;
@@ -168,7 +168,7 @@ bool FLHContextIntegration::RunTest(const FString&)
     TestFalse(TEXT("Neutral then new input accepted"), F.Controller->GetHeldMovement().IsNearlyZero());
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeadPlayerMovementTest, "Lighthaven.Integration.DeadPlayerMovement", LHIntegrationTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeadPlayerMovementTest, "Lighthaven.Integration.DeadPlayerMovement", LHIntegrationTestsPrivate::LHIntegrationTestsFlags)
 bool FLHDeadPlayerMovementTest::RunTest(const FString&)
 {
     LHIntegrationTestsPrivate::FFixture F;
@@ -252,7 +252,7 @@ struct FInputFixture : IEnhancedInputSubsystemInterface
     }
 };
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHHeldMovementAttack, "Lighthaven.Integration.HeldMovementThroughAttack", LHIntegrationTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHHeldMovementAttack, "Lighthaven.Integration.HeldMovementThroughAttack", LHIntegrationTestsPrivate::LHIntegrationTestsFlags)
 bool FLHHeldMovementAttack::RunTest(const FString&)
 {
     LHIntegrationTestsPrivate::FInputFixture F;
@@ -288,7 +288,7 @@ bool FLHHeldMovementAttack::RunTest(const FString&)
     TestFalse(TEXT("Fresh press moves pawn"), F.Game.Source->GetActorLocation().Equals(Stopped,0.01f));
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHHeldMovementContext, "Lighthaven.Integration.HeldMovementThroughContext", LHIntegrationTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHHeldMovementContext, "Lighthaven.Integration.HeldMovementThroughContext", LHIntegrationTestsPrivate::LHIntegrationTestsFlags)
 bool FLHHeldMovementContext::RunTest(const FString&)
 {
     LHIntegrationTestsPrivate::FInputFixture F;

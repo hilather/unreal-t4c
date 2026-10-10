@@ -6,7 +6,7 @@
 namespace LHCharacterTestsPrivate
 {
 using namespace LH::Rules;
-constexpr auto Flags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
+constexpr auto LHCharacterTestsFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 FLHInteger I(int64 V)
 {
     FLHInteger R;
@@ -189,7 +189,7 @@ bool Equal(const FLHSaveSnapshot &A, const FLHSaveSnapshot &B)
 }
 } // namespace
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterCreationTest, "Lighthaven.Character.CreationAndReplay", LHCharacterTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterCreationTest, "Lighthaven.Character.CreationAndReplay", LHCharacterTestsPrivate::LHCharacterTestsFlags)
 bool FLHCharacterCreationTest::RunTest(const FString &)
 {
     using namespace LH::Rules;
@@ -221,7 +221,7 @@ bool FLHCharacterCreationTest::RunTest(const FString &)
     TestTrue(TEXT("Replay after load"), Loaded.Execute(Current).bReplay);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterAtomicTest, "Lighthaven.Character.AtomicRejectionsAndCapacity", LHCharacterTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterAtomicTest, "Lighthaven.Character.AtomicRejectionsAndCapacity", LHCharacterTestsPrivate::LHCharacterTestsFlags)
 bool FLHCharacterAtomicTest::RunTest(const FString &)
 {
     using namespace LH::Rules;
@@ -271,7 +271,7 @@ bool FLHCharacterAtomicTest::RunTest(const FString &)
     TestTrue(TEXT("Add after removal"), A.AddItem(Q) == ELHCommandReason::None);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterGrowthTest, "Lighthaven.Character.MultiLevelAndDebt", LHCharacterTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterGrowthTest, "Lighthaven.Character.MultiLevelAndDebt", LHCharacterTestsPrivate::LHCharacterTestsFlags)
 bool FLHCharacterGrowthTest::RunTest(const FString &)
 {
     using namespace LH::Rules;
@@ -305,7 +305,7 @@ bool FLHCharacterGrowthTest::RunTest(const FString &)
     TestTrue(TEXT("Overflow atomic"), LHCharacterTestsPrivate::Equal(Before, After));
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterEquipmentTest, "Lighthaven.Character.EquipmentQuiverAndSnapshot", LHCharacterTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterEquipmentTest, "Lighthaven.Character.EquipmentQuiverAndSnapshot", LHCharacterTestsPrivate::LHCharacterTestsFlags)
 bool FLHCharacterEquipmentTest::RunTest(const FString &)
 {
     using namespace LH::Rules;
@@ -349,7 +349,7 @@ bool FLHCharacterEquipmentTest::RunTest(const FString &)
     return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCharacterUnresolvedTest, "Lighthaven.Character.UnresolvedAndImportValidation",
-                                 LHCharacterTestsPrivate::Flags)
+                                 LHCharacterTestsPrivate::LHCharacterTestsFlags)
 bool FLHCharacterUnresolvedTest::RunTest(const FString &)
 {
     using namespace LH::Rules;
