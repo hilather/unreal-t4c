@@ -105,3 +105,85 @@ After locally generating the five playable maps and running `build/build-art.sh`
 ```
 
 Observed exit 0: 38 successful tests (Rules 14, Visual 14, World.Dressing 10), zero failed/not-run/in-process; one success with a GameplayCueNotifyPaths fallback warning in `Lighthaven.Visual.Monsters.CatalogDeterminism`. Map generation and art import returned 1 from baseline pointer-package AssetRegistry errors; the generated playable maps and 4,454,854-byte art receipt existed, and scoped tests exercised them successfully. Map pointers were restored and generated art moved under ignored `Saved/` before submission. No package, rendered review, Windows build, or gameplay gate is claimed by this compile fix.
+
+## W5-10 creature import and presentation candidate (blocked validation)
+
+Base: `0fb6dc50c59ff2d4cf2c218796480e1044290227`. This section describes a
+source/tooling candidate, **not an observed successful creature import**.
+
+`build/build-art.sh` now builds and validates both creature batches after B1,
+then invokes an embedded Unreal Python importer. Destinations are
+`/Game/Lighthaven/Art/Creatures/<kind>/SK_<kind>` and
+`A_idle/move/attack/hit/death`. The importer checks skeleton compatibility and
+rest bounds against each source validation JSON within 0.5 cm. It fails if
+Interchange does not produce exactly one combined skeletal mesh. A small
+skeletal master and per-creature instances bind explicit sRGB base, normal
+(with green flipped), and linear ORM textures. Generated package inventories
+report bytes per creature and reject totals over **25,000,000 bytes**.
+
+B1 and creature receipts now live under their respective `Content/` art roots.
+The coordinator must commit these JSON receipts alongside the LFS packages.
+An unchanged signature plus every output package SHA-256 skips all import/save
+operations. Changed inputs against read-only lockable packages stop unless the
+asset owner explicitly sets `LH_ART_REIMPORT=1`; that opt-in grants owner write
+permission on existing packages. A legacy checkout without a committed receipt
+requires one authorized rebuild. Receipts are written only after a successful
+import. Byte stability across repeated Blender exports and Interchange
+reimports has **not been measured**; the skip path preserves bytes when the
+generated GLB/signature and inventory match. No receipt or binary is in this
+worker candidate.
+
+**Axis checkpoint:** the environment's vertex-only reflection cannot be copied
+to skeletal GLBs: joint transforms, inverse bind matrices and animation tracks
+must receive the same basis change. This candidate uses native glTF skeletal
+conversion and rejects a bounds mismatch. Native conversion correctness,
+animation handedness, winding and multi-part weapon combining remain untested.
+If this checkpoint fails, extend the import-only conversion consistently for
+the whole rig (or export FBX from a disposable Blender scene); do not change
+the visual lane's authored exports or relax the bounds tolerance.
+
+`ULHMonsterVisual` optionally loads eleven meshes and five clips per mesh as
+hard CDO references, retaining their transitive skeleton/material/texture cook
+dependencies when packages exist before cook. An absent mesh, absent clip or
+incompatible skeleton retains the procedural recipe. `Build(...,false)`
+explicitly exercises that branch in the collision/fallback test. Imported
+components have no collision, overlaps or navigation influence. Animation
+position is manually sampled: source attack contact frame 30 maps to the
+authority's impact delay. Animations never invoke damage or root motion.
+Authored dimensions are retained; capsule sizes and gameplay code are unchanged.
+
+**Weapon limitation:** the candidate retains the source's skinned weapon parts
+and named bones in a combined mesh. It does not yet create separately removable
+weapon components attached to sockets. This is a remaining W5-10 requirement,
+not a claim of completed weapon attachment.
+
+Development builds expose `lh.CreatureLineup [index 0..10] [close]`; Shipping
+excludes the command implementation. It creates generic presentation actors at
+the current player's room, cycles visual attacks, and selects a review camera.
+There is no enemy runtime specification, AI or reward authority on these
+actors. Use it in a lit B1 room. `build/capture-creature-lineup.sh <Development
+binary>` requests gameplay and closer images for all eleven IDs under ignored
+`Saved/CreatureCapture/`. The camera is a review approximation (55-degree
+overview / 40-degree close), not a measured match to the gameplay spring arm.
+Room clearance, packaged command startup timing and visible captures remain
+unvalidated.
+
+Checks actually run in this attempt:
+- Shell syntax for both scripts, embedded Python AST parsing and
+  `git diff --check`: passed.
+- B1 Blender export and validator: 12 meshes / 9 textures, **4,841,071 bytes**
+  including manifest. The following Unreal process exited 1 because the game
+  module `Lighthaven` could not be found; creature build/import was not reached.
+- First editor build failed before compilation: UBA attempted to create
+  `/home/brewerm/.herdr-farm-homes/codex-sol/.epic` on a read-only filesystem.
+  The documented project-local configuration and UBA root avoided that initial
+  error, but the retry remained at the UBA action queue and was interrupted.
+  No compiler success or runnable test module is claimed.
+
+The new catalog test covers all eleven distinct mappings; the imported-assets
+test requires real packages and checks source rest rulers and compatible clips.
+Exact import bounds checks are in the importer. Full-suite counts, generated
+maps, arrival review 9/9, cook, package and host display captures require a
+successful build/import and remain unverified. Existing map and arrival bytes
+were not edited. Windows validation remains deferred by the Linux-first
+decision. See the attempt report for final command exits and evidence.

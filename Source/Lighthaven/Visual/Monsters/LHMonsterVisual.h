@@ -4,6 +4,9 @@
 #include "LHMonsterVisual.generated.h"
 class ALHVisualPiece;
 class UStaticMesh;
+class USkeletalMesh;
+class UAnimSequence;
+class USkeletalMeshComponent;
 enum class ELHMonsterMotion : uint8 { Idle, Move, Telegraph, Strike, Hit, Dead };
 // Presentation clock only. No gameplay writes, random draws or timers.
 UCLASS()
@@ -12,7 +15,9 @@ class LIGHTHAVEN_API ULHMonsterVisual : public USceneComponent
     GENERATED_BODY()
 public:
     ULHMonsterVisual();
-    bool Build(FName DefinitionId, double Radius, double HalfHeight);
+    bool Build(FName DefinitionId, double Radius, double HalfHeight, bool UseImportedArt = true);
+    bool UsesImportedArt() const { return CreatureMesh != nullptr; }
+    static FString ArtId(FName DefinitionId);
     static bool Known(FName DefinitionId);
     static uint32 RecipeFingerprint(FName DefinitionId);
     void Attack(double ImpactDelay, double CommitTime = -1);
@@ -28,6 +33,10 @@ public:
     virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 private:
     void Clear();
+    UPROPERTY() TArray<TObjectPtr<USkeletalMesh>> CreatureAssets;
+    UPROPERTY() TArray<TObjectPtr<UAnimSequence>> CreatureActions;
+    UPROPERTY() TObjectPtr<USkeletalMeshComponent> CreatureMesh;
+    int32 CreatureIndex = INDEX_NONE;
     // Hard CDO references expose engine primitive cook dependencies.
     UPROPERTY() TArray<TObjectPtr<UStaticMesh>> ShapeMeshes;
     UPROPERTY() TArray<TObjectPtr<USceneComponent>> Parts;

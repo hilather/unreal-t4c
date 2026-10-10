@@ -15,6 +15,7 @@ import hashlib
 import json
 import struct
 import shutil
+import os
 from pathlib import Path
 import unreal as u
 
@@ -31,7 +32,7 @@ def main():
     # Include tool source and engine version so edits cannot silently reuse stale assets.
     signature = hashlib.sha256((Path(__file__).read_bytes() +
         (source / 'manifest.json').read_bytes() + u.SystemLibrary.get_engine_version().encode())).hexdigest()
-    stamp = root / 'Saved/ArtExport/b1-import-receipt.json'
+    stamp = root / 'Content/Lighthaven/Art/Env/B1/import-receipt.json'
     content = root / 'Content/Lighthaven/Art/Env/B1'
     def inventory():
         return {str(p.relative_to(content)): {'bytes': p.stat().st_size,
@@ -43,6 +44,13 @@ def main():
             u.log('B1_IMPORT_UNCHANGED: package bytes preserved')
             return
     
+    # LFS lockable packages are read-only on a fresh clone. Never silently chmod.
+    locked = [p for p in content.rglob('*.uasset') if not p.stat().st_mode & 0o200]
+    if locked and os.environ.get('LH_ART_REIMPORT') != '1':
+        raise RuntimeError('Changed B1 inputs require LH_ART_REIMPORT=1 (explicit owner write permission)')
+    for p in locked:
+        p.chmod(p.stat().st_mode | 0o200)
+
     def import_one(filename, name, folder=dest):
         task = u.AssetImportTask()
         task.set_editor_property('filename', str(filename))
@@ -242,5 +250,137 @@ main()
 PY
 "$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$LH_PROJECT" \
   -run=pythonscript "-Script=$PWD/Saved/ArtExport/import_b1.py" -EnablePlugins=PythonScriptPlugin \
+  -nullrhi -unattended -nosound -nop4 '-DDC=(Local)' "-LocalDataCachePath=$PWD/Saved/DerivedDataCache" \
+  '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0'
+
+# Creature source remains owned by the visual lane; only ignored outputs are written.
+mkdir -p Saved/CreatureBlenderConfig
+for batch in pilot batch2; do
+  args=()
+  if [[ $batch == batch2 ]]; then args+=(--batch2); fi
+  XDG_CONFIG_HOME="$PWD/Saved/CreatureBlenderConfig" "$BLENDER_ROOT/blender" \
+    --background --factory-startup --threads 3 --python-exit-code 1 \
+    --python artsource/creatures/build.py -- --no-render "${args[@]}"
+  python3 artsource/creatures/validate_glb.py "${args[@]}" > "Saved/ArtExport/creatures-$batch-validation.json"
+done
+cat > Saved/ArtExport/import_creatures.py <<'PY'
+import hashlib, json, os
+from pathlib import Path
+import unreal as u
+
+root=Path(u.Paths.project_dir()).resolve()
+source=root/'artsource/creatures/output'
+content=root/'Content/Lighthaven/Art/Creatures'
+dest='/Game/Lighthaven/Art/Creatures'
+kinds=('rat','bat','slime','goblin','giant_spider','balork','goblin_warrior','atrocity','dungeon_bat','giant_bat','undead_bat')
+tools=u.AssetToolsHelpers.get_asset_tools()
+assets=u.EditorAssetLibrary
+signature=hashlib.sha256(Path(__file__).read_bytes()+u.SystemLibrary.get_engine_version().encode())
+for kind in kinds:
+    signature.update((source/(kind+'.glb')).read_bytes())
+signature=signature.hexdigest()
+stamp=content/'import-receipt.json'
+def inventory():
+    return {str(p.relative_to(content)):dict(bytes=p.stat().st_size,sha256=hashlib.sha256(p.read_bytes()).hexdigest())
+            for p in sorted(content.rglob('*.uasset'))}
+if stamp.exists():
+    old=json.loads(stamp.read_text())
+    if old['signature']==signature and old['assets']==inventory():
+        u.log('CREATURE_IMPORT_UNCHANGED: package bytes preserved')
+        raise SystemExit(0)
+locked=[p for p in content.rglob('*.uasset') if not p.stat().st_mode & 0o200]
+if locked and os.environ.get('LH_ART_REIMPORT')!='1':
+    raise RuntimeError('Changed creature inputs require LH_ART_REIMPORT=1')
+for p in locked:
+    p.chmod(p.stat().st_mode | 0o200)
+for kind in kinds:
+    folder=dest+'/'+kind
+    task=u.AssetImportTask()
+    for key,value in dict(filename=str(source/(kind+'.glb')),destination_path=folder,
+                          destination_name='SK_'+kind,automated=True,replace_existing=True,save=False).items():
+        task.set_editor_property(key,value)
+    tools.import_asset_tasks([task])
+    objects=task.get_objects()
+    meshes=[o for o in objects if isinstance(o,u.SkeletalMesh)]
+    # Never apply the B1 vertex reflection alone to a rig: inverse bind matrices
+    # and animation transforms must be transformed with it. Fail on native axis mismatch.
+    if len(meshes)!=1:
+        raise RuntimeError(kind+': expected one combined skeletal mesh; got '+str(len(meshes)))
+    mesh=meshes[0]
+    wanted=folder+'/SK_'+kind
+    if mesh.get_path_name().split('.')[0]!=wanted and not assets.rename_asset(mesh.get_path_name(),wanted):
+        raise RuntimeError('Cannot normalize skeletal name '+kind)
+    spec=json.loads((source/(kind+'-validation.json')).read_text())['rest_bounds']
+    box=mesh.get_bounds()
+    low=box.origin-box.box_extent
+    high=box.origin+box.box_extent
+    for actual,expected in ((low,spec['min_cm']),(high,spec['max_cm'])):
+        if max(abs(a-b) for a,b in zip((actual.x,actual.y,actual.z),expected))>.5:
+            raise RuntimeError(kind+': native glTF axis/unit/bounds mismatch: '+str(box))
+    clips=[o for o in objects if isinstance(o,u.AnimSequence)]
+    for action in ('idle','move','attack','hit','death'):
+        matches=[a for a in clips if action in a.get_name().lower()]
+        if len(matches)!=1 or matches[0].get_editor_property('skeleton')!=mesh.get_editor_property('skeleton'):
+            raise RuntimeError(kind+': missing/ambiguous compatible action '+action)
+        if not assets.rename_asset(matches[0].get_path_name(),folder+'/A_'+action):
+            raise RuntimeError('Cannot normalize animation '+action)
+    for path in assets.list_assets(folder,recursive=True,include_folder=False):
+        obj=assets.load_asset(path)
+        if isinstance(obj,u.Texture2D):
+            name=obj.get_name().lower()
+            normal='normal' in name
+            orm='orm' in name or 'occlusion' in name or 'metallic' in name
+            obj.set_editor_property('srgb',not(normal or orm))
+            obj.set_editor_property('compression_settings',u.TextureCompressionSettings.TC_NORMALMAP if normal else u.TextureCompressionSettings.TC_MASKS if orm else u.TextureCompressionSettings.TC_DEFAULT)
+            if normal: obj.set_editor_property('flip_green_channel',True)
+    editor=u.MaterialEditingLibrary
+    textures={}
+    for channel in ('base','normal','orm'):
+        texture_task=u.AssetImportTask()
+        for key,value in dict(filename=str(source/(kind+'_'+channel+'.png')),destination_path=folder,
+                              destination_name='T_'+channel,automated=True,replace_existing=True,save=False).items():
+            texture_task.set_editor_property(key,value)
+        tools.import_asset_tasks([texture_task])
+        tex=next(o for o in texture_task.get_objects() if isinstance(o,u.Texture2D))
+        tex.set_editor_property('srgb',channel=='base')
+        tex.set_editor_property('compression_settings',u.TextureCompressionSettings.TC_NORMALMAP if channel=='normal' else u.TextureCompressionSettings.TC_MASKS if channel=='orm' else u.TextureCompressionSettings.TC_DEFAULT)
+        if channel=='normal': tex.set_editor_property('flip_green_channel',True)
+        textures[channel]=tex
+    master=assets.load_asset(dest+'/M_Creature') if assets.does_asset_exist(dest+'/M_Creature') else None
+    if master is None:
+        master=tools.create_asset('M_Creature',dest,u.Material,u.MaterialFactoryNew())
+        for channel in ('base','normal','orm'):
+            node=editor.create_material_expression(master,u.MaterialExpressionTextureSampleParameter2D)
+            node.set_editor_property('parameter_name',channel)
+            node.set_editor_property('texture',textures[channel])
+            if channel=='normal': node.set_editor_property('sampler_type',u.MaterialSamplerType.SAMPLERTYPE_NORMAL)
+            if channel=='orm': node.set_editor_property('sampler_type',u.MaterialSamplerType.SAMPLERTYPE_MASKS)
+            if channel=='base': editor.connect_material_property(node,'RGB',u.MaterialProperty.MP_BASE_COLOR)
+            elif channel=='normal': editor.connect_material_property(node,'RGB',u.MaterialProperty.MP_NORMAL)
+            else:
+                for c,prop in [('R',u.MaterialProperty.MP_AMBIENT_OCCLUSION),('G',u.MaterialProperty.MP_ROUGHNESS),('B',u.MaterialProperty.MP_METALLIC)]:
+                    editor.connect_material_property(node,c,prop)
+        master.set_editor_property('used_with_skeletal_mesh',True)
+        editor.recompile_material(master)
+    material=assets.load_asset(folder+'/MI_Creature') if assets.does_asset_exist(folder+'/MI_Creature') else tools.create_asset('MI_Creature',folder,u.MaterialInstanceConstant,u.MaterialInstanceConstantFactoryNew())
+    editor.set_material_instance_parent(material,master)
+    for channel,texture in textures.items(): editor.set_material_instance_texture_parameter_value(material,channel,texture)
+    slots=mesh.get_editor_property('materials')
+    for slot in slots: slot.set_editor_property('material_interface',material)
+    mesh.set_editor_property('materials',slots)
+    assets.save_loaded_asset(master)
+    if not assets.save_directory(folder,only_if_is_dirty=True,recursive=True):
+        raise RuntimeError('Saving creature failed '+kind)
+files=inventory()
+total=sum(v['bytes'] for v in files.values())
+for kind in kinds:
+    u.log('CREATURE_ASSET_BYTES '+kind+' '+str(sum(v['bytes'] for p,v in files.items() if p.startswith(kind+'/'))))
+if total>25_000_000:
+    raise RuntimeError('Creature asset budget exceeded: '+str(total))
+stamp.write_text(json.dumps(dict(signature=signature,assets=files,total_bytes=total),indent=2)+'\n')
+u.log('CREATURE_IMPORT_TOTAL_BYTES '+str(total))
+PY
+"$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$LH_PROJECT" \
+  -run=pythonscript "-Script=$PWD/Saved/ArtExport/import_creatures.py" -EnablePlugins=PythonScriptPlugin \
   -nullrhi -unattended -nosound -nop4 '-DDC=(Local)' "-LocalDataCachePath=$PWD/Saved/DerivedDataCache" \
   '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0'

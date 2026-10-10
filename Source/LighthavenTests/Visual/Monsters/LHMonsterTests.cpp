@@ -69,7 +69,7 @@ bool FLHMonsterCatalogTest::RunTest(const FString&) {
         if(!TestNotNull(TEXT("A"),A)||!TestNotNull(TEXT("B"),B)) continue;
         auto* X=A->GetMonsterVisual(); auto* Y=B->GetMonsterVisual();
         TestFalse(TEXT("Never silent placeholder"),X->ComponentHasTag(TEXT("LH.Monster.UnknownPlaceholder")));
-        TestTrue(TEXT("Intentional multi-part body"),X->GetParts().Num()>2);
+        TestTrue(TEXT("Imported body or procedural multi-part body"),X->UsesImportedArt() || X->GetParts().Num()>2);
         TestEqual(TEXT("Part count"),X->GetParts().Num(),Y->GetParts().Num());
         const uint32 Hash=ULHMonsterVisual::RecipeFingerprint(R.Id.Value); TestFalse(TEXT("Distinct recipe"),Hashes.Contains(Hash)); Hashes.Add(Hash);
         TestEqual(TEXT("Checksum repeat"),Hash,ULHMonsterVisual::RecipeFingerprint(R.Id.Value));
@@ -112,6 +112,9 @@ bool FLHMonsterCollisionTest::RunTest(const FString&) {
         }
     }
     auto* E=F.Spawn(LHEnemyData::Catalog()[0]);
+    TestTrue(TEXT("Explicit procedural fallback"),E->GetMonsterVisual()->Build(TEXT("Enemy.BrownRat"),25,25,false));
+    TestFalse(TEXT("Fallback has no skeletal component"),E->GetMonsterVisual()->UsesImportedArt());
+    TestTrue(TEXT("Fallback retains body"),E->GetMonsterVisual()->GetParts().Num()>2);
     AddExpectedError(TEXT("UNKNOWN MONSTER Enemy.Unregistered"),EAutomationExpectedErrorFlags::Contains,2);
     TestFalse(TEXT("Unknown returns explicit failure"),E->GetMonsterVisual()->Build(TEXT("Enemy.Unregistered"),25,25));
     TestTrue(TEXT("Named placeholder"),E->GetMonsterVisual()->ComponentHasTag(TEXT("LH.Monster.UnknownPlaceholder")));
