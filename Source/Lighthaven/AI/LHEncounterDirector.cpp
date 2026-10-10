@@ -146,7 +146,7 @@ void ULHEncounterDirector::Despawn(const FLHSpawnLifeId& Life)
 ALHEnemyCharacter* ULHEncounterDirector::FindByLife(const FLHSpawnLifeId& Life) const
 { for (ALHEnemyCharacter* E : Enemies) if (IsValid(E) && !E->IsActorBeingDestroyed() && LHAI::SameLife(E->GetLife(),Life)) return E; return nullptr; }
 ALHEnemyCharacter* ULHEncounterDirector::FindByEntity(const FLHEntityId& Entity) const
-{ for (ALHEnemyCharacter* E : Enemies) if (IsValid(E) && !E->IsActorBeingDestroyed() && LHEncounterDirectorPrivate::SameEntity(E->GetEntityId(RunId),Entity)) return E; return nullptr; }
+{ for (ALHEnemyCharacter* E : Enemies) if (IsValid(E) && !E->IsActorBeingDestroyed() && E->IsAlive() && LHEncounterDirectorPrivate::SameEntity(E->GetEntityId(RunId),Entity)) return E; return nullptr; }
 bool ULHEncounterDirector::CanPursue(const ALHEnemyAIController* Controller, int32 Cap) const
 {
     int32 Count = 0;

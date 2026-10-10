@@ -58,7 +58,8 @@ FLHAreaRecord* Area(FLHSaveSnapshot& S)
 }
 FLHEntityId FLHWave2Session::PlayerEntity() const
 {
-    FLHEntityId Id; Id.RunId=Complete.World.RunId; Id.Area=Complete.Character.ActiveEntrance.Area;
+    // D12: player origin is stable across travel; enemy owners remain per area.
+    FLHEntityId Id; Id.RunId=Complete.World.RunId; Id.Area.Content.Value=TEXT("Area.LighthavenTempleDistrict");
     Id.InstanceId=Complete.Header.CharacterId.Value; return Id;
 }
 bool FLHWave2Session::SyncResources()
@@ -82,7 +83,8 @@ bool FLHWave2Session::SyncResources()
     if (!Light->IsActionPending() && !Light->IsPublishingActionEvents())
     {
         if (bDeadAwaitingRespawn) Light->RestoreLightRemainingSeconds(0);
-        if (!LHAbilities::CaptureLightEffect(*Light,PlayerEntity(),Complete.Session)) return false;
+        auto LightOwner=PlayerEntity(); LightOwner.Area=Complete.Character.ActiveEntrance.Area;
+        if (!LHAbilities::CaptureLightEffect(*Light,LightOwner,Complete.Session)) return false;
     }
     if (Director.IsValid()) if (auto* A=LHStage1SessionPrivate::Area(Complete)) Director->CaptureLive(*A);
     if (Director.IsValid()) for (TActorIterator<ALHEnemyCharacter> It(Owner->GetWorld());It;++It)
