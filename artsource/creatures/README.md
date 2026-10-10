@@ -45,3 +45,83 @@ Five NLA tracks per creature at 30fps: idle (60f), move (24f), attack (42f), hit
 `validate_glb.py` inspects actual GLB bytes using only Python's standard library. It checks the 3–8k triangle budget; finite vertex and animation values; skin bindings, joint indices and normalized weights/normals; exactly five named clips with expected durations; constant root transforms; idle/move loop endpoints; and the death hold. Embedded PNGs must be 512 or 1024 square, have valid CRCs and decode successfully. The validator verifies that AO is bound to ORM and that its decoded red channel has meaningful variation at interior UV samples from exported mesh triangles, including a robust percentile spread that rejects variation limited to texture background or rare outliers. This proves exported channel wiring and data variation; it cannot establish whether AO is physically correct or whether a creature matches the concept. Visual review and the Blender bake implementation provide separate evidence. Unreal import, in-game appearance and anatomical skin quality remain separate checks.
 
 `validate_blender.py` independently imports the actual GLBs and samples all five actions at every integer frame: 209 frames per creature. It writes compact `export-pose-audit.json` with measured bounds and exact frame entries for any violations. It also constructs each creature twice and compares SHA-256 signatures of vertices, topology, transforms, weights and bones. This checks construction on this Blender build; it does not establish cross-version identity, swept/subframe clearance, absence of self-intersections, skin quality or in-game results.
+
+## W5-08e — remaining roster
+
+`roster.py` dispatches the eleven creature builders and records the written art
+clearance rulers. The new batch is `goblin`, `giant_spider`, `balork`,
+`goblin_warrior`, `atrocity`, `dungeon_bat`, `giant_bat`, `undead_bat`.
+The source modules are `humanoids.py`, `spider.py`, `balork.py` and
+`bat_variants.py`. New dimensions/materials/poses are Prototype presentation
+values: W5-08e, LH_Prototype_v1, 2026-10-10, `source_url: null`.
+
+Reuse the commands above, replacing `--only rat` with a batch name. The build
+and both validators also accept `--batch2` to process all eight. Example:
+
+```sh
+XDG_CONFIG_HOME="$PWD/artsource/creatures/.config" \
+  /home/brewerm/Downloads/blender-5.2.2-linux-x64/blender \
+  --background --factory-startup --threads 3 --python-exit-code 1 \
+  --python artsource/creatures/build.py -- --batch2 --no-render
+python artsource/creatures/validate_glb.py --batch2 \
+  > artsource/creatures/output/batch2-glb-validation.json
+XDG_CONFIG_HOME="$PWD/artsource/creatures/.config" \
+  /home/brewerm/Downloads/blender-5.2.2-linux-x64/blender \
+  --background --factory-startup --threads 3 --python-exit-code 1 \
+  --python artsource/creatures/validate_blender.py -- --batch2
+```
+
+Use `build.py -- --only goblin --geometry-only` before a bake to check the
+production mesh join, rig and every integer-frame pose against the art rulers.
+This mode creates neither a GLB nor textures. All new pose callbacks receive
+reset bones and author every integer frame; the shared harness grounds the
+body during death, holds the final corpse, and preserves the floor root.
+Goblins use the explicit larger death boxes in their specifications; no transit
+limit is silently enlarged. The reduced movement loops are presentation studies;
+start/stop/turn blending still belongs to runtime integration.
+
+For independent per-creature export audits, use
+`validate_blender.py -- --only goblin`. It writes
+`goblin-export-pose-audit.json`; `--batch2` writes
+`batch2-export-pose-audit.json`. Each ordinary new mesh has a 3–10k triangle
+budget; Balork has 3–20k. The pilot retains its 3–8k budget. All delivered
+atlases are 1024². Base pigment is now baked through a temporary emission
+connection, then the original surface is restored for normal baking. This
+prevents metallic weapon surfaces from losing their base color in a diffuse
+BSDF bake; it does not bake scene lighting or add emissive runtime materials.
+ORM blue now preserves authored metallic values, with organic surfaces zero.
+AO remains the actual Cycles geometric bake; channel wiring and occupied-UV
+variation are checked on the embedded export PNGs.
+
+Goblin and warrior exports contain `<kind>_body` and `<kind>_weapon` meshes,
+weighted to the same rig and sharing one atlas/material. `Weapon_R` is their
+primary attach bone, with `Weapon_Main`, `Weapon_Support`, `VFX_WeaponTip`
+alias/inspection anchors. Balork exports `balork_body` and `balork_weapon`;
+use `Weapon_Main` and `Weapon_Support`, plus `VFX_WeaponTip_A/B`.
+These are actual exported bones, not Unreal socket assets. Hide/remove the
+named default weapon mesh before attaching a replacement. Skin weights never
+make weapon tips hitboxes. The renderer joins imported parts only within its
+disposable evidence scene; the exported files retain removable equipment.
+
+Generate each of `hero`, `gameplay`, `actions` with `preview_exports.py` as
+above. Eight creatures produce 24 final PNGs, with unchanged gameplay camera,
+dark stone floor and warm lighting. `preview_source.py` remains draft-only.
+Per-kind `<kind>-validation.json` files are written in addition to the legacy
+aggregate `validation.json`; serial builds are recommended. If jobs run in
+parallel, aggregate the per-kind files after completion rather than treating
+the concurrently merged legacy file as authoritative.
+
+All PNGs, logs, atlases and GLBs belong to ignored `output/`. Do not commit
+these or copy concept/reference pixels into an output package. The task
+implementation document records actual checks and known visual limitations;
+these scripts do not certify Unreal appearance, navigation or a project gate.
+
+For the common-scale bat comparison, first build the unchanged pilot `bat`
+alongside the three variants, then invoke `preview_family.py` through the same
+headless Blender command. It imports all four GLBs and emits
+`bat_family_color.png` and `bat_family_grayscale.png`. The latter converts shader
+pigment to luminance and neutralizes review lights inside Blender; no PNG is
+post-processed. This elevated overview camera is a separate comparison condition,
+not the fixed gameplay camera. Hero/gameplay frames retain the original local
+lamps, while action sheets use uniform directional studio lights so large rows
+remain inspectable at both ends.

@@ -8,15 +8,13 @@ import bpy
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--source',type=Path,default=Path(__file__).resolve().parent)
+parser.add_argument('--only');parser.add_argument('--batch2',action='store_true')
 parser.add_argument('--construction-only',action='store_true')
 args=parser.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
 sys.path.insert(0,str(args.source.resolve()))
-import models
+import roster
 
-KINDS=('rat','bat','slime')
-LIMITS={'rat':((-.675,-.14,-.0007),(.225,.14,.35)),
-        'bat':((-.225,-.4,-.0007),(.225,.4,1.45)),
-        'slime':((-.45,-.45,-.0007),(.45,.45,.6))}
+KINDS=(args.only,) if args.only else roster.BATCH2 if args.batch2 else roster.PILOT
 
 def clear():
     bpy.ops.object.select_all(action='SELECT')
@@ -24,7 +22,7 @@ def clear():
 
 def signature(kind):
     clear()
-    parts,bones=models.create(kind)
+    parts,bones=roster.create(kind)
     geometry=[]
     for obj in parts:
         groups={g.index:g.name for g in obj.vertex_groups}
@@ -58,8 +56,9 @@ else:
         meshes=[o for o in bpy.context.scene.objects if o.type=='MESH'
                 and any(m.type=='ARMATURE' and m.object==rig for m in o.modifiers)]
         assert meshes,(kind,'missing skinned meshes')
-        clips={};low,high=LIMITS[kind]
+        clips={};low,high=roster.limits(kind,'idle')
         for clip,action in actions.items():
+            low,high=roster.limits(kind,clip)
             rig.animation_data.action=action
             rig.animation_data.action_slot=action.slots[0]
             start,end=round(action.frame_range[0]),round(action.frame_range[1])
@@ -86,10 +85,11 @@ else:
                             'axis':axis,'minimum':lo[axis],'maximum':hi[axis],
                             'permitted_minimum':permitted_low,'permitted_maximum':permitted_high})
                 frame_bounds.append({'frame':frame,'min':lo,'max':hi})
-            clips[clip]={'min':minimum,'max':maximum,'frames_checked':len(frame_bounds)}
-        report['creatures'][kind]={'limits':{'min':low,'max':high},'actions':clips}
+            clips[clip]={'limits':{'min':low,'max':high},'min':minimum,'max':maximum,'frames_checked':len(frame_bounds)}
+        transit_low,transit_high=roster.limits(kind,'idle')
+        report['creatures'][kind]={'limits':{'min':transit_low,'max':transit_high},'actions':clips}
     report['passed']=not report['violations']
-    destination=args.source/'output'/'export-pose-audit.json'
+    destination=args.source/'output'/((args.only+'-' if args.only else 'batch2-' if args.batch2 else '')+'export-pose-audit.json')
     destination.write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps({'report':str(destination),'passed':report['passed'],'violations':len(report['violations'])}))
     assert report['passed'],'Exported poses exceed envelopes; inspect export-pose-audit.json'

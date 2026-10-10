@@ -1,4 +1,6 @@
 """Validate exported GLB bytes independently of Blender; stdlib only."""
+import argparse
+import roster
 import json
 import math
 import struct
@@ -96,6 +98,10 @@ def validate(path):
         assert all(math.isfinite(x) for row in rows for x in row), 'nonfinite accessor'
         return rows
 
+    if path.stem in ('balork','goblin','goblin_warrior'):
+        nodes={node.get('name') for node in d['nodes']}
+        assert path.stem+'_weapon' in nodes and path.stem+'_body' in nodes, 'equipment must remain removable'
+        assert ('Weapon_Main' if path.stem=='balork' else 'Weapon_R') in nodes, 'missing weapon bone'
     assert d['skins'] and len(d['animations']) == 5
     assert {a['name'] for a in d['animations']} == {'idle','move','attack','hit','death'}
     for skin in d['skins']:
@@ -137,7 +143,7 @@ def validate(path):
             for node in skin_nodes:
                 joint_count = len(d['skins'][node['skin']]['joints'])
                 assert all(all(0 <= j < joint_count for j in row) for row in values['JOINTS_0'])
-    assert 3000 <= triangles <= 8000, (path.name,triangles)
+    assert 3000 <= triangles <= roster.budget(path.stem), (path.name,triangles)
     root = next(i for i,n in enumerate(d['nodes']) if n.get('name') == 'root')
     durations = {}
     def same(a,b,rotation=False):
@@ -189,7 +195,9 @@ def validate(path):
     image_data = [view(im['bufferView']) for im in d['images']]
     images = [png_red(data, decode=False) for data in image_data]
     assert len(images) == 3
-    assert all(dim in ((512,512),(1024,1024)) for dim,_ in images)
+    allowed_dimensions={(512,512),(1024,1024)}
+    if path.stem=='balork':allowed_dimensions.add((2048,2048))
+    assert all(dim in allowed_dimensions for dim,_ in images)
     ao = []
     for material_index, material in enumerate(d['materials']):
         occlusion = material['occlusionTexture']
@@ -218,4 +226,7 @@ def validate(path):
 
 if __name__ == '__main__':
     out = Path(__file__).resolve().parent/'output'
-    print(json.dumps([validate(out/(kind+'.glb')) for kind in ('rat','bat','slime')],indent=2))
+    parser=argparse.ArgumentParser();parser.add_argument('--only',choices=roster.KINDS);parser.add_argument('--batch2',action='store_true')
+    args=parser.parse_args()
+    kinds=(args.only,) if args.only else roster.BATCH2 if args.batch2 else roster.PILOT
+    print(json.dumps([validate(out/(kind+'.glb')) for kind in kinds],indent=2))
