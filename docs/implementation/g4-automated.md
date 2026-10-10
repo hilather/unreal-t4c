@@ -1,91 +1,118 @@
-# W4-15 automated evidence candidate
+# W4-15b automated evidence candidate (partial)
 
-Base: `aa03c765c4b231a62b36eb0a3434a428992b5f5c`, contract revision 1.
-This is a partial deliverable with a failing clearance regression, not G4 approval.
-Production code and mechanics are unchanged. No grants, cooldown resets, snapshot
-edits or direct reward settlement occur in the new G4 tests.
+Base `c3c0eb2d9336305dd86be322f07d1ec7088ff4f9`, contract revision 1.
+This candidate extends automated coverage but **does not finish W4-15b or approve
+G4**. The remaining earned-build, inventory and GameInstance recovery work below
+is explicit. No production code, generators, schema or mechanics changed.
 
-## Mapping and limits
+## Checklist mapping
 
-| Requested checklist | Test / evidence | Remaining scope |
+All names below have prefix `Lighthaven.Integration.`.
+
+| Checklist | Test and assertions | Limit / remaining work |
 | --- | --- | --- |
-| Fresh Bible creation | G4.LegalPurchaseReplayAndRetrySave asserts HP30, MP10, gold100 through creation presenter | Build-specific creation/earned allocation routes not implemented |
-| Save failure → RetrySave; repeated requests | G4.LegalPurchaseReplayAndRetrySave: legal mana-potion purchase, failed storage, exact replay, widget RetrySave, independent reload | Failure at combat/death/travel boundaries remains separate |
-| Hub → B1 → B2 → B3 → B4 → return; reload every floor | G4.SessionFloorRouteAndReload uses actual session RequestTravel, authored portals, generated geometry, travel/save adapter and encounter population | Travel-only route; no melee/ranged/magic progression or Balork defeat; no locomotion/pathfinding walkthrough |
-| Arrival grants nothing / replay | Same route asserts unchanged XP/gold, exact independently decoded saves and no write on duplicate load callbacks | Repeated user portal interaction debounce remains existing coverage |
-| Occupied arrival | Same route ends with an actual blocking player capsule, collision refusal reason and no arrival write; durable source remains hub | Test adapter collision callback mirrors placement query; does not invoke private production Place. Restore callback acknowledges recovery without reloading source geometry; real GameInstance recovery remains unverified |
-| Largest enemy / doors | G4.DoorClearance sweeps player and maximum catalog capsule envelope through B3/B4 lintel centers; B1/B2 authored flat route segments; positive floor-trace controls | Stair/ramp sweeps and complete B1/B2 aperture enumeration still required |
-| B4 C04 and D05–D07 | C04Door0/1Lintel, ArenaPartitionLow/HighLintel, ReliquaryPartitionLintel; asserted five-opening count; both capsule sizes | Sweeps establish collision clearance, not CharacterMovement walking or nav-agent reachability |
-| Death/church, pending action floor change, inventory rollback, simultaneous lethal hits | Existing Wave4 / Rewards fixtures only; no new G4 tests for these in this candidate | Required real-session edge tests remain unfinished |
-| Balork 15:00 and single claim across reload/travel | Existing Wave4.BalorkSingleClaim uses synthetic floor installs and direct respawn advancement | Required clock/session-only replacement remains unfinished |
-| Training/vendors/first damage spell funded by real kills | Existing Wave4.ServicesThroughSession and ProgressionRouteAffordable use synthetic floors/cooldown resets | Three complete earned build routes remain unfinished; existing tests must not be represented as satisfying this requirement |
+| Fresh creation; legal purchase/replay/save failure/RetrySave | `G4.LegalPurchaseReplayAndRetrySave`: creation presenter, HP30/MP10/gold100, real potion purchase, repeated request, failed storage, widget RetrySave, independent reload | Existing W4-15 coverage retained |
+| Hub → B1–B4 → return, reload every floor, arrival grants nothing | `G4.SessionFloorRouteAndReload`: actual session RequestTravel, generated portals, travel/save adapter, encounter population, exact independent durable arrival on every floor, unchanged XP/gold at each arrival | Portal positioning isolates command validation; it does not walk the connecting corridors. Reload decodes a separate store; it does not restart GameInstance |
+| Occupied arrival refused | Same test: blocking player capsule, refusal reason, no arrival write, source retained | Install hook performs a real placement query, but does not call private production Place; recovery hook acknowledges restoration without loading source geometry |
+| Floor change during pending action | Same test: catalog enemy GAS windup on every basement departure, travel refused, adapter token and write count unchanged; action completes through timers before retry | Player attacks have zero impact delay; enemy one-second windup is the real reachable pending boundary |
+| Enemy aperture clearance | `G4.DoorClearance`: player on every authored lintel / B1–B2 flat route; enemy envelope selected from the floor's registry/encounter rows and runtime home/leash; special B4 opening count five | A leash disk is a conservative permitted region, not a nav-path proof. Geometry and NoCombat can further restrict it. B1/B2 polygon-strip routes remain probes, not exhaustive aperture enumeration |
+| Player stairs | Same test: actual CharacterMovement, force input for a controllerless fixture, native capsule, supporting collision and Walking mode at the endpoint; seven routes across B1–B4 | Stops before terminal portal walls; does not cross levels by locomotion, exercise controller feel, or test enemy stairs |
+| Simultaneous lethal damage | `G4.DeathAndChurchRespawn`: two real populated encounters, same-frame catalog GAS attacks, normal clock/cooldown progression, lethal HP, exactly one death publication | Attackers are positioned to isolate simultaneous impacts. This proves once-only combat publication, not once-only durable death settlement |
+| Death → church | Same test asserts as far as this fixture permits: no fabricated dead checkpoint and RequestRespawn refuses an undispatched death | **Incomplete**: FRuntime has no GameInstance-owned ULHSessionSubsystem. The production player-state death bridge resolves that owner; it cannot reach durable death/recovery here. No direct HandlePlayerDeath call or dead-snapshot edit substitutes for it. Requires a real GameInstance/session fixture, including church placement |
+| Balork claim, clock, reload and travel | `G4.SessionFloorRouteAndReload`: real generated B4 Balork, repeated session melee commands at normal supported cooldown times, combat settlement, one claim; pause and travel freeze stop900s clock; active899s leaves1s; next1s enters RespawnPending; independent save preserves claim; subsequent travel captures the clock and exact arrival reload; authored Kiran return, replay and refusal of second completion | Combat isolates commands: AI decision time is not advanced during the melee loop, so this is **not opposed combat or a full earned melee build**. Safe respawn is unobserved: the loaded fixture intentionally lacks navigation; real IsSpawnSafe reports `navigation projection missing`, center(1200,6600,157), r100/hh155. Never replace safety with a synthetic true callback. No second life/second kill is claimed |
+| Fresh earned melee, ranged and magic routes | No complete replacement implemented | **Incomplete, not manual-only**. Existing `Wave4.ServicesThroughSession`, `ProgressionRouteAffordable`, `BalorkSingleClaim` use synthetic floor installs, direct respawn advancement or cooldown restores and do not satisfy this checklist. Need legal earning/training/equipment/consumption plus opposed combat and real safe respawns through all floors |
+| Full-inventory loot rollback | No replacement implemented | **Incomplete, not manual-only**. Existing domain capacity fixtures do not establish legal session earning/filling and corpse transfer rollback. Requires a legal inventory-filling route; no debug grants used to manufacture it |
 
-The route fixture loads distinct copies of real generated worlds. Positioning the
-player at each authored portal isolates command/travel validation; it is not evidence
-that a player can walk the connecting route. Normal arrival installation uses the
-adapter hook required by travel; checkpoint data is not edited by the test.
+## Region selection and collision evidence
 
-## Collision defect candidate
+The old global Balork envelope is removed. Every slot resolves through
+`LHEncounterData::ForSpawn` and `LHEnemyData::Find`; ordinary home is its registry
+anchor, while boss home is the generated `B4.BalorkArena` marker, exactly as the
+director defines it. Only slots whose leash disk intersects the aperture probe or
+route segment contribute capsule dimensions. The component-wise envelope encloses
+the eligible capsules; it can be conservative when radius/height maxima differ.
+Aperture logs include map/label, underside Z, capsule dimensions, blocker, slot
+alias, home and leash. No failed eligible sweep is suppressed or expected as an
+error. Player probes remain independent of enemy selection.
 
-Repro: regenerate B3/B4, run `Lighthaven.Integration.G4.DoorClearance`.
-The catalog maximum is Balork (radius100, half-height155 cm; authored Prototype
-capsule in LHEnemyCatalog). Sweep at center Z157 through standard B3/B4 doors.
-Expected under W4-15's largest-enemy requirement: no blocking collision.
-Observed: standard door lintels block the enemy sweep while player35/90 clears.
-Standard lintel underside is Z300; capsule top is Z312, explaining the collision.
-B4 C04 and the three interior partition apertures clear both capsules.
-This is a geometry/catalog requirement mismatch, not a claim that Balork currently
-tries to traverse every floor. Coordinator should decide whether the global-largest
-requirement means changing door height or restricting the clearance envelope by
-floor. Production is deliberately unmodified.
+Observed corrected run: all eligible aperture/flat-route sweeps clear; all seven
+CharacterMovement stair probes reach their endpoints on ground. The previous29
+failures were from sweeping Balork on floors/regions he cannot reach. No geometry
+fix is inferred as necessary from these probes. Balork's envelope is retained on
+reachable portions of his B4 complex (including C04Door1 and the low arena
+partition); remote openings are not treated as Balork routes merely because they
+share a floor. No nav-agent traversal or visual-envelope claim follows.
 
-## Manual-only and unfinished automation
+## Clock and fixture rules
 
-Visual lighting/readability, Light appearance, animation/effects/audio, controller
-feel, packaged Linux launch and in-play render-stall behavior remain unobserved.
-Windows packaging/launch is deferred by owner decision. Those cannot be passed
-with null RHI. The unfinished automated items in the table are additional work,
-not inherently manual-only and not an engine-install blocker. No full earned
-build route was attempted in this candidate; its feasibility is unestablished.
-MP floor-band policy remains outside this test-only scope; carry capacity remains
-unlimited by the retained owner decision.
+GAS timers are primed before requests. `AdvanceWorldClock` advances UWorld's
+supported time-only tick and TimerManager in <=0.1s substeps. A single2.1s world
+tick was observed to clamp to0.4s; advancing the timer by2.1 alone would leave
+cooldowns inconsistent. There are no cooldown-map restores, manual impacts,
+snapshot reward edits or direct kill/respawn settlement in the added tests.
+CharacterMovement needs its native UpdatedComponent/InitializeComponent setup
+in the editor fixture; it is driven through its actual TickComponent.
 
-## Commands and evidence
+Ordinary encounter clock changes do not themselves schedule a durable action.
+The test therefore checks the independent stored claim after the clock probe,
+then relies on real floor travel's completed checkpoint and exact durable arrival
+assertions. Flush with no queued action is not asserted to save transient time.
 
-Engine `/home/brewerm/Downloads/unreal`, UE5.8.3 Linux, uid1000.
-`UE_ROOT=/home/brewerm/Downloads/unreal bash build/build-linux.sh --game`:
-final editor/game both `Result: Succeeded` (last build log retained in worker library).
-Generated maps using `generate-hub-map.sh`, `generate-basement-a-maps.sh`
-(with LH_NO_ZEN=1), `generate-basement-b-maps.sh`. Scripts exit1 with pointer-package
-startup errors after saving five playable maps. Hub also regenerated directly with
-`-run=LHGenerateHubMap -DDC-ForceMemoryCache`. No map or review TSV is submitted.
+## Manual-only / deferred
 
-Headless form:
+Lighting/readability, visual Light/effects/animation/audio, controller feel,
+graphical/package launch and in-play render stalls remain unobserved by null RHI.
+Windows packaging/launch is deferred by the owner. Earned routes, inventory rollback,
+GameInstance death/church and navigation-safe respawn are additional automation
+work, not inherently impossible headless and not passed by this candidate.
+
+## Execution
+
+UE5.8.3 Linux at `/home/brewerm/Downloads/unreal`, uid1000. Final standard
+`UE_ROOT=/home/brewerm/Downloads/unreal bash build/build-linux.sh --game` returned0:
+editor `Result: Succeeded` (10.42s), game `Result: Succeeded` (5.18s).
+Initial UBA builds were interrupted after stalling; exported UBT compile/link
+commands were run in dependency order, then the standard build was rerun. Logs
+are retained in the attempt library; exported-action success alone is not claimed
+as a normal build result.
+
+Generated five playable maps locally with LHGenerateHubMap,
+LHGenerateBasementAMaps and LHGenerateBasementBMaps. All save logs are retained;
+commands returned1 after baseline LFS-pointer package startup errors. No generated
+map or review TSV is submitted.
+
+Full-suite command (headless house form plus local DDC, stdout and privacy settings):
 
 ```sh
 XDG_CONFIG_HOME="$PWD/Saved/BuildEnvironment/config" \
  /home/brewerm/Downloads/unreal/Engine/Binaries/Linux/UnrealEditor-Cmd \
  "$PWD/Lighthaven.uproject" \
- -ExecCmds="Automation RunTests Lighthaven.Integration.G4; Quit" \
- -DDC-ForceMemoryCache -nullrhi -unattended -nosound -nop4 \
+ -ExecCmds="Automation RunTests Lighthaven; Quit" \
+ -DDC-ForceMemoryCache -ddc=InstalledNoZenLocalFallback \
+ "-LocalDataCachePath=$PWD/Saved/DerivedDataCache" \
+ -nullrhi -unattended -nosound -nop4 -noshaderworker -nocrashreports \
+ -stdout -FullStdOutLogOutput \
+ '-ini:EditorSettings:[/Script/UnrealEd.AnalyticsPrivacySettings]:bSendUsageData=False' \
  '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0' \
- -ReportExportPath="$PWD/Saved/G4LastReport" -log=G4Last.log
+ -ReportExportPath="$PWD/Saved/W415bSubmittedReport" -log=G4Submitted.log
 ```
 
-Initial three-test run: two pass, DoorClearance fails. Its two B1/B2 missing-lintel
-fixture assertions were corrected to use authored polygon-route probes; the B3/B4
-collision failures are retained. Final run counts and broader regression evidence
-are recorded below after execution. `git diff --check` passed. No cook/package,
-graphical editor or hands-on play performed. Evidence resides in the canonical
-attempt's `library/`, not in tracked binary assets.
+The first broad invocation was terminated by sandbox enforcement of a telemetry
+request to datarouter.ol.epicgames.com after163 completions (160 success/3 fixture
+failures); no complete report. Setting editor usage-data privacy false allowed a
+later full invocation to export its report. Intermediate failures were fixture
+setup/unsupported assertions and were corrected, not recorded as production defects.
+Final submitted-source counts and report paths follow below. No cook/package,
+graphical editor or hands-on play was performed. `git diff --check` passed.
 
-Final revision execution: G4LastReport contains 3 completed tests: **2 success,
-1 failure** (DoorClearance, 29 errors); process exit255. Player sweeps clear; largest
-enemy also blocks B1 segment (4500,500,157) → (4500,1400,157), Geometry_0286.
-B3 has22 blocked lintels, B4 has6. Five special B4 openings clear both shapes.
-Occupied-arrival assertions passed in the final SessionFloorRouteAndReload test.
-Final build: editor succeeded (about12 seconds), game succeeded (2.71 seconds).
-The broader Integration invocation logged31 completions (30 success,1 failure)
-before a sandbox-blocked request to datarouter.ol.epicgames.com terminated the
-process/tool; no G4FinalReport was exported. This is incomplete regression evidence,
-not a completed suite count. Final targeted invocation duration about65 seconds.
+Final submitted-source full-suite run: **171 completed, 165 success without
+warnings, 6 success with warnings, 0 failure, 0 not run, 0 in process**;
+process exit0, reported test duration78.53s. G4 has4 completed tests,
+all success; DeathAndChurchRespawn explicitly warns that church recovery is
+unobserved. Success means the implemented assertions passed, not that the
+unimplemented checklist was fulfilled. Report: `Saved/W415bSubmittedReport/index.json`,
+retained as `library/submitted-index.json` in the canonical worker output. Final
+build log: `library/w415b-submitted-build.log`; suite log:
+`library/w415b-submitted-tests.log`. No eligible aperture defects observed in this
+run. Submit as a partial evidence candidate; the coordinator should schedule the
+remaining real GameInstance/navigation/earned-route/inventory fixture work.

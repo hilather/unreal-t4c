@@ -7,16 +7,14 @@
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "EngineUtils.h"
+#include "Engine/TargetPoint.h"
+#include "Data/Encounters/LHEncounterCatalog.h"
 #include "StaticMeshCompiler.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #if WITH_DEV_AUTOMATION_TESTS && WITH_EDITOR
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4DoorClearance,"Lighthaven.Integration.G4.DoorClearance",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FLHG4DoorClearance::RunTest(const FString&)
 {
-    double Radius=0,Height=0;
-    // Component-wise maximum encloses every catalog enemy, even if maxima differ.
-    for(const auto& Row:LHEnemyData::Catalog())
-    { Radius=FMath::Max(Radius,Row.Runtime.CapsuleRadiusCm.Value); Height=FMath::Max(Height,Row.Runtime.CapsuleHalfHeightCm.Value); }
-    if(!TestTrue(TEXT("Resolved enemy capsule envelope"),Radius>0 && Height>=Radius)) return false;
     const auto* Player=GetDefault<ALHCharacter>()->GetCapsuleComponent();
     for(int32 Index=1;Index<5;++Index)
     {
@@ -35,6 +33,33 @@ bool FLHG4DoorClearance::RunTest(const FString&)
             TInlineComponentArray<UPrimitiveComponent*> Components(*It);
             for(auto* C:Components) { C->UpdateComponentToWorld(); C->RecreatePhysicsState(); }
         }
+        // Match the director's home and leash, including its arena-centered boss.
+        auto Envelope=[&](const FVector& From,const FVector& To,double& R,double& H,FString& Routes)
+        {
+            R=0; H=0; Routes.Empty();
+            for(const auto& Slot:Area.Spawns)
+            {
+                const auto* Encounter=LHEncounterData::ForSpawn(Slot.SpawnId);
+                const auto* Row=Encounter?LHEnemyData::Find(Encounter->Enemy):nullptr;
+                if(!TestNotNull(TEXT("registry encounter resolves"),Row)) continue;
+                FVector Home=Slot.Anchor.GetLocation();
+                if(Row->Runtime.bBoss)
+                {
+                    ATargetPoint* Arena=nullptr;
+                    for(TActorIterator<ATargetPoint> It(World);It;++It)
+                        if(It->ActorHasTag(TEXT("B4.BalorkArena")) || It->GetFName()==FName(TEXT("B4.BalorkArena"))) Arena=*It;
+                    if(!TestNotNull(TEXT("boss leash arena"),Arena)) continue;
+                    Home=Arena->GetActorLocation();
+                }
+                FVector A=From,B=To; A.Z=0; B.Z=0; Home.Z=0;
+                // Any path point outside this disk is refused in production. Disk
+                // intersection is conservative: walls/NoCombat may reduce reach.
+                if(FMath::PointDistToSegment(Home,A,B)>Row->Runtime.LeashRadiusCm.Value) continue;
+                const double ER=Row->Runtime.CapsuleRadiusCm.Value, EH=Row->Runtime.CapsuleHalfHeightCm.Value;
+                R=FMath::Max(R,ER); H=FMath::Max(H,EH);
+                Routes+=FString::Printf(TEXT(" %s home=%s leash=%g capsule=%g/%g"),*Slot.Alias.ToString(),*Home.ToString(),Row->Runtime.LeashRadiusCm.Value,ER,EH);
+            }
+        };
         int32 Doors=0,Special=0;
         for(TActorIterator<AActor> It(World);It;++It)
         {
@@ -44,8 +69,12 @@ bool FLHG4DoorClearance::RunTest(const FString&)
             const FBox Bounds=It->GetComponentsBoundingBox(true);
             const FVector Center=Bounds.GetCenter(),Extent=Bounds.GetExtent();
             const FVector Axis=Extent.X<Extent.Y?FVector(1,0,0):FVector(0,1,0);
+            double Radius,Height; FString Routes;
+            Envelope(Center-Axis*200,Center+Axis*200,Radius,Height,Routes);
+            AddInfo(FString::Printf(TEXT("REGION %s underside=%g routes:%s"),*Label,Bounds.Min.Z,*Routes));
             for(int32 Shape=0;Shape<2;++Shape)
             {
+                if(Shape && Radius==0) continue;
                 const double R=Shape?Radius:Player->GetUnscaledCapsuleRadius();
                 const double H=Shape?Height:Player->GetUnscaledCapsuleHalfHeight();
                 const FVector At(Center.X,Center.Y,H+2);
@@ -63,12 +92,16 @@ bool FLHG4DoorClearance::RunTest(const FString&)
         {
             for(int32 Shape=0;Shape<2;++Shape)
             {
-                const double R=Shape?Radius:Player->GetUnscaledCapsuleRadius();
-                const double H=Shape?Height:Player->GetUnscaledCapsuleHalfHeight();
                 bool First=true; FVector Previous;
                 for(FVector Point:Points)
                 {
-                    Point*=100; Point.Z=H+2;
+                    Point*=100;
+                    double Radius,Height; FString Routes;
+                    Envelope(First?Point:Previous,Point,Radius,Height,Routes);
+                    const double R=Shape?Radius:Player->GetUnscaledCapsuleRadius();
+                    const double H=Shape?Height:Player->GetUnscaledCapsuleHalfHeight();
+                    Point.Z=H+2; Previous.Z=H+2;
+                    if(Shape && Radius==0) { Previous=Point; First=false; continue; }
                     if(!First) { FHitResult Hit;
                         const bool Blocked=World->SweepSingleByChannel(Hit,Previous,Point,FQuat::Identity,ECC_Pawn,FCollisionShape::MakeCapsule(R,H));
                         const FString Key=FString::Printf(TEXT("B%d %s %s -> %s blocker=%s"),Index,Shape?TEXT("enemy"):TEXT("player"),*Previous.ToString(),*Point.ToString(),*GetNameSafe(Hit.GetActor()));
@@ -92,6 +125,34 @@ bool FLHG4DoorClearance::RunTest(const FString&)
             Route({{11,10,0},{-19,10,0},{-19,-23,0}});
             Route({{-19,10,0},{-14,10,0},{-14,42,0},{-30,42,0}});
         }
+        // Drive the actual player CharacterMovement component on the generated
+        // smooth stair collision. The terminal portal wall is deliberately not
+        // crossed: stop 100cm before it, as in the generator's clearance controls.
+        auto Walk=[&](FVector From,FVector To,const TCHAR* Name)
+        {
+            FActorSpawnParameters Spawn; Spawn.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+            auto* Pawn=World->SpawnActor<ALHCharacter>(From+FVector(0,0,Player->GetUnscaledCapsuleHalfHeight()+2),FRotator::ZeroRotator,Spawn);
+            if(!TestNotNull(Name,Pawn)) return;
+            auto* Movement=Pawn->GetCharacterMovement();
+            Movement->SetUpdatedComponent(Pawn->GetCapsuleComponent());
+            if(!Movement->HasBeenInitialized()) Movement->InitializeComponent();
+            Movement->bRunPhysicsWithNoController=true;
+            Movement->SetMovementMode(MOVE_Walking);
+            for(int32 Step=0;Step<600 && FVector::Dist2D(Pawn->GetActorLocation(),To)>15;++Step)
+            {
+                FVector Direction=To-Pawn->GetActorLocation(); Direction.Z=0;
+                Movement->AddInputVector(Direction.GetSafeNormal(),true);
+                Movement->TickComponent(1.f/60,LEVELTICK_All,nullptr);
+            }
+            const FVector Feet=Pawn->GetActorLocation()-FVector(0,0,Player->GetUnscaledCapsuleHalfHeight());
+            AddInfo(FString::Printf(TEXT("WALK B%d/%s from=%s target=%s feet=%s mode=%d"),Index,Name,*From.ToString(),*To.ToString(),*Feet.ToString(),int32(Movement->MovementMode)));
+            TestTrue(Name,FVector::Dist2D(Feet,To)<35 && FMath::Abs(Feet.Z-To.Z)<15 && Movement->IsMovingOnGround());
+            Pawn->Destroy();
+        };
+        if(Index==1) { Walk({450,-1950,0},{450,-2500,100},TEXT("B1.S01 ascend")); Walk({4500,1750,0},{4500,2100,-75},TEXT("B1.S02 descend")); }
+        if(Index==2) { Walk({500,-5750,0},{500,-6300,100},TEXT("B2.S01 ascend")); Walk({5300,6050,0},{5300,6600,-100},TEXT("B2.S02 descend")); }
+        if(Index==3) { Walk({3200,900,0},{3200,1150,64},TEXT("B3 return ascend")); Walk({4700,6550,0},{4700,6850,-66.67},TEXT("B3 descent")); }
+        if(Index==4) Walk({300,600,0},{0,600,66.67},TEXT("B4 return ascend"));
         const FVector Probes[]={FVector(900,900,0),FVector(1100,1000,0),FVector(3500,500,0),FVector(600,600,0)};
         FHitResult Floor;
         TestTrue(TEXT("Blocking floor positive control"),World->LineTraceSingleByChannel(Floor,Probes[Index-1]+FVector(0,0,10),Probes[Index-1]-FVector(0,0,15),ECC_Pawn));
