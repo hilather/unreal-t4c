@@ -205,3 +205,4 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
 | W5-02 procedural player visuals | **integrated** (host: build OK, **185/185**) | codex-sol | | 12 appearance combinations; sockets; procedural animation; rendered readability unmeasured (no RHI in worker). |
 | W5-03 procedural monster visuals | **integrated** (host: build OK, **189/189**) | codex-sol | | All 11 roster IDs incl. Balork have intentional bodies (A-03 recipes); simplified collapse and articulation; rendered readability unmeasured. |
 | W6-03 adversarial review (findings only) | launching (base main dbf43ae) | codex-sol | docs/implementation/reviews/w6-03-adversarial.md | Depends on G4 only; W6-01/02/04 wait for G5 (after W5-05). |
+| W6-03 adversarial review | **integrated** (docs only: reviews/w6-03-adversarial.md) | codex-sol | | 0 blocker/critical; **F1–F3 major, F4 minor** → **W6-03fix**. Coverage notes list the sound paths (receipt replay, reward minting, etc.). |
