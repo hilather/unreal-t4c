@@ -6,8 +6,16 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/PointLightComponent.h"
+#include "Abilities/LHCombatComponent.h"
 ALHCharacter::ALHCharacter()
 {
+    SpellLight=CreateDefaultSubobject<UPointLightComponent>(TEXT("SpellLight"));
+    SpellLight->SetupAttachment(RootComponent);
+    SpellLight->SetMobility(EComponentMobility::Movable);
+    SpellLight->SetAttenuationRadius(600.f); // R-03 missing radius: Prototype 600cm.
+    SpellLight->SetIntensity(3000.f); // Prototype presentation intensity; host visual review.
+    SpellLight->SetVisibility(false);
     GetCapsuleComponent()->InitCapsuleSize(35.f,90.f);
     bUseControllerRotationYaw=false;
     GetCharacterMovement()->bOrientRotationToMovement=true;
@@ -44,6 +52,8 @@ UAbilitySystemComponent* ALHCharacter::GetAbilitySystemComponent() const
 void ALHCharacter::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
+    const auto* State=GetPlayerState<ALHPlayerState>();
+    SpellLight->SetVisibility(State && State->GetCombatComponent()->GetLightRemainingSeconds()>0);
     if (auto* Instance=GetGameInstance()) if (auto* Subsystem=Instance->GetSubsystem<ULHSessionSubsystem>())
         if (auto Session=Subsystem->Session(); Session && GetPlayerState<ALHPlayerState>()) Session->TickGameplay(DeltaSeconds);
 }

@@ -51,6 +51,7 @@ void ULHSessionSubsystem::Initialize(FSubsystemCollectionBase& Collection)
     }
     auto* WorldTravel=GetGameInstance()->GetSubsystem<ULHWorldTravelSubsystem>();
     FLHWorldTravelBindings Bindings;
+    Bindings.PrepareArrival=FLHWave2Session::PopulateEncounterCheckpoint;
     Bindings.FreezeInteractionAndAutosaves=[this](bool Frozen) { Live->FreezeWorldTravel(Frozen); };
     Bindings.SettleAndCapture=[this](FLHSaveSnapshot& Out,FString& Error) { return Live->CaptureTravel(Out,Error); };
     Bindings.CheckpointDurable=[this](const FLHSaveSnapshot& Snapshot) { Live->InstallTravel(Snapshot); };

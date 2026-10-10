@@ -23,7 +23,7 @@ public:
     void SpawnLife(const FLHSpawnLifeId& Life);
     void Despawn(const FLHSpawnLifeId& Life);
     void TickActiveSimulation(float Seconds);
-    bool IsSpawnSafe(const FGuid& SpawnId) const;
+    bool IsSpawnSafe(const FGuid& SpawnId, FString* Refusal = nullptr) const;
     ALHEnemyCharacter* FindByLife(const FLHSpawnLifeId& Life) const;
     ALHEnemyCharacter* FindByEntity(const FLHEntityId& Entity) const;
     bool CanPursue(const ALHEnemyAIController* Controller, int32 Cap) const;

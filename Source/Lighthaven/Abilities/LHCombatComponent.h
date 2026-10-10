@@ -82,6 +82,9 @@ public:
     bool AdvanceManaRegen(double ActiveSeconds, bool bPaused, const LH::Rules::FManaParameters& Parameters);
     double ManaRegenFractionalSeconds=0;
     double GetLightRemainingSeconds() const;
+    bool RestoreLightRemainingSeconds(double Seconds);
+    // Session is the sole clock owner; never also advanced by TickComponent.
+    bool AdvanceLightEffect(double ActiveSeconds, bool bGamePaused, bool bAIPaused, bool bTravel);
     FLHAttackCommittedEvent OnAttackCommitted;
     FLHAttackCancelledEvent OnAttackCancelled;
     FLHAttackFinishedEvent OnAttackFinished;
@@ -98,7 +101,7 @@ private:
     LH::Rules::FManaParameters ManaParameters;
     bool bManaTickerEnabled=false, bRecoveryMenuPaused=false;
     TMap<FName,double> CooldownEnds;
-    double LightEnd=0;
+    double LightRemaining=0;
     FLHEntityId StableEntity;
     FLHAttackEvent PendingEvent;
     ELHAttackOutcome PendingOutcome=ELHAttackOutcome::ImpactInvalidated;
