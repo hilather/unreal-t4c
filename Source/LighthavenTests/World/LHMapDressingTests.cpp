@@ -1,5 +1,6 @@
 #include "Misc/AutomationTest.h"
 #include "Visual/LHVisualKit.h"
+#include "Visual/LHB1ArtBinding.h"
 #include "World/LHAreaRegistry.h"
 #include "World/LHWorldMarkers.h"
 #include "Engine/World.h"
@@ -12,6 +13,7 @@
 #include "Engine/StaticMesh.h"
 #include "Components/StaticMeshComponent.h"
 #include "ProceduralMeshComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
 
 IMPLEMENT_COMPLEX_AUTOMATION_TEST(FLHMapDressingTest,"Lighthaven.World.Dressing.Maps",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 void FLHMapDressingTest::GetTests(TArray<FString>& Names,TArray<FString>& Commands) const
@@ -55,6 +57,13 @@ bool FLHMapDressingTest::RunTest(const FString& Parameters)
         {
             TestTrue(TEXT("Mesh excluded from package serialization"),P->GetMesh()->HasAnyFlags(RF_Transient));
             TestTrue(TEXT("Geometry present immediately after load"),P->GetMesh()->GetNumSections()>0);
+            if(P->GetImportedMesh()->IsVisible())
+            {
+                TestEqual(TEXT("Only B1 uses imported art"),P->GetRecipe().Style,ELHVisualStyle::B1Cellar);
+                TestEqual(TEXT("Imported dressing collision disabled"),P->GetImportedMesh()->GetCollisionEnabled(),ECollisionEnabled::NoCollision);
+                TestFalse(TEXT("Imported dressing nav disabled"),P->GetImportedMesh()->CanEverAffectNavigation());
+                TestTrue(TEXT("Imported instances present"),P->GetImportedMesh()->GetInstanceCount()>0);
+            }
             // Explicit rebuild proves serialized recipes reconstruct the same assembly.
             const auto Recipe=P->GetRecipe();
             const int32 StyleIndex=LHWorld::Registry().IndexOfByPredicate([&](const FLHAreaDefinition& V){return &V==Area;});
@@ -125,7 +134,8 @@ bool FLHMapDressingTest::RunTest(const FString& Parameters)
 }
 
 // Geometry rays deliberately bypass physics: dressing has zero collision.
-// Test the exact oriented recipe boxes and retained/visible static mesh bounds.
+// Test presentation bounding envelopes and retained/visible static mesh bounds.
+// Imported envelopes are intersected with their actual material clipping box.
 IMPLEMENT_COMPLEX_AUTOMATION_TEST(FLHCaptureFramingTest,"Lighthaven.World.Dressing.CaptureFraming",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 void FLHCaptureFramingTest::GetTests(TArray<FString>& Names,TArray<FString>& Commands) const
 {
@@ -145,8 +155,21 @@ bool FLHCaptureFramingTest::RunTest(const FString& Parameters)
     for(TActorIterator<AActor> It(World);It;++It)
     {
         if(auto* P=Cast<ALHVisualPiece>(*It))
-            for(const auto& B:P->GetRecipe().Geometry)
+        {
+            auto* Imported=P->GetImportedMesh();
+            LHB1Art::FFit Fit;
+            if(Imported->IsVisible() && Imported->GetStaticMesh() && LHB1Art::Resolve(P->GetRecipe(),Fit))
+            {
+                for(const auto& Instance:Fit.Instances)
+                {
+                    const FBox Bounds=Imported->GetStaticMesh()->GetBoundingBox().TransformBy(Instance);
+                    const FBox Clipped=Bounds.Overlap(Fit.ClipBounds);
+                    if(Clipped.IsValid) Surfaces.Add({P->GetActorTransform(),Clipped});
+                }
+            }
+            else for(const auto& B:P->GetRecipe().Geometry)
                 Surfaces.Add({FTransform(B.Rotation,B.Center)*P->GetActorTransform(),FBox(-B.Size/2,B.Size/2)});
+        }
         if(auto* A=Cast<AStaticMeshActor>(*It))
         {
             auto* C=A->GetStaticMeshComponent();

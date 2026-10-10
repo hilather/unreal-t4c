@@ -15,7 +15,7 @@
 #include "ProceduralMeshComponent.h"
 #if WITH_DEV_AUTOMATION_TESTS
 namespace LHMonsterTestsPrivate {
-constexpr auto Flags=EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter;
+constexpr auto LHMonsterTestsFlags=EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter;
 struct FWorld {
     UWorld* W;
     FWorld() {
@@ -59,7 +59,7 @@ struct FSettlement {
 };
 
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHMonsterCatalogTest,"Lighthaven.Visual.Monsters.CatalogDeterminism",LHMonsterTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHMonsterCatalogTest,"Lighthaven.Visual.Monsters.CatalogDeterminism",LHMonsterTestsPrivate::LHMonsterTestsFlags)
 bool FLHMonsterCatalogTest::RunTest(const FString&) {
     LHMonsterTestsPrivate::FWorld F; TSet<uint32> Hashes;
     TestEqual(TEXT("Eleven roster species"),LHEnemyData::Catalog().Num(),11);
@@ -91,7 +91,7 @@ bool FLHMonsterCatalogTest::RunTest(const FString&) {
     }
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHMonsterCollisionTest,"Lighthaven.Visual.Monsters.CollisionAndFallback",LHMonsterTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHMonsterCollisionTest,"Lighthaven.Visual.Monsters.CollisionAndFallback",LHMonsterTestsPrivate::LHMonsterTestsFlags)
 bool FLHMonsterCollisionTest::RunTest(const FString&) {
     LHMonsterTestsPrivate::FWorld F;
     for(const auto& R:LHEnemyData::Catalog()) {
@@ -121,7 +121,7 @@ bool FLHMonsterCollisionTest::RunTest(const FString&) {
     if(Fallback) TestTrue(TEXT("Character definition hook logs/marks placeholder"),Fallback->GetMonsterVisual()->ComponentHasTag(TEXT("LH.Monster.UnknownPlaceholder")));
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHMonsterEventsTest,"Lighthaven.Visual.Monsters.StateAndCombatEvents",LHMonsterTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHMonsterEventsTest,"Lighthaven.Visual.Monsters.StateAndCombatEvents",LHMonsterTestsPrivate::LHMonsterTestsFlags)
 bool FLHMonsterEventsTest::RunTest(const FString&) {
     LHMonsterTestsPrivate::FWorld F;
     for(const auto& R:LHEnemyData::Catalog()) {
@@ -141,7 +141,7 @@ bool FLHMonsterEventsTest::RunTest(const FString&) {
     }
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHMonsterSettlementTest,"Lighthaven.Visual.Monsters.PresentationInvariantSettlement",LHMonsterTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHMonsterSettlementTest,"Lighthaven.Visual.Monsters.PresentationInvariantSettlement",LHMonsterTestsPrivate::LHMonsterTestsFlags)
 bool FLHMonsterSettlementTest::RunTest(const FString&) {
     for(const auto& R:LHEnemyData::Catalog()) {
         LHMonsterTestsPrivate::FWorld F;

@@ -1,4 +1,5 @@
 ## Environment and house rules (all Wave 4 tasks)
+- W5-07 Blender prerequisite: `BLENDER_ROOT=/home/brewerm/Downloads/blender-5.2.2-linux-x64` (observed Blender 5.2.2 LTS, hash `d13f752e3b9c`). Headless factory-startup Cycles CPU smoke render passed on 2026-10-10 with checkout-local `XDG_CONFIG_HOME`, 64×64, one sample, exit 0. Two `socket(): Operation not permitted` messages did not prevent PNG output. See `docs/implementation/art-pipeline-blender.md` for invocation and the ownership checkpoint.
 - Engine `UE_ROOT=/home/brewerm/Downloads/unreal` (UE 5.8.3 Linux). Build: `bash build/build-linux.sh --game`; both targets must report `Result: Succeeded`.
 - You run as uid 1000 (report `id -u`). `build/run-tests.sh` dies in the sandbox; run tests headless instead and report exact counts plus failures by name (exit 255 with a written report is normal):
   `XDG_CONFIG_HOME=$PWD/Saved/BuildEnvironment/config "$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$PWD/Lighthaven.uproject" -ExecCmds="Automation RunTests Lighthaven; Quit" -DDC-ForceMemoryCache -nullrhi -unattended -nosound -nop4 '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0' -ReportExportPath="$PWD/Saved/AutomationReport"`
@@ -8,3 +9,51 @@
 - **Lessons:** file-unique namespaces for file-local helpers (unity build); never Add a TArray's own element; `FString::AppendChar(0)` is a no-op; `ULocalPlayer`/`UGameViewportClient` need a GEngine outer; GameInstance subsystems need a real `UGameInstance`; ASC actor info defaults to owner; unique test worlds destroyed per test; wait for mesh compilation and recreate physics before collision/nav queries.
 - Don't merge main into your branch (the coordinator re-bases). Commit only owned paths; don't push. Public repo: no secrets, unlicensed binaries or reference images. No web. **Numbers** (Bible values, Matt 2026-10-09) come from `docs/implementation/research/w4-bible-lookup.md` (R-03) and `rules-ledger.md`/`world-ledger.md`/`ruleset-bible-v1.md`; check both first, then use a labelled **Prototype** (provenance, replacement note) only where the table says `missing`. Never a silent default.
 - Don't ask the user: record assumptions. **Submit even when blocked.** Use the handoff format from `docs/plan/agents/START-HERE.md` with exact commands, exit codes, timing, and tests expected vs observed.
+
+### W5-07c B1 art import and binding
+
+```sh
+export UE_ROOT=/home/brewerm/Downloads/unreal
+export BLENDER_ROOT=/home/brewerm/Downloads/blender-5.2.2-linux-x64
+bash build/build-art.sh
+```
+
+This uses the engine's PythonScript commandlet with `-EnablePlugins=PythonScriptPlugin` for that invocation only, then AssetTools' automated Interchange import. It does not enable a project plugin or require a custom commandlet. It writes generated GLBs/PNGs/import receipts/scripts under ignored `Saved/ArtExport/` and local `.uasset` packages under `Content/Lighthaven/Art/Env/B1/`. Those packages are intentionally absent from the worker commit: the coordinator imports and commits them through LFS. Read `art-import-unreal.md` for measured checks and limitations. A same-input receipt verifies every output SHA-256 before skipping import/save.
+
+For an isolated checkout, pointer `.umap` files produce AssetRegistry errors even when asset import completes. Generate real maps locally for testing, then rerun art import; restore the original pointer bytes before submission. No map regeneration is needed to activate the binding in an already generated/hydrated map: `PostLoad`, construction and `BeginPlay` rebuild from its saved recipe.
+
+The local filesystem DDC avoids the sandbox's unwritable HOME/Zen socket:
+
+```sh
+mkdir -p Saved/BuildEnvironment/config Saved/DerivedDataCache
+export XDG_CONFIG_HOME="$PWD/Saved/BuildEnvironment/config"
+for task in LHGenerateHubMap LHGenerateBasementAMaps LHGenerateBasementBMaps; do
+  "$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$PWD/Lighthaven.uproject" \
+    "-run=$task" '-DDC=(Local)' "-LocalDataCachePath=$PWD/Saved/DerivedDataCache" \
+    -nullrhi -unattended -nosound -nop4 -NoCrashDialog '-ini:EditorSettings:[/Script/UnrealEd.AnalyticsPrivacySettings]:bSendUsageData=False' \
+    '-ini:EditorSettings:[/Script/UnrealEd.CrashReportsPrivacySettings]:bSendUnattendedBugReports=False' \
+    '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0'
+done
+"$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$PWD/Lighthaven.uproject" \
+  '-ExecCmds=Automation RunTests Lighthaven; Quit' \
+  '-DDC=(Local)' "-LocalDataCachePath=$PWD/Saved/DerivedDataCache" \
+  -nullrhi -unattended -nosound -nop4 -NoCrashDialog '-ini:EditorSettings:[/Script/UnrealEd.AnalyticsPrivacySettings]:bSendUsageData=False' \
+    '-ini:EditorSettings:[/Script/UnrealEd.CrashReportsPrivacySettings]:bSendUnattendedBugReports=False' \
+  '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0' \
+  "-ReportExportPath=$PWD/Saved/AutomationReport" '-TestExit=Automation Test Queue Empty'
+env 'UE-LocalDataCachePath'="$PWD/Saved/DerivedDataCache" bash build/review-arrivals.sh
+```
+
+The generator loop is for local verification only. Its first runs can return 1 solely for the remaining pointer maps; inspect the logs rather than assuming failure is harmless. Build both targets with the pinned `Build.sh` invocations and add `-UBASharedMemoryTempFile=true -NoUBA` if UBA stalls, as required by this brief.
+
+For a sandbox-local Linux cook without Zen storage (after map generation/import):
+
+```sh
+"$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$PWD/Lighthaven.uproject" \
+  -run=Cook -TargetPlatform=Linux -Map=L_TempleB1 -SkipZenStore \
+  '-DDC=(Local)' "-LocalDataCachePath=$PWD/Saved/DerivedDataCache" \
+  -nullrhi -unattended -nosound -nop4 -NoAnalytics -NoCrashDialog \
+  '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0'
+```
+
+This uses the installed engine's configured Vulkan shader formats; first-time global shader compilation can be slow. The command is a cook check, not a packaged launch or rendered visual review.

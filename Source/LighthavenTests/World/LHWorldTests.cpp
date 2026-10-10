@@ -61,10 +61,10 @@ FLHEncounterRecord Encounter(const FLHAreaDefinition& A)
     E.RespawnRemainingSeconds.Resolution=ELHValueResolution::Resolved; return E;
 }
 }
-using namespace LHWorldTestsPrivate;
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWorldRegistryTest,"Lighthaven.World.RegistryIntegrity",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FLHWorldRegistryTest::RunTest(const FString& Parameters)
 {
+    using namespace LHWorldTestsPrivate;
     TArray<FString> Errors; TestTrue(TEXT("Registry validates"),LHWorld::ValidateRegistry(Errors));
     int32 Spawns=0,Portals=0,Entrances=0;
     for (const auto& A:LHWorld::Registry()) { Spawns+=A.Spawns.Num(); Portals+=A.Portals.Num(); Entrances+=A.Entrances.Num(); TestNotNull(TEXT("Fallback resolves"),LHWorld::FindEntrance(A.SafeFallback)); }
@@ -83,6 +83,7 @@ bool FLHWorldRegistryTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWorldPairTest,"Lighthaven.World.PortalPairing",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FLHWorldPairTest::RunTest(const FString& Parameters)
 {
+    using namespace LHWorldTestsPrivate;
     TArray<FLHAreaId> Maps; TArray<FLHPlacedIdentity> Ids; TArray<FLHPlacedEntrance> Entrances; TArray<FString> Errors;
     Placements(Maps,Ids,Entrances); TestTrue(TEXT("Complete placement graph"),LHWorld::ValidatePlacements(Maps,Ids,Entrances,Errors));
     const int32 Index=Ids.IndexOfByPredicate([](const auto& I) { return I.Kind==ELHPlacedIdKind::Portal; });
@@ -92,6 +93,7 @@ bool FLHWorldPairTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWorldDuplicateTest,"Lighthaven.World.DuplicateIdsAndSafeTransforms",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FLHWorldDuplicateTest::RunTest(const FString& Parameters)
 {
+    using namespace LHWorldTestsPrivate;
     TArray<FLHAreaId> Maps; TArray<FLHPlacedIdentity> Ids; TArray<FLHPlacedEntrance> Entrances; TArray<FString> Errors;
     Placements(Maps,Ids,Entrances); const auto Original=Ids[0]; auto Duplicate=Original; Duplicate.Kind=ELHPlacedIdKind::Interactable; Duplicate.Definition.Value=TEXT("Item.Synthetic"); Ids.Add(Duplicate);
     TestFalse(TEXT("Cross-kind ID duplication rejected"),LHWorld::ValidatePlacements(Maps,Ids,Entrances,Errors)); Ids.Pop();
@@ -105,6 +107,7 @@ bool FLHWorldDuplicateTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWorldTravelTest,"Lighthaven.World.TravelSuccessAndCheckpointResume",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FLHWorldTravelTest::RunTest(const FString& Parameters)
 {
+    using namespace LHWorldTestsPrivate;
     FHost Host; FLHTravelCoordinator Travel(Host); FString Error; auto Request=Host.Request();
     TestTrue(TEXT("Begin"),Travel.Begin(Request,Error)); const uint64 Token=Travel.GetToken();
     TestTrue(TEXT("Frozen before source save"),Host.bFrozen); TestEqual(TEXT("No load before durability"),Host.LoadCount,0);
@@ -124,6 +127,7 @@ bool FLHWorldTravelTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWorldFailureTest,"Lighthaven.World.MissingDestinationAndInvalidEntrance",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FLHWorldFailureTest::RunTest(const FString& Parameters)
 {
+    using namespace LHWorldTestsPrivate;
     FHost Host; FLHTravelCoordinator Travel(Host); FString Error; auto Request=Host.Request(); auto Bad=Request; Bad.Destination.Area.Content.Value=TEXT("Area.Missing");
     TestFalse(TEXT("Missing destination fails before save"),Travel.Begin(Bad,Error)); TestEqual(TEXT("No save"),Host.SaveCount,0);
     Host.Captured.Character.CurrentHealth.Value=0; TestFalse(TEXT("Dead character cannot travel"),Travel.Begin(Request,Error)); Host.Captured.Character.CurrentHealth.Value=1;
@@ -140,6 +144,7 @@ bool FLHWorldFailureTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWorldSaveFailureTest,"Lighthaven.World.SaveFailureRetryCancelAndCorruptArrival",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FLHWorldSaveFailureTest::RunTest(const FString& Parameters)
 {
+    using namespace LHWorldTestsPrivate;
     FHost Host; FLHTravelCoordinator Travel(Host); FString Error; auto Request=Host.Request();
     Travel.Begin(Request,Error); auto Token=Travel.GetToken(); Travel.OnSaveCompleted(Travel.GetToken(),false,0,TEXT("Disk error"));
     TestEqual(TEXT("Failed source never loads"),Host.LoadCount,0); TestTrue(TEXT("Cancel source failure"),Travel.Cancel(Error)); TestFalse(TEXT("Cancelled unfreezes"),Host.bFrozen);
@@ -152,6 +157,7 @@ bool FLHWorldSaveFailureTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWorldStateTest,"Lighthaven.World.AreaHydrationAndHighWater",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FLHWorldStateTest::RunTest(const FString& Parameters)
 {
+    using namespace LHWorldTestsPrivate;
     TStrongObjectPtr<UGameInstance> GameInstance(NewObject<UGameInstance>(GEngine));
     TStrongObjectPtr<ULHAreaStateSubsystem> State(NewObject<ULHAreaStateSubsystem>(GameInstance.Get()));
     FSubsystemCollection<UGameInstanceSubsystem> Collection;
@@ -179,7 +185,7 @@ FLHInteger Integer(int64 Value) { FLHInteger I; I.Resolution=ELHValueResolution:
 FLHNumber Number(double Value) { FLHNumber N; N.Resolution=ELHValueResolution::Resolved; N.Value=Value; N.Provenance.Status=ELHProvenanceStatus::Prototype; return N; }
 FLHSaveSnapshot Fixture()
 {
-    FHost Host; auto S=Host.Captured; auto& C=S.Character;
+    LHWorldTestsPrivate::FHost Host; auto S=Host.Captured; auto& C=S.Character;
     S.Header.BuildId=TEXT("World.Automation"); S.Header.ChecksumAlgorithm=TEXT("SHA256"); S.Header.PayloadCodec=TEXT("LHCanonicalBinary1");
     S.Header.Ruleset.Id.Value=TEXT("Ruleset.WorldFixture"); S.Header.Ruleset.Revision=1; S.Header.Ruleset.HashAlgorithm=TEXT("SHA256"); S.Header.Ruleset.ContentHash=FString::ChrN(64,'a'); S.Header.ContentRevision=FString::ChrN(64,'b');
     C.DisplayName=TEXT("Synthetic world test"); C.BaseAttributes.Strength=C.BaseAttributes.Endurance=C.BaseAttributes.Agility=C.BaseAttributes.Intelligence=C.BaseAttributes.Wisdom=Integer(1);
@@ -207,6 +213,7 @@ struct FMemoryStorage : ILHSaveStorage
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHWorldStorageTest,"Lighthaven.World.StoreDurabilityAndSourceResume",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FLHWorldStorageTest::RunTest(const FString& Parameters)
 {
+    using namespace LHWorldTestsPrivate;
     using namespace LHWorldSaveTestsPrivate;
     auto Storage=MakeShared<FMemoryStorage>(); auto Store=MakeShared<FLHSaveStore>(Storage); auto Snapshot=Fixture();
     FLHSaveCompatibility Compatibility; Compatibility.Ruleset=Snapshot.Header.Ruleset; Compatibility.ContentRevision=Snapshot.Header.ContentRevision;

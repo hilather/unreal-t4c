@@ -4,9 +4,11 @@
 #include <limits>
 
 #if WITH_DEV_AUTOMATION_TESTS
-using namespace LH::Rules;
-namespace
+// Keep helpers out of the unity translation unit's anonymous/global namespace:
+// engine headers included by later test files must not see generic test names.
+namespace LHRulesTestsPrivate
 {
+using namespace LH::Rules;
 // Synthetic test coefficients are NOT ledger proposals, runtime defaults or authentic T4C values.
 FLHFieldProvenance Synthetic(const TCHAR* Row)
 {
@@ -77,12 +79,14 @@ FCombatParameters Combat()
 {
     return {Num(0.5),Num(0.01),Num(0.01),Num(0.1),Num(0.9),Num(1),Num(1),Num(0),Num(1)};
 }
-constexpr auto Flags=EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
+constexpr auto LHRulesTestsFlags=EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCreationTests,"Lighthaven.Rules.Prototype.Synthetic.CreationRNGAndPointConservation",Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCreationTests,"Lighthaven.Rules.Prototype.Synthetic.CreationRNGAndPointConservation",LHRulesTestsPrivate::LHRulesTestsFlags)
 bool FLHCreationTests::RunTest(const FString& Parameters)
 {
+    using namespace LHRulesTestsPrivate;
+    using namespace LH::Rules;
     // Ledger rows: Creation question flow, Creation RNG, Reachable maximum examples (NOT used as RNG).
     auto P=Creation(); auto A=Answers();
     auto First=RollCreation(P,A,0), Second=RollCreation(P,A,1);
@@ -105,9 +109,11 @@ bool FLHCreationTests::RunTest(const FString& Parameters)
     return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHStatsTests,"Lighthaven.Rules.Prototype.Synthetic.DerivedStatsEquipUnequipSymmetry",Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHStatsTests,"Lighthaven.Rules.Prototype.Synthetic.DerivedStatsEquipUnequipSymmetry",LHRulesTestsPrivate::LHRulesTestsFlags)
 bool FLHStatsTests::RunTest(const FString& Parameters)
 {
+    using namespace LHRulesTestsPrivate;
+    using namespace LH::Rules;
     // Ledger rows: Derived stats, Retroactive growth.
     auto P=Stats(); FStatsInput I; I.Base={10,19,11,13,15}; I.EarnedHealth=42; I.EarnedMana=31;
     auto Base=DeriveStats(P,I); TestTrue(TEXT("Synthetic base"),Base.Diagnostic.IsAccepted());
@@ -131,9 +137,11 @@ bool FLHStatsTests::RunTest(const FString& Parameters)
     return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHProgressionTests,"Lighthaven.Rules.Prototype.Synthetic.LevelEntitlementGrowthAndDebt",Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHProgressionTests,"Lighthaven.Rules.Prototype.Synthetic.LevelEntitlementGrowthAndDebt",LHRulesTestsPrivate::LHRulesTestsFlags)
 bool FLHProgressionTests::RunTest(const FString& Parameters)
 {
+    using namespace LHRulesTestsPrivate;
+    using namespace LH::Rules;
     // Ledger: Level entitlement (+5/+15 documented), XP curve (synthetic), HP/MP growth dependence, Atomic level-up / debt recovery.
     auto P=Progression(); auto I=ProgressionInput(); I.ExperienceGain=99;
     TestEqual(TEXT("Below first synthetic threshold"),Advance(P,I).Value.Awards.Num(),0);
@@ -181,9 +189,11 @@ bool FLHProgressionTests::RunTest(const FString& Parameters)
     return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHRequirementTests,"Lighthaven.Rules.Prototype.Synthetic.EquipmentSpellAndQuiverRequirements",Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHRequirementTests,"Lighthaven.Rules.Prototype.Synthetic.EquipmentSpellAndQuiverRequirements",LHRulesTestsPrivate::LHRulesTestsFlags)
 bool FLHRequirementTests::RunTest(const FString& Parameters)
 {
+    using namespace LHRulesTestsPrivate;
+    using namespace LH::Rules;
     // Ledger: Requirement evaluation, Weapon requirements, Wooden Arrows quiver, Fire Dart (min level2/WIS15/INT21).
     auto P=Requirements(); FLHEligibility E; E.MinimumAttributes=Minimum(0,0,0,21,15); E.MinimumLevel=Int(2);
     FRequirementInput I; I.Base={10,10,10,21,15}; I.Effective=I.Base; I.Level=2;
@@ -208,9 +218,11 @@ bool FLHRequirementTests::RunTest(const FString& Parameters)
     return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCombatTests,"Lighthaven.Rules.Prototype.Synthetic.HitDamageBoundariesAndRounding",Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCombatTests,"Lighthaven.Rules.Prototype.Synthetic.HitDamageBoundariesAndRounding",LHRulesTestsPrivate::LHRulesTestsFlags)
 bool FLHCombatTests::RunTest(const FString& Parameters)
 {
+    using namespace LHRulesTestsPrivate;
+    using namespace LH::Rules;
     // Ledger: Physical hit/damage, Spell targeting. All damage/chance coefficients here are synthetic.
     auto P=Combat(); FCombatInput I; I.WeaponMinimum=6; I.WeaponMaximum=10; I.DamageRoll=0.49; I.HitRoll=0.49;
     auto Hit=ResolveCombat(P,I); TestTrue(TEXT("Below synthetic chance hits"),Hit.Value.bHit);
@@ -234,9 +246,11 @@ bool FLHCombatTests::RunTest(const FString& Parameters)
     return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHManaTests,"Lighthaven.Rules.Prototype.Ledger.ManaFractionalCarry",Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHManaTests,"Lighthaven.Rules.Prototype.Ledger.ManaFractionalCarry",LHRulesTestsPrivate::LHRulesTestsFlags)
 bool FLHManaTests::RunTest(const FString& Parameters)
 {
+    using namespace LHRulesTestsPrivate;
+    using namespace LH::Rules;
     // Ledger: Mana regeneration rate (prototype 1 MP / 5s), Passive mana recovery.
     const auto P=MakeLedgerPrototypeRuleset().Mana; FManaInput I; I.Maximum=10; I.ActiveSeconds=4.5;
     auto First=RegenerateMana(P,I); TestTrue(TEXT("Ledger prototype regen"),First.Diagnostic.IsAccepted());
@@ -255,9 +269,11 @@ bool FLHManaTests::RunTest(const FString& Parameters)
     return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHUnresolvedTests,"Lighthaven.Rules.Prototype.Ledger.UnresolvedParametersReject",Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHUnresolvedTests,"Lighthaven.Rules.Prototype.Ledger.UnresolvedParametersReject",LHRulesTestsPrivate::LHRulesTestsFlags)
 bool FLHUnresolvedTests::RunTest(const FString& Parameters)
 {
+    using namespace LHRulesTestsPrivate;
+    using namespace LH::Rules;
     // Missing ledger rows must never become zero defaults in the play fixture.
     auto P=MakeLedgerPrototypeRuleset();
     TestTrue(TEXT("Creation RNG unresolved"),RollCreation(P.Creation,Answers(),0).Diagnostic.Reason==EReason::Unresolved);

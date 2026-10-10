@@ -24,7 +24,7 @@
 #include "AssetCompilingManager.h"
 namespace LHAITestsPrivate
 {
-constexpr auto Flags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
+constexpr auto LHAITestsFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 FLHNumber Number(double V)
 {
     FLHNumber N; N.Resolution = ELHValueResolution::Resolved; N.Value = V;
@@ -127,7 +127,7 @@ struct FWorldFixture
     }
 };
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHAISpecTest,"Lighthaven.AI.SpecValidation",LHAITestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHAISpecTest,"Lighthaven.AI.SpecValidation",LHAITestsPrivate::LHAITestsFlags)
 bool FLHAISpecTest::RunTest(const FString&)
 {
     using namespace LHAITestsPrivate;
@@ -144,7 +144,7 @@ bool FLHAISpecTest::RunTest(const FString&)
     S.Attack.RangeCm = Number(-1); TestFalse(TEXT("Invalid attack rejects"),LHAI::ValidateSpec(S,Error));
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHAIStateTest,"Lighthaven.AI.StateMachine",LHAITestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHAIStateTest,"Lighthaven.AI.StateMachine",LHAITestsPrivate::LHAITestsFlags)
 bool FLHAIStateTest::RunTest(const FString&)
 {
     using namespace LHAITestsPrivate;
@@ -171,7 +171,7 @@ bool FLHAIStateTest::RunTest(const FString&)
     WC->Advance(.2); TestTrue(TEXT("No acquire through wall"),WC->GetState()==ELHAIState::Idle);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHAIPathTest,"Lighthaven.AI.BoundedPathRetry",LHAITestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHAIPathTest,"Lighthaven.AI.BoundedPathRetry",LHAITestsPrivate::LHAITestsFlags)
 bool FLHAIPathTest::RunTest(const FString&)
 {
     using namespace LHAITestsPrivate;
@@ -185,7 +185,7 @@ bool FLHAIPathTest::RunTest(const FString&)
     C->Advance(0); TestTrue(TEXT("No zero-time retry spin"),C->GetState()==ELHAIState::ReturnHome);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHAISafeTest,"Lighthaven.AI.SafeZone",LHAITestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHAISafeTest,"Lighthaven.AI.SafeZone",LHAITestsPrivate::LHAITestsFlags)
 bool FLHAISafeTest::RunTest(const FString&)
 {
     using namespace LHAITestsPrivate;
@@ -206,7 +206,7 @@ bool FLHAISafeTest::RunTest(const FString&)
     TestFalse(TEXT("Entering safety cancels pending hit"),Combat->ResolveImpact(Hit));
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHAITwoTest,"Lighthaven.AI.TwoEnemiesOneSettlement",LHAITestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHAITwoTest,"Lighthaven.AI.TwoEnemiesOneSettlement",LHAITestsPrivate::LHAITestsFlags)
 bool FLHAITwoTest::RunTest(const FString&)
 {
     using namespace LHAITestsPrivate;
@@ -239,7 +239,7 @@ bool FLHAITwoTest::RunTest(const FString&)
     F.D->Populate(F.Area); TestEqual(TEXT("Stale Alive hydration does not resurrect published death"),Calls,2);
     TestNull(TEXT("Published life suppressed"),F.D->FindByLife(L1)); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHAIPopulateTest,"Lighthaven.AI.DirectorPopulateAndCapture",LHAITestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHAIPopulateTest,"Lighthaven.AI.DirectorPopulateAndCapture",LHAITestsPrivate::LHAITestsFlags)
 bool FLHAIPopulateTest::RunTest(const FString&)
 {
     using namespace LHAITestsPrivate;
@@ -254,7 +254,7 @@ bool FLHAIPopulateTest::RunTest(const FString&)
     F.D->Populate(F.Area); TestEqual(TEXT("Reload health"),F.D->FindByLife(Alive)->GetCombatComponent()->GetCombatAttributes()->GetHealth(),4.f);
     F.Area.Encounters[0].State=ELHEncounterLifeState::Dead; F.D->Populate(F.Area); TestNull(TEXT("Reload never resurrects dead"),F.D->FindByLife(Alive)); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHAIPauseTest,"Lighthaven.AI.PausedAndUnloadedNoTick",LHAITestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHAIPauseTest,"Lighthaven.AI.PausedAndUnloadedNoTick",LHAITestsPrivate::LHAITestsFlags)
 bool FLHAIPauseTest::RunTest(const FString&)
 {
     using namespace LHAITestsPrivate;

@@ -1,0 +1,246 @@
+#!/usr/bin/env bash
+set -euo pipefail
+source "$(dirname -- "${BASH_SOURCE[0]}")/lh-env.sh"
+: "${BLENDER_ROOT:?Set BLENDER_ROOT to the pinned Blender 5.2.2 directory}"
+cd "$LH_PROJECT_ROOT"
+mkdir -p Saved/ArtExport artsource/blender/.config
+XDG_CONFIG_HOME="$PWD/artsource/blender/.config" "$BLENDER_ROOT/blender" \
+  --background --factory-startup --python-exit-code 1 --python artsource/blender/build_env.py \
+  -- --output Saved/ArtExport/env --skip-renders
+python3 artsource/blender/validate_env.py Saved/ArtExport/env
+# Use the engine's existing PythonScript commandlet and AssetTools/Interchange.
+# No project/plugin configuration is modified. Keep scratch scripts in Saved/.
+cat > Saved/ArtExport/import_b1.py <<'PY'
+import hashlib
+import json
+import struct
+import shutil
+from pathlib import Path
+import unreal as u
+
+def main():
+    root = Path(u.Paths.project_dir()).resolve()
+    source = root / 'Saved/ArtExport/env'
+    dest = '/Game/Lighthaven/Art/Env/B1'
+    manifest = json.loads((source / 'manifest.json').read_text())
+    assets = u.EditorAssetLibrary
+    editor = u.MaterialEditingLibrary
+    tools = u.AssetToolsHelpers.get_asset_tools()
+    
+    # A successful same-input run does no import/save, preserving package bytes.
+    # Include tool source and engine version so edits cannot silently reuse stale assets.
+    signature = hashlib.sha256((Path(__file__).read_bytes() +
+        (source / 'manifest.json').read_bytes() + u.SystemLibrary.get_engine_version().encode())).hexdigest()
+    stamp = root / 'Saved/ArtExport/b1-import-receipt.json'
+    content = root / 'Content/Lighthaven/Art/Env/B1'
+    def inventory():
+        return {str(p.relative_to(content)): {'bytes': p.stat().st_size,
+                'sha256': hashlib.sha256(p.read_bytes()).hexdigest()}
+                for p in sorted(content.rglob('*.uasset'))}
+    if stamp.exists():
+        old = json.loads(stamp.read_text())
+        if old['signature'] == signature and old['assets'] == inventory():
+            u.log('B1_IMPORT_UNCHANGED: package bytes preserved')
+            return
+    
+    def import_one(filename, name, folder=dest):
+        task = u.AssetImportTask()
+        task.set_editor_property('filename', str(filename))
+        task.set_editor_property('destination_path', folder)
+        task.set_editor_property('destination_name', name)
+        task.set_editor_property('automated', True)
+        task.set_editor_property('replace_existing', True)
+        task.set_editor_property('save', False)
+        tools.import_asset_tasks([task])
+        objects = task.get_objects()
+        if not objects:
+            raise RuntimeError('Import produced no objects: '+str(filename))
+        return objects
+    
+    textures = {}
+    for filename in sorted(manifest['textures']):
+        path = Path(filename)
+        tex = next(o for o in import_one(source / path, 'T_'+path.stem, dest+'/Textures') if isinstance(o, u.Texture2D))
+        normal = 'normal' in path.stem.lower()
+        orm = path.stem.lower().endswith('_orm')
+        tex.set_editor_property('srgb', not (normal or orm))
+        tex.set_editor_property('compression_settings', u.TextureCompressionSettings.TC_NORMALMAP if normal else
+            u.TextureCompressionSettings.TC_MASKS if orm else u.TextureCompressionSettings.TC_DEFAULT)
+        if normal:
+            tex.set_editor_property('flip_green_channel', True)  # external PNG: OpenGL +Y -> Unreal -Y
+        textures[path.stem] = tex
+    
+    master = assets.load_asset(dest+'/M_B1') if assets.does_asset_exist(dest+'/M_B1') else None
+    if master is None:
+        master = tools.create_asset('M_B1',dest,u.Material,u.MaterialFactoryNew())
+        def texture_node(name, sample):
+            node = editor.create_material_expression(master,u.MaterialExpressionTextureSampleParameter2D)
+            node.set_editor_property('parameter_name', name)
+            node.set_editor_property('texture', sample)
+            return node
+        base = texture_node('Base', next(v for k,v in textures.items() if 'base' in k.lower()))
+        normal = texture_node('Normal', next(v for k,v in textures.items() if 'normal' in k.lower()))
+        normal.set_editor_property('sampler_type', u.MaterialSamplerType.SAMPLERTYPE_NORMAL)
+        orm = texture_node('ORM', next(v for k,v in textures.items() if k.lower().endswith('_orm')))
+        orm.set_editor_property('sampler_type', u.MaterialSamplerType.SAMPLERTYPE_MASKS)
+        color = editor.create_material_expression(master,u.MaterialExpressionVertexColor)
+        mult = editor.create_material_expression(master,u.MaterialExpressionMultiply)
+        editor.connect_material_expressions(base,'RGB',mult,'A')
+        editor.connect_material_expressions(color,'RGB',mult,'B')
+        tint = editor.create_material_expression(master,u.MaterialExpressionVectorParameter)
+        tint.set_editor_property('parameter_name','FlameColor')
+        tint.set_editor_property('default_value',u.LinearColor(1,.21,.012,1))
+        flame = editor.create_material_expression(master,u.MaterialExpressionScalarParameter)
+        flame.set_editor_property('parameter_name','Flame')
+        flame.set_editor_property('default_value',0.0)
+        blend = editor.create_material_expression(master,u.MaterialExpressionLinearInterpolate)
+        editor.connect_material_expressions(mult,'',blend,'A')
+        editor.connect_material_expressions(tint,'',blend,'B')
+        editor.connect_material_expressions(flame,'',blend,'Alpha')
+        editor.connect_material_property(blend,'',u.MaterialProperty.MP_BASE_COLOR)
+        emission = editor.create_material_expression(master,u.MaterialExpressionMultiply)
+        editor.connect_material_expressions(tint,'',emission,'A')
+        editor.connect_material_expressions(flame,'',emission,'B')
+        editor.connect_material_property(emission,'',u.MaterialProperty.MP_EMISSIVE_COLOR)
+        editor.connect_material_property(normal,'RGB',u.MaterialProperty.MP_NORMAL)
+        for channel, prop in [('R',u.MaterialProperty.MP_AMBIENT_OCCLUSION),('G',u.MaterialProperty.MP_ROUGHNESS),('B',u.MaterialProperty.MP_METALLIC)]:
+            editor.connect_material_property(orm,channel,prop)
+        master.set_editor_property('blend_mode',u.BlendMode.BLEND_MASKED)
+        master.set_editor_property('used_with_instanced_static_meshes',True)
+        world = editor.create_material_expression(master,u.MaterialExpressionWorldPosition)
+        clip = editor.create_material_expression(master,u.MaterialExpressionCustom)
+        clip.set_editor_property('output_type',u.CustomMaterialOutputType.CMOT_FLOAT1)
+        clip.set_editor_property('code','float3 p = W - O; float3 q = abs(float3(dot(p,X),dot(p,Y),dot(p,Z))); return all(q <= E + 0.01) ? 1.0 : 0.0;')
+        inputs=[]
+        for name in ['W','O','X','Y','Z','E']:
+            inp=u.CustomInput()
+            inp.set_editor_property('input_name',name)
+            inputs.append(inp)
+        clip.set_editor_property('inputs',inputs)
+        editor.connect_material_expressions(world,'',clip,'W')
+        for name,param,value in [('O','ClipOrigin',(0,0,0)),('X','ClipX',(1,0,0)),('Y','ClipY',(0,1,0)),('Z','ClipZ',(0,0,1)),('E','ClipExtent',(1e8,1e8,1e8))]:
+            node=editor.create_material_expression(master,u.MaterialExpressionVectorParameter)
+            node.set_editor_property('parameter_name',param)
+            node.set_editor_property('default_value',u.LinearColor(*value,0))
+            editor.connect_material_expressions(node,'RGB',clip,name)
+        editor.connect_material_property(clip,'',u.MaterialProperty.MP_OPACITY_MASK)
+        editor.recompile_material(master)
+        
+    master.set_editor_property('used_with_instanced_static_meshes',True)
+
+    materials = {}
+    for family in ['stone','timber','iron','flame']:
+        name = 'MI_B1_'+family
+        mat = (assets.load_asset(dest+'/'+name) if assets.does_asset_exist(dest+'/'+name) else None) or tools.create_asset(name,dest,u.MaterialInstanceConstant,u.MaterialInstanceConstantFactoryNew())
+        editor.set_material_instance_parent(mat,master)
+        for parameter, suffix in [('Base','base'),('Normal','normal'),('ORM','orm')]:
+            matching = [v for k,v in textures.items() if ('timber' if family=='flame' else family) in k.lower() and k.lower().endswith('_'+('basecolor' if suffix=='base' else suffix))]
+            if len(matching)!=1:
+                raise RuntimeError('Expected one texture for '+family+' '+suffix)
+            editor.set_material_instance_texture_parameter_value(mat,parameter,matching[0])
+        editor.set_material_instance_scalar_parameter_value(mat,'Flame',1.0 if family=='flame' else 0.0)
+        materials[family] = mat
+    
+    # Native glTF conversion maps (X,Y,Z)->(X,Z,Y). Blender's output is
+    # (author X, author Z, -author Y), so reflect glTF Z in an import-only
+    # copy, including normals/tangents and winding. Source exports untouched.
+    normalized = root / 'Saved/ArtExport/unreal-env'
+    normalized.mkdir(exist_ok=True)
+    shutil.copytree(source/'textures',normalized/'textures',dirs_exist_ok=True)
+    def canonical_glb(filename):
+        raw=(source/filename).read_bytes()
+        json_size=struct.unpack_from('<I',raw,12)[0]
+        doc=json.loads(raw[20:20+json_size])
+        offset=20+json_size
+        bin_size,kind=struct.unpack_from('<II',raw,offset)
+        assert kind==0x004e4942
+        data=bytearray(raw[offset+8:offset+8+bin_size])
+        seen=set()
+        for mesh in doc['meshes']:
+            for primitive in mesh['primitives']:
+                for semantic in ['POSITION','NORMAL','TANGENT']:
+                    index=primitive['attributes'].get(semantic)
+                    if index is None or index in seen: continue
+                    seen.add(index)
+                    acc=doc['accessors'][index]; view=doc['bufferViews'][acc['bufferView']]
+                    assert acc['componentType']==5126 and 'sparse' not in acc
+                    width=4 if semantic=='TANGENT' else 3
+                    start=view.get('byteOffset',0)+acc.get('byteOffset',0)
+                    stride=view.get('byteStride',width*4)
+                    for i in range(acc['count']):
+                        for component in ([2,3] if semantic=='TANGENT' else [2]):
+                            pos=start+i*stride+component*4
+                            struct.pack_into('<f',data,pos,-struct.unpack_from('<f',data,pos)[0])
+                    if 'min' in acc:
+                        low,high=acc['min'][2],acc['max'][2]
+                        acc['min'][2],acc['max'][2]=-high,-low
+                index=primitive['indices']
+                if index in seen: continue
+                seen.add(index)
+                acc=doc['accessors'][index]; view=doc['bufferViews'][acc['bufferView']]
+                fmt={5121:'B',5123:'H',5125:'I'}[acc['componentType']]
+                size=struct.calcsize(fmt); start=view.get('byteOffset',0)+acc.get('byteOffset',0)
+                assert acc['count']%3==0 and 'byteStride' not in view
+                for i in range(0,acc['count'],3):
+                    pos=start+i*size
+                    a,b,c=struct.unpack_from('<'+fmt*3,data,pos)
+                    struct.pack_into('<'+fmt*3,data,pos,a,c,b)
+        encoded=json.dumps(doc,separators=(',',':')).encode()
+        encoded+=b' '*((-len(encoded))%4)
+        payload=struct.pack('<II',len(encoded),0x4e4f534a)+encoded+struct.pack('<II',len(data),kind)+data
+        path=normalized/filename
+        path.write_bytes(struct.pack('<III',0x46546c67,2,12+len(payload))+payload)
+        return path
+
+    for entry in manifest['pieces'].values():
+        name = Path(entry['file']).stem
+        objects = import_one(canonical_glb(entry['file']), 'SM_'+name)
+        mesh = next(o for o in objects if isinstance(o,u.StaticMesh))
+        # Interchange may use the glTF node name instead of destination_name.
+        wanted = dest+'/SM_'+name
+        if mesh.get_path_name().split('.')[0] != wanted:
+            if assets.does_asset_exist(wanted):
+                raise RuntimeError('Unexpected Interchange naming conflict at '+wanted)
+            if not assets.rename_asset(mesh.get_path_name(),wanted):
+                raise RuntimeError('Could not normalize mesh asset name')
+        bounds = mesh.get_bounding_box()
+        for actual, expected in [(bounds.min,entry['bounds_cm'][0]),(bounds.max,entry['bounds_cm'][1])]:
+            if max(abs(a-b) for a,b in zip([actual.x,actual.y,actual.z],expected)) > .2:
+                raise RuntimeError('Axis/units/pivot mismatch: '+name+' '+str(bounds))
+        slots = mesh.get_editor_property('static_materials')
+        for i,slot in enumerate(slots):
+            label = str(slot.get_editor_property('material_slot_name')).lower()
+            family = next((f for f in materials if f in label),None)
+            if family is None:
+                raise RuntimeError('Unmapped material slot (including flame): '+name+' '+label)
+            mesh.set_material(i,materials[family])
+        nanite = mesh.get_editor_property('nanite_settings')
+        nanite.set_editor_property('enabled',False)
+        mesh.set_editor_property('nanite_settings',nanite)
+        assets.save_loaded_asset(mesh)
+    
+    # The catalog is importer-owned. Remove Interchange's temporary material
+    # graphs/duplicate textures after meshes point at the four shared instances.
+    keep={'M_B1'} | {'MI_B1_'+f for f in materials} | {'SM_'+Path(e['file']).stem for e in manifest['pieces'].values()}
+    keep_paths={dest+'/'+name for name in keep} | {dest+'/Textures/T_'+Path(p).stem for p in manifest['textures']}
+    generated=assets.list_assets(dest,recursive=True,include_folder=False)
+    generated.sort(key=lambda p: (0 if '/Materials/' in p else 1,p))
+    for path in generated:
+        if path.split('.')[0] not in keep_paths and not assets.delete_asset(path):
+            raise RuntimeError('Could not remove temporary Interchange asset '+path)
+    assets.save_directory(dest,only_if_is_dirty=True,recursive=True)
+    files = inventory()
+    total = sum(v['bytes'] for v in files.values())
+    for path, info in files.items():
+        u.log('B1_ASSET_BYTES '+path+' '+str(info['bytes']))
+    if total>15_000_000:
+        raise RuntimeError('Imported assets exceed 15MB: '+str(total))
+    stamp.write_text(json.dumps({'signature':signature,'assets':files,'total_bytes':total},indent=2)+'\n')
+    u.log('B1_IMPORT_TOTAL_BYTES '+str(total))
+
+main()
+PY
+"$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$LH_PROJECT" \
+  -run=pythonscript "-Script=$PWD/Saved/ArtExport/import_b1.py" -EnablePlugins=PythonScriptPlugin \
+  -nullrhi -unattended -nosound -nop4 '-DDC=(Local)' "-LocalDataCachePath=$PWD/Saved/DerivedDataCache" \
+  '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0'

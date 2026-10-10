@@ -4,7 +4,7 @@
 #include "UI/LHUIWidgetHarness.h"
 #include "InputCoreTypes.h"
 #if WITH_DEV_AUTOMATION_TESTS
-namespace
+namespace LHUIPresenterTestsPrivate
 {
 // The presenter receives only commands and copy-returning reads. There are no stat setters here.
 struct FOwners : ILHCommandHandler, ILHUIReadOwner, ILHUISessionOwner
@@ -73,6 +73,7 @@ struct FOwners : ILHCommandHandler, ILHUIReadOwner, ILHUISessionOwner
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHUIFormTest, "Lighthaven.UI.RejectionPreservesFormAndDuplicateConfirm", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FLHUIFormTest::RunTest(const FString&)
 {
+    using namespace LHUIPresenterTestsPrivate;
     FOwners O; FLHUIPresenter P(O,O,O);
     FLHContentId Appearance; Appearance.Value = TEXT("Presentation.Player.Human");
     FLHQuestionAnswer Answer; Answer.Question.Value = TEXT("Question.One"); Answer.Answer.Value = TEXT("Answer.One");
@@ -94,6 +95,7 @@ bool FLHUIFormTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHUIFocusTest, "Lighthaven.UI.FocusTraversal", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FLHUIFocusTest::RunTest(const FString&)
 {
+    using namespace LHUIPresenterTestsPrivate;
     FOwners O; FLHUIPresenter P(O,O,O);
     const TArray<ELHUIScreen> Screens = {ELHUIScreen::Frontend, ELHUIScreen::Characters, ELHUIScreen::Creation,
         ELHUIScreen::CharacterSheet, ELHUIScreen::Inventory, ELHUIScreen::Settings};
@@ -114,6 +116,7 @@ bool FLHUIFocusTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHUIRecoveryTest, "Lighthaven.UI.RecoveryAndUnknownValues", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FLHUIRecoveryTest::RunTest(const FString&)
 {
+    using namespace LHUIPresenterTestsPrivate;
     FOwners O; O.State.Header.CharacterId.Value = FGuid::NewGuid(); FLHUIPresenter P(O,O,O);
     P.SelectProfile(O.State.Header.CharacterId);
     TestFalse(TEXT("recovery requires acknowledgment"), P.Continue(false));
@@ -129,7 +132,7 @@ bool FLHUIRecoveryTest::RunTest(const FString&)
 }
 // These tests construct Slate trees, then send the same key events used by a gamepad.
 // They do not claim physical-device coverage or rendered readability.
-namespace
+namespace LHUIPresenterTestsPrivate
 {
 void Pad(const TUniquePtr<ILHUIWidgetHarness>& W, ELHUITestKey Key, bool Repeat = false) { W->Key(Key,Repeat); }
 void Reach(const TUniquePtr<ILHUIWidgetHarness>& W, FLHUIPresenter& P, FName Id)
@@ -140,6 +143,7 @@ void Reach(const TUniquePtr<ILHUIWidgetHarness>& W, FLHUIPresenter& P, FName Id)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHUIWidgetConstructionTest,"Lighthaven.UI.NativeScreenConstructionAndGamepad",EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FLHUIWidgetConstructionTest::RunTest(const FString&)
 {
+    using namespace LHUIPresenterTestsPrivate;
     FOwners O; FLHUIPresenter P(O,O,O);
     const auto W = ILHUIWidgetHarness::Create(P);
     const TArray<ELHUIScreen> Screens = {ELHUIScreen::Frontend,ELHUIScreen::Characters,ELHUIScreen::Creation,ELHUIScreen::CharacterSheet,ELHUIScreen::Inventory};
@@ -162,6 +166,7 @@ bool FLHUIWidgetConstructionTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHUIWidgetSubmitTest,"Lighthaven.UI.WidgetRejectedFieldsAndDuplicateSubmit",EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FLHUIWidgetSubmitTest::RunTest(const FString&)
 {
+    using namespace LHUIPresenterTestsPrivate;
     FOwners O; FLHUIPresenter P(O,O,O); const auto W = ILHUIWidgetHarness::Create(P);
     W->Open(ELHUIScreen::Creation); W->EditName(TEXT("Keep this name")); W->Activate("Roll");
     Reach(W,P,"Confirm"); Pad(W,ELHUITestKey::South);
@@ -181,6 +186,7 @@ bool FLHUIWidgetSubmitTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHUIWidgetAllocationTest,"Lighthaven.UI.WidgetAllocationEquipmentAndRecovery",EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FLHUIWidgetAllocationTest::RunTest(const FString&)
 {
+    using namespace LHUIPresenterTestsPrivate;
     FOwners O; O.State.Header.CharacterId.Value = FGuid::NewGuid();
     FLHItemInstance Item; Item.Id.InstanceId = FGuid::NewGuid(); Item.Definition.Value = TEXT("Fixture.Quiver"); O.State.Character.Inventory.Add(Item);
     FLHUIPresenter P(O,O,O); const auto W = ILHUIWidgetHarness::Create(P);
@@ -226,6 +232,7 @@ bool FLHUIWidgetAllocationTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHUIUnreadableFocusTest,"Lighthaven.UI.UnreadableContinueAndStaleErrors",EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FLHUIUnreadableFocusTest::RunTest(const FString&)
 {
+    using namespace LHUIPresenterTestsPrivate;
     FOwners O; O.State.Header.CharacterId.Value=FGuid::NewGuid(); O.bReadable=false;
     FLHUIPresenter P(O,O,O); const auto W=ILHUIWidgetHarness::Create(P);
     W->Open(ELHUIScreen::Characters); W->Activate("Profiles");
@@ -246,6 +253,7 @@ bool FLHUIUnreadableFocusTest::RunTest(const FString&)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHUIAsyncSaveStatus,"Lighthaven.UI.AsyncSaveStatus",EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FLHUIAsyncSaveStatus::RunTest(const FString&)
 {
+    using namespace LHUIPresenterTestsPrivate;
     FOwners O; O.bOwnsSaveStatus=true; O.SaveStatus=TEXT("Save failed: fixture");
     FLHUIPresenter P(O,O,O); const auto W=ILHUIWidgetHarness::Create(P);
     W->Activate("RetrySave");

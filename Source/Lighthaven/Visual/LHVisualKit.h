@@ -5,6 +5,8 @@
 
 class UProceduralMeshComponent;
 class UBoxComponent;
+class UInstancedStaticMeshComponent;
+class UStaticMesh;
 class UMaterialInterface;
 
 // Prototype presentation only. Never carries gameplay or persistent identity.
@@ -50,12 +52,17 @@ public:
     virtual void OnConstruction(const FTransform& Transform) override;
     virtual void BeginPlay() override;
     virtual void PostLoad() override;
+    void UpdateArtClip();
     const FLHVisualRecipe& GetRecipe() const { return BuiltRecipe; }
     UProceduralMeshComponent* GetMesh() const { return Mesh; }
+    UInstancedStaticMeshComponent* GetImportedMesh() const { return ImportedMesh; }
     const TArray<TObjectPtr<UBoxComponent>>& GetBlockers() const { return Blockers; }
 private:
     UPROPERTY(VisibleAnywhere, Transient) TObjectPtr<UProceduralMeshComponent> Mesh;
     UPROPERTY() TArray<TObjectPtr<UBoxComponent>> Blockers;
+    UPROPERTY(VisibleAnywhere, Transient) TObjectPtr<UInstancedStaticMeshComponent> ImportedMesh;
+    // CDO hard references keep the complete imported catalog reachable to cook.
+    UPROPERTY() TArray<TObjectPtr<UStaticMesh>> B1Assets;
     UPROPERTY() FLHVisualRecipe BuiltRecipe;
     UPROPERTY() TObjectPtr<UMaterialInterface> MaterialParent;
 };

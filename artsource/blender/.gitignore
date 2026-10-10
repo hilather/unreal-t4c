@@ -1,0 +1,10 @@
+__pycache__/
+.config/
+*.blend
+*.blend1
+*.glb
+*.gltf
+*.bin
+*.png
+*.log
+/export/

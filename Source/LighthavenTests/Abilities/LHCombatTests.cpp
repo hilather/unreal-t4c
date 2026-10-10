@@ -90,9 +90,9 @@ struct FFixture
     FFixture(const FFixture&) = delete;
     FFixture& operator=(const FFixture&) = delete;
 };
-constexpr auto Flags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
+constexpr auto LHCombatTestsFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDestroyedTargetTest, "Lighthaven.Abilities.DestroyedTarget", LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDestroyedTargetTest, "Lighthaven.Abilities.DestroyedTarget", LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHDestroyedTargetTest::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F;
@@ -103,7 +103,7 @@ bool FLHDestroyedTargetTest::RunTest(const FString&)
     TestEqual(TEXT("No damage"), F.Defender->GetCombatAttributes()->GetHealth(), 100.f);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDuplicateImpactTest, "Lighthaven.Abilities.DuplicateImpact", LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDuplicateImpactTest, "Lighthaven.Abilities.DuplicateImpact", LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHDuplicateImpactTest::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F;
@@ -115,7 +115,7 @@ bool FLHDuplicateImpactTest::RunTest(const FString&)
     TestEqual(TEXT("Exactly one cost"), F.Attacker->GetCombatAttributes()->GetMana(), 8.f);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHFailedResourceTest, "Lighthaven.Abilities.FailedResource", LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHFailedResourceTest, "Lighthaven.Abilities.FailedResource", LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHFailedResourceTest::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F;
@@ -129,7 +129,7 @@ bool FLHFailedResourceTest::RunTest(const FString&)
     TestEqual(TEXT("No random roll consumed"), F.Attacker->GetCombatRandomState().GetCurrentSeed(), Seed);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeadTargetTest, "Lighthaven.Abilities.DeadTarget", LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeadTargetTest, "Lighthaven.Abilities.DeadTarget", LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHDeadTargetTest::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F;
@@ -143,7 +143,7 @@ bool FLHDeadTargetTest::RunTest(const FString&)
     TestEqual(TEXT("Dead health unchanged"), F.Defender->GetCombatAttributes()->GetHealth(), 0.f);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeathOnceTest, "Lighthaven.Abilities.DeathOnce", LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeathOnceTest, "Lighthaven.Abilities.DeathOnce", LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHDeathOnceTest::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F; int32 Deaths = 0;
@@ -157,7 +157,7 @@ bool FLHDeathOnceTest::RunTest(const FString&)
     TestEqual(TEXT("Health clamps to zero"), F.Defender->GetCombatAttributes()->GetHealth(), 0.f);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHImpactRangeTest, "Lighthaven.Abilities.ImpactRangeAndCancellation", LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHImpactRangeTest, "Lighthaven.Abilities.ImpactRangeAndCancellation", LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHImpactRangeTest::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F;
@@ -183,7 +183,7 @@ void AdvanceImpactTimer(UWorld* World, float Seconds)
     World->GetTimerManager().Tick(Seconds);
 }
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHReentrantReplacementTest, "Lighthaven.Abilities.ImpactReplacement", LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHReentrantReplacementTest, "Lighthaven.Abilities.ImpactReplacement", LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHReentrantReplacementTest::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F(true);
@@ -219,7 +219,7 @@ bool FLHReentrantReplacementTest::RunTest(const FString&)
     TestEqual(TEXT("No extra timer hits"), Impacts, 2);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHReentrantCancelTest, "Lighthaven.Abilities.ImpactCancelWithoutReplacement", LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHReentrantCancelTest, "Lighthaven.Abilities.ImpactCancelWithoutReplacement", LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHReentrantCancelTest::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F(true); int32 Impacts=0;
@@ -239,7 +239,7 @@ bool FLHReentrantCancelTest::RunTest(const FString&)
     TestEqual(TEXT("One damage"), F.Defender->GetCombatAttributes()->GetHealth(), 90.f);
     return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeathReplacementTest, "Lighthaven.Abilities.TargetDeathReplacement", LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDeathReplacementTest, "Lighthaven.Abilities.TargetDeathReplacement", LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHDeathReplacementTest::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F(true); int32 Impacts=0, Deaths=0;
@@ -287,7 +287,7 @@ bool FLHDeathReplacementTest::RunTest(const FString&)
     return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCancellationEvents,"Lighthaven.Abilities.CancellationNoRefund",LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCancellationEvents,"Lighthaven.Abilities.CancellationNoRefund",LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHCancellationEvents::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F; int Commits=0,Cancels=0,Finishes=0;
@@ -303,7 +303,7 @@ bool FLHCancellationEvents::RunTest(const FString&)
     TestTrue(TEXT("Cooldown retained"),F.Attacker->GetRemainingCooldown()>0);
     TestEqual(TEXT("Commit once"),Commits,1); TestEqual(TEXT("Cancel once"),Cancels,1); TestEqual(TEXT("Finish once"),Finishes,1); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCooldownPersist,"Lighthaven.Abilities.CooldownPersistence",LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCooldownPersist,"Lighthaven.Abilities.CooldownPersistence",LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHCooldownPersist::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F;
@@ -316,7 +316,7 @@ bool FLHCooldownPersist::RunTest(const FString&)
     FLHContentId Id; Id.Value=TEXT("Spell.FireDart"); TestEqual(TEXT("No catchup"),F.Attacker->GetRemainingCooldown(Id),1.5);
     const auto Duplicate=Saved[0]; Saved.Add(Duplicate); TestFalse(TEXT("Duplicate atomic rejection"),LHAbilities::RestoreCooldowns(*F.Attacker,Owner,Saved)); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHSpellAuthority,"Lighthaven.Abilities.SpellKnowledgeAndMana",LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHSpellAuthority,"Lighthaven.Abilities.SpellKnowledgeAndMana",LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHSpellAuthority::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F; LHAbilities::FLHUseAbilityContext C;
@@ -337,7 +337,7 @@ bool FLHSpellAuthority::RunTest(const FString&)
     TestTrue(TEXT("Heal independent cooldown"),LHAbilities::ExecuteUseAbility(C,R)==ELHCommandReason::None);
     TestEqual(TEXT("Heal clamps"),F.Defender->GetCombatAttributes()->GetHealth(),100.f); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHBowQuiver,"Lighthaven.Abilities.BowRequiresQuiver",LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHBowQuiver,"Lighthaven.Abilities.BowRequiresQuiver",LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHBowQuiver::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F; LHAbilities::FLHUseAbilityContext C; C.Source=F.Attacker; C.Target=F.Defender; C.Combat=LH::Rules::MakeStage1PrototypeCombat();
@@ -355,7 +355,7 @@ bool FLHBowQuiver::RunTest(const FString&)
     for(int Shot=0;Shot<3;++Shot) { TestTrue(TEXT("With quiver"),LHAbilities::ExecuteUseAbility(C,R)==ELHCommandReason::None); TestTrue(TEXT("Reset fixture cooldown"),F.Attacker->RestoreRemainingCooldown(0)); }
     TestEqual(TEXT("Unlimited arrows unchanged"),C.Snapshot.Character.Inventory[1].Quantity.Value,int64(1)); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHMeleeSight,"Lighthaven.Abilities.MeleeRangeAndLOS",LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHMeleeSight,"Lighthaven.Abilities.MeleeRangeAndLOS",LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHMeleeSight::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F; F.Target->SetActorLocation(FVector(1000,0,0));
@@ -368,7 +368,7 @@ bool FLHMeleeSight::RunTest(const FString&)
     TestTrue(TEXT("Legal melee"),F.Attacker->RequestBasicAttack(F.Defender)==ELHCommandReason::None);
     TestTrue(TEXT("Legal impact"),F.Attacker->ResolveImpact(F.Attacker->GetPendingIdentity())); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHZeroManaRecovery,"Lighthaven.Abilities.ZeroManaNoGoldRecovery",LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHZeroManaRecovery,"Lighthaven.Abilities.ZeroManaNoGoldRecovery",LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHZeroManaRecovery::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F; F.Attacker->SetNumericAttributeBase(ULHAttributeSet::GetManaAttribute(),0);
@@ -383,7 +383,7 @@ bool FLHZeroManaRecovery::RunTest(const FString&)
     TestTrue(TEXT("Legal Fire Dart after natural recovery"),LHAbilities::ExecuteUseAbility(C,R)==ELHCommandReason::None); return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCommitReplacement,"Lighthaven.Abilities.CommitReplacement",LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCommitReplacement,"Lighthaven.Abilities.CommitReplacement",LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHCommitReplacement::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F(true); int Commits=0,Finishes=0; FLHHitIdentity Replacement;
@@ -403,7 +403,7 @@ bool FLHCommitReplacement::RunTest(const FString&)
     TestEqual(TEXT("Both finish once"),Finishes,2); TestEqual(TEXT("Both costs retained"),F.Attacker->GetCombatAttributes()->GetMana(),6.f); return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCostListenerCancel,"Lighthaven.Abilities.CostListenerCancellation",LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCostListenerCancel,"Lighthaven.Abilities.CostListenerCancellation",LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHCostListenerCancel::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F(true); int Commits=0,Cancels=0,Finishes=0;
@@ -415,7 +415,7 @@ bool FLHCostListenerCancel::RunTest(const FString&)
     TestEqual(TEXT("Cost remains"),F.Attacker->GetCombatAttributes()->GetMana(),8.f); TestEqual(TEXT("Commit once"),Commits,1); TestEqual(TEXT("Cancel once"),Cancels,1); TestEqual(TEXT("Finish once"),Finishes,1);
     TestFalse(TEXT("No pending timer"),F.Attacker->IsActionPending()); return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHLightTransient,"Lighthaven.Abilities.LightTransient",LHCombatTestsPrivate::Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHLightTransient,"Lighthaven.Abilities.LightTransient",LHCombatTestsPrivate::LHCombatTestsFlags)
 bool FLHLightTransient::RunTest(const FString&)
 {
     LHCombatTestsPrivate::FFixture F; LHAbilities::FLHUseAbilityContext C; C.Source=F.Attacker; C.Target=F.Attacker;
