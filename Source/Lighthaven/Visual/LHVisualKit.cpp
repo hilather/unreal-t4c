@@ -1,5 +1,6 @@
 #include "Visual/LHVisualKit.h"
 #include "Visual/LHB1ArtBinding.h"
+#include "Visual/LHB1Lighting.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "StaticMeshResources.h"
@@ -8,6 +9,7 @@
 #include "Components/SceneComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/World.h"
+#include "CollisionQueryParams.h"
 #include "Misc/Crc.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -223,6 +225,10 @@ ALHVisualPiece::ALHVisualPiece()
     ImportedMesh->SetupAttachment(GetRootComponent());
     ImportedMesh->SetCollisionProfileName(TEXT("NoCollision"));
     ImportedMesh->SetGenerateOverlapEvents(false); ImportedMesh->SetCanEverAffectNavigation(false);
+    ArtSupport=CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("B1SolidSupport"),true);
+    ArtSupport->SetFlags(RF_Transient); ArtSupport->SetupAttachment(GetRootComponent());
+    ArtSupport->SetCollisionProfileName(TEXT("NoCollision")); ArtSupport->SetGenerateOverlapEvents(false);
+    ArtSupport->SetCanEverAffectNavigation(false); ArtSupport->bUseComplexAsSimpleCollision=false;
     for(const auto& Name:LHB1Art::AssetNames())
     {
         const FString Path=TEXT("/Game/Lighthaven/Art/Env/B1/SM_")+Name+TEXT(".SM_")+Name;
@@ -290,7 +296,7 @@ bool ALHVisualPiece::Build(const FLHVisualRecipe& R)
             ImportedMesh->SetVisibility(true); Mesh->SetVisibility(false);
         }
     }
-    BuiltRecipe=R; UpdateArtClip(); return true;
+    BuiltRecipe=R; UpdateArtClip(); UpdateArtSupport(R); ULHB1TorchLightComponent::Configure(this); return true;
 }
 ALHVisualPiece* LHVisual::SpawnProp(UWorld* World,FName Id,const FTransform& T,ELHVisualStyle Style,bool bDescending)
 {
@@ -341,6 +347,13 @@ FLHVisualTotals LHVisual::ValidatePlacedSet(const TArray<ALHVisualPiece*>& Piece
             if(Imported->GetCollisionEnabled()!=ECollisionEnabled::NoCollision || Imported->CanEverAffectNavigation())
                 T.Errors.Add(TEXT("Imported dressing collision/nav"));
         }
+        if(const auto* Support=P->GetArtSupport()->GetProcMeshSection(0))
+        {
+            VisibleTri+=Support->ProcIndexBuffer.Num()/3;
+            if(!Support->ProcIndexBuffer.IsEmpty()) ++VisibleDraw;
+        }
+        if(P->GetArtSupport()->GetCollisionEnabled()!=ECollisionEnabled::NoCollision || P->GetArtSupport()->CanEverAffectNavigation())
+            T.Errors.Add(TEXT("B1 support collision/nav"));
         T.Triangles+=VisibleTri; T.DrawCalls+=VisibleDraw; T.CollisionBoxes+=P->GetBlockers().Num();
         const auto& R=P->GetRecipe();
         if(R.Geometry.IsEmpty() || !P->GetActorScale3D().Equals(FVector::OneVector)) T.Errors.Add(R.Id.ToString()+TEXT(": empty recipe/nonunit scale"));
@@ -381,4 +394,65 @@ void ALHVisualPiece::UpdateArtClip()
             M->SetVectorParameterValue(Pair.Key,FLinearColor(Axis.X,Axis.Y,Axis.Z,0));
         }
     }
+}
+
+void ALHVisualPiece::UpdateArtSupport(const FLHVisualRecipe& R)
+{
+    ArtSupport->ClearAllMeshSections();
+    if(R.Style!=ELHVisualStyle::B1Cellar) return;
+    TArray<FLHVisualBox> Boxes;
+    UMaterialInterface* Parent=MaterialParent;
+    LHB1Art::FFit Fit;
+    if(ImportedMesh->IsVisible() && LHB1Art::Resolve(R,Fit))
+    {
+        Boxes=LHB1Art::SolidBacking(R,Fit);
+        // Separate MID: crop shader bounds default to effectively infinite on backing.
+        if(!Boxes.IsEmpty()) Parent=ImportedMesh->GetStaticMesh()->GetMaterial(0);
+    }
+    const FString Id=R.Id.ToString();
+    if(Id.EndsWith(TEXT("Sconce")) || Id.EndsWith(TEXT("Torch")))
+    {
+        const FTransform T=GetActorTransform();
+        FCollisionQueryParams Query(SCENE_QUERY_STAT(LHB1FixtureSupport),false,this);
+        FHitResult FloorHit;
+        // All B1 fixtures receive a stand: retained full-height colliders cannot
+        // prove the cropped presentation wall still exists behind a plate.
+        bool FoundFloor=false;
+        // Prototype bounded retry: a hidden wall overlapping the origin is not ground.
+        for(int32 Attempt=0;GetWorld() && Attempt<8;++Attempt)
+        {
+            // Pawns/enemies and dropped items must never become the stand's ground.
+            if(!GetWorld()->LineTraceSingleByObjectType(FloorHit,T.TransformPosition(FVector(0,25,-30)),
+                T.TransformPosition(FVector(0,25,-1030)),FCollisionObjectQueryParams(ECC_WorldStatic),Query)) break;
+            if(!FloorHit.bStartPenetrating && FloorHit.ImpactNormal.Z>=.5f) { FoundFloor=true; break; }
+            if(!FloorHit.GetActor()) break;
+            Query.AddIgnoredActor(FloorHit.GetActor());
+        }
+        if(FoundFloor)
+        {
+            const double Base=T.InverseTransformPosition(FloorHit.ImpactPoint).Z;
+            if(Base<-20)
+            {
+                FLHVisualBox Stem; Stem.Center={0,25,(Base-8)/2}; Stem.Size={9,9,-8-Base}; Boxes.Add(Stem);
+                FLHVisualBox Foot; Foot.Center={0,25,Base+3}; Foot.Size={38,38,6}; Boxes.Add(Foot);
+            }
+        }
+    }
+    if(Boxes.IsEmpty() || !Parent) return;
+    TArray<FVector> V,N; TArray<int32> Ind; TArray<FVector2D> UV;
+    for(const auto& B:Boxes) LHVisualPrivate::AppendBox(B,V,Ind,N,UV);
+    TArray<FProcMeshTangent> Tangents;
+    for(int32 Base=0;Base<V.Num();Base+=4)
+    {
+        const FVector U=(V[Base+1]-V[Base]).GetSafeNormal();
+        const FVector W=(V[Base+3]-V[Base]).GetSafeNormal();
+        const bool Flip=FVector::DotProduct(FVector::CrossProduct(N[Base],U),W)<0;
+        for(int32 Corner=0;Corner<4;++Corner) Tangents.Add(FProcMeshTangent(U,Flip));
+    }
+    ArtSupport->CreateMeshSection(0,V,Ind,N,UV,TArray<FColor>(),Tangents,false);
+    auto* M=UMaterialInstanceDynamic::Create(Parent,this);
+    M->SetVectorParameterValue(TEXT("Color"),R.Colors[0]); M->SetScalarParameterValue(TEXT("Roughness"),.9f);
+    M->SetVectorParameterValue(TEXT("ClipOrigin"),FLinearColor(0,0,0,0));
+    M->SetVectorParameterValue(TEXT("ClipExtent"),FLinearColor(1.e8,1.e8,1.e8,0));
+    ArtSupport->SetMaterial(0,M);
 }

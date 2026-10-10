@@ -1,5 +1,6 @@
 #include "LHGenerateBasementAMapsCommandlet.h"
 #include "LHMapDressing.h"
+#include "Visual/LHB1Lighting.h"
 #include "Editor.h"
 #include "Framework/LHArrivalReview.h"
 #include "EngineUtils.h"
@@ -194,7 +195,8 @@ struct FBuilder
         if(auto* A=Actor<ASkyLight>(TEXT("NeutralFill"),{0,0,600}))
         {
             auto* C=A->GetLightComponent(); C->SetMobility(EComponentMobility::Movable);
-            C->SetCastShadows(false); C->SetIntensity(.8f);
+            C->SetCastShadows(false); C->SetIntensity(B1?.12f:.8f);
+            if(B1) C->SetLightColor(FLinearColor(.65f,.75f,1.f));
             C->bLowerHemisphereIsBlack=false;
             C->bRealTimeCapture=false; C->LowerHemisphereColor=FLinearColor::White;
             // Fixed engine cubemap, no external HDRI. Capture source is recorded in handoff.
@@ -215,6 +217,18 @@ struct FBuilder
             S.bOverride_DepthOfFieldFstop=true; S.DepthOfFieldFstop=2; // Prototype interior EV100 2.5: +1.5 stops from W4-09c; retain local contrast.
             S.bOverride_BloomIntensity=true; S.BloomIntensity=0;
             S.bOverride_MotionBlurAmount=true; S.MotionBlurAmount=0;
+            if(B1)
+            {
+                S.bOverride_AmbientOcclusionIntensity=true; S.AmbientOcclusionIntensity=.65f;
+                S.bOverride_AmbientOcclusionRadius=true; S.AmbientOcclusionRadius=120.f;
+                S.bOverride_AmbientOcclusionRadiusInWS=true; S.AmbientOcclusionRadiusInWS=true;
+                S.bOverride_BloomIntensity=true; S.BloomIntensity=.25f;
+                S.bOverride_BloomThreshold=true; S.BloomThreshold=1.f;
+                S.bOverride_VignetteIntensity=true; S.VignetteIntensity=.2f;
+                S.bOverride_ColorSaturation=true; S.ColorSaturation=FVector4(.95f,.95f,.95f,1.f);
+                S.bOverride_ColorGainHighlights=true; S.ColorGainHighlights=FVector4(1.04f,1.01f,.96f,1.f);
+                S.bOverride_ColorGainShadows=true; S.ColorGainShadows=FVector4(.97f,1.f,1.04f,1.f);
+            }
         }
         World->GetWorldSettings()->DefaultGameMode=ALHGameMode::StaticClass();
     }
@@ -371,6 +385,16 @@ int32 ULHGenerateBasementAMapsCommandlet::Main(const FString& Params)
         Builder.bOK &= LHMapDressing::Dress(World,B1?ELHVisualStyle::B1Cellar:ELHVisualStyle::B2Damp,
             B1?TArray<FVector>{{1400,-2400,900},{-2500,200,900},{5000,600,1000}}:TArray<FVector>{{1600,-6200,1000},{-2400,400,1100},{6500,5000,1100}},
             B1?TArray<FVector>{{800,-1600,0},{-1800,1100,0},{4300,1300,0}}:TArray<FVector>{{900,-5200,0},{-1800,1000,0},{5800,5800,0}});
+        if(B1)
+        {
+            // Dress consumes these actors to place existing visual sconces. Remove only
+            // after dressing so visual and gameplay transforms remain identical.
+            TArray<AActor*> LegacyLights;
+            for(TActorIterator<APointLight> It(World);It;++It)
+                if(It->GetName().StartsWith(TEXT("A04_T"))) LegacyLights.Add(*It);
+            for(AActor* Light:LegacyLights) World->DestroyActor(Light);
+            Builder.Actor<ALHB1Atmosphere>(TEXT("B1Atmosphere"),FVector::ZeroVector);
+        }
         if(!Builder.bOK || !IFileManager::Get().MakeDirectory(*FPaths::GetPath(Filename),true) || !FEditorFileUtils::SaveMap(World,Filename)) return 1;
         UE_LOG(LogTemp,Display,TEXT("Generated %s: %d encounter anchors; safety unreviewed"),*Package,Area->Spawns.Num());
         UE_LOG(LogTemp,Display,TEXT("Authored actor identity/transform fingerprint %s: %s"),*Package,*Builder.Fingerprint());

@@ -54,3 +54,26 @@ bool LHB1Art::Resolve(const FLHVisualRecipe& R, FFit& Out)
     else Fit.Instances.Add(FTransform::Identity);
     Out=MoveTemp(Fit); return true;
 }
+
+TArray<FLHVisualBox> LHB1Art::SolidBacking(const FLHVisualRecipe& R, const FFit& Fit)
+{
+    TArray<FLHVisualBox> Out;
+    if(R.Style!=ELHVisualStyle::B1Cellar) return Out;
+    if(Fit.AssetName==TEXT("Wall400"))
+    {
+        FLHVisualBox B; B.Center=Fit.ClipBounds.GetCenter(); B.Size=Fit.ClipBounds.GetSize();
+        // Slightly inset broad faces retain the imported bevels and authored UV density.
+        B.Size.Y-=.2; Out.Add(B);
+    }
+    else if(Fit.AssetName==TEXT("Arch240") || Fit.AssetName==TEXT("Arch320"))
+    {
+        for(int32 I=0;I<3 && R.Geometry.IsValidIndex(I);++I)
+        {
+            auto B=R.Geometry[I]; B.Size.Y-=.2;
+            // Preserve the imported segmental opening below 357cm, not a rectangular lintel.
+            if(I==2) { B.Center.Z=378.5; B.Size.Z=43; }
+            Out.Add(B);
+        }
+    }
+    return Out;
+}

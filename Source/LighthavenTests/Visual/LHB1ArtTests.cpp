@@ -24,6 +24,16 @@ bool FLHB1ArtFitTest::RunTest(const FString&)
     TestEqual(TEXT("1000cm wall has three unscaled tiles"),Fit.Instances.Num(),3);
     TestTrue(TEXT("Cutaway bounds exactly recentered"),Fit.ClipBounds.Min.Equals(FVector(-500,-10,-60)) && Fit.ClipBounds.Max.Equals(FVector(500,10,60)));
     for(const auto& T:Fit.Instances) TestTrue(TEXT("UV density never stretched"),T.GetScale3D().Equals(FVector::OneVector));
+    const auto Backing=LHB1Art::SolidBacking(R,Fit);
+    TestEqual(TEXT("Cutaway has one closed masonry core"),Backing.Num(),1);
+    if(Backing.Num()==1)
+    {
+        TestTrue(TEXT("Core spans exact crop ends and top"),Backing[0].Center.Equals(Fit.ClipBounds.GetCenter()) &&
+            FMath::IsNearlyEqual(Backing[0].Size.X,1000.) && FMath::IsNearlyEqual(Backing[0].Size.Z,120.));
+        TestTrue(TEXT("Broad faces inset behind imported stone"),Backing[0].Size.Y<Fit.ClipBounds.GetSize().Y);
+    }
+    const uint32 Unchanged=R.Fingerprint(); LHB1Art::SolidBacking(R,Fit);
+    TestEqual(TEXT("Backing never mutates gameplay recipe"),R.Fingerprint(),Unchanged);
     for(auto Style:{ELHVisualStyle::Church,ELHVisualStyle::B2Damp,ELHVisualStyle::B3Crypt,ELHVisualStyle::B4Ritual})
     { R.Style=Style; TestFalse(TEXT("Other styles fall back"),LHB1Art::Resolve(R,Fit)); }
     LHVisual::MakeRecipe(TEXT("Presentation.Environment.Shared.Stair600x120"),ELHVisualStyle::B1Cellar,R,true);
@@ -37,6 +47,12 @@ bool FLHB1ArtFitTest::RunTest(const FString&)
     TestTrue(TEXT("Short stair retains unit mesh scale"),Fit.Instances[0].GetScale3D().Equals(FVector::OneVector));
     const FVector End=Fit.Instances[0].TransformPosition(FVector(600,0,-120));
     TestTrue(TEXT("Rotated path slope matches saved collider"),FMath::IsNearlyEqual((End.Z-Fit.Instances[0].GetLocation().Z)/(End.X-Fit.Instances[0].GetLocation().X),-.25,.0001));
+    LHVisual::MakeRecipe(TEXT("Presentation.Environment.Shared.Arch240"),ELHVisualStyle::B1Cellar,R);
+    TestTrue(TEXT("Arch resolves"),LHB1Art::Resolve(R,Fit));
+    const auto ArchBacking=LHB1Art::SolidBacking(R,Fit);
+    TestEqual(TEXT("Arch closed uprights and crown"),ArchBacking.Num(),3);
+    if(ArchBacking.Num()==3) TestTrue(TEXT("Crown does not fill segmental aperture"),
+        FMath::IsNearlyEqual(ArchBacking[2].Center.Z-ArchBacking[2].Size.Z/2,357.));
     LHVisual::MakeRecipe(TEXT("Presentation.Environment.Shared.Door240"),ELHVisualStyle::B1Cellar,R);
     TestFalse(TEXT("Unexported IDs fall back"),LHB1Art::Resolve(R,Fit));
     return true;
@@ -72,6 +88,22 @@ bool FLHB1ArtAssetsTest::RunTest(const FString&)
         TestEqual(TEXT("Correct asset bound"),Piece->GetImportedMesh()->GetStaticMesh().Get(),Mesh);
         TestTrue(TEXT("Imported visible"),Piece->GetImportedMesh()->IsVisible());
         TestFalse(TEXT("Fallback hidden"),Piece->GetMesh()->IsVisible());
+        if(const auto* Cap=Piece->GetArtSupport()->GetProcMeshSection(0))
+            for(int32 Base=0;Base+3<Cap->ProcVertexBuffer.Num();Base+=4)
+            {
+                const FVector U=(Cap->ProcVertexBuffer[Base+1].Position-Cap->ProcVertexBuffer[Base].Position).GetSafeNormal();
+                const FVector V=(Cap->ProcVertexBuffer[Base+3].Position-Cap->ProcVertexBuffer[Base].Position).GetSafeNormal();
+                for(int32 Corner=0;Corner<4;++Corner)
+                {
+                    const auto& Vertex=Cap->ProcVertexBuffer[Base+Corner];
+                    const FVector T=Vertex.Tangent.TangentX;
+                    TestTrue(TEXT("Masonry tangent follows increasing UV U"),T.Equals(U,.0001));
+                    TestTrue(TEXT("Masonry tangent has unit length and is orthogonal to normal"),
+                        FMath::IsNearlyEqual(T.Size(),1.,.0001) && FMath::Abs(FVector::DotProduct(T,Vertex.Normal))<.0001);
+                    const FVector Bitangent=FVector::CrossProduct(Vertex.Normal,T)*(Vertex.Tangent.bFlipTangentY?-1.:1.);
+                    TestTrue(TEXT("Masonry tangent handedness follows increasing UV V"),Bitangent.Equals(V,.0001));
+                }
+            }
         TestEqual(TEXT("Render has no collision"),Piece->GetImportedMesh()->GetCollisionEnabled(),ECollisionEnabled::NoCollision);
         TestFalse(TEXT("Render has no navigation"),Piece->GetImportedMesh()->CanEverAffectNavigation());
         const auto Copy=Piece->GetRecipe();
@@ -82,6 +114,38 @@ bool FLHB1ArtAssetsTest::RunTest(const FString&)
         TestFalse(TEXT("Other style imported hidden"),Piece->GetImportedMesh()->IsVisible());
         TestTrue(TEXT("Other style procedural fallback visible"),Piece->GetMesh()->IsVisible());
         Piece->Destroy();
+    }
+    auto* Floor=LHVisual::SpawnProp(World,TEXT("Presentation.Environment.Shared.Floor400"),FTransform::Identity,ELHVisualStyle::B1Cellar);
+    auto* Fixture=LHVisual::SpawnProp(World,TEXT("Presentation.Environment.Shared.Sconce"),FTransform(FVector(200,200,250)),ELHVisualStyle::B1Cellar);
+    if(TestNotNull(TEXT("Stand fixture"),Fixture) && TestNotNull(TEXT("Stand floor"),Floor))
+    {
+        const auto Copy=Fixture->GetRecipe();
+        TestTrue(TEXT("Refresh after floor collision registered"),Fixture->Build(Copy));
+        const auto* Support=Fixture->GetArtSupport()->GetProcMeshSection(0);
+        if(TestNotNull(TEXT("Unsupported fixture receives stand"),Support))
+        {
+            TestTrue(TEXT("Stand touches floor and fixture bracket"),FMath::IsNearlyEqual(Support->SectionLocalBox.Min.Z,-250.,.1) &&
+                FMath::IsNearlyEqual(Support->SectionLocalBox.Max.Z,-8.,.1));
+        }
+        TestEqual(TEXT("Stand carries zero collision"),Fixture->GetArtSupport()->GetCollisionEnabled(),ECollisionEnabled::NoCollision);
+        TestFalse(TEXT("Stand cannot affect route nav"),Fixture->GetArtSupport()->CanEverAffectNavigation());
+        TestEqual(TEXT("Stand leaves recipe fingerprint unchanged"),Fixture->GetRecipe().Fingerprint(),Copy.Fingerprint());
+        TestTrue(TEXT("Stand preserves placement"),Fixture->GetActorLocation().Equals(FVector(200,200,250)));
+        // A retained full-height wall can contain the stand ray origin although its
+        // visible cutaway is lower. Ignore that penetration and reach actual ground.
+        auto* Wall=LHVisual::SpawnProp(World,TEXT("Presentation.Environment.Shared.Wall400"),
+            FTransform(FVector(0,235,0)),ELHVisualStyle::B1Cellar);
+        if(TestNotNull(TEXT("Tall hidden wall intersects fixture support ray"),Wall))
+        {
+            TestTrue(TEXT("Refresh stand through overlapping wall"),Fixture->Build(Copy));
+            const auto* Grounded=Fixture->GetArtSupport()->GetProcMeshSection(0);
+            if(TestNotNull(TEXT("Stand survives penetrating wall hit"),Grounded))
+                TestTrue(TEXT("Penetrating wall is rejected in favour of real floor"),
+                    FMath::IsNearlyEqual(Grounded->SectionLocalBox.Min.Z,-250.,.1));
+            TestTrue(TEXT("Wall blocker retained"),Wall->GetBlockers().Num()==1);
+            Wall->Destroy();
+        }
+        Fixture->Destroy(); Floor->Destroy();
     }
     for(const TCHAR* Family:{TEXT("stone"),TEXT("timber"),TEXT("iron")})
         for(const TCHAR* Suffix:{TEXT("basecolor"),TEXT("normal"),TEXT("orm")})
