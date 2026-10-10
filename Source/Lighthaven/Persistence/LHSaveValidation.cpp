@@ -1,4 +1,5 @@
 #include "LHSaveCodec.h"
+#include "Persistence/LHDurableEffects.h"
 
 namespace LHSaveValidationPrivate
 {
@@ -64,8 +65,8 @@ bool LHSave::Validate(const FLHSaveSnapshot& S, FLHSaveError& E)
         !S.Header.CharacterId.Value.IsValid() || !Rules(S.Header.Ruleset) || !Digest(S.Header.ContentRevision) || !S.World.RunId.IsValid())
         return Bad(TEXT("Invalid envelope/run identity"));
     if (!S.Session.RequestEpoch.IsValid()) { E={ELHSaveReason::EpochMismatch,TEXT("Missing active request epoch")}; return false; }
-    if (S.Session.EffectPolicy!=ELHEffectSavePolicy::CompletedActionBoundaryOnly || !S.Session.DurableEffects.IsEmpty())
-        return Bad(TEXT("Only completed boundaries and empty v1 durable-effect allowlist supported"));
+    if (S.Session.EffectPolicy!=ELHEffectSavePolicy::CompletedActionBoundaryOnly)
+        return Bad(TEXT("Only completed action boundaries supported"));
     const auto& C=S.Character;
     if (C.DisplayName.IsEmpty() || C.RebirthCount!=0 || !Attributes(C.BaseAttributes) || !Attributes(C.Creation.AcceptedAttributes) ||
         !Integer(C.Creation.GenerationRevision,1) || !Id(C.Creation.GenerationPolicy.Value) ||
@@ -82,6 +83,11 @@ bool LHSave::Validate(const FLHSaveSnapshot& S, FLHSaveError& E)
     { return Area(A) && S.World.Areas.ContainsByPredicate([&A](const FLHAreaRecord& V) { return V.Area.Content.Value.ToString()==A.Content.Value.ToString(); }); };
     auto Entity=[&](const FLHEntityId& I)
     { return I.RunId==S.World.RunId && I.InstanceId.IsValid() && HasArea(I.Area); };
+    // Light is the only timed Stage 1 catalog effect; one caster effect per snapshot.
+    if (S.Session.DurableEffects.Num()>1) return Bad(TEXT("Duplicate durable Light"));
+    for (const auto& R:S.Session.DurableEffects)
+        if (!Entity(R.Owner) || !Entity(R.Source) || !LHSave::ValidateDurableLight(R,S.Session.RequestEpoch))
+            return Bad(TEXT("Durable effect outside closed Light allowlist"));
     auto Entrance=[&](const FLHEntranceId& I) { return HasArea(I.Area) && Id(I.LocalId,false); };
     if (!Entrance(C.ActiveEntrance) || !Entrance(S.Session.SafeRespawn.Entrance) || S.Session.SafeRespawn.TransformResolution!=ELHValueResolution::Resolved)
         return Bad(TEXT("Required active/safe entrance unresolved"));
