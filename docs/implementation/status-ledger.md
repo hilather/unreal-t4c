@@ -247,3 +247,10 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
   - **Host:** 208/209 (F9 now fails in the full suite); arrivals 9/9 unchanged; validator 0; package OK. Capture timed out at B2 room 3, so B3/B4 were not captured.
   - **B1 in engine:** real stone geometry, but flat, cold, grey lighting (neutral sky fill plus grid lights, not at the torches). Cropped walls and arches show open cut faces, and torches float in the open floor. → **W5-09 (astra):** B1 lighting and atmosphere.
 - **Creature sources merged (d418294):** W5-08b–e give all 11 roster IDs in `artsource/creatures/`. They read as solid stylised game creatures in Blender; the in-engine verdict is pending. → **W5-10 (sol):** skeletal import, binding and a lineup capture, launched once W5-09 frees `Visual/`. **W6-03fixi (sol):** F9 root cause, now running.
+- **Visual improvement backlog (Matt, 2026-10-10): every character and sprite goes on the list to improve to concept quality.** Visuals go to Matt only once they look great. Order after the farm deploy:
+  1. **Creatures, all 11:** W5-10 imports them into Unreal and adds a lineup capture. Then polish from the in-engine view: rat fur density/contrast, bat head, rugged spider, sinewy atrocity, Balork finish (wider swing, fuller death), membrane translucency.
+  2. **Player characters:** still the W5-02 blocky procedural figure. Covers body, face, hair, outfit, skin and weapons (incl. bow/arrow), plus the tilted/lying pose seen in captures. Target: the male/female starters in `starter-characters-and-creatures-concept.png`. Scripted Blender, rigged, with the game's actions.
+  3. **Hub NPCs:** priest, vendors and others, currently blocky figures.
+  4. **Equipment, loot, item drops and corpses.**
+  5. **Effects:** impact, spell, resource and target cues; then HUD/UI art and icons.
+  6. **Environments:** church/hub interior and the exterior village (left half of `temple-and-basement-concept.png`), then the B2, B3 and B4 kits and lighting, once B1 proves the approach (W5-09 host capture pending).
