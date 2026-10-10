@@ -42,6 +42,7 @@ public:
     UPROPERTY(EditAnywhere, Category="Prototype") float SelectionRange=200.f;
     UPROPERTY(Transient) TObjectPtr<ULHInputConfig> InputConfig;
 private:
+    friend class FLHReachHorizontal;
     TSharedPtr<class FLHWave2Session> LiveSession;
     TSharedPtr<class FLHUIPresenter> JournalPresenter;
     TSharedPtr<class SLHFrontendWidget> JournalWidget;

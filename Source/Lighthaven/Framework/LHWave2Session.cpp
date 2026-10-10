@@ -1,4 +1,6 @@
 #include "Framework/LHWave2Session.h"
+#include "World/LHWorldMarkers.h"
+#include "EngineUtils.h"
 #include "Framework/LHWave2Profile.h"
 #include "Framework/LHPlayerState.h"
 #include "Abilities/LHCombatComponent.h"
@@ -182,7 +184,7 @@ void FLHWave2Session::Published(const FLHCommandResult& R,bool Creation)
         // Import the newly completed world fields before any further command exports.
         Authority()->Import(Complete); bEnterAfterSave=true;
     }
-    InstallDerived(); bSaveQueued=true; Message=TEXT("Saving completed action…");
+    InstallDerived(); bSaveQueued=true; if (!bDurabilityError) Message=TEXT("Saving completed action…");
 }
 FLHCommandResult FLHWave2Session::Execute(const FLHCreateCharacterRequest& Q)
 { if (IsTransactionBlocked() || !Authority()) return LHWave2SessionPrivate::Busy(); auto R=Authority()->Execute(Q); Published(R,true); return R; }
@@ -197,7 +199,7 @@ void FLHWave2Session::Flush()
     if (HasCharacter() && !SyncResources()) return;
     bSaveQueued=false; bAwaitingSave=true; AwaitedSequence=Complete.Header.TransactionSequence;
     FLHSaveError E;
-    if (!Saves->RequestSave(Complete,Compatibility(),true,E)) { bAwaitingSave=false; Message=TEXT("Save failed: ")+E.Detail; }
+    if (!Saves->RequestSave(Complete,Compatibility(),true,E)) { bAwaitingSave=false; bDurabilityError=true; Message=TEXT("Save failed: ")+E.Detail; }
 }
 void FLHWave2Session::OnSave(const FLHSaveEvent& E)
 {
@@ -205,17 +207,17 @@ void FLHWave2Session::OnSave(const FLHSaveEvent& E)
     UE_LOG(LogTemp,Display,TEXT("LH Wave2 save event kind=%d character=%s sequence=%lld detail=%s"),
         int32(E.Kind),*E.Character.Value.ToString(),E.Sequence,*E.Error.Detail);
     if (E.Kind==ELHSaveEventKind::Unreadable || E.Kind==ELHSaveEventKind::Recovered)
-    { Message=(E.Kind==ELHSaveEventKind::Recovered?TEXT("Recovery: "):TEXT("Unreadable: "))+E.Error.Detail; return; }
+    { if (!bDurabilityError) Message=(E.Kind==ELHSaveEventKind::Recovered?TEXT("Recovery: "):TEXT("Unreadable: "))+E.Error.Detail; return; }
     // W2-01 can advance the durable envelope sequence on retry after a failed readback
     // of an otherwise valid write. One owner/in-flight snapshot and command suppression
     // identify the operation; synchronise its returned high-water value before new commands.
     if (!bAwaitingSave || E.Character.Value!=Complete.Header.CharacterId.Value || E.Sequence<AwaitedSequence) return;
     bAwaitingSave=false;
-    if (E.Kind==ELHSaveEventKind::Failed) { Message=TEXT("Save failed: ")+E.Error.Detail; return; }
+    if (E.Kind==ELHSaveEventKind::Failed) { bDurabilityError=true; Message=TEXT("Save failed: ")+E.Error.Detail; return; }
     Complete.Header.TransactionSequence=FMath::Max(Complete.Header.TransactionSequence,E.Sequence);
     if (Authority() && Authority()->Import(Complete)!=ELHCommandReason::None)
-    { Message=TEXT("Durable sequence synchronization failed; transition blocked."); return; }
-    Message.Empty();
+    { bDurabilityError=true; Message=TEXT("Durable sequence synchronization failed; transition blocked."); return; }
+    bDurabilityError=false; Message.Empty();
     if (bSaveQueued) return; // A newer completed boundary must become durable before a transition.
     if (bExit) { bExit=false; if (Exit) Exit(); }
     else if (bEnterAfterSave) { bEnterAfterSave=false; bTravel=true; if (Travel) Travel(); }
@@ -226,7 +228,7 @@ FString FLHWave2Session::Continue(FLHCharacterId Id,bool Ack)
     if (HasCharacter() && Saves->IsDirty(Complete.Header.CharacterId))
     {
         bAwaitingSave=true; AwaitedSequence=Complete.Header.TransactionSequence; FLHSaveError E;
-        if (!Saves->Retry(Complete.Header.CharacterId,E)) { bAwaitingSave=false; Message=TEXT("Save retry failed: ")+E.Detail; }
+        if (!Saves->Retry(Complete.Header.CharacterId,E)) { bAwaitingSave=false; bDurabilityError=true; Message=TEXT("Save retry failed: ")+E.Detail; }
         return Message;
     }
     const auto ProfilesNow=Profiles(); const auto* P=ProfilesNow.FindByPredicate([&](const auto& V){return V.Id.Value==Id.Value;});
@@ -260,11 +262,12 @@ bool FLHWave2Session::BeginCreation()
 FString FLHWave2Session::RetryPersistence()
 {
     if (bWorldTravelFrozen && RetryWorldTravel)
-    { FString Error; RetryWorldTravel(Error); Message=Error; return Message; }
+    { FString Error; if (!RetryWorldTravel(Error)) { if (!bDurabilityError) Message=Error; }
+      else if (!bDurabilityError && !HasUnsavedChanges()) Message.Empty(); return Message; }
     if (bTravel || bSaveQueued || bAwaitingSave || bContentUnavailable) return TEXT("Save is pending.");
     if (!HasCharacter() || !Saves->IsDirty(Complete.Header.CharacterId)) return Message;
     bAwaitingSave=true; AwaitedSequence=Complete.Header.TransactionSequence; FLHSaveError E;
-    if (!Saves->Retry(Complete.Header.CharacterId,E)) { bAwaitingSave=false; Message=TEXT("Save retry failed: ")+E.Detail; }
+    if (!Saves->Retry(Complete.Header.CharacterId,E)) { bAwaitingSave=false; bDurabilityError=true; Message=TEXT("Save retry failed: ")+E.Detail; }
     return Message;
 }
 
@@ -308,15 +311,22 @@ FLHCommandResult FLHWave2Session::Execute(const FLHRequestTravelRequest& Q)
 {
     if (IsTransactionBlocked() || !RequestWorldTravel) return LHWave2SessionPrivate::Busy();
     FString Error; FLHCommandResult R;
-    if (RequestWorldTravel(Q,Error)) R.Disposition=ELHCommandDisposition::Accepted;
-    else { R.Reason=ELHCommandReason::InvalidRequest; Message=Error; }
+    ALHPortal* Portal=nullptr;
+    if (Owner.IsValid()) for (TActorIterator<ALHPortal> It(Owner->GetWorld());It;++It)
+        if (It->Materialize(Complete.World.RunId).InstanceId==Q.Portal.InstanceId &&
+            Q.Portal.RunId==Complete.World.RunId && LHWorld::SameArea(Q.Portal.Area,Complete.Character.ActiveEntrance.Area))
+        { if (Portal) { R.Reason=ELHCommandReason::InvalidRequest; return R; } Portal=*It; }
+    if (!Portal) { R.Reason=ELHCommandReason::NotFound; return R; }
+    if (!Spatial(Portal,250)) { R.Reason=ELHCommandReason::OutOfRange; return R; }
+    if (RequestWorldTravel(Q,Error)) { R.Disposition=ELHCommandDisposition::Accepted; if (!bDurabilityError && !HasUnsavedChanges()) Message.Empty(); }
+    else { R.Reason=ELHCommandReason::InvalidRequest; if (!bDurabilityError) Message=Error; }
     return R;
 }
 
 void FLHWave2Session::AbortGameplayArrival(const FString& Error)
 {
     FreezeWorldTravel(false); bInGameplay=false;
-    Message=TEXT("Arrival refused; save retained: ")+Error;
+    if (!bDurabilityError) Message=TEXT("Arrival refused; save retained: ")+Error;
 }
 
 FString FLHWave2Session::DerivedSummary() const
@@ -344,4 +354,10 @@ FString FLHWave2Session::DerivedSummary() const
             +TEXT(" | Armor ")+FLHUIPresenter::Format(M.Armor)+TEXT(" | Capacity unlimited (deferred by owner decision)");
     }
     return Summary;
+}
+
+void FLHWave2Session::CompleteGameplayArrival()
+{
+    // A successful arrival resolves travel feedback, never an outstanding save failure.
+    if (!bDurabilityError && !HasUnsavedChanges()) Message.Empty();
 }

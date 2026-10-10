@@ -1,3 +1,4 @@
+#include "Framework/LHInteractionReach.h"
 #include "Abilities/LHLightEffect.h"
 #include "Kismet/GameplayStatics.h"
 #include "Framework/LHWave2Session.h"
@@ -94,7 +95,7 @@ bool FLHWave2Session::AcceptBoundary(FLHSaveSnapshot&& Next,bool InstallResource
     auto Check=*Authority(); if (Check.Import(Next)!=ELHCommandReason::None) return false;
     *Authority()=MoveTemp(Check); Complete=MoveTemp(Next);
     if (InstallResources && !InstallDerived()) return false;
-    bSaveQueued=true; Message=TEXT("Saving completed action…"); return true;
+    bSaveQueued=true; if (!bDurabilityError) Message=TEXT("Saving completed action…"); return true;
 }
 FLHCommandResult FLHWave2Session::Persist(const FLHRequestId& Id,FName Name,const UScriptStruct* Type,const void* Payload,TFunctionRef<ELHCommandReason(FLHSaveSnapshot&)> Domain)
 {
@@ -116,7 +117,10 @@ FLHCommandResult FLHWave2Session::Persist(const FLHRequestId& Id,FName Name,cons
 bool FLHWave2Session::Spatial(AActor* Target,double Range) const
 {
     auto* Pawn=Owner.IsValid()?Owner->GetCombatAvatar():nullptr;
-    if (!Pawn || !IsValid(Target) || Pawn->GetWorld()!=Target->GetWorld() || FVector::Dist(Pawn->GetActorLocation(),Target->GetActorLocation())>Range) return false;
+    if (!Pawn || !IsValid(Target) || Pawn->GetWorld()!=Target->GetWorld()) return false;
+    const bool Marker=Target->IsA<ALHInteractableMarker>() || Target->IsA<ALHPortal>();
+    if (Marker ? !LHInteractionReach::Contains(Pawn->GetActorLocation(),Target->GetActorLocation(),Range)
+               : FVector::Dist(Pawn->GetActorLocation(),Target->GetActorLocation())>Range) return false;
     FCollisionQueryParams Params(SCENE_QUERY_STAT(LHSessionInteraction),false,Pawn); Params.AddIgnoredActor(Target);
     return !Pawn->GetWorld()->LineTraceTestByChannel(Pawn->GetActorLocation(),Target->GetActorLocation()+FVector(0,0,60),ECC_Visibility,Params);
 }
@@ -136,7 +140,7 @@ FLHCommandResult FLHWave2Session::Execute(const FLHInteractRequest& Q)
         auto* Pawn=Owner->GetCombatAvatar(); if (!Pawn) return ELHCommandReason::InvalidLifeState;
         const auto Profile=LHWave2::PrototypeProfile(); FLHInteractContext Context;
         Context.Npc=Npc->DefinitionId; Context.Entity=Npc->Materialize(Complete.World.RunId); Context.Profile=&Profile;
-        Context.DistanceCm=FVector::Dist(Pawn->GetActorLocation(),Npc->GetActorLocation()); Context.bLineOfSight=Spatial(Npc,250);
+        Context.DistanceCm=FVector::DistXY(Pawn->GetActorLocation(),Npc->GetActorLocation()); Context.bLineOfSight=Spatial(Npc,250);
         return LHQuests::ExecuteInteract(Next,Context,Q);
     });
 }
@@ -363,6 +367,17 @@ FLHUIHud FLHWave2Session::HudState() const
     }
     return H;
 }
+FString FLHWave2Session::DialogueName(const FLHEntityId& Id) const
+{
+    const auto* Npc=ResolveNpc(Id);
+    if (!Npc) return TEXT("Unknown NPC");
+    // Native catalogs have no display-name field; keep this presentation mapping here.
+    if (Npc->DefinitionId.Value==TEXT("NPC.BrotherKiran")) return TEXT("Brother Kiran");
+    if (Npc->DefinitionId.Value==TEXT("NPC.JagarKar")) return TEXT("Jagar Kar");
+    for (const TCHAR* Name:{TEXT("Samaritan"),TEXT("Nevanis"),TEXT("Sigfried"),TEXT("Fali"),TEXT("Iraltok"),TEXT("Kilhiam"),TEXT("Moonrock"),TEXT("Uranos"),TEXT("Shovanis"),TEXT("Ortanalas"),TEXT("Kalastor"),TEXT("Murmuntag"),TEXT("Rolph")})
+        if (Npc->DefinitionId.Value==FName(*(FString(TEXT("NPC."))+Name))) return Name;
+    return TEXT("Unknown NPC");
+}
 TArray<FLHUIDialogueTopic> FLHWave2Session::DialogueTopics(const FLHEntityId& Id) const
 {
     TArray<FLHUIDialogueTopic> Out; const auto* Npc=ResolveNpc(Id); if (!Npc) return Out;
@@ -390,7 +405,7 @@ FLHCommandResult FLHWave2Session::Execute(const FLHTrainSkillRequest& Q)
         auto* Pawn=Owner->GetCombatAvatar(); if (!Pawn) return ELHCommandReason::InvalidLifeState;
         const auto Profile=LHWave2::PrototypeProfile(); FLHServiceContext Context;
         Context.Npc=Npc->DefinitionId; Context.Entity=Npc->Materialize(Complete.World.RunId); Context.Profile=&Profile;
-        Context.DistanceCm=FVector::Dist(Pawn->GetActorLocation(),Npc->GetActorLocation()); Context.bLineOfSight=Spatial(Npc,250);
+        Context.DistanceCm=FVector::DistXY(Pawn->GetActorLocation(),Npc->GetActorLocation()); Context.bLineOfSight=Spatial(Npc,250);
         Context.ItemLookup=[](const FLHContentId& Id)->const FLHCharacterItemDefinition* {const auto* Row=LHItemData::Find(Id); return Row?&Row->Character:nullptr;};
         return LHServices::Execute(Context,Next,Q);
     });
@@ -403,7 +418,7 @@ FLHCommandResult FLHWave2Session::Execute(const FLHLearnSpellRequest& Q)
         auto* Pawn=Owner->GetCombatAvatar(); if (!Pawn) return ELHCommandReason::InvalidLifeState;
         const auto Profile=LHWave2::PrototypeProfile(); FLHServiceContext Context;
         Context.Npc=Npc->DefinitionId; Context.Entity=Npc->Materialize(Complete.World.RunId); Context.Profile=&Profile;
-        Context.DistanceCm=FVector::Dist(Pawn->GetActorLocation(),Npc->GetActorLocation()); Context.bLineOfSight=Spatial(Npc,250);
+        Context.DistanceCm=FVector::DistXY(Pawn->GetActorLocation(),Npc->GetActorLocation()); Context.bLineOfSight=Spatial(Npc,250);
         Context.ItemLookup=[](const FLHContentId& Id)->const FLHCharacterItemDefinition* {const auto* Row=LHItemData::Find(Id); return Row?&Row->Character:nullptr;};
         return LHServices::Execute(Context,Next,Q);
     });
@@ -416,7 +431,7 @@ FLHCommandResult FLHWave2Session::Execute(const FLHBuyItemRequest& Q)
         auto* Pawn=Owner->GetCombatAvatar(); if (!Pawn) return ELHCommandReason::InvalidLifeState;
         const auto Profile=LHWave2::PrototypeProfile(); FLHServiceContext Context;
         Context.Npc=Npc->DefinitionId; Context.Entity=Npc->Materialize(Complete.World.RunId); Context.Profile=&Profile;
-        Context.DistanceCm=FVector::Dist(Pawn->GetActorLocation(),Npc->GetActorLocation()); Context.bLineOfSight=Spatial(Npc,250);
+        Context.DistanceCm=FVector::DistXY(Pawn->GetActorLocation(),Npc->GetActorLocation()); Context.bLineOfSight=Spatial(Npc,250);
         Context.ItemLookup=[](const FLHContentId& Id)->const FLHCharacterItemDefinition* {const auto* Row=LHItemData::Find(Id); return Row?&Row->Character:nullptr;};
         return LHServices::Execute(Context,Next,Q);
     });
@@ -429,7 +444,7 @@ FLHCommandResult FLHWave2Session::Execute(const FLHSellItemRequest& Q)
         auto* Pawn=Owner->GetCombatAvatar(); if (!Pawn) return ELHCommandReason::InvalidLifeState;
         const auto Profile=LHWave2::PrototypeProfile(); FLHServiceContext Context;
         Context.Npc=Npc->DefinitionId; Context.Entity=Npc->Materialize(Complete.World.RunId); Context.Profile=&Profile;
-        Context.DistanceCm=FVector::Dist(Pawn->GetActorLocation(),Npc->GetActorLocation()); Context.bLineOfSight=Spatial(Npc,250);
+        Context.DistanceCm=FVector::DistXY(Pawn->GetActorLocation(),Npc->GetActorLocation()); Context.bLineOfSight=Spatial(Npc,250);
         Context.ItemLookup=[](const FLHContentId& Id)->const FLHCharacterItemDefinition* {const auto* Row=LHItemData::Find(Id); return Row?&Row->Character:nullptr;};
         return LHServices::Execute(Context,Next,Q);
     });

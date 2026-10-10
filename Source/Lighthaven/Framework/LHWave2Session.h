@@ -21,7 +21,7 @@ public:
     bool OwnsPersistenceStatus() const override { return true; }
     bool HasUnsavedChanges() const override { return bSaveQueued || bAwaitingSave || (HasCharacter() && Saves->IsDirty(Complete.Header.CharacterId)); }
     FString DerivedSummary() const override;
-    FString OwnerStatus() const override { return bContentUnavailable ? TEXT("Required packaged map content is missing.") : bWorldTravelFrozen && WorldTravelStatus ? WorldTravelStatus() : Message; }
+    FString OwnerStatus() const override { return bDurabilityError ? Message : bContentUnavailable ? TEXT("Required packaged map content is missing.") : bWorldTravelFrozen && WorldTravelStatus ? WorldTravelStatus() : Message; }
     bool BeginCreation() override;
     void ClearSelectionError() override;
     FString RetryPersistence() override;
@@ -60,6 +60,8 @@ public:
     FLHCommandResult Execute(const FLHUseItemRequest&) override;
     FLHCommandResult Execute(const FLHTakeLootRequest&) override;
     FLHUIHud HudState() const override;
+    FString DialogueName(const FLHEntityId&) const override;
+    void CompleteGameplayArrival();
     TArray<FLHUIDialogueTopic> DialogueTopics(const FLHEntityId&) const override;
     TArray<FLHUILootRow> CorpseContents(const FLHEntityId&) const override;
     FString RequestRespawn() override;
@@ -87,6 +89,7 @@ private:
     TWeakObjectPtr<ALHPlayerState> Owner;
     FLHSaveSnapshot Complete;
     FString Message;
+    bool bDurabilityError=false;
     mutable TSet<FGuid> ReportedUnreadable;
     mutable TArray<FLHUIProfile> CachedProfiles;
     mutable bool bProfilesDirty=true;

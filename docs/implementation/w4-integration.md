@@ -449,3 +449,92 @@ No five-map regeneration/review refresh/LHValidateWorld, cook/package, graphical
 controller hardware, real process-crash persistence, or Windows execution was performed.
 Coordinator must regenerate/hydrate all five maps and perform the open host checklist.
 Reports/logs/automation JSON are retained in this attempt's worker-output library.
+
+
+## W4-06d — Stage 1A Framework polish (2026-10-09)
+
+Task ID: W4-06d. Contract revision: 1. Base revision:
+`ce45b38126e6c44a912a3aad4bd3ad42c893f13e`. Result revision: submitted attempt HEAD.
+Owned paths: `Source/Lighthaven/Framework/`, `Source/LighthavenTests/Integration/`,
+this document. No binary assets changed.
+
+Behavior changed:
+- `FLHWave2Session::DialogueName` resolves the live NPC definition and supplies a
+  Framework presentation mapping for the current roster, with `Unknown NPC` fallback.
+  Native NPC/service catalogs have no display-name field. No schema change.
+- NPC/portal selection and session authority use XY distance <= 250 cm and absolute
+  capsule-centre/marker Z difference <= 150 cm, through `LHInteractionReach`.
+  LOS remains required; both paths trace toward marker Z + 60 cm. NPC dialogue,
+  training, learning and vendor context distances also use XY. Corpse reach and
+  combat target cycling retain their existing 3-D checks.
+- Portal authority resolves a unique live marker before delegating travel. Existing
+  registry edge/destination validation remains in the travel coordinator.
+- Successful arrival (both initial/Continue and world-travel installation), accepted
+  travel, and successful travel retry clear resolved feedback when no save is pending.
+  Save failures and durable-sequence synchronization failures retain priority until
+  persistence succeeds; travel retries and profile notifications cannot replace them.
+  Successful save handling continues to clear completed persistence feedback.
+
+Source-backed mechanics: no new historical mechanics values. Names are presentation
+labels for existing native identities. Provisional tuning: existing Prototype 250 cm
+horizontal reach plus task-requested Prototype 150 cm vertical tolerance, labelled
+in the shared Framework helper; replace after interaction play review.
+
+Checks actually run (uid 1000, UE 5.8.3 Linux):
+- Final editor build: exit 0, `Result: Succeeded`, 13.01 s (incremental, final source).
+- Final game compilation/link: `Result: Succeeded`, 43.06 s, followed by dotnet/UBT
+  shutdown segmentation fault (shell exit 139). Immediate same-command rerun:
+  exit 0, `Result: Succeeded`, 3.01 s, target up to date.
+- Final full headless suite: exit 255 with complete exported report. 167 tests:
+  160 succeeded, 3 succeeded with warnings, 4 failed, 0 not run, 0 in process.
+  Exported test duration 32.246124267578125 s. All three requested tests succeeded:
+  `Lighthaven.Integration.Wave4.InteractReachHorizontal`,
+  `Lighthaven.Integration.Wave4.DialogueShowsNpcName`,
+  `Lighthaven.Integration.Wave4.StaleStatusClears`.
+- Reach regression checks 241/249/250 accepted and 251/260 refused with avatar
+  Z=92, for NPC commands/topics and portal dispatch, plus controller selection for
+  both marker types and 151 cm vertical separation refused. Name regression checks
+  Nevanis, Brother Kiran and unknown definition fallback. Status regression checks
+  failed save retention across arrival/failed travel retry, save retry completion,
+  successful arrival and successful travel retry.
+- Existing `Lighthaven.Integration.Wave3.SessionCheckpoints` passes after adapting
+  its fixture to supply a nearby live portal and an avatar.
+- `git diff --check` and submission-script `bash -n`: exit 0.
+
+Four remaining full-suite failures (pointer maps, no passing gate claimed):
+`Lighthaven.Integration.Wave3.ArrivalSafety`,
+`Lighthaven.Integration.Wave4.B1SpawnOnContinue`,
+`Lighthaven.Integration.Wave4.B1SpawnOnTravelArrival`,
+`Lighthaven.World.LightingAudit`.
+The map loader reports invalid package summaries/`PACKAGE_FILE_TAG`; arrival/audit
+cannot obtain worlds, and B1 tests cannot load geometry/spawn markers. No local
+regeneration, `.umap`, or `ReviewedArrivals.tsv` changes were made.
+
+Exact build commands (same arguments for editor/game, local cache avoids read-only home):
+
+```sh
+UBA_ROOT="$PWD/Saved/UBA" XDG_CONFIG_HOME="$PWD/Saved/BuildEnvironment/config" /home/brewerm/Downloads/unreal/Engine/Build/BatchFiles/Linux/Build.sh LighthavenEditor Linux Development -Project="$PWD/Lighthaven.uproject" -WaitMutex -NoUBA -NoUBTMakefiles
+UBA_ROOT="$PWD/Saved/UBA" XDG_CONFIG_HOME="$PWD/Saved/BuildEnvironment/config" /home/brewerm/Downloads/unreal/Engine/Build/BatchFiles/Linux/Build.sh Lighthaven Linux Development -Project="$PWD/Lighthaven.uproject" -WaitMutex -NoUBA -NoUBTMakefiles
+XDG_CONFIG_HOME="$PWD/Saved/BuildEnvironment/config" /home/brewerm/Downloads/unreal/Engine/Binaries/Linux/UnrealEditor-Cmd "$PWD/Lighthaven.uproject" -ExecCmds="Automation RunTests Lighthaven; Quit" -DDC-ForceMemoryCache -ddc=InstalledNoZenLocalFallback -LocalDataCachePath="$PWD/DerivedDataCache" -nullrhi -unattended -nosound -nop4 -NoCrashDialog -NoAnalytics '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0' '-ini:EditorSettings:[/Script/UnrealEd.AnalyticsPrivacySettings]:bSendUsageData=False' -ReportExportPath="$PWD/Saved/Automation06dCorrected"
+```
+
+Initial attempts: first editor build rejected include order (corrected); subsequent
+build executor initialization hit read-only worker home (resolved with UBA_ROOT).
+First full-suite run: 158 success / 4 with warnings / 5 failed. Second: 159 success /
+3 with warnings / 5 failed. These exposed creation-travel fixture setup and missed
+NPC selector XY conversion, both corrected. Final results above supersede them.
+
+Evidence: this attempt's worker-output `report.md` and `library/` hold build logs,
+all three suite logs/JSON and the exact submission script. Final automation report
+is `Saved/Automation06dCorrected/index.json` (git ignored).
+Checks not run: graphical editor/play, packaged Linux launch/cook, host input,
+regenerated-map arrival/lighting review, or Windows packaging. Real map binaries
+and a graphical host review are needed for the in-play Stage 1A recheck; Windows
+execution remains deferred. No claim of packaged/visual behavior or gate success.
+Known defects/remaining decisions: four map-dependent tests remain unvalidated;
+150 cm is Prototype tuning. No known code defect from the three requested tests.
+Next task/integration notes: coordinator reviews candidate, hydrates/regenerates
+maps, repeats full suite and Stage 1A E-interaction/dialogue/status checks in play.
+Assumption: clearing travel feedback waits for outstanding save durability; a
+successful retry can clear its prior travel message while travel-owned status
+continues to describe any active frozen transition.
