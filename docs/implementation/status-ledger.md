@@ -262,3 +262,4 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
   - Other floors are unchanged: B2 .21–.23, B3 .18–.25, B4 .22–.33. The player figure lies flat in B1 room 1 again (player backlog).
 - **W6-03fixi (F9) submitted (b5ca1ff):** root cause measured. On a rejected command, `Persist` imported runtime mana-regeneration progress, cooldowns and RNG into live state. Now the update is captured into a candidate snapshot and published only on acceptance; allocation and equipment had the same pattern and are fixed too. Regression `Review.W603.RejectedResourceCapture`. Host check running.
 - **W5-10 (sol) running:** creature import.
+- **W6-03fixi (F9) integrated.** Host (main 0fb6dc5 + b5ca1ff; the merged tree differs only in this ledger): build OK; **210/210**; G4 8/8; SessionInventoryRollback run alone 3/3; LHValidateWorld 0 errors. F9 closed.
