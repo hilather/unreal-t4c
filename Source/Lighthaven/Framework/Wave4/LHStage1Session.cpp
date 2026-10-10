@@ -1,3 +1,5 @@
+#include "Abilities/LHLightEffect.h"
+#include "Kismet/GameplayStatics.h"
 #include "Framework/LHWave2Session.h"
 #include "Framework/LHWave2Profile.h"
 #include "Framework/LHPlayerState.h"
@@ -72,6 +74,14 @@ bool FLHWave2Session::SyncResources()
         auto* Rng=Complete.Session.GameplayRng.FindByPredicate([](const auto& R){return R.StreamId==TEXT("RNG.Combat");});
         if (Rng)
         { const uint32 Seed=uint32(C->GetCombatRandomState().GetCurrentSeed()); Rng->State.Reset(); for(int32 B=0;B<4;++B) Rng->State.Add(uint8(Seed>>(B*8))); }
+    }
+    auto* Light=Owner->GetCombatComponent();
+    // Lethal settlement can run inside GAS publication. Capture Light only after
+    // the action finishes; Flush already waits for the complete combat boundary.
+    if (!Light->IsActionPending() && !Light->IsPublishingActionEvents())
+    {
+        if (bDeadAwaitingRespawn) Light->RestoreLightRemainingSeconds(0);
+        if (!LHAbilities::CaptureLightEffect(*Light,PlayerEntity(),Complete.Session)) return false;
     }
     if (Director.IsValid()) if (auto* A=LHStage1SessionPrivate::Area(Complete)) Director->CaptureLive(*A);
     if (Director.IsValid()) for (TActorIterator<ALHEnemyCharacter> It(Owner->GetWorld());It;++It)
@@ -284,6 +294,8 @@ bool FLHWave2Session::SettleEnemyKill(const FLHSpawnLifeId& Life,const FLHHitIde
 void FLHWave2Session::TickGameplay(float Seconds)
 {
     if (!bInGameplay || IsBlocked() || bGameplayPaused || !Owner.IsValid()) return;
+    Owner->GetCombatComponent()->AdvanceLightEffect(Seconds,UGameplayStatics::IsGamePaused(Owner->GetWorld()),
+        Director.IsValid() && !Director->IsSimulationEnabled(),false);
     if (Director.IsValid()) Director->TickActiveSimulation(Seconds);
 }
 void FLHWave2Session::SetGameplayPaused(bool Paused)
@@ -295,6 +307,8 @@ void FLHWave2Session::SetGameplayPaused(bool Paused)
 void FLHWave2Session::HandlePlayerDeath()
 {
     if (bDeadAwaitingRespawn || !HasCharacter() || !SyncResources()) return;
+    Owner->GetCombatComponent()->RestoreLightRemainingSeconds(0);
+    Complete.Session.DurableEffects.Reset();
     bDeadAwaitingRespawn=true; if (Complete.Header.TransactionSequence==MAX_int64) { Message=TEXT("Death checkpoint sequence exhausted."); return; }
     ++Complete.Header.TransactionSequence;
     Authority()->Import(Complete); bSaveQueued=true; SetGameplayPaused(bGameplayPaused);

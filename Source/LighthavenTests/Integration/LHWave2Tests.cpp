@@ -684,7 +684,7 @@ bool FLHG4Economy::RunTest(const FString&)
     auto* Sig=Npc(R,TEXT("NPC.Sigfried"),Pawn);
     for(const TCHAR* Offer:{TEXT("Offer.Sigfried.Item.AshwoodFlatbow"),TEXT("Offer.Sigfried.Item.WoodenArrows")})
     { const auto Result=R.Session->Execute(Buy(R,Sig,Offer)); AddInfo(FString::Printf(TEXT("Production buy reason=%d"),int32(Result.Reason))); if(!TestTrue(TEXT("earned purchase"),Result.Disposition==ELHCommandDisposition::Accepted)) return false; R.Flush(); }
-    for(const auto Slot:{ELHEquipmentSlot::MainHand,ELHEquipmentSlot::Quiver})
+    for(const auto Slot:{ELHEquipmentSlot::Quiver,ELHEquipmentSlot::MainHand})
     {
         const auto S=R.Session->Snapshot(); const FName Name=Slot==ELHEquipmentSlot::MainHand?TEXT("Item.AshwoodFlatbow"):TEXT("Item.WoodenArrows");
         FLHEquipItemRequest Q; Q.Request=Request(R); Q.Slot=Slot; Q.Item=S.Character.Inventory.FindByPredicate([&](const auto& I){return I.Definition.Value==Name;})->Id;
@@ -728,14 +728,14 @@ namespace LHB1SpawnTestsPrivate
 using namespace LHStage1IntegrationTestsPrivate;
 bool LoadB1(FRuntime& R)
 {
-    R.State->ClearAvatar();
-    R.World->DestroyWorld(false); GEngine->DestroyWorldContext(R.World);
     const FString Map=LHWorld::Registry()[1].Map.GetLongPackageName();
     UWorld::WorldTypePreLoadMap.Add(FName(*Map),EWorldType::Editor);
     auto* Package=LoadPackage(nullptr,*Map,LOAD_None);
     UWorld::WorldTypePreLoadMap.Remove(FName(*Map));
     auto* Source=Package?UWorld::FindWorldInPackage(Package):nullptr;
-    if (!Source) { R.World=nullptr; return false; }
+    if (!Source) return false;
+    R.State->ClearAvatar();
+    R.World->DestroyWorld(false); GEngine->DestroyWorldContext(R.World);
     // Each case uses a distinct loaded-world copy, including authored floor collision.
     auto* Destination=CreatePackage(*(TEXT("/Temp/B1SpawnTest_")+FGuid::NewGuid().ToString(EGuidFormats::Digits)));
     R.World=Cast<UWorld>(StaticDuplicateObject(Source,Destination,Source->GetFName()));
@@ -857,6 +857,64 @@ bool FLHB1ContinueSpawn::RunTest(const FString&)
     D->Populate(*Area);
     TestNull(TEXT("blocked marker refused"),D->FindByLife(Record.Life));
     R.Session->Travel=nullptr;
+    return !HasAnyErrors();
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4LightPersistence,"Lighthaven.Integration.Wave4.LightPersistsAcrossReloadAndTravel",LHWave2TestsPrivate::Flags)
+bool FLHG4LightPersistence::RunTest(const FString&)
+{
+    using namespace LHG4TestsPrivate;
+    auto Disk=MakeShared<FStorage>(); FLHCharacterId Character;
+    {
+        FRuntime R(Disk); R.Create(); R.Flush(); R.Session->Bind(R.State); Avatar(R);
+        // Fixture isolates Light's session lifecycle; native service/economy tests
+        // cover learning. No free spell is granted by production code.
+        R.EarnAllocationPoints();
+        FLHAllocateAttributePointsRequest Allocate; Allocate.Request=Request(R); Allocate.Points=LHWave2TestsPrivate::Points();
+        Allocate.Points.Strength=LHWave2::PrototypeInteger(0); Allocate.Points.Intelligence=LHWave2::PrototypeInteger(2);
+        if (!TestTrue(TEXT("allocate Light requirements"),R.Session->Execute(Allocate).Disposition==ELHCommandDisposition::Accepted)) return false;
+        R.Flush(); R.Session->bInGameplay=true;
+        auto S=R.Session->Snapshot();
+        FLHContentId Spell; Spell.Value=TEXT("Spell.Light"); S.Character.LearnedSpells.Add(Spell);
+        if (!TestTrue(TEXT("install learned fixture"),R.Session->InstallTravel(S))) return false;
+        if (!TestTrue(TEXT("initialize gameplay RNG"),R.Session->StartEncounters())) return false;
+        FLHUseAbilityRequest Q; Q.Request=Request(R); Q.Ability=Spell; Q.Target=R.Session->HudState().Player;
+        if (!TestTrue(TEXT("cast through session"),R.Session->Execute(Q).Disposition==ELHCommandDisposition::Accepted)) return false;
+        R.World->GetTimerManager().Tick(0.1f);
+        auto* C=R.State->GetCombatComponent();
+        TestEqual(TEXT("catalog duration applies at impact"),C->GetLightRemainingSeconds(),600.0);
+        R.Session->TickGameplay(10); TestEqual(TEXT("one active tick"),C->GetLightRemainingSeconds(),590.0);
+        R.Session->SetGameplayPaused(true); R.Session->TickGameplay(20);
+        TestEqual(TEXT("menu pause preserves duration"),C->GetLightRemainingSeconds(),590.0);
+        R.Session->SetGameplayPaused(false); R.Session->FreezeWorldTravel(true); R.Session->TickGameplay(20);
+        TestEqual(TEXT("travel freeze preserves duration"),C->GetLightRemainingSeconds(),590.0);
+        FLHSaveSnapshot Travel; FString Error;
+        if (!TestTrue(TEXT("capture frozen travel"),R.Session->CaptureTravel(Travel,Error))) return false;
+        TestEqual(TEXT("one durable Light"),Travel.Session.DurableEffects.Num(),1);
+        Travel.Character.ActiveEntrance=LHWorld::Registry()[1].Entrances[0].Id;
+        if (!TestTrue(TEXT("prepare destination checkpoint"),FLHWave2Session::PopulateEncounterCheckpoint(Travel,Error))) return false;
+        TestTrue(TEXT("install destination"),R.Session->InstallTravel(Travel));
+        TestTrue(TEXT("repeat restore"),R.Session->InstallTravel(R.Session->Snapshot()));
+        TestEqual(TEXT("restore does not tick"),C->GetLightRemainingSeconds(),590.0);
+        TestEqual(TEXT("destination identity remapped"),R.Session->Snapshot().Session.DurableEffects[0].Owner.Area.Content.Value,Travel.Character.ActiveEntrance.Area.Content.Value);
+        R.Session->FreezeWorldTravel(false); R.Session->TickGameplay(5);
+        TestEqual(TEXT("resume ticks once"),C->GetLightRemainingSeconds(),585.0);
+        Character=Travel.Header.CharacterId;
+        TestTrue(TEXT("queue exit save"),R.Session->RequestExit().IsEmpty()); R.Flush();
+    }
+    FRuntime Reload(Disk);
+    if (!TestTrue(TEXT("Continue durable Light"),Reload.Restore(Character))) return false;
+    Reload.Session->Bind(Reload.State); Avatar(Reload); Reload.Session->bInGameplay=true;
+    auto* C=Reload.State->GetCombatComponent();
+    TestEqual(TEXT("reload retains active remainder"),C->GetLightRemainingSeconds(),585.0);
+    Reload.Session->TickGameplay(584); TestEqual(TEXT("no double elapsed time"),C->GetLightRemainingSeconds(),1.0);
+    Reload.Session->TickGameplay(1); TestEqual(TEXT("expiry clears runtime"),C->GetLightRemainingSeconds(),0.0);
+    TestTrue(TEXT("queue expired save"),Reload.Session->RequestExit().IsEmpty()); Reload.Flush();
+    TestTrue(TEXT("expired effect removed from snapshot"),Reload.Session->Snapshot().Session.DurableEffects.IsEmpty());
+    FLHSaveStore Read(Disk); FLHSaveSnapshot Expired; FLHSaveError Error;
+    TestTrue(TEXT("expired save loads"),Read.Load(Character,FLHWave2Session::Compatibility(),Expired,Error));
+    TestTrue(TEXT("expired effect removed from save"),Expired.Session.DurableEffects.IsEmpty());
+    TestTrue(TEXT("capacity policy explicit"),LHWave2::CarryCapacityPolicy().bUnlimited);
+    TestTrue(TEXT("capacity display explicit"),Reload.Session->DerivedSummary().Contains(TEXT("Capacity unlimited (deferred by owner decision)")));
     return !HasAnyErrors();
 }
 #endif

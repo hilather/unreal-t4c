@@ -337,3 +337,115 @@ exit0, shell44.174s, testDuration0.544s. This supersedes the full-suite Balork f
 failure. Two live kills,899+1s respawn, one unique claim, reload, church return and replay
 assertions passed. Remaining observed failures are the three production purchase seams
 and the two pointer-map-dependent checks. No combined hypothetical pass count is claimed.
+
+# W4-06c — final G4 session integration candidate
+
+Base `65c0782da6608065cb53aee999931588f104dca5`, contract revision 1.
+This section supersedes the earlier service-readiness, Light-restore and capacity100
+limitations. W4-07b already accepts the native Modernized stack policy and removes
+weight enforcement; W4-12 supplies the closed durable Light allowlist; W4-13 supplies
+B1 arrival/Continue population. This candidate does not certify G4 host play.
+
+Light uses the native ability command and applies the existing 600-second duration
+at impact. The session advances it once per current avatar interval, only during
+active gameplay, with menu/game pause, AI freeze and travel gates. An outgoing avatar
+cannot tick the session after its replacement. Completed settlement/save/travel capture
+uses the W4-12 accessor; GAS publication defers effect capture until the completed
+boundary rather than interrupting lethal settlement. Bind/Continue/travel restore
+installs resources before restoring the remainder and applies no elapsed time.
+Ordinary derived-stat refreshes do not restore an older remainder. Self owner/source
+area identities are remapped at travel installation and when loading a destination
+checkpoint that retained the source identity. Expiry removes the record at the next
+completed capture. Fresh creation and death clear Light explicitly (publication-time
+death clear is completed at the next capture). No timers or schema fields were added.
+
+`LightPersistsAcrossReloadAndTravel` exercises a real session cast, active ticks,
+menu/travel pause, repeated travel restore, identity remap, exit-save/Continue,
+expiry and removal from persisted bytes. It injects learned Light after earning the
+native first growth award and allocating intelligence; learning service coverage is
+separate. This is a synthetic-world lifecycle fixture, not a packaged visual test.
+`ProgressionRouteAffordable` now equips the purchased quiver before the bow, retaining
+the established rule and all prices. Its retained budget is 700 gold (100 starting +
+600 from 200 Brown Rats), bow/quiver129; the broader shared service route costs676.
+The fixture resets combat cooldowns and uses synthetic safe respawns, so this does not
+measure normal-cadence affordability or physical NPC reachability.
+
+Framework exposes an explicit unlimited carry policy with provenance "deferred by
+owner decision". The profile's legacy finite Rules capacity channel is an unused zero
+placeholder with that provenance, and Framework summaries display unlimited rather
+than a numeric maximum. No STR weight formula or weight limit is introduced. Mechanical
+and gameplay closure include the changed policy, making earlier catalog saves
+incompatible rather than silently reinterpreting them. MP floor bands remain unchanged
+and open for owner review. Light mechanics retain R-03's Bible evidence (600s,10MP,
+https://www.t4cbible.com/spelldesciprt and https://www.t4cbible.com/Spells, retrieved
+2026-10-09; server version unstated); no new mechanics numbers or tuning are introduced.
+
+## Current G4 host checklist status
+
+| Check | Status in this candidate |
+| --- | --- |
+| Session service/earned ranged/potion/Balork routes | Native regression suite passed; host play remains open |
+| Light reload/travel/expiry | Native lifecycle regression passed; appearance/packaged play open |
+| B1 arrival/Continue population | Both W4-13 regressions passed on locally regenerated B1 |
+| Hydrated five-map ArrivalSafety/LightingAudit | Fail: hub/B3/B4 pointers; B1/B2 regenerated locally for native spawn fixtures; coordinator five-map regeneration/review required |
+| Actual NPC reachability, melee/ranged/magic descent, Light appearance | Open host packaged play |
+| Balork fifteen-minute active repeat and church return in packaged play | Open host play; native accelerated fixture is not the host checklist |
+| Death, mid-action travel, inventory, lethal races, save failure, floor exit/resume | Native regressions plus open host play |
+| G3 blocked-spawn outcome | Remains open host check |
+| G3 largest-enemy door/stair clearance | Remains open host check |
+| G3 B4 doors C04 and D05–D07 | Remains open host check |
+| MP floor bands | Open owner decision |
+| Carry capacity | Unlimited; deferred by owner decision |
+| Linux packaged gameplay | Not performed by this worker; coordinator validation remains required |
+| Windows package/launch | Deferred by owner decision; no Windows machine |
+
+## 06c observed validation
+
+Final-source commands, counts and limitations are recorded below after execution.
+
+Observed final-source Linux checks (UID1000, UE5.8.3):
+
+- Final editor `Build.sh LighthavenEditor Linux Development -Project=$PWD/Lighthaven.uproject
+  -WaitMutex -NoUBA`: exit0, Result:Succeeded, UBT3.43s. Game matching target:
+  exit0, Result:Succeeded, UBT4.05s. Both use worktree XDG_CONFIG_HOME and UBA_ROOT.
+  UBA initially stalled with all actions queued. Unreal's `-WriteOutdatedActions`
+  exports were executed directly with their compiler/link commands and dependency
+  graph preserved; native modules/tests compiled and linked. Normal UBT verification
+  then completed. Initial direct runners were interrupted at WriteMetadata after
+  binaries/metadata were produced (exit130); they are not claimed as completed builds.
+  Final fixture compile/link graph completed3 actions, exit0,12.695s. Local ignored
+  Saved/UnrealBuildTool config disabled UBA detouring; no system/engine edits.
+- Final full headless suite, `Saved/Automation06cFinal2/index.json`: exit255 (normal
+  failed-report exit),58.633s shell,31.717993s report duration. Expected/found/completed
+  **162:157 succeeded,3 succeededWithWarnings,2 failed,0 notRun,0 inProcess**.
+  Failures are exactly `Lighthaven.Integration.Wave3.ArrivalSafety` and
+  `Lighthaven.World.LightingAudit`. Hub/B3/B4 remain LFS pointers. All160 other cases
+  passed, including LightPersistsAcrossReloadAndTravel, ProgressionRouteAffordable,
+  ServicesThroughSession, UseItemThroughSession, BalorkSingleClaim, EnemyContinuation,
+  B1SpawnOnTravelArrival and B1SpawnOnContinue. This is observed automation evidence,
+  not G4 approval or a packaged play result.
+- Direct `-run=LHGenerateBasementAMaps` locally saved B1/B2: process exit1,
+  33.938s, commandlet result0. Startup errors reference unrelated pointer packages;
+  no map success was inferred from the process status. Both B1 integration fixtures
+  then passed against the locally generated map. Generated binaries were restored to
+  tracked pointers after testing, and are not submitted. ReviewedArrivals.tsv unchanged.
+- An initial all-pointer suite crashed in B1SpawnOnContinue after LoadB1 destroyed the
+  source world before detecting the missing map. The owned fixture now loads/validates
+  B1 before destroying its source world, retaining failure evidence without null-world
+  access. The initial run has no complete report (crash-reporter telemetry was rejected
+  by the sandbox). A subsequent full run completed162 with155 Success,4 warnings,3 Fail
+  (the two pointer checks and Light's uninitialized-RNG fixture). The Light fixture now
+  calls normal StartEncounters and prepares the destination checkpoint before install;
+  final full-suite evidence above supersedes that failure.
+- `git diff --check` and submission-script `bash -n`: exit0.
+
+Exact final suite command (UE_ROOT=/home/brewerm/Downloads/unreal):
+
+```sh
+XDG_CONFIG_HOME="$PWD/Saved/BuildEnvironment/config" "$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$PWD/Lighthaven.uproject" -ExecCmds="Automation RunTests Lighthaven; Quit" -DDC-ForceMemoryCache -ddc=InstalledNoZenLocalFallback -LocalDataCachePath="$PWD/DerivedDataCache" -nullrhi -unattended -nosound -nop4 -NoCrashDialog -NoAnalytics '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0' '-ini:EditorSettings:[/Script/UnrealEd.AnalyticsPrivacySettings]:bSendUsageData=False' -ReportExportPath="$PWD/Saved/Automation06cFinal2"
+```
+
+No five-map regeneration/review refresh/LHValidateWorld, cook/package, graphical play,
+controller hardware, real process-crash persistence, or Windows execution was performed.
+Coordinator must regenerate/hydrate all five maps and perform the open host checklist.
+Reports/logs/automation JSON are retained in this attempt's worker-output library.

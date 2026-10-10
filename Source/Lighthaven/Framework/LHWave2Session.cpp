@@ -6,6 +6,7 @@
 #include "World/LHAreaRegistry.h"
 #include "World/LHAreaStateSubsystem.h"
 #include "Abilities/LHResourceRecovery.h"
+#include "Abilities/LHLightEffect.h"
 #include "AI/LHEncounterDirector.h"
 namespace LHWave2SessionPrivate
 {
@@ -42,6 +43,8 @@ FLHCharacterAuthority* FLHWave2Session::Authority() const
 bool FLHWave2Session::Bind(ALHPlayerState* State, bool Fresh)
 {
     if (!State || (Fresh && IsTransactionBlocked())) return false;
+    // Capture the outgoing component before replacing its owner at a completed boundary.
+    if (!Fresh && Owner.IsValid() && Owner.Get()!=State && HasCharacter() && !SyncResources()) return false;
     Owner=State;
     auto* A=Authority(); *A=FLHCharacterAuthority();
     if (!A->Initialize(LHWave2::PrototypeProfile(),FGuid::NewGuid(),123)) return false;
@@ -50,12 +53,12 @@ bool FLHWave2Session::Bind(ALHPlayerState* State, bool Fresh)
     if (Fresh) { Complete={}; Message.Empty(); bEnterAfterSave=false; bDeadAwaitingRespawn=false; RuntimeAbilities.Reset(); }
     if (HasCharacter())
     {
-        if (A->Import(Complete)!=ELHCommandReason::None || !InstallDerived()) { Message=TEXT("Restore failed; avatar remains unavailable."); return false; }
+        if (A->Import(Complete)!=ELHCommandReason::None || !InstallDerived(true)) { Message=TEXT("Restore failed; avatar remains unavailable."); return false; }
     }
-    else A->Export(Complete);
+    else { A->Export(Complete); State->GetCombatComponent()->RestoreLightRemainingSeconds(0); }
     return true;
 }
-bool FLHWave2Session::InstallDerived()
+bool FLHWave2Session::InstallDerived(bool RestoreEffects)
 {
     auto* A=Authority(); if (!A || !Owner.IsValid()) return false;
     const auto Stats=A->Stats(); if (!Stats.Diagnostic.IsAccepted()) return false;
@@ -69,7 +72,14 @@ bool FLHWave2Session::InstallDerived()
     C->SetNumericAttributeBase(ULHAttributeSet::GetDamageBonusAttribute(),Stats.Value.DamageBonus);
     C->SetNumericAttributeBase(ULHAttributeSet::GetArmorAttribute(),Stats.Value.Armor);
     C->SetNumericAttributeBase(ULHAttributeSet::GetResistanceAttribute(),0);
-    return true;
+    if (!RestoreEffects) return true;
+    // Destination checkpoints may retain the source area's self identity. Validate
+    // against that identity before recapturing under the installed player identity.
+    auto SavedOwner=PlayerEntity();
+    if (Complete.Session.DurableEffects.Num()==1) SavedOwner.Area=Complete.Session.DurableEffects[0].Owner.Area;
+    if (!LHAbilities::RestoreLightEffect(*C,SavedOwner,Complete.Session)) return false;
+    if (!LHAbilities::CaptureLightEffect(*C,PlayerEntity(),Complete.Session)) return false;
+    return A->Import(Complete)==ELHCommandReason::None;
 }
 FLHSaveSnapshot FLHWave2Session::Snapshot() const { return Complete; }
 TArray<FLHUIProfile> FLHWave2Session::Profiles() const
@@ -225,7 +235,7 @@ FString FLHWave2Session::Continue(FLHCharacterId Id,bool Ack)
     FLHSaveSnapshot Loaded; FLHSaveError E;
     if (!Saves->Load(Id,Compatibility(),Loaded,E)) { Message=TEXT("Unreadable: ")+E.Detail; return Message; }
     if (!Authority() || Authority()->Import(Loaded)!=ELHCommandReason::None) return TEXT("Character restore rejected.");
-    Complete=Loaded; if (!InstallDerived()) return TEXT("Derived restore rejected.");
+    Complete=Loaded; if (!InstallDerived(true)) return TEXT("Derived restore rejected.");
     Message.Empty(); bTravel=true; if (Travel) Travel(); return {};
 }
 FString FLHWave2Session::RequestExit()
@@ -281,9 +291,18 @@ bool FLHWave2Session::CaptureTravel(FLHSaveSnapshot& Out,FString& Error)
 bool FLHWave2Session::InstallTravel(const FLHSaveSnapshot& Snapshot)
 {
     if (!Authority()) return false;
-    auto Check=*Authority(); if (Check.Import(Snapshot)!=ELHCommandReason::None) return false;
-    *Authority()=MoveTemp(Check); Complete=Snapshot;
-    return InstallDerived();
+    auto Next=Snapshot;
+    // Travel changes the player's area-scoped identity. Only remap the allowlisted
+    // self effect belonging to this character/run; validation still rejects others.
+    for (auto& Effect:Next.Session.DurableEffects)
+        if (Effect.Effect.Value==TEXT("Effect.SpellLight") &&
+            Effect.Owner.RunId==Next.World.RunId && Effect.Owner.InstanceId==Next.Header.CharacterId.Value &&
+            Effect.Source.RunId==Effect.Owner.RunId && Effect.Source.InstanceId==Effect.Owner.InstanceId &&
+            LHWorld::SameArea(Effect.Source.Area,Effect.Owner.Area))
+        { Effect.Owner.Area=Next.Character.ActiveEntrance.Area; Effect.Source.Area=Effect.Owner.Area; }
+    auto Check=*Authority(); if (Check.Import(Next)!=ELHCommandReason::None) return false;
+    *Authority()=MoveTemp(Check); Complete=MoveTemp(Next);
+    return InstallDerived(true);
 }
 FLHCommandResult FLHWave2Session::Execute(const FLHRequestTravelRequest& Q)
 {
@@ -307,10 +326,10 @@ FString FLHWave2Session::DerivedSummary() const
     if (!Stats.Diagnostic.IsAccepted()) return ILHUIReadOwner::DerivedSummary();
     const auto& V=Stats.Value;
     const auto& B=Complete.Character.BaseAttributes;
-    FString Summary=FString::Printf(TEXT("Effective attributes (Prototype): Strength %lld | Endurance %lld | Agility %lld | Intelligence %lld | Wisdom %lld\nGear attribute effects (Prototype): Strength %+lld | Endurance %+lld | Agility %+lld | Intelligence %+lld | Wisdom %+lld\nEffective stats (Prototype): Max HP %g | Max MP %g | Accuracy %g | Avoidance %g | Damage bonus %g | Armor %g | Capacity %g\nTemporary effects: — (not available in this prototype)"),
+    FString Summary=FString::Printf(TEXT("Effective attributes (Prototype): Strength %lld | Endurance %lld | Agility %lld | Intelligence %lld | Wisdom %lld\nGear attribute effects (Prototype): Strength %+lld | Endurance %+lld | Agility %+lld | Intelligence %+lld | Wisdom %+lld\nEffective stats (Prototype): Max HP %g | Max MP %g | Accuracy %g | Avoidance %g | Damage bonus %g | Armor %g | Capacity unlimited (deferred by owner decision)\nTemporary effects: Light %g active seconds"),
         V.Effective.Strength,V.Effective.Endurance,V.Effective.Agility,V.Effective.Intelligence,V.Effective.Wisdom,
         V.Effective.Strength-B.Strength.Value,V.Effective.Endurance-B.Endurance.Value,V.Effective.Agility-B.Agility.Value,V.Effective.Intelligence-B.Intelligence.Value,V.Effective.Wisdom-B.Wisdom.Value,
-        V.MaxHealth,V.MaxMana,V.Accuracy,V.Avoidance,V.DamageBonus,V.Armor,V.Capacity);
+        V.MaxHealth,V.MaxMana,V.Accuracy,V.Avoidance,V.DamageBonus,V.Armor,Owner->GetCombatComponent()->GetLightRemainingSeconds());
     const auto Profile=LHWave2::PrototypeProfile();
     for (const auto& Binding : Complete.Character.Equipment)
     {
@@ -322,7 +341,7 @@ FString FLHWave2Session::DerivedSummary() const
         Summary += TEXT("\n")+Definition->Id.Value.ToString()+TEXT(" gear modifiers: HP ")+FLHUIPresenter::Format(M.Health)
             +TEXT(" | MP ")+FLHUIPresenter::Format(M.Mana)+TEXT(" | Accuracy ")+FLHUIPresenter::Format(M.Accuracy)
             +TEXT(" | Avoidance ")+FLHUIPresenter::Format(M.Avoidance)+TEXT(" | Damage ")+FLHUIPresenter::Format(M.DamageBonus)
-            +TEXT(" | Armor ")+FLHUIPresenter::Format(M.Armor)+TEXT(" | Capacity ")+FLHUIPresenter::Format(M.Capacity);
+            +TEXT(" | Armor ")+FLHUIPresenter::Format(M.Armor)+TEXT(" | Capacity unlimited (deferred by owner decision)");
     }
     return Summary;
 }

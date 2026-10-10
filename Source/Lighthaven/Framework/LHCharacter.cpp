@@ -55,5 +55,5 @@ void ALHCharacter::Tick(float DeltaSeconds)
     const auto* State=GetPlayerState<ALHPlayerState>();
     SpellLight->SetVisibility(State && State->GetCombatComponent()->GetLightRemainingSeconds()>0);
     if (auto* Instance=GetGameInstance()) if (auto* Subsystem=Instance->GetSubsystem<ULHSessionSubsystem>())
-        if (auto Session=Subsystem->Session(); Session && GetPlayerState<ALHPlayerState>()) Session->TickGameplay(DeltaSeconds);
+        if (auto Session=Subsystem->Session(); Session && State && State->GetCombatAvatar()==this) Session->TickGameplay(DeltaSeconds);
 }
