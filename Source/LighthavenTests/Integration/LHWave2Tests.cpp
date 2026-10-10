@@ -335,6 +335,8 @@ bool FLHWave3LiveSession::RunTest(const FString&)
     auto Disk=MakeShared<FStorage>(); FRuntime R(Disk);
     TestTrue(TEXT("Create production session"),R.Create().Disposition==ELHCommandDisposition::Accepted); R.Flush();
     TestTrue(TEXT("Bind initial hub avatar authority"),R.Session->Bind(R.State));
+    auto* TravelAvatar=R.World->SpawnActor<ALHCharacter>(); R.State->InitializeAvatar(TravelAvatar);
+    TravelAvatar->SetActorLocation(FVector(0,0,92));
     const auto Initial=R.Session->Snapshot();
     TestTrue(TEXT("Creation uses hub safe spawn"),LHWorld::SameEntrance(Initial.Character.ActiveEntrance,LHWorld::Registry()[0].SafeFallback));
     FLHSaveError SaveError; auto Old=Initial; Old.Character.ActiveEntrance.LocalId=TEXT("Entry");
@@ -357,6 +359,9 @@ bool FLHWave3LiveSession::RunTest(const FString&)
         if (!TestNotNull(TEXT("Session registered edge"),Edge)) return false;
         FLHRequestTravelRequest Q; Q.Request.Value=FGuid::NewGuid(); Q.Request.Epoch=S.Session.RequestEpoch;
         Q.Portal=Edge->Portal; Q.Portal.RunId=S.World.RunId; Q.Destination=Edge->Destination;
+        auto* Marker=R.World->SpawnActor<ALHPortal>(); Marker->PortalId=Edge->Portal.InstanceId;
+        Marker->Source=Edge->Source; Marker->Destination=Edge->Destination;
+        Marker->SetActorLocation(FVector(100,0,0));
         TestTrue(TEXT("Production session dispatches travel"),R.Session->Execute(Q).Disposition==ELHCommandDisposition::Accepted);
         TestTrue(TEXT("Session blocked during load"),R.Session->IsBlocked());
         Travel.Travel().OnDestinationLoaded(Travel.Travel().GetToken(),true,Q.Destination,TEXT(""));
@@ -366,6 +371,7 @@ bool FLHWave3LiveSession::RunTest(const FString&)
         TestTrue(TEXT("Production reload destination entrance"),LHWorld::SameEntrance(Loaded.Character.ActiveEntrance,Q.Destination));
         TestTrue(TEXT("Authority capture after reload install"),R.Session->InstallTravel(Loaded));
         TestEqual(TEXT("No travel rewards"),Loaded.Character.Gold.Value,Initial.Character.Gold.Value);
+        Marker->Destroy();
     }
     R.Session->RequestWorldTravel=nullptr;
     R.Session->AbortGameplayArrival(TEXT("Injected invalid spawn"));
@@ -915,6 +921,80 @@ bool FLHG4LightPersistence::RunTest(const FString&)
     TestTrue(TEXT("expired effect removed from save"),Expired.Session.DurableEffects.IsEmpty());
     TestTrue(TEXT("capacity policy explicit"),LHWave2::CarryCapacityPolicy().bUnlimited);
     TestTrue(TEXT("capacity display explicit"),Reload.Session->DerivedSummary().Contains(TEXT("Capacity unlimited (deferred by owner decision)")));
+    return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHReachHorizontal,"Lighthaven.Integration.Wave4.InteractReachHorizontal",LHWave2TestsPrivate::Flags)
+bool FLHReachHorizontal::RunTest(const FString&)
+{
+    using namespace LHWave2TestsPrivate;
+    FRuntime R(MakeShared<FStorage>()); R.Create(); R.Flush(); R.Session->Bind(R.State);
+    auto* Avatar=R.World->SpawnActor<ALHCharacter>(); R.State->InitializeAvatar(Avatar);
+    Avatar->SetActorLocation(FVector(0,0,92));
+    auto* Npc=R.World->SpawnActor<ALHInteractableMarker>();
+    Npc->Area=R.Session->Snapshot().Character.ActiveEntrance.Area; Npc->InstanceId=FGuid::NewGuid(); Npc->DefinitionId.Value=TEXT("NPC.BrotherKiran");
+    auto* Portal=R.World->SpawnActor<ALHPortal>(); Portal->PortalId=FGuid::NewGuid(); Portal->Source=R.Session->Snapshot().Character.ActiveEntrance;
+    int Calls=0; R.Session->RequestWorldTravel=[&](const auto&,FString&){++Calls; return true;};
+    R.Controller->Possess(Avatar); R.Controller->LiveSession=R.Session; R.Controller->JournalPresenter=R.UI;
+    for (double X:{241.,249.,250.,251.,260.})
+    {
+        Npc->SetActorLocation(FVector(X,0,0)); Portal->SetActorLocation(FVector(X,20,0));
+        const auto Topics=R.Session->DialogueTopics(Npc->Materialize(R.Session->Snapshot().World.RunId));
+        TestTrue(TEXT("NPC topic reach"),!Topics.IsEmpty() && Topics[0].bEnabled==(X<=250));
+        auto Interact=LHStage1IntegrationTestsPrivate::Interact(R,Npc,TEXT("Topic.Church"));
+        const auto NpcResult=R.Session->Execute(Interact);
+        TestEqual(TEXT("NPC authoritative reach"),NpcResult.Reason,X<=250?ELHCommandReason::None:ELHCommandReason::OutOfRange);
+        R.Flush();
+        Portal->SetActorLocation(FVector(X,0,0));
+        FLHRequestTravelRequest Q; Q.Portal=Portal->Materialize(R.Session->Snapshot().World.RunId);
+        const int Before=Calls; auto Result=R.Session->Execute(Q);
+        TestEqual(TEXT("portal delegated only in reach"),Calls-Before,X<=250?1:0);
+        if (X>250) TestEqual(TEXT("portal out of range"),Result.Reason,ELHCommandReason::OutOfRange);
+        R.Controller->ActiveContext=ELHInputContext::Gameplay;
+        const int BeforeSelection=Calls; R.Controller->Interact();
+        TestEqual(TEXT("controller portal selection agrees"),Calls-BeforeSelection,X<=250?1:0);
+        Portal->SetActorLocation(FVector(1000,0,0));
+        R.UI->Open(ELHUIScreen::Hud); R.Controller->ActiveContext=ELHInputContext::Gameplay;
+        R.Controller->Interact();
+        TestEqual(TEXT("controller NPC selection agrees"),R.UI->Screen(),X<=250?ELHUIScreen::Dialogue:ELHUIScreen::Hud);
+    }
+    Npc->SetActorLocation(FVector(100,0,243)); Portal->SetActorLocation(FVector(100,0,243));
+    TestFalse(TEXT("NPC other floor refused"),R.Session->DialogueTopics(Npc->Materialize(R.Session->Snapshot().World.RunId))[0].bEnabled);
+    FLHRequestTravelRequest Q; Q.Portal=Portal->Materialize(R.Session->Snapshot().World.RunId);
+    TestEqual(TEXT("portal other floor refused"),R.Session->Execute(Q).Reason,ELHCommandReason::OutOfRange);
+    R.Controller->LiveSession.Reset(); R.Controller->JournalPresenter.Reset();
+    return !HasAnyErrors();
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHDialogueNpcName,"Lighthaven.Integration.Wave4.DialogueShowsNpcName",LHWave2TestsPrivate::Flags)
+bool FLHDialogueNpcName::RunTest(const FString&)
+{
+    using namespace LHWave2TestsPrivate;
+    FRuntime R(MakeShared<FStorage>()); R.Create(); R.Flush();
+    auto* Npc=R.World->SpawnActor<ALHInteractableMarker>(); Npc->Area=R.Session->Snapshot().Character.ActiveEntrance.Area; Npc->InstanceId=FGuid::NewGuid();
+    const auto Id=Npc->Materialize(R.Session->Snapshot().World.RunId);
+    Npc->DefinitionId.Value=TEXT("NPC.Nevanis"); TestEqual(TEXT("live Nevanis"),R.Session->DialogueName(Id),FString(TEXT("Nevanis")));
+    Npc->DefinitionId.Value=TEXT("NPC.BrotherKiran"); TestEqual(TEXT("spaced name"),R.Session->DialogueName(Id),FString(TEXT("Brother Kiran")));
+    Npc->DefinitionId.Value=TEXT("NPC.Unknown"); TestEqual(TEXT("unknown fallback"),R.Session->DialogueName(Id),FString(TEXT("Unknown NPC")));
+    return !HasAnyErrors();
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHStaleStatus,"Lighthaven.Integration.Wave4.StaleStatusClears",LHWave2TestsPrivate::Flags)
+bool FLHStaleStatus::RunTest(const FString&)
+{
+    using namespace LHWave2TestsPrivate;
+    auto Disk=MakeShared<FStorage>(); FRuntime R(Disk); R.Create();
+    Disk->bFail=true; R.Flush(); const auto Failure=R.Session->Status();
+    TestTrue(TEXT("save failure visible"),Failure.StartsWith(TEXT("Save failed:")));
+    R.Session->CompleteGameplayArrival(); TestEqual(TEXT("arrival preserves durability failure"),R.Session->Status(),Failure);
+    R.Session->FreezeWorldTravel(true);
+    R.Session->RetryWorldTravel=[](FString& Error){Error=TEXT("travel retry refused"); return false;};
+    R.Session->RetryPersistence(); TestEqual(TEXT("travel retry preserves save error"),R.Session->OwnerStatus(),Failure);
+    R.Session->FreezeWorldTravel(false);
+    Disk->bFail=false; R.Session->RetryPersistence(); TestTrue(TEXT("retry durability clears failure"),R.Session->Status().IsEmpty());
+    R.Session->AbortGameplayArrival(TEXT("fixture refused")); TestFalse(TEXT("arrival failure visible"),R.Session->Status().IsEmpty());
+    R.Session->CompleteGameplayArrival(); TestTrue(TEXT("successful arrival clears status"),R.Session->Status().IsEmpty());
+    R.Session->AbortGameplayArrival(TEXT("retry fixture")); R.Session->FreezeWorldTravel(true);
+    R.Session->RetryWorldTravel=[](FString&){return true;}; R.Session->RetryPersistence();
+    R.Session->FreezeWorldTravel(false); TestTrue(TEXT("successful travel retry clears old feedback"),R.Session->Status().IsEmpty());
     return !HasAnyErrors();
 }
 #endif

@@ -1,4 +1,5 @@
 #include "Framework/LHPlayerController.h"
+#include "Framework/LHInteractionReach.h"
 #include "Framework/LHSessionSubsystem.h"
 #include "UI/LHFrontendWidget.h"
 #include "Rewards/LHEncounterLifecycle.h"
@@ -308,13 +309,13 @@ void ALHPlayerController::Interact()
         ALHPortal* Nearest=nullptr; double Distance=250.0*250.0;
         for (TActorIterator<ALHPortal> It(GetWorld());It;++It)
         {
-            const double D=FVector::DistSquared(It->GetActorLocation(),GetPawn()->GetActorLocation());
-            if (D<Distance) { Nearest=*It; Distance=D; }
+            const double D=FVector::DistSquaredXY(It->GetActorLocation(),GetPawn()->GetActorLocation());
+            if (D<=Distance && LHInteractionReach::Contains(GetPawn()->GetActorLocation(),It->GetActorLocation())) { Nearest=*It; Distance=D; }
         }
         if (Nearest)
         {
             FHitResult Hit; FCollisionQueryParams Params; Params.AddIgnoredActor(GetPawn());
-            if (GetWorld()->LineTraceSingleByChannel(Hit,GetPawn()->GetActorLocation(),Nearest->GetActorLocation()+FVector(0,0,90),ECC_Visibility,Params) && Hit.GetActor()!=Nearest) return;
+            if (GetWorld()->LineTraceSingleByChannel(Hit,GetPawn()->GetActorLocation(),Nearest->GetActorLocation()+FVector(0,0,60),ECC_Visibility,Params) && Hit.GetActor()!=Nearest) return;
             const auto S=LiveSession->Snapshot(); FLHRequestTravelRequest Q;
             Q.Request.Epoch=S.Session.RequestEpoch; Q.Request.Value=FGuid::NewGuid();
             Q.Portal=Nearest->Materialize(S.World.RunId); Q.Destination=Nearest->Destination;
@@ -325,7 +326,7 @@ void ALHPlayerController::Interact()
     {
         auto Visible=[this](AActor* A){ FHitResult H; FCollisionQueryParams P; P.AddIgnoredActor(GetPawn()); return !GetWorld()->LineTraceSingleByChannel(H,GetPawn()->GetActorLocation(),A->GetActorLocation()+FVector(0,0,60),ECC_Visibility,P) || H.GetActor()==A; };
         ALHInteractableMarker* Npc=nullptr; double Best=250*250;
-        for(TActorIterator<ALHInteractableMarker> It(GetWorld());It;++It) { const double D=FVector::DistSquared(It->GetActorLocation(),GetPawn()->GetActorLocation()); if(It->DefinitionId.Value.ToString().StartsWith(TEXT("NPC.")) && D<=Best && Visible(*It)) { Best=D; Npc=*It; } }
+        for(TActorIterator<ALHInteractableMarker> It(GetWorld());It;++It) { const double D=FVector::DistSquaredXY(It->GetActorLocation(),GetPawn()->GetActorLocation()); if(It->DefinitionId.Value.ToString().StartsWith(TEXT("NPC.")) && D<=Best && LHInteractionReach::Contains(GetPawn()->GetActorLocation(),It->GetActorLocation()) && Visible(*It)) { Best=D; Npc=*It; } }
         if(Npc) { ShowTargetScreen("Dialogue",Npc->Materialize(LiveSession->Snapshot().World.RunId)); return; }
         ALHEnemyCharacter* Corpse=nullptr; Best=200*200;
         for(TActorIterator<ALHEnemyCharacter> It(GetWorld());It;++It) { const double D=FVector::DistSquared(It->GetActorLocation(),GetPawn()->GetActorLocation()); if(It->IsCorpse() && D<=Best && Visible(*It)) { Best=D; Corpse=*It; } }
