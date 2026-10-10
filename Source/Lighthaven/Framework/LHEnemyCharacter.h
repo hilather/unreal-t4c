@@ -5,6 +5,7 @@
 #include "AI/LHEnemyRuntime.h"
 #include "LHEnemyCharacter.generated.h"
 class ULHCombatComponent;
+class ULHMonsterVisual;
 // Also the native dummy target. No invented health/damage defaults or presentation assets.
 UCLASS()
 class LIGHTHAVEN_API ALHEnemyCharacter : public ACharacter, public IAbilitySystemInterface
@@ -22,12 +23,15 @@ public:
     bool IsAlive() const;
     bool IsCorpse() const { return bCorpse; }
     void MarkCorpse();
+    ULHMonsterVisual* GetMonsterVisual() const { return MonsterVisual; }
 protected:
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 private:
     UPROPERTY(VisibleAnywhere) TObjectPtr<ULHCombatComponent> Combat;
-    UPROPERTY() TObjectPtr<USceneComponent> PresentationRoot;
+    UPROPERTY() TObjectPtr<ULHMonsterVisual> MonsterVisual;
+    void BindPresentationEvents();
+    bool bPresentationBound = false;
     FLHEnemyRuntimeSpec Spec;
     FLHSpawnLifeId Life;
     bool bHasSpec = false, bCorpse = false;

@@ -3,13 +3,15 @@
 #include "Framework/LHDevCombatFixture.h"
 #include "Components/CapsuleComponent.h"
 #include "Abilities/LHAttributeSet.h"
-#include "AI/LHEnemyPresentation.h"
+#include "Visual/Monsters/LHMonsterVisual.h"
 #include "AI/LHEnemyAIController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 ALHEnemyCharacter::ALHEnemyCharacter()
 {
     GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
     Combat = CreateDefaultSubobject<ULHCombatComponent>(TEXT("Combat"));
+    MonsterVisual = CreateDefaultSubobject<ULHMonsterVisual>(TEXT("MonsterVisual"));
+    MonsterVisual->SetupAttachment(GetRootComponent());
 }
 UAbilitySystemComponent* ALHEnemyCharacter::GetAbilitySystemComponent() const { return Combat; }
 void ALHEnemyCharacter::BeginPlay()
@@ -17,10 +19,7 @@ void ALHEnemyCharacter::BeginPlay()
     Super::BeginPlay();
     if (!bHasSpec) LHDevCombat::InitializeForMap(Combat, this);
     InitializeAfterRestore();
-    Combat->OnDeath.AddWeakLambda(this, [this](const FLHHitIdentity&)
-    {
-        MarkCorpse();
-    });
+    BindPresentationEvents();
 }
 void ALHEnemyCharacter::InitializeAfterRestore() { Combat->InitializeCombatActorInfo(this, this); }
 void ALHEnemyCharacter::EndPlay(const EEndPlayReason::Type Reason) { Combat->ClearCombatAvatar(); Super::EndPlay(Reason); }
@@ -47,10 +46,8 @@ bool ALHEnemyCharacter::ApplyRuntimeSpec(const FLHEnemyRuntimeSpec& InSpec, cons
     Combat->ConfigureAttack(Spec.Attack, Spec.Requirements);
     Combat->SetCombatRandomState(FRandomStream(GetTypeHash(Life.SpawnSlot) ^ GetTypeHash(Life.LifeGeneration)));
     InitializeAfterRestore();
-    PresentationRoot = NewObject<USceneComponent>(this);
-    AddInstanceComponent(PresentationRoot); PresentationRoot->SetupAttachment(GetRootComponent());
-    PresentationRoot->SetRelativeLocation(FVector(0,0,-Spec.CapsuleHalfHeightCm.Value)); PresentationRoot->RegisterComponent();
-    LHEnemyPresentation::Build(this, PresentationRoot, Spec.PresentationId.Value);
+    MonsterVisual->Build(Spec.ContentId.Value, Spec.CapsuleRadiusCm.Value, Spec.CapsuleHalfHeightCm.Value);
+    BindPresentationEvents();
     return true;
 }
 bool ALHEnemyCharacter::IsAlive() const { return !bCorpse && Combat->IsAlive(); }
@@ -65,6 +62,22 @@ void ALHEnemyCharacter::MarkCorpse()
     // Corpses remain targetable by visibility traces, but cannot block exits or navigation.
     GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
     GetCapsuleComponent()->SetCanEverAffectNavigation(false);
-    if (PresentationRoot) LHEnemyPresentation::Dead(PresentationRoot, Spec.PresentationId.Value);
+    MonsterVisual->Die();
     if (auto* AI = Cast<ALHEnemyAIController>(GetController())) AI->EnterDead();
+}
+
+void ALHEnemyCharacter::BindPresentationEvents()
+{
+    if (bPresentationBound) return;
+    bPresentationBound = true;
+    Combat->OnDeath.AddWeakLambda(this, [this](const FLHHitIdentity&) { MarkCorpse(); });
+    Combat->OnAttackCommitted.AddWeakLambda(this, [this](const FLHAttackEvent& E) { MonsterVisual->Attack(E.ImpactSeconds, E.CommitSimulationTime); });
+    Combat->OnAttackCancelled.AddWeakLambda(this, [this](const FLHAttackEvent&, ELHAttackCancelReason) { MonsterVisual->CancelAttack(); });
+    Combat->OnAttackFinished.AddWeakLambda(this, [this](const FLHAttackEvent&, ELHAttackOutcome Outcome)
+    {
+        if (Outcome == ELHAttackOutcome::ResolvedHit || Outcome == ELHAttackOutcome::ResolvedMiss) MonsterVisual->Strike();
+        else MonsterVisual->CancelAttack();
+    });
+    Combat->GetGameplayAttributeValueChangeDelegate(ULHAttributeSet::GetHealthAttribute()).AddWeakLambda(this, [this](const FOnAttributeChangeData& D)
+    { if (D.NewValue < D.OldValue && D.NewValue > 0) MonsterVisual->Hit(); });
 }
