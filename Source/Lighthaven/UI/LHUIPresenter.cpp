@@ -32,7 +32,7 @@ void FLHUIPresenter::Open(ELHUIScreen S)
         Controls.Empty(); for(int32 I=0; I<Read.CorpseContents(InteractionTarget).Num(); ++I) Controls.Add(FName(*FString::Printf(TEXT("Loot%d"),I))); Controls.Add("Back"); break;
     case ELHUIScreen::Death: Controls={"Respawn","Back"}; break;
     case ELHUIScreen::Pause: Controls={"Resume","Settings","Back"}; break;
-    case ELHUIScreen::Settings: Controls = {"Volume", "Controls", "Apply", "Revert", "Back"}; break;
+    case ELHUIScreen::Settings: Controls = {"Master", "Effects", "UI", "TextScale", "HighContrast", "Apply", "Revert", "Back"}; break;
     }
     Controls.AddUnique(TEXT("RetryCommand"));
     Controls.AddUnique(TEXT("Quit"));

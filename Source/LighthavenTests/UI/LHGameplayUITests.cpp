@@ -172,4 +172,15 @@ bool FLHLiveAttackTest::RunTest(const FString&)
 {
     using namespace LHGameplayUITestsPrivate; FGameplayOwners O; FLHUIPresenter P(O,O,O); const auto Target=Entity(); TestTrue(TEXT("command accepted"),P.UseAbility(Target).Disposition==ELHCommandDisposition::Accepted); TestTrue(TEXT("stable enemy id"),O.Attack.Target.InstanceId==Target.InstanceId); TestTrue(TEXT("selected ability"),O.Attack.Ability.Value==TEXT("Attack.Melee.Basic")); const auto ID=O.Attack.Request.Value; P.RetryCommand(); TestTrue(TEXT("attack retry ID"),O.Attack.Request.Value==ID); return true;
 }
+LH_UI_TEST(FLHSettingsNavigationTest,"Presentation.SettingsKeyboardAndPad")
+{
+    using namespace LHGameplayUITestsPrivate; FGameplayOwners O; FLHUIPresenter P(O,O,O);
+    auto W=ILHUIWidgetHarness::Create(P); W->Open(ELHUIScreen::Settings);
+    TestEqual(TEXT("settings initial focus"),P.FocusedControl(),FName("Master"));
+    for(FName Id:{"Master","Effects","UI","TextScale","HighContrast","Apply","Revert","Back"})
+        TestTrue(TEXT("setting reachable in logical focus order"),P.FocusOrder().Contains(Id));
+    W->Key(ELHUITestKey::KeyboardDown); TestEqual(TEXT("keyboard advances"),P.FocusedControl(),FName("Effects"));
+    W->Key(ELHUITestKey::Down); TestEqual(TEXT("pad advances"),P.FocusedControl(),FName("UI"));
+    return true;
+}
 #endif
