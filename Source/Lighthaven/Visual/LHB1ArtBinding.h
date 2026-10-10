@@ -10,6 +10,8 @@ namespace LHB1Art
         TArray<FTransform> Instances;
         FBox ClipBounds = FBox(FVector(-1.e8),FVector(1.e8));
     };
+    // Closed backing inside imported masonry; never collision or recipe geometry.
+    LIGHTHAVEN_API TArray<FLHVisualBox> SolidBacking(const FLHVisualRecipe& Recipe, const FFit& Fit);
     LIGHTHAVEN_API const TArray<FString>& AssetNames();
     // Unit-scale tiles retain authored UV density; the master clips excess
     // at fitted edges. Stairs rotate to the signed path and crop the run.
