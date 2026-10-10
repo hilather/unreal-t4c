@@ -1,4 +1,5 @@
 #include "Framework/LHCharacter.h"
+#include "Visual/Player/LHPlayerVisual.h"
 #include "Framework/LHPlayerState.h"
 #include "Framework/LHSessionSubsystem.h"
 #include "Engine/GameInstance.h"
@@ -10,6 +11,8 @@
 #include "Abilities/LHCombatComponent.h"
 ALHCharacter::ALHCharacter()
 {
+    PlayerVisual=CreateDefaultSubobject<ULHPlayerVisualComponent>(TEXT("PlayerVisual"));
+    PlayerVisual->SetupAttachment(RootComponent);
     SpellLight=CreateDefaultSubobject<UPointLightComponent>(TEXT("SpellLight"));
     SpellLight->SetupAttachment(RootComponent);
     SpellLight->SetMobility(EComponentMobility::Movable);
@@ -54,6 +57,11 @@ void ALHCharacter::Tick(float DeltaSeconds)
     Super::Tick(DeltaSeconds);
     const auto* State=GetPlayerState<ALHPlayerState>();
     SpellLight->SetVisibility(State && State->GetCombatComponent()->GetLightRemainingSeconds()>0);
+    FLHCharacterRecord Appearance;
+    bool bHasAppearance=false;
+    if(auto* GI=GetGameInstance()) if(auto* SS=GI->GetSubsystem<ULHSessionSubsystem>())
+        if(auto Live=SS->Session(); Live && Live->HasCharacter()) { Appearance=Live->Snapshot().Character; bHasAppearance=true; }
+    PlayerVisual->Present(bHasAppearance?&Appearance:nullptr,State?State->GetCombatComponent():nullptr,GetVelocity().Size2D(),DeltaSeconds);
     if (auto* Instance=GetGameInstance()) if (auto* Subsystem=Instance->GetSubsystem<ULHSessionSubsystem>())
         if (auto Session=Subsystem->Session(); Session && State && State->GetCombatAvatar()==this) Session->TickGameplay(DeltaSeconds);
 }
