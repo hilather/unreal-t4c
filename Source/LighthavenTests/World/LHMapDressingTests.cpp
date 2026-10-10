@@ -7,6 +7,11 @@
 #include "Camera/CameraActor.h"
 #include "Components/BoxComponent.h"
 #include "UObject/Package.h"
+#include "Camera/CameraComponent.h"
+#include "Engine/StaticMeshActor.h"
+#include "Engine/StaticMesh.h"
+#include "Components/StaticMeshComponent.h"
+#include "ProceduralMeshComponent.h"
 
 IMPLEMENT_COMPLEX_AUTOMATION_TEST(FLHMapDressingTest,"Lighthaven.World.Dressing.Maps",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 void FLHMapDressingTest::GetTests(TArray<FString>& Names,TArray<FString>& Commands) const
@@ -17,9 +22,11 @@ bool FLHMapDressingTest::RunTest(const FString& Parameters)
 {
     const auto* Area=LHWorld::Registry().FindByPredicate([&](const FLHAreaDefinition& A){return A.Id.Content.Value.ToString()==Parameters;});
     if(!Area) return false;
+    const double LoadStart=FPlatformTime::Seconds();
     auto* Package=LoadPackage(nullptr,*Area->Map.GetLongPackageName(),LOAD_None);
     auto* World=Package?UWorld::FindWorldInPackage(Package):nullptr;
     if(!TestNotNull(TEXT("Generated map required"),World)) return false;
+    AddInfo(FString::Printf(TEXT("%s load/rebuild %.3f seconds"),*Parameters,FPlatformTime::Seconds()-LoadStart));
     TArray<ALHVisualPiece*> Pieces;
     TSet<FGuid> Spawns,Portals,NPCs;
     TSet<FName> Entrances;
@@ -46,6 +53,8 @@ bool FLHMapDressingTest::RunTest(const FString& Parameters)
     {
         if(auto* P=Cast<ALHVisualPiece>(*It))
         {
+            TestTrue(TEXT("Mesh excluded from package serialization"),P->GetMesh()->HasAnyFlags(RF_Transient));
+            TestTrue(TEXT("Geometry present immediately after load"),P->GetMesh()->GetNumSections()>0);
             // Explicit rebuild proves serialized recipes reconstruct the same assembly.
             const auto Recipe=P->GetRecipe();
             const int32 StyleIndex=LHWorld::Registry().IndexOfByPredicate([&](const FLHAreaDefinition& V){return &V==Area;});
@@ -112,5 +121,62 @@ bool FLHMapDressingTest::RunTest(const FString& Parameters)
     TestEqual(TEXT("Portal inventory unchanged"),Portals.Num(),Area->Portals.Num());
     TestEqual(TEXT("NPC inventory unchanged"),NPCs.Num(),Area->Spawns.IsEmpty()?13:(Parameters==TEXT("Area.TempleB1")?2:0));
     AddInfo(FString::Printf(TEXT("%s: pieces=%d triangles=%d sections=%d blockers=%d"),*Parameters,Totals.Pieces,Totals.Triangles,Totals.DrawCalls,Totals.CollisionBoxes));
+    return true;
+}
+
+// Geometry rays deliberately bypass physics: dressing has zero collision.
+// Test the exact oriented recipe boxes and retained/visible static mesh bounds.
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FLHCaptureFramingTest,"Lighthaven.World.Dressing.CaptureFraming",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+void FLHCaptureFramingTest::GetTests(TArray<FString>& Names,TArray<FString>& Commands) const
+{
+    for(const auto& Area:LHWorld::Registry()) { Names.Add(Area.Id.Content.Value.ToString()); Commands.Add(Area.Id.Content.Value.ToString()); }
+}
+bool FLHCaptureFramingTest::RunTest(const FString& Parameters)
+{
+    const auto* Area=LHWorld::Registry().FindByPredicate([&](const FLHAreaDefinition& A){return A.Id.Content.Value.ToString()==Parameters;});
+    if(!Area) return false;
+    const double LoadStart=FPlatformTime::Seconds();
+    auto* Package=LoadPackage(nullptr,*Area->Map.GetLongPackageName(),LOAD_None);
+    auto* World=Package?UWorld::FindWorldInPackage(Package):nullptr;
+    if(!TestNotNull(TEXT("Generated map required"),World)) return false;
+    AddInfo(FString::Printf(TEXT("%s first load/rebuild %.3f seconds"),*Parameters,FPlatformTime::Seconds()-LoadStart));
+    struct FSurface { FTransform Transform; FBox Bounds; };
+    TArray<FSurface> Surfaces;
+    for(TActorIterator<AActor> It(World);It;++It)
+    {
+        if(auto* P=Cast<ALHVisualPiece>(*It))
+            for(const auto& B:P->GetRecipe().Geometry)
+                Surfaces.Add({FTransform(B.Rotation,B.Center)*P->GetActorTransform(),FBox(-B.Size/2,B.Size/2)});
+        if(auto* A=Cast<AStaticMeshActor>(*It))
+        {
+            auto* C=A->GetStaticMeshComponent();
+            if(C->GetStaticMesh() && !A->IsHidden() && (C->IsVisible() || A->Tags.Contains(TEXT("LH.Dressing.RetainedCollider"))))
+                Surfaces.Add({C->GetComponentTransform(),C->GetStaticMesh()->GetBoundingBox()});
+        }
+    }
+    int32 Cameras=0;
+    for(TActorIterator<ACameraActor> It(World);It;++It)
+    {
+        if(!It->Tags.Contains(TEXT("LH.Capture"))) continue;
+        ++Cameras; int32 Hits=0;
+        auto* C=It->GetCameraComponent();
+        TestEqual(TEXT("Capture horizontal FOV"),C->FieldOfView,65.f);
+        const double HalfWidth=FMath::Tan(FMath::DegreesToRadians(65./2));
+        const FVector Start=C->GetComponentLocation();
+        for(int32 Y=0;Y<9;++Y) for(int32 X=0;X<16;++X)
+        {
+            const FVector Direction=C->GetComponentQuat().RotateVector(FVector(1,(2*(X+.5)/16-1)*HalfWidth,(1-2*(Y+.5)/9)*HalfWidth*9/16)).GetSafeNormal();
+            const FVector End=Start+Direction*6000;
+            for(const auto& Surface:Surfaces)
+            {
+                const FVector A=Surface.Transform.InverseTransformPosition(Start),B=Surface.Transform.InverseTransformPosition(End);
+                if(FMath::LineBoxIntersection(Surface.Bounds,A,B,B-A)) { ++Hits; break; }
+            }
+        }
+        const double Fraction=double(Hits)/144;
+        AddInfo(FString::Printf(TEXT("%s %s hits=%d/144 fraction=%.6f position=%s rotation=%s"),*Parameters,*It->GetName(),Hits,Fraction,*Start.ToString(),*C->GetComponentRotation().ToString()));
+        TestTrue(TEXT("At least 85 percent view rays hit geometry within 60m"),Fraction>=.85);
+    }
+    TestEqual(TEXT("Three cameras audited"),Cameras,3);
     return true;
 }

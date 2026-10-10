@@ -15,10 +15,10 @@ Each generated map has three native `CameraActor`s, named `LH_Capture_1` through
 | Map | Camera positions (cm) | Look-at points (cm) |
 |---|---|---|
 | Hub | (1450,100,1100); (-1100,100,700); (-3700,6800,900) | (700,1200,100); (-600,500,0); (-3300,7400,100) |
-| B1 | (1400,-2400,900); (-2500,200,900); (5000,200,1000) | (800,-1600,0); (-1800,1100,0); (4100,1500,0) |
-| B2 | (1600,-6200,1000); (-2200,300,1000); (4500,5400,1000) | (900,-5200,0); (-1400,1400,0); (3600,6300,0) |
-| B3 | (3900,-200,1000); (-600,1600,1000); (5300,5400,1000) | (2900,700,0); (400,2500,0); (4300,6400,0) |
-| B4 | (1100,100,900); (1700,2500,1100); (3500,7100,1200) | (600,900,0); (1000,3700,0); (1600,7400,100) |
+| B1 | (1400,-2400,900); (-2500,200,900); (5000,600,1000) | (800,-1600,0); (-1800,1100,0); (4300,1300,0) |
+| B2 | (1600,-6200,1000); (-2400,400,1100); (6500,5000,1100) | (900,-5200,0); (-1800,1000,0); (5800,5800,0) |
+| B3 | (3900,-200,1000); (-600,1600,1000); (5000,5600,900) | (2900,700,0); (400,2500,0); (4600,6100,0) |
+| B4 | (1100,100,900); (1700,2500,1100); (3100,7200,1000) | (600,900,0); (1000,3700,0); (2400,7500,0) |
 
 No lighting settings change. Inherited host target means are hub .28 / B1 .27 / B2 .24 / B3 .19 / B4 .18. New material brightness must be measured on the host; these inherited values are not observations of dressed maps. LightingAudit retains its original exposure, light inventory, units and coverage assertions.
 
@@ -53,3 +53,7 @@ The local arrival-review script completed9/9 (exit0), with the reviewed-list SHA
 The headless editor-game camera smoke exited0 and logged view-target selections1/2/3 in the hub. Actual capture returned1 at preflight because this worker has no X11/Wayland display. No rendered screenshots, dressed-map luminance, final camera framing, cooked performance or G5 visual acceptance are claimed. Serialized local procedural maps are approximately60–277 MiB each; clean cook, cooked size and load-time measurement remain open. Generated maps were restored to their original LFS pointers before submission.
 
 Initial Automation/editor runs were interrupted by sandbox rejection of engine telemetry to datarouter.ol.epicgames.com. Reruns used the normal engine privacy override `-ini:EditorSettings:[/Script/UnrealEd.AnalyticsPrivacySettings]:bSendUsageData=False`, alongside the house-rule headless flags. No permanent project/system setting changed. Exact commands, interrupted/final logs, JSON reports, map sizes and arrival evidence are in this attempt's output `library/`.
+
+## W5-06 lean serialization
+
+Visual pieces retain fitted recipes and placement in saved maps. The procedural mesh is a transient default subobject attached to a persistent scene root; mesh sections and dynamic materials are rebuilt in PostLoad (editor load), OnConstruction (authoring), and BeginPlay (PIE/game). Generator-side Dress still performs label-based fitting and hides the same original surfaces. BasicShapeMaterial remains a hard UPROPERTY reference loaded by the constructor, so cooking can follow its dependency. Geometry coverage now has a headless 16×9/FOV65/60m capture audit. See [W5-06 evidence](map-dressing-w5-06.md) for sizes, load timing, camera changes, test results and remaining limits.

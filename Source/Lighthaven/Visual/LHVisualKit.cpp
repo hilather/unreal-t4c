@@ -1,6 +1,7 @@
 #include "Visual/LHVisualKit.h"
 #include "ProceduralMeshComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/SceneComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/World.h"
 #include "Misc/Crc.h"
@@ -120,8 +121,8 @@ bool LHVisual::MakeRecipe(FName Id,ELHVisualStyle Style,FLHVisualRecipe& Out,boo
     if (!PieceIds().Contains(Id) || uint8(Style)>uint8(ELHVisualStyle::B4Ritual)) return false;
     using namespace LHVisualPrivate;
     FLHVisualRecipe R; R.Id=Id; R.Style=Style;
-    R.Colors[0]=Hex(Style==ELHVisualStyle::B4Ritual?TEXT("514B42"):TEXT("78634B"));
-    R.Colors[1]=Hex(Style==ELHVisualStyle::B2Damp?TEXT("433E32"):Style==ELHVisualStyle::B4Ritual?TEXT("733D35"):TEXT("9B9484"));
+    R.Colors[0]=Hex(Style==ELHVisualStyle::B4Ritual?TEXT("A69C89"):TEXT("78634B"));
+    R.Colors[1]=Hex(Style==ELHVisualStyle::B2Damp?TEXT("433E32"):Style==ELHVisualStyle::B4Ritual?TEXT("B78370"):TEXT("9B9484"));
     if(Style==ELHVisualStyle::Church) R.Colors[1]=Hex(TEXT("B2A58A"));
     const FString S=Id.ToString();
     if(bDescending && !S.Contains(TEXT(".Stair"))) return false;
@@ -130,7 +131,7 @@ bool LHVisual::MakeRecipe(FName Id,ELHVisualStyle Style,FLHVisualRecipe& Out,boo
     else if(S.Contains(TEXT(".Floor")))
     {
         float L=S.EndsWith(TEXT("100"))?100:S.EndsWith(TEXT("200"))?200:400;
-        R.Colors[0]=Hex(Style==ELHVisualStyle::Church?TEXT("77766D"):TEXT("695640"));
+        R.Colors[0]=Hex(Style==ELHVisualStyle::Church?TEXT("77766D"):Style==ELHVisualStyle::B4Ritual?TEXT("A69C89"):TEXT("695640"));
         FLHVisualBox Solid; Solid.Center={L/2,L/2,-10}; Solid.Size={L,L,20}; R.Collision.Add(Solid);
         Box(R,{L/2,L/2,-11},{L,L,18});
         for(float X=0;X<L;X+=100) for(float Y=0;Y<L;Y+=100)
@@ -207,9 +208,17 @@ ALHVisualPiece::ALHVisualPiece()
     PrimaryActorTick.bCanEverTick=false;
     static ConstructorHelpers::FObjectFinder<UMaterialInterface> Parent(TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
     MaterialParent=Parent.Object;
-    Mesh=CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("Visual")); SetRootComponent(Mesh);
+    SetRootComponent(CreateDefaultSubobject<USceneComponent>(TEXT("Placement")));
+    Mesh=CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("Visual"), true);
+    Mesh->SetFlags(RF_Transient);
+    Mesh->SetupAttachment(GetRootComponent());
     Mesh->SetCollisionProfileName(TEXT("NoCollision")); Mesh->SetGenerateOverlapEvents(false); Mesh->SetCanEverAffectNavigation(false);
     Mesh->bUseComplexAsSimpleCollision=false;
+}
+void ALHVisualPiece::PostLoad()
+{
+    Super::PostLoad();
+    if(!BuiltRecipe.Geometry.IsEmpty()) { const FLHVisualRecipe Copy=BuiltRecipe; Build(Copy); }
 }
 void ALHVisualPiece::OnConstruction(const FTransform& Transform)
 {
