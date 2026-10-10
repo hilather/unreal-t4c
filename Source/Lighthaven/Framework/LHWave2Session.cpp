@@ -10,6 +10,10 @@
 #include "Abilities/LHResourceRecovery.h"
 #include "Abilities/LHLightEffect.h"
 #include "AI/LHEncounterDirector.h"
+#include "Abilities/LHAbilityCatalog.h"
+#include "Services/LHServiceCatalog.h"
+#include "Data/Enemies/LHEnemyCatalog.h"
+#include "Data/Items/LHItemCatalog.h"
 namespace LHWave2SessionPrivate
 {
 bool ValidateReferences(const FLHSaveSnapshot& S, FLHSaveError& E)
@@ -20,6 +24,72 @@ bool ValidateReferences(const FLHSaveSnapshot& S, FLHSaveError& E)
     if (!LHWorld::FindEntrance(S.Character.ActiveEntrance) || !Respawn ||
         !S.Session.SafeRespawn.SafeTransform.Equals(Respawn->SafeTransform) ||
         !LHWorld::ValidateWorld(S.World,WorldError)) return Bad();
+    // Hash compatibility does not establish reference closure. Compare spelling,
+    // too: FName equality alone accepts case variants of canonical catalog IDs.
+    auto Canonical=[](const FLHContentId& A,const FLHContentId& B) {
+        return A.Value.ToString().Equals(B.Value.ToString(),ESearchCase::CaseSensitive);
+    };
+    for (const auto& Skill:S.Character.LearnedSkills)
+        if (!LHServices::Catalog().ContainsByPredicate([&](const auto& Offer) {
+            return Offer.Kind==ELHServiceKind::TrainSkill && Canonical(Offer.Subject,Skill.Skill);
+        })) return Bad();
+    for (const auto& Spell:S.Character.LearnedSpells) {
+        const auto* Row=LHAbilities::Find(Spell);
+        if (!Row || !Canonical(Row->Id,Spell) || !Spell.Value.ToString().StartsWith(TEXT("Spell."))) return Bad();
+    }
+    auto Items=[&](const TArray<FLHItemInstance>& Values) {
+        for (const auto& Item:Values) { const auto* Row=LHItemData::Find(Item.Definition);
+            if (!Row || !Canonical(Row->Character.Id,Item.Definition)) return false; }
+        return true;
+    };
+    if (!Items(S.Character.Inventory)) return Bad();
+    for (const auto& Area:S.World.Areas) {
+        for (const auto& Object:Area.Objects) if (!Items(Object.RemainingItems)) return Bad();
+        for (const auto& Corpse:Area.Corpses) if (!Items(Corpse.RemainingItems)) return Bad();
+    }
+    for (const auto& Cooldown:S.Session.Cooldowns) {
+        const auto* Row=LHAbilities::Find(Cooldown.Ability);
+        if (!Row || !Canonical(Row->Id,Cooldown.Ability) || !LHWorld::FindArea(Cooldown.Owner.Area) ||
+            Cooldown.Owner.RunId!=S.World.RunId) return Bad();
+        if (Cooldown.Owner.InstanceId==S.Header.CharacterId.Value) {
+            if (Cooldown.Owner.Area.Content.Value.ToString()!=TEXT("Area.LighthavenTempleDistrict")) return Bad();
+        } else {
+            const auto* Area=LHWorld::FindArea(Cooldown.Owner.Area);
+            if (!Area->Spawns.ContainsByPredicate([&](const auto& Spawn){return Spawn.SpawnId==Cooldown.Owner.InstanceId;})) return Bad();
+        }
+    }
+    TSet<FGuid> ExpectedClaims;
+    bool BalorkDefeated=false;
+    for (const auto& Boss:S.World.Bosses) {
+        const auto* Row=LHEnemyData::Find(Boss.Boss);
+        FLHRewardId Expected; FLHSaveError Error;
+        if (!Row || !Row->Reward.bBoss || !Canonical(Row->Id,Boss.Boss) ||
+            !LHSave::BossUniqueRewardId(S.World.RunId,Boss.Boss,Expected,Error)) return Bad();
+        const bool Retained=S.World.ClaimedUniqueRewards.ContainsByPredicate([&](const auto& R){return R.Value==Expected.Value;});
+        if (Boss.bDefeated) {
+            if (Boss.UniqueClaim.Value!=Expected.Value || !Retained) return Bad();
+            ExpectedClaims.Add(Expected.Value);
+        } else if (Boss.UniqueClaim.Value.IsValid() || Retained) return Bad();
+        if (Boss.Boss.Value.ToString()==TEXT("Enemy.Balork")) BalorkDefeated=Boss.bDefeated;
+    }
+    for (const auto& Quest:S.World.Quests) {
+        const FString Id=Quest.Quest.Value.ToString();
+        if (Id==TEXT("Quest.SamaritanRats")) {
+            FLHRewardId Expected; FLHSaveError Error;
+            if (!LHSave::QuestTurnInRewardId(S.World.RunId,Quest.Quest,TEXT("TurnIn"),Expected,Error)) return Bad();
+            const bool Retained=S.World.ClaimedUniqueRewards.ContainsByPredicate([&](const auto& R){return R.Value==Expected.Value;});
+            if (Quest.bRewarded) {
+                if (!Quest.bAccepted || !Quest.bCompleted || Quest.Stage.ToString()!=TEXT("TurnIn") ||
+                    Quest.EligibleKillCount.Value<15 || Quest.TurnInClaim.Value!=Expected.Value || !Retained) return Bad();
+                ExpectedClaims.Add(Expected.Value);
+            } else if (Quest.bCompleted || Quest.TurnInClaim.Value.IsValid() || Retained) return Bad();
+        } else if (Id==TEXT("Quest.BalorkReturn")) {
+            if (!BalorkDefeated || !Quest.bAccepted || Quest.bRewarded || Quest.TurnInClaim.Value.IsValid() ||
+                Quest.Stage.ToString()!=(Quest.bCompleted?TEXT("Complete"):TEXT("ReturnToChurch"))) return Bad();
+        } else return Bad();
+    }
+    if (BalorkDefeated && !S.World.Quests.ContainsByPredicate([](const auto& Q){return Q.Quest.Value.ToString()==TEXT("Quest.BalorkReturn");})) return Bad();
+    for (const auto& Claim:S.World.ClaimedUniqueRewards) if (!ExpectedClaims.Contains(Claim.Value)) return Bad();
     FLHCharacterAuthority Check;
     if (!Check.Initialize(LHWave2::PrototypeProfile(),FGuid::NewGuid(),123) || Check.Import(S)!=ELHCommandReason::None) return Bad();
     return true;
@@ -80,7 +150,8 @@ bool FLHWave2Session::InstallDerived(bool RestoreEffects)
     auto SavedOwner=PlayerEntity();
     if (Complete.Session.DurableEffects.Num()==1) SavedOwner.Area=Complete.Session.DurableEffects[0].Owner.Area;
     if (!LHAbilities::RestoreLightEffect(*C,SavedOwner,Complete.Session)) return false;
-    if (!LHAbilities::CaptureLightEffect(*C,PlayerEntity(),Complete.Session)) return false;
+    auto LightOwner=PlayerEntity(); LightOwner.Area=Complete.Character.ActiveEntrance.Area;
+    if (!LHAbilities::CaptureLightEffect(*C,LightOwner,Complete.Session)) return false;
     return A->Import(Complete)==ELHCommandReason::None;
 }
 FLHSaveSnapshot FLHWave2Session::Snapshot() const { return Complete; }
@@ -295,7 +366,7 @@ bool FLHWave2Session::InstallTravel(const FLHSaveSnapshot& Snapshot)
 {
     if (!Authority()) return false;
     auto Next=Snapshot;
-    // Travel changes the player's area-scoped identity. Only remap the allowlisted
+    // Light retains its area-scoped effect identity. Only remap the allowlisted
     // self effect belonging to this character/run; validation still rejects others.
     for (auto& Effect:Next.Session.DurableEffects)
         if (Effect.Effect.Value==TEXT("Effect.SpellLight") &&
@@ -309,8 +380,9 @@ bool FLHWave2Session::InstallTravel(const FLHSaveSnapshot& Snapshot)
 }
 FLHCommandResult FLHWave2Session::Execute(const FLHRequestTravelRequest& Q)
 {
-    if (IsTransactionBlocked() || !RequestWorldTravel) return LHWave2SessionPrivate::Busy();
-    FString Error; FLHCommandResult R;
+    FLHCommandResult R; R.Request=Q.Request;
+    if (IsTransactionBlocked() || !RequestWorldTravel) { R.Reason=ELHCommandReason::Busy; return R; }
+    FString Error;
     ALHPortal* Portal=nullptr;
     if (Owner.IsValid()) for (TActorIterator<ALHPortal> It(Owner->GetWorld());It;++It)
         if (It->Materialize(Complete.World.RunId).InstanceId==Q.Portal.InstanceId &&
@@ -318,7 +390,7 @@ FLHCommandResult FLHWave2Session::Execute(const FLHRequestTravelRequest& Q)
         { if (Portal) { R.Reason=ELHCommandReason::InvalidRequest; return R; } Portal=*It; }
     if (!Portal) { R.Reason=ELHCommandReason::NotFound; return R; }
     if (!Spatial(Portal,250)) { R.Reason=ELHCommandReason::OutOfRange; return R; }
-    if (RequestWorldTravel(Q,Error)) { R.Disposition=ELHCommandDisposition::Accepted; if (!bDurabilityError && !HasUnsavedChanges()) Message.Empty(); }
+    if (RequestWorldTravel(Q,Error)) { R.Reason=ELHCommandReason::None; R.Disposition=ELHCommandDisposition::Accepted; if (!bDurabilityError && !HasUnsavedChanges()) Message.Empty(); }
     else { R.Reason=ELHCommandReason::InvalidRequest; if (!bDurabilityError) Message=Error; }
     return R;
 }

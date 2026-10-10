@@ -58,7 +58,8 @@ FLHAreaRecord* Area(FLHSaveSnapshot& S)
 }
 FLHEntityId FLHWave2Session::PlayerEntity() const
 {
-    FLHEntityId Id; Id.RunId=Complete.World.RunId; Id.Area=Complete.Character.ActiveEntrance.Area;
+    // D12: player origin is stable across travel; enemy owners remain per area.
+    FLHEntityId Id; Id.RunId=Complete.World.RunId; Id.Area.Content.Value=TEXT("Area.LighthavenTempleDistrict");
     Id.InstanceId=Complete.Header.CharacterId.Value; return Id;
 }
 bool FLHWave2Session::SyncResources()
@@ -82,7 +83,8 @@ bool FLHWave2Session::SyncResources()
     if (!Light->IsActionPending() && !Light->IsPublishingActionEvents())
     {
         if (bDeadAwaitingRespawn) Light->RestoreLightRemainingSeconds(0);
-        if (!LHAbilities::CaptureLightEffect(*Light,PlayerEntity(),Complete.Session)) return false;
+        auto LightOwner=PlayerEntity(); LightOwner.Area=Complete.Character.ActiveEntrance.Area;
+        if (!LHAbilities::CaptureLightEffect(*Light,LightOwner,Complete.Session)) return false;
     }
     if (Director.IsValid()) if (auto* A=LHStage1SessionPrivate::Area(Complete)) Director->CaptureLive(*A);
     if (Director.IsValid()) for (TActorIterator<ALHEnemyCharacter> It(Owner->GetWorld());It;++It)
@@ -172,25 +174,17 @@ FLHCommandResult FLHWave2Session::Execute(const FLHUseAbilityRequest& Q)
     FLHCommandResult R; R.Request=Q.Request;
     if (IsBlocked() || bGameplayPaused || !Owner.IsValid()) { R.Reason=ELHCommandReason::Busy; return R; }
     if (!Q.Request.Value.IsValid() || Q.Request.Epoch!=Complete.Session.RequestEpoch) return R;
-    const FString Digest=LHSave::RequestDigest(TEXT("UseAbility"),Q.StaticStruct(),&Q);
-    if (const auto* Previous=RuntimeAbilities.Find(Q.Request.Value))
-    {
-        if (Previous->Key!=Digest) { R.Reason=ELHCommandReason::ReusedRequestId; return R; }
-        R=Previous->Value; R.bReplay=true; return R;
-    }
-    if (RuntimeAbilities.Num()>=4096) { R.Reason=ELHCommandReason::Busy; Message=TEXT("Action request capacity reached; save and reload before issuing more attacks."); return R; }
-    LHAbilities::FLHUseAbilityContext Context; Context.Source=Owner->GetCombatComponent(); Context.Snapshot=Snapshot();
-    Context.SourceId=PlayerEntity(); Context.ItemLookup=LHStage1SessionPrivate::Item;
-    Context.Combat=LHWave2::PrototypeProfile().Rules.Combat;
-    auto* Target=Director.IsValid()?Director->FindByEntity(Q.Target):nullptr;
-    if (Target) { Context.Target=Target->GetCombatComponent(); Context.TargetId=Target->GetEntityId(Complete.World.RunId); }
-    if (LHStage1SessionPrivate::Same(Q.Target,Context.SourceId))
-    { Context.Target=Context.Source; Context.TargetId=Context.SourceId; Context.bTargetFriendly=true; }
-    R.Reason=LHAbilities::ExecuteUseAbility(Context,Q);
-    if (R.Reason==ELHCommandReason::None)
-    { R.Disposition=ELHCommandDisposition::Accepted; RuntimeAbilities.Add(Q.Request.Value,{Digest,R}); }
-    // D16: no receipt, sequence advance, or save per activation.
-    return R;
+    // D16: no durable receipt, sequence advance, or save per activation.
+    return RuntimeAbilities.Execute(Q,[&]() {
+        LHAbilities::FLHUseAbilityContext Context; Context.Source=Owner->GetCombatComponent(); Context.Snapshot=Snapshot();
+        Context.SourceId=PlayerEntity(); Context.ItemLookup=LHStage1SessionPrivate::Item;
+        Context.Combat=LHWave2::PrototypeProfile().Rules.Combat;
+        auto* Target=Director.IsValid()?Director->FindByEntity(Q.Target):nullptr;
+        if (Target) { Context.Target=Target->GetCombatComponent(); Context.TargetId=Target->GetEntityId(Complete.World.RunId); }
+        if (LHStage1SessionPrivate::Same(Q.Target,Context.SourceId))
+        { Context.Target=Context.Source; Context.TargetId=Context.SourceId; Context.bTargetFriendly=true; }
+        return LHAbilities::ExecuteUseAbility(Context,Q);
+    });
 }
 bool FLHWave2Session::PopulateEncounterCheckpoint(FLHSaveSnapshot& Snapshot,FString& Error)
 {

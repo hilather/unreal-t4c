@@ -17,6 +17,8 @@
 #include "Data/Encounters/LHEncounterCatalog.h"
 #include "Rewards/LHEncounterLifecycle.h"
 #include "TimerManager.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "HAL/PlatformProcess.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Engine/TargetPoint.h"
@@ -24,10 +26,16 @@
 #include "Components/PrimitiveComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "StaticMeshCompiler.h"
+#include "AssetCompilingManager.h"
+#include "AI/NavigationSystemBase.h"
+#include "UObject/UnrealType.h"
 #include "UObject/Package.h"
+#include "UObject/LinkerInstancingContext.h"
 #include "Engine/GameViewportClient.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/GameInstance.h"
+#include "Framework/LHSessionSubsystem.h"
+#include "Persistence/LHSaveSubsystem.h"
 #include "EnhancedInputSubsystems.h"
 #include "UI/LHUIWidgetHarness.h"
 #include "UI/LHFrontendGameMode.h"
@@ -49,13 +57,15 @@ public:
 };
 struct FRuntime
 {
+    UGameInstance* Instance=nullptr;
+    ULocalPlayer* Local=nullptr;
     UWorld* World=nullptr;
     ALHPlayerState* State=nullptr;
     ALHPlayerController* Controller=nullptr;
     TSharedPtr<FLHSaveStore> Store;
     TSharedPtr<FLHWave2Session> Session;
     TSharedPtr<FLHUIPresenter> UI;
-    explicit FRuntime(TSharedRef<FStorage> Disk)
+    explicit FRuntime(TSharedRef<FStorage> Disk,bool OwnedSession=false)
     {
         const FName Name=MakeUniqueObjectName(nullptr,UWorld::StaticClass(),TEXT("LHWave2World"),EUniqueObjectNameOptions::GloballyUnique);
         const auto Init=UWorld::InitializationValues().AllowAudioPlayback(false).CreatePhysicsScene(true).RequiresHitProxies(false)
@@ -65,12 +75,28 @@ struct FRuntime
         Context.SetCurrentWorld(World); World->InitializeActorsForPlay(FURL());
         Controller=World->SpawnActor<ALHPlayerController>(); Controller->SetAsLocalPlayerController();
         State=World->SpawnActor<ALHPlayerState>(); Controller->SetPlayerState(State); Controller->InitInputSystem();
-        Store=MakeShared<FLHSaveStore>(Disk); Session=MakeShared<FLHWave2Session>(Store.ToSharedRef()); Session->Bind(State);
+        if (OwnedSession)
+        {
+            Instance=NewObject<UGameInstance>(GEngine); Instance->AddToRoot();
+            Instance->InitializeStandalone(MakeUniqueObjectName(nullptr,UWorld::StaticClass(),TEXT("LHSessionDummy")));
+            auto* Dummy=Instance->GetWorld(); auto* OwnedContext=GEngine->GetWorldContextFromWorld(Dummy);
+            Dummy->DestroyWorld(false); GEngine->DestroyWorldContext(World);
+            OwnedContext->SetCurrentWorld(World); World->SetGameInstance(Instance);
+            Local=NewObject<ULocalPlayer>(GEngine); Instance->AddLocalPlayer(Local,FPlatformUserId::CreateFromInternalId(0));
+            Local->PlayerController=Controller; Controller->Player=Local;
+            Store=Instance->GetSubsystem<ULHSaveSubsystem>()->GetStore();
+            Session=Instance->GetSubsystem<ULHSessionSubsystem>()->Session();
+            // Test adapters load generated worlds synchronously. Prevent OpenLevel
+            // while retaining the real initialized subsystem and death bridge.
+            Session->Travel=[](){}; Session->Exit=[](){};
+        }
+        else { Store=MakeShared<FLHSaveStore>(Disk); Session=MakeShared<FLHWave2Session>(Store.ToSharedRef()); }
+        Session->Bind(State);
         UI=MakeShared<FLHUIPresenter>(*Session,*Session,*Session);
     }
     ~FRuntime()
     {
-        UI.Reset(); Session.Reset(); if(World) { World->DestroyWorld(false); GEngine->DestroyWorldContext(World); }
+        UI.Reset(); Session.Reset(); if(Instance) { Controller->Player=nullptr; Local->PlayerController=nullptr; Instance->RemoveLocalPlayer(Local); Instance->Shutdown(); Instance->RemoveFromRoot(); } if(World) { World->DestroyWorld(false); GEngine->DestroyWorldContext(World); }
     }
     FLHCommandResult Create()
     {
@@ -81,7 +107,17 @@ struct FRuntime
         UI->EditCreation(TEXT("Same name"),Appearance,LHWave2::PrototypeAnswers()); UI->Roll(false);
         return UI->ConfirmCreation();
     }
-    void Flush() { Session->Flush(); }
+    void Flush()
+    {
+        Session->Flush();
+        if(Instance && Session->HasCharacter())
+        {
+            const double Deadline=FPlatformTime::Seconds()+10;
+            while(Store->IsWriting(Session->Snapshot().Header.CharacterId) && FPlatformTime::Seconds()<Deadline)
+            { FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread); FPlatformProcess::Sleep(0.001f); }
+            FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
+        }
+    }
     void EarnAllocationPoints()
     {
         check(State->GetCharacterAuthority()->Authority().GrantExperience(1000)==ELHCommandReason::None);
@@ -746,22 +782,33 @@ void AdvanceWorldClock(FRuntime& R,double Seconds)
         Seconds-=Step;
     }
 }
-bool LoadB1(FRuntime& R,int32 Index=1)
+bool LoadB1(FRuntime& R,int32 Index=1,bool Navigation=false)
 {
     const FString Map=LHWorld::Registry()[Index].Map.GetLongPackageName();
-    UWorld::WorldTypePreLoadMap.Add(FName(*Map),EWorldType::Editor);
-    auto* Package=LoadPackage(nullptr,*Map,LOAD_None);
-    UWorld::WorldTypePreLoadMap.Remove(FName(*Map));
+    const FString InstanceName=TEXT("/Temp/B1SpawnTest_")+FGuid::NewGuid().ToString(EGuidFormats::Digits);
+    FLinkerInstancingContext Instancing;
+    Instancing.AddPackageMapping(FName(*Map),FName(*InstanceName));
+    // Load a fresh editor-world instance from disk for navigation. Duplicating
+    // an initialized world can copy its initialized flag without its subsystems.
+    const FName LoadName(*(Navigation?InstanceName:Map));
+    UWorld::WorldTypePreLoadMap.Add(LoadName,EWorldType::Editor);
+    auto* Package=Navigation?LoadPackage(CreatePackage(*InstanceName),*Map,LOAD_None,nullptr,&Instancing):LoadPackage(nullptr,*Map,LOAD_None);
+    UWorld::WorldTypePreLoadMap.Remove(LoadName);
     auto* Source=Package?UWorld::FindWorldInPackage(Package):nullptr;
     if (!Source) return false;
     R.State->ClearAvatar();
-    R.World->DestroyWorld(false); GEngine->DestroyWorldContext(R.World);
-    // Each case uses a distinct loaded-world copy, including authored floor collision.
-    auto* Destination=CreatePackage(*(TEXT("/Temp/B1SpawnTest_")+FGuid::NewGuid().ToString(EGuidFormats::Digits)));
-    R.World=Cast<UWorld>(StaticDuplicateObject(Source,Destination,Source->GetFName()));
+    auto* OwnedContext=R.Instance?GEngine->GetWorldContextFromWorld(R.World):nullptr;
+    R.World->DestroyWorld(false); if(!OwnedContext) GEngine->DestroyWorldContext(R.World);
+    if(Navigation) R.World=Source;
+    else
+    {
+        auto* Destination=CreatePackage(*InstanceName);
+        R.World=Cast<UWorld>(StaticDuplicateObject(Source,Destination,Source->GetFName()));
+    }
     R.World->WorldType=EWorldType::Editor;
-    auto& Context=GEngine->CreateNewWorldContext(EWorldType::Editor); Context.SetCurrentWorld(R.World);
-    if (!R.World->IsInitialized()) R.World->InitWorld(UWorld::InitializationValues().AllowAudioPlayback(false).CreatePhysicsScene(true).CreateNavigation(false).CreateAISystem(true));
+    auto& Context=OwnedContext?*OwnedContext:GEngine->CreateNewWorldContext(EWorldType::Editor); Context.WorldType=EWorldType::Editor; Context.SetCurrentWorld(R.World);
+    if(R.Instance) { R.World->SetGameInstance(R.Instance); Context.OwningGameInstance=R.Instance; }
+    if (!R.World->IsInitialized()) R.World->InitWorld(UWorld::InitializationValues().AllowAudioPlayback(false).CreatePhysicsScene(true).CreateNavigation(Navigation).CreateAISystem(true));
     if (!R.World->GetPhysicsScene()) R.World->CreatePhysicsScene();
     R.World->UpdateWorldComponents(true,false);
     FStaticMeshCompilingManager::Get().FinishAllCompilation();
@@ -770,11 +817,26 @@ bool LoadB1(FRuntime& R,int32 Index=1)
         TInlineComponentArray<UPrimitiveComponent*> Components(*It);
         for(auto* C:Components) { C->UpdateComponentToWorld(); C->RecreatePhysicsState(); }
     }
+    if(Navigation)
+    {
+        FAssetCompilingManager::Get().FinishAllCompilation();
+        FNavigationSystem::AddNavigationSystemToWorld(*R.World,FNavigationSystemRunMode::EditorMode,nullptr,false);
+        auto* Nav=R.World->GetNavigationSystem();
+        auto* Wait=Nav?FindFProperty<FBoolProperty>(Nav->GetClass(),TEXT("bWaitForAsyncLoadingBeforeBuildingNavigationAutomatically")):nullptr;
+        if(Wait) Wait->SetPropertyValue_InContainer(Nav,false);
+        FNavigationSystem::AddNavigationSystemToWorld(*R.World,FNavigationSystemRunMode::EditorMode);
+        FNavigationSystem::Build(*R.World);
+        UE_LOG(LogTemp,Display,TEXT("G4 NAV world=%s system=%s data=%d tiles=%d"),*R.World->GetName(),*GetNameSafe(Nav),Nav && Nav->GetMainNavData()!=nullptr,Nav && Nav->ComputeNavDataBounds().IsValid);
+    }
     R.Controller=R.World->SpawnActor<ALHPlayerController>(); R.Controller->SetAsLocalPlayerController(); R.Controller->InitInputSystem();
     R.State=R.World->SpawnActor<ALHPlayerState>(); R.Controller->SetPlayerState(R.State);
     if (!R.Session->Bind(R.State)) return false;
     auto* Pawn=Avatar(R); Pawn->SetActorLocation(FVector(-2500,600,90));
-    R.Controller->Possess(Pawn); R.World->GetTimerManager().Tick(0.f); return true;
+    const bool Frozen=R.Session->bWorldTravelFrozen;
+    if(R.Instance) R.Session->FreezeWorldTravel(true);
+    R.Controller->Possess(Pawn);
+    if(R.Instance) { R.Local->PlayerController=R.Controller; R.Controller->Player=R.Local; R.Session->FreezeWorldTravel(Frozen); }
+    R.World->GetTimerManager().Tick(0.f); return true;
 }
 void BaselineProbe(FAutomationTestBase& Test,FRuntime& R)
 {
@@ -1218,7 +1280,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4DeathChurch,"Lighthaven.Integration.G4.Dea
 bool FLHG4DeathChurch::RunTest(const FString&)
 {
     using namespace LHB1SpawnTestsPrivate;
-    auto Disk=MakeShared<FStorage>(); FRuntime R(Disk);
+    auto Disk=MakeShared<FStorage>(); FRuntime R(Disk,true);
     if(!TestTrue(TEXT("fresh creation"),R.Create().Disposition==ELHCommandDisposition::Accepted)) return false;
     R.Flush(); R.Session->Bind(R.State); Avatar(R);
     if(!TestTrue(TEXT("generated hub"),LoadB1(R,0))) return false;
@@ -1246,11 +1308,14 @@ bool FLHG4DeathChurch::RunTest(const FString&)
     R.State->GetCombatAvatar()->SetActorLocation(Portal->GetActorLocation()+FVector(0,0,90));
     FLHRequestTravelRequest Q; Q.Request=LHG4TestsPrivate::Request(R); Q.Portal=Portal->Materialize(S.World.RunId); Q.Destination=Edge.Destination;
     if(!TestTrue(TEXT("session descent"),R.Session->Execute(Q).Disposition==ELHCommandDisposition::Accepted)) return false;
+    R.Flush();
     Travel.Travel().OnDestinationLoaded(Travel.Travel().GetToken(),true,Q.Destination,TEXT(""));
+    R.Flush();
     ALHEnemyCharacter* Enemy=nullptr; ALHEnemyCharacter* Second=nullptr;
     for(TActorIterator<ALHEnemyCharacter> It(R.World);It;++It) if(It->IsAlive()) { if(!Enemy) Enemy=*It; else { Second=*It; break; } }
     if(!TestNotNull(TEXT("real populated enemy"),Enemy)) return false;
     if(!TestNotNull(TEXT("second real encounter"),Second)) return false;
+    const int64 BeforeDeathSequence=R.Session->Snapshot().Header.TransactionSequence;
     auto* Player=R.State->GetCombatComponent();
     int32 DeathPublications=0;
     const auto DeathHandle=Player->OnDeath.AddLambda([&](const FLHHitIdentity&){++DeathPublications;});
@@ -1271,16 +1336,303 @@ bool FLHG4DeathChurch::RunTest(const FString&)
     if(!TestFalse(TEXT("earned lethal damage"),Player->IsAlive())) return false;
     TestEqual(TEXT("simultaneous attackers publish death once"),DeathPublications,1);
     R.Flush(); const auto Dead=R.Session->Snapshot();
-    // The current FRuntime deliberately has no GameInstance-owned session.
-    // State's production death bridge resolves ULHSessionSubsystem from that
-    // owner, so this fixture cannot dispatch the durable death transaction. Do
-    // not call HandlePlayerDeath directly or install a fabricated dead snapshot.
-    TestEqual(TEXT("fixture cannot forge durable death"),Dead.Character.CurrentHealth.Value,S.Character.CurrentHealth.Value);
-    const auto Respawn=R.Session->RequestRespawn(); AddInfo(TEXT("RESPAWN ")+Respawn);
-    TestEqual(TEXT("undispatched death cannot grant recovery"),Respawn,FString(TEXT("Character is alive.")));
-    AddWarning(TEXT("Church respawn remains unobserved: FRuntime has no GameInstance/ULHSessionSubsystem for the production death-event bridge. Two GAS attacks, lethal HP and once-only death publication were observed; no durable death/recovery is claimed."));
-    // GameInstance-owned durable death, recovery and church placement remain open.
+    TestEqual(TEXT("durable dead HP"),Dead.Character.CurrentHealth.Value,0.0);
+    TestEqual(TEXT("exactly one durable death boundary"),Dead.Header.TransactionSequence,BeforeDeathSequence+1);
+    TestTrue(TEXT("HUD death state"),R.UI->Hud().bDead);
+    FLHSaveSnapshot Persisted; FLHSaveError SaveError;
+    TestTrue(TEXT("independent dead reload"),R.Store->Load(Dead.Header.CharacterId,FLHWave2Session::Compatibility(),Persisted,SaveError));
+    TestTrue(TEXT("exact durable death"),Equal(Dead,Persisted));
+    const int64 Sequence=Dead.Header.TransactionSequence;
+    AdvanceWorldClock(R,2.1); R.Flush();
+    TestEqual(TEXT("late lethal impacts cannot settle twice"),R.Session->Snapshot().Header.TransactionSequence,Sequence);
+    const auto Respawn=R.UI->Respawn(); AddInfo(TEXT("RESPAWN ")+Respawn);
+    if(!TestTrue(TEXT("church recovery command"),Respawn.IsEmpty())) return false;
+    R.Flush();
+    const auto Recovered=R.Session->Snapshot();
+    TestTrue(TEXT("recovered HP"),Recovered.Character.CurrentHealth.Value>0);
+    TestEqual(TEXT("inventory count intact"),Recovered.Character.Inventory.Num(),Dead.Character.Inventory.Num());
+    for(int32 I=0;I<Dead.Character.Inventory.Num();++I)
+    {
+        const auto& Before=Dead.Character.Inventory[I]; const auto& After=Recovered.Character.Inventory[I];
+        TestTrue(TEXT("inventory identity intact"),Before.Id.InstanceId==After.Id.InstanceId);
+        TestEqual(TEXT("inventory quantity intact"),Before.Quantity.Value,After.Quantity.Value);
+    }
+    TestTrue(TEXT("church generated world"),LoadB1(R,0));
+    FString PlacementError;
+    TestTrue(TEXT("production reviewed church placement"),R.Instance->GetSubsystem<ULHSessionSubsystem>()->PlaceSessionArrival(R.World,PlacementError));
+    AddInfo(TEXT("CHURCH ")+PlacementError);
+    TestFalse(TEXT("HUD alive after church bind"),R.UI->Hud().bDead);
+    const auto* Entrance=LHWorld::FindEntrance(Recovered.Character.ActiveEntrance);
+    TestTrue(TEXT("church arrival exact"),Entrance && R.State->GetCombatAvatar()->GetActorLocation().Equals(
+        Entrance->SafeTransform.GetLocation()+FVector(0,0,CastChecked<ALHCharacter>(R.State->GetCombatAvatar())->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()+2),0.1));
+    TestTrue(TEXT("independent recovery reload"),R.Store->Load(Recovered.Header.CharacterId,FLHWave2Session::Compatibility(),Persisted,SaveError));
+    TestTrue(TEXT("exact durable recovery"),Equal(Recovered,Persisted));
     R.Session->RequestWorldTravel=nullptr;
     return !HasAnyErrors();
+}
+namespace LHG4EarnedPrivate
+{
+using namespace LHB1SpawnTestsPrivate;
+struct FRoute
+{
+    FAutomationTestBase& Test;
+    TSharedRef<FStorage> Disk=MakeShared<FStorage>();
+    FRuntime R{Disk};
+    TUniquePtr<FLHTravelSaveAdapter> Adapter;
+    int32 EnemyWindups=0;
+    explicit FRoute(FAutomationTestBase& In):Test(In)
+    {
+        FLHTravelSaveAdapter::FHooks H;
+        H.PrepareArrival=FLHWave2Session::PopulateEncounterCheckpoint;
+        H.Freeze=[this](bool F){R.Session->FreezeWorldTravel(F);};
+        H.Capture=[this](FLHSaveSnapshot& S,FString& E){return R.Session->CaptureTravel(S,E);};
+        H.Durable=[this](const FLHSaveSnapshot& S){Test.TestTrue(TEXT("durable travel install"),R.Session->InstallTravel(S));};
+        H.Load=[this](const FLHAreaDefinition& A,uint64){
+            const int32 I=LHWorld::Registry().IndexOfByPredicate([&](const auto& X){return LHWorld::SameArea(X.Id,A.Id);});
+            Test.TestTrue(TEXT("generated navigation world"),I>=0 && LoadB1(R,I,true));
+        };
+        H.Install=[this](const FLHSaveSnapshot& S,const FLHEntranceDefinition& E,FString& Error){
+            auto* P=Cast<ALHCharacter>(R.State->GetCombatAvatar()); if(!P) return false;
+            const auto* C=P->GetCapsuleComponent(); const FVector At=E.SafeTransform.GetLocation()+FVector(0,0,C->GetScaledCapsuleHalfHeight()+2);
+            FCollisionQueryParams Params; Params.AddIgnoredActor(P);
+            if(R.World->OverlapBlockingTestByChannel(At,FQuat::Identity,ECC_Pawn,FCollisionShape::MakeCapsule(C->GetScaledCapsuleRadius(),C->GetScaledCapsuleHalfHeight()),Params))
+            { Error=TEXT("blocked generated arrival"); return false; }
+            P->SetActorLocation(At);
+            const bool Ok=R.Session->InstallTravel(S) && R.Session->StartEncounters();
+            if(Ok) { R.Session->bInGameplay=true; R.Session->CompleteGameplayArrival(); } return Ok;
+        };
+        H.Restore=[this](const FLHSaveSnapshot&,const FLHEntranceDefinition&,uint64){Test.AddError(TEXT("unexpected travel recovery"));};
+        Adapter=MakeUnique<FLHTravelSaveAdapter>(R.Store.ToSharedRef(),FLHWave2Session::Compatibility(),MoveTemp(H));
+        R.Session->RequestWorldTravel=[this](const FLHRequestTravelRequest& Q,FString& E){return Adapter->Travel().Begin(Q,E);};
+    }
+    ~FRoute(){R.Session->RequestWorldTravel=nullptr;}
+    bool Start()
+    {
+        if(!Test.TestTrue(TEXT("fresh legal build"),R.Create().Disposition==ELHCommandDisposition::Accepted)) return false;
+        R.Flush(); R.Session->Bind(R.State); Avatar(R);
+        if(!Test.TestTrue(TEXT("generated hub"),LoadB1(R,0,true))) return false;
+        R.Session->bInGameplay=true; R.Session->CompleteGameplayArrival(); return Go(1);
+    }
+    bool Go(int32 Index)
+    {
+        const auto S=R.Session->Snapshot(); const auto* A=LHWorld::FindArea(S.Character.ActiveEntrance.Area);
+        const auto* Edge=A?A->Portals.FindByPredicate([&](const auto& P){return LHWorld::SameArea(P.Destination.Area,LHWorld::Registry()[Index].Id);}):nullptr;
+        if(!Test.TestNotNull(TEXT("legal route edge"),Edge)) return false;
+        ALHPortal* Portal=nullptr;
+        for(TActorIterator<ALHPortal> It(R.World);It;++It) if(It->Materialize(S.World.RunId).InstanceId==Edge->Portal.InstanceId) Portal=*It;
+        if(!Test.TestNotNull(TEXT("authored portal"),Portal)) return false;
+        R.State->GetCombatAvatar()->SetActorLocation(Portal->GetActorLocation()+FVector(0,0,92));
+        Clock(2.1); R.Flush();
+        FLHRequestTravelRequest Q; Q.Request=LHG4TestsPrivate::Request(R); Q.Portal=Portal->Materialize(S.World.RunId); Q.Destination=Edge->Destination;
+        if(!Accepted(TEXT("session portal travel"),R.Session->Execute(Q))) return false;
+        Adapter->Travel().OnDestinationLoaded(Adapter->Travel().GetToken(),true,Q.Destination,TEXT(""));
+        if(!Test.TestTrue(TEXT("exact arrival"),LHWorld::SameEntrance(R.Session->Snapshot().Character.ActiveEntrance,Q.Destination))) return false;
+        FLHSaveStore Independent(Disk); FLHSaveSnapshot Loaded; FLHSaveError E;
+        return Test.TestTrue(TEXT("independent durable floor"),Independent.Load(S.Header.CharacterId,FLHWave2Session::Compatibility(),Loaded,E) && Equal(Loaded,R.Session->Snapshot()));
+    }
+    void Clock(double Seconds)
+    {
+        while(Seconds>0)
+        {
+            const float Step=float(FMath::Min(Seconds,0.1)); AdvanceWorldClock(R,Step);
+            R.State->GetCombatComponent()->TickComponent(Step,LEVELTICK_All,nullptr);
+            R.Session->TickGameplay(Step); Seconds-=Step;
+        }
+    }
+    bool Accepted(const TCHAR* Label,const FLHCommandResult& Result)
+    {
+        if(Result.Disposition!=ELHCommandDisposition::Accepted)
+            Test.AddInfo(FString::Printf(TEXT("%s reason=%d"),Label,int32(Result.Reason)));
+        return Test.TestTrue(Label,Result.Disposition==ELHCommandDisposition::Accepted);
+    }
+    ALHInteractableMarker* Service(const TCHAR* Id)
+    {
+        for(TActorIterator<ALHInteractableMarker> It(R.World);It;++It) if(It->DefinitionId.Value==Id)
+        { R.State->GetCombatAvatar()->SetActorLocation(It->GetActorLocation()+FVector(0,0,92)); return *It; }
+        Test.AddError(FString(TEXT("missing authored service "))+Id); return nullptr;
+    }
+    bool Buy(const TCHAR* Offer)
+    {
+        auto* N=Service(TEXT("NPC.Sigfried")); if(!N) return false;
+        const bool Ok=Accepted(TEXT("earned vendor purchase"),R.Session->Execute(LHG4TestsPrivate::Buy(R,N,Offer))); R.Flush(); return Ok;
+    }
+    bool Train(const TCHAR* Skill,int32 Points)
+    {
+        auto* N=Service(TEXT("NPC.Ortanalas")); if(!N) return false;
+        FLHTrainSkillRequest Q; Q.Request=LHG4TestsPrivate::Request(R); Q.Trainer=N->Materialize(R.Session->Snapshot().World.RunId);
+        Q.Skill.Value=Skill; Q.Points=LHWave2::PrototypeInteger(Points);
+        const bool Ok=Accepted(TEXT("earned skill training"),R.Session->Execute(Q)); R.Flush(); return Ok;
+    }
+    bool Equip(const TCHAR* Item,ELHEquipmentSlot Slot)
+    {
+        const auto S=R.Session->Snapshot(); const auto* I=S.Character.Inventory.FindByPredicate([&](const auto& X){return X.Definition.Value==Item;});
+        if(!Test.TestNotNull(TEXT("legally owned equipment"),I)) return false;
+        FLHEquipItemRequest Q; Q.Request=LHG4TestsPrivate::Request(R); Q.Item=I->Id; Q.Slot=Slot;
+        const bool Ok=Accepted(TEXT("earned equipment"),R.Session->Execute(Q)); R.Flush(); return Ok;
+    }
+    bool Fight(ALHEnemyCharacter* Enemy,const TCHAR* Ability)
+    {
+        if(!Test.TestNotNull(TEXT("real live encounter"),Enemy)) return false;
+        auto* Pawn=R.State->GetCombatAvatar();
+        for(int32 Swing=0;Swing<3000 && Enemy->IsAlive();++Swing)
+        {
+            // Spatial command fixture: retreat during the enemy's real windup,
+            // then approach for the next command. No locomotion/path-feel claim.
+            Pawn->SetActorLocation(LHWorld::FindEntrance(R.Session->Snapshot().Character.ActiveEntrance)->SafeTransform.GetLocation()+FVector(0,0,92)); Clock(1.6); R.Flush();
+            if(!Test.TestTrue(TEXT("player survived opposed clock"),R.State->GetCombatComponent()->IsAlive())) return false;
+            if(Ability==FString(TEXT("Spell.FireDart")) && R.State->GetCombatComponent()->GetCombatAttributes()->GetMana()<1)
+            { Clock(120); R.Flush(); }
+            Pawn->SetActorLocation(Enemy->GetActorLocation()+FVector(150,0,0));
+            Clock(0.5); // Allow both acquire and attack decisions before the player command.
+            if(Enemy->GetCombatComponent()->IsActionPending()) ++EnemyWindups;
+            FLHUseAbilityRequest Q; Q.Request=LHG4TestsPrivate::Request(R); Q.Ability.Value=Ability; Q.Target=Enemy->GetEntityId(R.Session->Snapshot().World.RunId);
+            const auto Result=R.Session->Execute(Q);
+            if(Result.Disposition!=ELHCommandDisposition::Accepted)
+            {
+                Test.AddInfo(TEXT("F6 session status: ")+R.Session->Status());
+                auto* Resolved=R.World->GetSubsystem<ULHEncounterDirector>()->FindByEntity(Q.Target);
+                Test.AddInfo(FString::Printf(TEXT("TARGET requested=%s generation=%lld alive=%d resolved=%s generation=%lld alive=%d playerHP=%g"),
+                    *Enemy->GetName(),Enemy->GetLife().LifeGeneration,Enemy->IsAlive(),*GetNameSafe(Resolved),Resolved?Resolved->GetLife().LifeGeneration:-1,
+                    Resolved && Resolved->IsAlive(),R.State->GetCombatComponent()->GetCombatAttributes()->GetHealth()));
+            }
+            if(!Accepted(TEXT("legal earned combat command"),Result)) return false;
+            R.Flush();
+        }
+        // Finish surviving windups before loot/save; retreat makes their real
+        // range validation fail rather than cancelling or manually settling them.
+        Pawn->SetActorLocation(LHWorld::FindEntrance(R.Session->Snapshot().Character.ActiveEntrance)->SafeTransform.GetLocation()+FVector(0,0,92)); Clock(2.1); R.Flush();
+        return Test.TestTrue(TEXT("real combat corpse"),Enemy->IsCorpse());
+    }
+    bool Farm(int32 Kills)
+    {
+        auto* D=R.World->GetSubsystem<ULHEncounterDirector>();
+        for(int32 I=0;I<Kills;++I)
+        {
+            ALHEnemyCharacter* Rat=nullptr;
+            for(TActorIterator<ALHEnemyCharacter> It(R.World);It;++It)
+                if(It->IsAlive() && It->GetRuntimeSpec()->ContentId.Value==TEXT("Enemy.BrownRat")) { Rat=*It; break; }
+            if(!Rat)
+            {
+                R.State->GetCombatAvatar()->SetActorLocation(LHWorld::Registry()[1].Entrances[0].SafeTransform.GetLocation()+FVector(0,0,92));
+                Clock(121); R.Flush();
+                for(TActorIterator<ALHEnemyCharacter> It(R.World);It;++It)
+                    if(It->IsAlive() && It->GetRuntimeSpec()->ContentId.Value==TEXT("Enemy.BrownRat")) { Rat=*It; break; }
+            }
+            if(!Rat)
+                for(const auto& Slot:LHWorld::Registry()[1].Spawns) if(Slot.Enemy.Value==TEXT("Enemy.BrownRat"))
+                { FString Why; D->IsSpawnSafe(Slot.SpawnId,&Why); Test.AddInfo(TEXT("RAT SAFETY ")+Why); }
+            if(!Test.TestNotNull(TEXT("navigation-safe real respawn rat"),Rat)) return false;
+            if(!Fight(Rat,TEXT("Attack.Melee.Basic"))) { Test.AddInfo(FString::Printf(TEXT("F6 farm completed=%d requested=%d"),I,Kills)); return false; }
+            const auto S=R.Session->Snapshot();
+            const auto* A=S.World.Areas.FindByPredicate([](const auto& X){return X.Area.Content.Value==TEXT("Area.TempleB1");});
+            const auto* Corpse=A?A->Corpses.FindByPredicate([&](const auto& X){return LHAI::SameLife(X.SourceLife,Rat->GetLife());}):nullptr;
+            if(!Test.TestNotNull(TEXT("earned corpse record"),Corpse)) return false;
+            R.State->GetCombatAvatar()->SetActorLocation(Rat->GetActorLocation()+FVector(100,0,0));
+            FLHTakeLootRequest Q; Q.Request=LHG4TestsPrivate::Request(R); Q.Container=Corpse->Container; Q.Kind=ELHLootTransferKind::Gold; Q.Quantity=Corpse->RemainingGold;
+            if(Q.Quantity.Value>0 && !Accepted(TEXT("earned gold transfer"),R.Session->Execute(Q))) return false;
+            R.Flush();
+        }
+        Test.AddInfo(FString::Printf(TEXT("EARNED kills=%d XP=%lld gold=%lld enemy-windups=%d"),Kills,R.Session->Snapshot().Character.ExperienceBalance.Value,R.Session->Snapshot().Character.Gold.Value,EnemyWindups));
+        return Go(0);
+    }
+};
+bool EarnedRoute(FAutomationTestBase& Test,int32 Build)
+{
+    FRoute F(Test); if(!F.Start() || !F.Farm(Build==2?200:60)) return false;
+    const TCHAR* Ability=TEXT("Attack.Melee.Basic");
+    if(Build==0) { if(!F.Train(TEXT("Skill.Attack"),10)) return false; }
+    if(Build==1)
+    {
+        if(!F.Buy(TEXT("Offer.Sigfried.Item.AshwoodFlatbow")) || !F.Buy(TEXT("Offer.Sigfried.Item.WoodenArrows")) || !F.Train(TEXT("Skill.Archery"),1)
+            || !F.Equip(TEXT("Item.WoodenArrows"),ELHEquipmentSlot::Quiver) || !F.Equip(TEXT("Item.AshwoodFlatbow"),ELHEquipmentSlot::MainHand)) return false;
+        Ability=TEXT("Attack.Ranged.Bow");
+    }
+    if(Build==2)
+    {
+        FLHAllocateAttributePointsRequest Q; Q.Request=LHG4TestsPrivate::Request(F.R);
+        Q.Points.Strength=Q.Points.Endurance=Q.Points.Agility=Q.Points.Intelligence=Q.Points.Wisdom=LHWave2::PrototypeInteger(0); Q.Points.Intelligence.Value=5;
+        if(!F.Accepted(TEXT("earned INT allocation"),F.R.Session->Execute(Q))) return false; F.R.Flush();
+        auto* N=F.Service(TEXT("NPC.Iraltok")); if(!N) return false;
+        FLHLearnSpellRequest Learn; Learn.Request=LHG4TestsPrivate::Request(F.R); Learn.Trainer=N->Materialize(F.R.Session->Snapshot().World.RunId); Learn.Spell.Value=TEXT("Spell.FireDart");
+        if(!F.Accepted(TEXT("earned first damage spell"),F.R.Session->Execute(Learn))) return false; F.R.Flush(); Ability=TEXT("Spell.FireDart");
+    }
+    for(int32 I:{1,2,3,4})
+    {
+        if(!F.Go(I)) return false;
+        ALHEnemyCharacter* Enemy=nullptr;
+        for(TActorIterator<ALHEnemyCharacter> It(F.R.World);It;++It)
+            if(It->IsAlive() && (I!=4 || It->GetRuntimeSpec()->bBoss)) { Enemy=*It; break; }
+        if(!F.Fight(Enemy,Ability)) return false;
+        if(I==4 && Build==0)
+        {
+            const int64 Generation=Enemy->GetLife().LifeGeneration;
+            F.R.State->GetCombatAvatar()->SetActorLocation(LHWorld::Registry()[4].Entrances[0].SafeTransform.GetLocation()+FVector(0,0,92));
+            F.Clock(900); F.R.Flush();
+            ALHEnemyCharacter* Respawned=nullptr;
+            for(TActorIterator<ALHEnemyCharacter> It(F.R.World);It;++It)
+                if(It->IsAlive() && It->GetRuntimeSpec()->bBoss) Respawned=*It;
+            if(!Respawned)
+            {
+                const auto* Slot=LHWorld::Registry()[4].Spawns.FindByPredicate([](const auto& X){return X.Enemy.Value==TEXT("Enemy.Balork");});
+                FString Why; if(Slot) F.R.World->GetSubsystem<ULHEncounterDirector>()->IsSpawnSafe(Slot->SpawnId,&Why);
+                Test.AddInfo(TEXT("SECOND BALORK SAFETY ")+Why);
+            }
+            if(!Test.TestNotNull(TEXT("real navigation-safe Balork respawn"),Respawned)) return false;
+            Test.TestEqual(TEXT("new boss generation"),Respawned->GetLife().LifeGeneration,Generation+1);
+            if(!F.Fight(Respawned,Ability)) return false;
+            Test.TestEqual(TEXT("second boss death cannot duplicate unique claim"),F.R.Session->Snapshot().World.ClaimedUniqueRewards.Num(),1);
+        }
+    }
+    Test.TestEqual(TEXT("earned Balork claim"),F.R.Session->Snapshot().World.ClaimedUniqueRewards.Num(),1);
+    for(int32 I:{3,2,1,0}) if(!F.Go(I)) return false;
+    auto* N=F.Service(TEXT("NPC.BrotherKiran")); if(!N) return false;
+    if(!F.Accepted(TEXT("earned return completion"),F.R.Session->Execute(LHG4TestsPrivate::Interact(F.R,N,TEXT("Topic.BalorkReturn"))))) return false;
+    F.R.Flush(); Test.TestTrue(TEXT("opposed enemy windups observed"),F.EnemyWindups>0); return !Test.HasAnyErrors();
+}
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4EarnedMelee,"Lighthaven.Integration.G4.EarnedMeleeRoute",LHWave2TestsPrivate::Flags)
+bool FLHG4EarnedMelee::RunTest(const FString&){return LHG4EarnedPrivate::EarnedRoute(*this,0);}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4EarnedRanged,"Lighthaven.Integration.G4.EarnedRangedRoute",LHWave2TestsPrivate::Flags)
+bool FLHG4EarnedRanged::RunTest(const FString&){return LHG4EarnedPrivate::EarnedRoute(*this,1);}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4EarnedMagic,"Lighthaven.Integration.G4.EarnedMagicRoute",LHWave2TestsPrivate::Flags)
+bool FLHG4EarnedMagic::RunTest(const FString&){return LHG4EarnedPrivate::EarnedRoute(*this,2);}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4InventoryRollback,"Lighthaven.Integration.G4.SessionInventoryRollback",LHWave2TestsPrivate::Flags)
+bool FLHG4InventoryRollback::RunTest(const FString&)
+{
+    using namespace LHG4EarnedPrivate;
+    FRoute F(*this); if(!F.Start() || !F.Farm(400)) return false;
+    const int32 Limit=int32(LHWave2::PrototypeProfile().InventorySlots.Value);
+    while(F.R.Session->Snapshot().Character.Inventory.Num()<Limit)
+        if(!F.Buy(TEXT("Offer.Sigfried.Item.AshwoodFlatbow"))) return false;
+    TestEqual(TEXT("legal purchases fill inventory"),F.R.Session->Snapshot().Character.Inventory.Num(),Limit);
+    if(!F.Go(1)) return false;
+    for(int32 Attempt=0;Attempt<100;++Attempt)
+    {
+        ALHEnemyCharacter* Rat=nullptr;
+        for(TActorIterator<ALHEnemyCharacter> It(F.R.World);It;++It)
+            if(It->IsAlive() && It->GetRuntimeSpec()->ContentId.Value==TEXT("Enemy.BrownRat")) { Rat=*It; break; }
+        if(!Rat)
+        {
+            F.R.State->GetCombatAvatar()->SetActorLocation(LHWorld::Registry()[1].Entrances[0].SafeTransform.GetLocation()+FVector(0,0,92)); F.Clock(121); F.R.Flush();
+            continue;
+        }
+        if(!F.Fight(Rat,TEXT("Attack.Melee.Basic"))) return false;
+        const auto S=F.R.Session->Snapshot();
+        const auto* A=S.World.Areas.FindByPredicate([](const auto& X){return X.Area.Content.Value==TEXT("Area.TempleB1");});
+        const auto* C=A?A->Corpses.FindByPredicate([&](const auto& X){return LHAI::SameLife(X.SourceLife,Rat->GetLife());}):nullptr;
+        if(!C || C->RemainingItems.IsEmpty()) continue;
+        F.R.State->GetCombatAvatar()->SetActorLocation(Rat->GetActorLocation()+FVector(100,0,0));
+        FLHTakeLootRequest Q; Q.Request=LHG4TestsPrivate::Request(F.R); Q.Container=C->Container; Q.Kind=ELHLootTransferKind::Item;
+        Q.Item=C->RemainingItems[0].Id; Q.Quantity=C->RemainingItems[0].Quantity;
+        const int32 Writes=F.Disk->Writes;
+        const auto Result=F.R.Session->Execute(Q);
+        TestTrue(TEXT("session rejects full inventory"),Result.Disposition==ELHCommandDisposition::Rejected && Result.Reason==ELHCommandReason::InventoryFull);
+        TestTrue(TEXT("exact live state rollback incl corpse and request journal"),Equal(S,F.R.Session->Snapshot()));
+        F.R.Flush(); TestEqual(TEXT("rejection has no storage write"),F.Disk->Writes,Writes);
+        FLHSaveStore Independent(F.Disk); FLHSaveSnapshot Loaded; FLHSaveError E;
+        TestTrue(TEXT("independent durable rollback"),Independent.Load(S.Header.CharacterId,FLHWave2Session::Compatibility(),Loaded,E) && Equal(S,Loaded));
+        return !HasAnyErrors();
+    }
+    AddError(TEXT("No catalog item drop in 100 actual encounter opportunities; no synthetic loot substitute.")); return false;
 }
 #endif

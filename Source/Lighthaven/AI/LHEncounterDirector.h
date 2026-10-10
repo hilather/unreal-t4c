@@ -25,6 +25,8 @@ public:
     void TickActiveSimulation(float Seconds);
     bool IsSpawnSafe(const FGuid& SpawnId, FString* Refusal = nullptr) const;
     ALHEnemyCharacter* FindByLife(const FLHSpawnLifeId& Life) const;
+    // Combat entity IDs name spawn slots; select only the living life.
+    // Corpse interactions resolve their saved SourceLife with FindByLife.
     ALHEnemyCharacter* FindByEntity(const FLHEntityId& Entity) const;
     bool CanPursue(const ALHEnemyAIController* Controller, int32 Cap) const;
     bool IsSafeSegment(const FVector& Start, const FVector& End, float Radius = 0, float HalfHeight = 0) const;

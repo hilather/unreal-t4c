@@ -3,6 +3,8 @@
 #include "Abilities/LHBasicAttackAbility.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
+#include "Framework/LHEnemyCharacter.h"
+#include "EngineUtils.h"
 #include <limits>
 namespace LHCombatComponentPrivate
 {
@@ -58,6 +60,10 @@ bool ULHCombatComponent::InRangeAndSight(const ULHCombatComponent* Target) const
     if (!FMath::IsFinite(Distance) || Distance > Attack.RangeCm.Value) return false;
     FCollisionQueryParams Params(SCENE_QUERY_STAT(LHAttackSight), false, GetAvatarActor());
     Params.AddIgnoredActor(Target->GetAvatarActor());
+    // Corpse Visibility remains available to cursor/loot selection. Attack sight
+    // excludes retained dead lives, including corpses co-located with a respawn.
+    for (TActorIterator<ALHEnemyCharacter> It(World); It; ++It)
+        if (It->IsCorpse()) Params.AddIgnoredActor(*It);
     return !World->LineTraceTestByChannel(Start, End, ECC_Visibility, Params);
 }
 ELHCommandReason ULHCombatComponent::ValidateAttack(ULHCombatComponent* Target) const

@@ -1,5 +1,6 @@
 #pragma once
 #include "UI/LHUIPresenter.h"
+#include "Framework/LHAbilityReplayLog.h"
 #include "Character/LHCharacterAuthority.h"
 #include "Persistence/LHSaveStore.h"
 class ALHPlayerState;
@@ -83,7 +84,7 @@ private:
     FLHCommandResult Persist(const FLHRequestId&, FName, const UScriptStruct*, const void*, TFunctionRef<ELHCommandReason(FLHSaveSnapshot&)>);
     TWeakObjectPtr<ULHEncounterDirector> Director;
     bool bDeadAwaitingRespawn=false, bGameplayPaused=false;
-    TMap<FGuid,TPair<FString,FLHCommandResult>> RuntimeAbilities;
+    FLHAbilityReplayLog RuntimeAbilities;
     TSharedRef<FLHSaveStore> Saves;
     FDelegateHandle EventHandle;
     TWeakObjectPtr<ALHPlayerState> Owner;
