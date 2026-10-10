@@ -64,6 +64,7 @@ public:
     TArray<FLHUILootRow> CorpseContents(const FLHEntityId&) const override;
     FString RequestRespawn() override;
     void SetGameplayPaused(bool) override;
+    static bool PopulateEncounterCheckpoint(FLHSaveSnapshot& Snapshot,FString& Error);
     bool StartEncounters();
     void TickGameplay(float Seconds);
     void HandlePlayerDeath();

@@ -8,6 +8,7 @@
 #include "Framework/LHCharacter.h"
 #include "Abilities/LHCombatComponent.h"
 #include "Abilities/LHAttributeSet.h"
+#include "Abilities/LHAbilityCatalog.h"
 #include "AI/LHEncounterDirector.h"
 #include "Framework/LHEnemyCharacter.h"
 #include "World/LHWorldMarkers.h"
@@ -19,6 +20,11 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Engine/TargetPoint.h"
+#include "EngineUtils.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "StaticMeshCompiler.h"
+#include "UObject/Package.h"
 #include "Engine/GameViewportClient.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/GameInstance.h"
@@ -64,7 +70,7 @@ struct FRuntime
     }
     ~FRuntime()
     {
-        UI.Reset(); Session.Reset(); GEngine->DestroyWorldContext(World); World->DestroyWorld(false);
+        UI.Reset(); Session.Reset(); if(World) { World->DestroyWorld(false); GEngine->DestroyWorldContext(World); }
     }
     FLHCommandResult Create()
     {
@@ -716,4 +722,141 @@ bool FLHG4EnemyContinuation::RunTest(const FString&)
     TestEqual(TEXT("enemy cooldown resumes remainder"),Enemy->GetCombatComponent()->GetRemainingCooldown(Ability),1.25); return !HasAnyErrors();
 }
 
+
+namespace LHB1SpawnTestsPrivate
+{
+using namespace LHStage1IntegrationTestsPrivate;
+bool LoadB1(FRuntime& R)
+{
+    R.State->ClearAvatar();
+    R.World->DestroyWorld(false); GEngine->DestroyWorldContext(R.World);
+    const FString Map=LHWorld::Registry()[1].Map.GetLongPackageName();
+    UWorld::WorldTypePreLoadMap.Add(FName(*Map),EWorldType::Editor);
+    auto* Package=LoadPackage(nullptr,*Map,LOAD_None);
+    UWorld::WorldTypePreLoadMap.Remove(FName(*Map));
+    auto* Source=Package?UWorld::FindWorldInPackage(Package):nullptr;
+    if (!Source) { R.World=nullptr; return false; }
+    // Each case uses a distinct loaded-world copy, including authored floor collision.
+    auto* Destination=CreatePackage(*(TEXT("/Temp/B1SpawnTest_")+FGuid::NewGuid().ToString(EGuidFormats::Digits)));
+    R.World=Cast<UWorld>(StaticDuplicateObject(Source,Destination,Source->GetFName()));
+    R.World->WorldType=EWorldType::Editor;
+    auto& Context=GEngine->CreateNewWorldContext(EWorldType::Editor); Context.SetCurrentWorld(R.World);
+    if (!R.World->IsInitialized()) R.World->InitWorld(UWorld::InitializationValues().AllowAudioPlayback(false).CreatePhysicsScene(true).CreateNavigation(false).CreateAISystem(true));
+    if (!R.World->GetPhysicsScene()) R.World->CreatePhysicsScene();
+    R.World->UpdateWorldComponents(true,false);
+    FStaticMeshCompilingManager::Get().FinishAllCompilation();
+    for(TActorIterator<AActor> It(R.World);It;++It)
+    {
+        TInlineComponentArray<UPrimitiveComponent*> Components(*It);
+        for(auto* C:Components) { C->UpdateComponentToWorld(); C->RecreatePhysicsState(); }
+    }
+    R.Controller=R.World->SpawnActor<ALHPlayerController>(); R.Controller->SetAsLocalPlayerController(); R.Controller->InitInputSystem();
+    R.State=R.World->SpawnActor<ALHPlayerState>(); R.Controller->SetPlayerState(R.State);
+    if (!R.Session->Bind(R.State)) return false;
+    auto* Pawn=Avatar(R); Pawn->SetActorLocation(FVector(-2500,600,90));
+    R.Controller->Possess(Pawn); return true;
+}
+void BaselineProbe(FAutomationTestBase& Test,FRuntime& R)
+{
+    const auto& Slot=LHWorld::Registry()[1].Spawns[0];
+    const auto* Row=LHEnemyData::Find(Slot.Enemy);
+    const FTransform At(Slot.Anchor.GetRotation(),Slot.Anchor.GetLocation()+FVector(0,0,Row->Runtime.CapsuleHalfHeightCm.Value));
+    auto* Actor=R.World->SpawnActorDeferred<ALHEnemyCharacter>(ALHEnemyCharacter::StaticClass(),At,nullptr,nullptr,ESpawnActorCollisionHandlingMethod::DontSpawnIfColliding);
+    Test.TestNull(TEXT("baseline deferred spawn rejected before runtime spec"),Actor);
+    Test.AddInfo(FString::Printf(TEXT("BASELINE SpawnActorDeferred DontSpawnIfColliding marker=%s runtimeCenter=%s result=%s"),*Slot.SpawnId.ToString(),*At.GetLocation().ToString(),Actor?TEXT("actor"):TEXT("null")));
+    if(Actor) Actor->Destroy();
+}
+bool Check(FAutomationTestBase& Test,FRuntime& R)
+{
+    const auto S=R.Session->Snapshot();
+    const auto* Area=S.World.Areas.FindByPredicate([](const auto& A){return A.Area.Content.Value==TEXT("Area.TempleB1");});
+    if(!Test.TestNotNull(TEXT("B1 checkpoint"),Area)) return false;
+    Test.TestEqual(TEXT("17 encounters exactly once"),Area->Encounters.Num(),17);
+    auto* D=R.World->GetSubsystem<ULHEncounterDirector>();
+    FLHBasicAttackConfig Attack; FString AttackError; FLHContentId Ability; Ability.Value=TEXT("Attack.Melee.Basic");
+    Test.TestTrue(TEXT("player attack config"),LHAbilities::BuildAttackConfig(S,Ability,[](const FLHContentId& Id)->const FLHCombatItemData* { const auto* Row=LHItemData::Find(Id); return Row?&Row->Combat:nullptr; },LHWave2::PrototypeProfile().Rules.Combat,Attack,AttackError));
+    LH::Rules::FRequirementInput Requirements; const auto& B=S.Character.BaseAttributes;
+    Requirements.Base={B.Strength.Value,B.Endurance.Value,B.Agility.Value,B.Intelligence.Value,B.Wisdom.Value}; Requirements.Effective=Requirements.Base; Requirements.Level=S.Character.EarnedLevel.Value; Requirements.Skills=S.Character.LearnedSkills; Requirements.Spells=S.Character.LearnedSpells;
+    R.State->GetCombatComponent()->ConfigureAttack(Attack,Requirements);
+    Test.TestNotNull(TEXT("loaded world director"),D); if(!D) return false;
+    int32 Count=0; for(TActorIterator<ALHEnemyCharacter> It(R.World);It;++It) if(It->IsAlive()) ++Count;
+    Test.TestEqual(TEXT("17 live actors"),Count,17);
+    for(const auto& E:Area->Encounters)
+    {
+        auto* Actor=D->FindByLife(E.Life);
+        if(!Test.TestNotNull(TEXT("registered life"),Actor)) continue;
+        const auto* Slot=LHWorld::Registry()[1].Spawns.FindByPredicate([&](const auto& X){return X.SpawnId==E.Life.SpawnSlot;});
+        Test.TestTrue(TEXT("XY anchor preserved"),Slot && FVector::Dist2D(Actor->GetActorLocation(),Slot->Anchor.GetLocation())<0.1);
+        Test.TestTrue(TEXT("targetable alive capsule"),Actor->IsAlive() && Actor->GetCapsuleComponent()->GetCollisionResponseToChannel(ECC_Visibility)==ECR_Block);
+        Test.TestEqual(TEXT("entity registered"),D->FindByEntity(Actor->GetEntityId(S.World.RunId)),Actor);
+        R.State->GetCombatAvatar()->SetActorLocation(Actor->GetActorLocation()+FVector(100,0,0));
+        Test.TestTrue(TEXT("controller can select enemy"),R.Controller->SelectTarget(Actor));
+    }
+    // Real floor control: the default 88cm half-height intersects at rat center.
+    const auto& Slot=LHWorld::Registry()[1].Spawns[0];
+    const auto* Spec=LHEnemyData::Find(Slot.Enemy);
+    const FVector Center=Slot.Anchor.GetLocation()+FVector(0,0,Spec->Runtime.CapsuleHalfHeightCm.Value+2);
+    FCollisionQueryParams Params; for(TActorIterator<ALHEnemyCharacter> It(R.World);It;++It) Params.AddIgnoredActor(*It);
+    const auto* Default=GetDefault<ALHEnemyCharacter>()->GetCapsuleComponent();
+    Test.TestTrue(TEXT("baseline default capsule intersects loaded floor"),R.World->OverlapBlockingTestByChannel(Center,FQuat::Identity,ECC_Pawn,FCollisionShape::MakeCapsule(Default->GetUnscaledCapsuleRadius(),Default->GetUnscaledCapsuleHalfHeight()),Params));
+    Test.AddInfo(FString::Printf(TEXT("B1 floor defaultHH=%g runtimeHH=%g center=%s encounters=%d actors=%d"),Default->GetUnscaledCapsuleHalfHeight(),Spec->Runtime.CapsuleHalfHeightCm.Value,*Center.ToString(),Area->Encounters.Num(),Count));
+    return true;
+}
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHB1TravelSpawn,"Lighthaven.Integration.Wave4.B1SpawnOnTravelArrival",LHWave2TestsPrivate::Flags)
+bool FLHB1TravelSpawn::RunTest(const FString&)
+{
+    using namespace LHB1SpawnTestsPrivate;
+    auto Disk=MakeShared<FStorage>(); FRuntime R(Disk); R.Create(); R.Flush(); R.Session->Bind(R.State); Avatar(R);
+    FLHTravelSaveAdapter::FHooks Hooks;
+    Hooks.PrepareArrival=FLHWave2Session::PopulateEncounterCheckpoint;
+    Hooks.Freeze=[&](bool F){R.Session->FreezeWorldTravel(F);};
+    Hooks.Capture=[&](FLHSaveSnapshot& S,FString& E){return R.Session->CaptureTravel(S,E);};
+    Hooks.Durable=[&](const FLHSaveSnapshot& S){TestTrue(TEXT("durable session install"),R.Session->InstallTravel(S));};
+    Hooks.Load=[&](const FLHAreaDefinition&,uint64){TestTrue(TEXT("load real generated B1"),LoadB1(R));};
+    Hooks.Install=[&](const FLHSaveSnapshot& S,const FLHEntranceDefinition&,FString&){ BaselineProbe(*this,R); return R.Session->InstallTravel(S) && R.Session->StartEncounters();};
+    Hooks.Restore=[](const FLHSaveSnapshot&,const FLHEntranceDefinition&,uint64){};
+    FLHTravelSaveAdapter Travel(R.Store.ToSharedRef(),FLHWave2Session::Compatibility(),MoveTemp(Hooks));
+    const auto S=R.Session->Snapshot(); const auto& Edge=LHWorld::Registry()[0].Portals[0];
+    FLHRequestTravelRequest Q; Q.Request.Epoch=S.Session.RequestEpoch; Q.Request.Value=FGuid::NewGuid(); Q.Portal=Edge.Portal; Q.Portal.RunId=S.World.RunId; Q.Destination=Edge.Destination;
+    FString Error; TestTrue(TEXT("real travel coordinator begin"),Travel.Travel().Begin(Q,Error));
+    const uint64 Token=Travel.Travel().GetToken(); Travel.Travel().OnDestinationLoaded(Token,true,Q.Destination,TEXT(""));
+    Check(*this,R);
+    FLHSaveSnapshot Saved; FLHSaveError SaveError; TestTrue(TEXT("load durable arrival"),R.Store->Load(S.Header.CharacterId,FLHWave2Session::Compatibility(),Saved,SaveError));
+    const auto* A=Saved.World.Areas.FindByPredicate([](const auto& X){return X.Area.Content.Value==TEXT("Area.TempleB1");});
+    TestTrue(TEXT("durable arrival contains 17 lives"),A && A->Encounters.Num()==17);
+    Travel.Travel().OnDestinationLoaded(Token,true,Q.Destination,TEXT(""));
+    TestTrue(TEXT("repeated population succeeds"),R.Session->StartEncounters()); Check(*this,R);
+    return !HasAnyErrors();
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHB1ContinueSpawn,"Lighthaven.Integration.Wave4.B1SpawnOnContinue",LHWave2TestsPrivate::Flags)
+bool FLHB1ContinueSpawn::RunTest(const FString&)
+{
+    using namespace LHB1SpawnTestsPrivate;
+    auto Disk=MakeShared<FStorage>(); FRuntime R(Disk); R.Create(); R.Flush(); R.Session->Bind(R.State);
+    auto S=R.Session->Snapshot(); S.Character.ActiveEntrance=LHWorld::Registry()[1].Entrances[0].Id; ++S.Header.TransactionSequence;
+    FLHAreaRecord Empty; Empty.Area=LHWorld::Registry()[1].Id; S.World.Areas.Add(Empty);
+    FLHSaveError Error; TestTrue(TEXT("save legacy empty B1"),R.Store->RequestSave(S,FLHWave2Session::Compatibility(),true,Error));
+    R.Session->Travel=[&](){if(!TestTrue(TEXT("Continue loads real B1"),LoadB1(R))) return; BaselineProbe(*this,R); TestTrue(TEXT("Continue arrival starts encounters"),R.Session->StartEncounters());};
+    const FString ContinueError=R.Session->Continue(S.Header.CharacterId,false);
+    if (!TestTrue(*FString(TEXT("real Continue: ")+ContinueError),ContinueError.IsEmpty())) { R.Session->Travel=nullptr; return false; }
+    Check(*this,R); R.Flush();
+    FLHSaveSnapshot Durable; FLHSaveError DurableError;
+    TestTrue(TEXT("load durable Continue population"),R.Store->Load(S.Header.CharacterId,FLHWave2Session::Compatibility(),Durable,DurableError));
+    const auto* DurableArea=Durable.World.Areas.FindByPredicate([](const auto& A){return A.Area.Content.Value==TEXT("Area.TempleB1");});
+    TestTrue(TEXT("Continue persists 17 lives"),DurableArea && DurableArea->Encounters.Num()==17);
+    const auto Before=R.Session->Snapshot(); TestTrue(TEXT("repeat hydration"),R.Session->StartEncounters());
+    TestEqual(TEXT("no duplicate population transaction"),R.Session->Snapshot().Header.TransactionSequence,Before.Header.TransactionSequence);
+    Check(*this,R);
+    auto* D=R.World->GetSubsystem<ULHEncounterDirector>(); auto Now=R.Session->Snapshot();
+    auto* Area=Now.World.Areas.FindByPredicate([](const auto& A){return A.Area.Content.Value==TEXT("Area.TempleB1");});
+    if (!Area || Area->Encounters.IsEmpty() || !D) { R.Session->Travel=nullptr; return false; }
+    auto Record=Area->Encounters[0]; D->Despawn(Record.Life);
+    for(TActorIterator<ALHSpawnMarker> It(R.World);It;++It) if(It->SpawnId==Record.Life.SpawnSlot) It->SetActorLocation(It->GetActorLocation()-FVector(0,0,10));
+    AddExpectedError(TEXT("runtime capsule blocked"),EAutomationExpectedErrorFlags::Contains,1);
+    D->Populate(*Area);
+    TestNull(TEXT("blocked marker refused"),D->FindByLife(Record.Life));
+    R.Session->Travel=nullptr;
+    return !HasAnyErrors();
+}
 #endif

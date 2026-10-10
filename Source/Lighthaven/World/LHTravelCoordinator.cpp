@@ -57,7 +57,7 @@ void FLHTravelCoordinator::OnDestinationLoaded(uint64 Token,bool bSuccess,const 
     FString InstallError;
     // Guard duplicate/reentrant load notifications before calling the host.
     Phase=ELHTravelPhase::SavingArrival; ++Operation; bDispatching=true;
-    const bool bInstalled=Host.ValidateAndInstallArrival(Arrival,*Entrance,InstallError); bDispatching=false;
+    const bool bInstalled=Host.PrepareArrival(Arrival,InstallError) && Host.ValidateAndInstallArrival(Arrival,*Entrance,InstallError); bDispatching=false;
     if (!bInstalled) { Recover(InstallError); return; }
     Host.SaveCheckpoint(Arrival,Operation);
 }
