@@ -109,10 +109,34 @@ struct FBuilder
             C->SetIntensityUnits(ELightUnits::Lumens);
             C->SetUseTemperature(true);
             C->SetTemperature(Type == 'N' || Type == 'F' ? 6500 : 2200);
-            C->SetIntensity(bCell ? 275 : Type == 'F' ? 3200 : Type == 'N' ? 1200 : Type == 'W' ? 1000 : 600);
-            C->SetAttenuationRadius(bCell ? 300 : Type == 'F' ? 1700 : Type == 'N' ? 850 : Type == 'W' ? 800 : 600);
+            C->SetIntensity(bCell ? 600 : Type == 'F' ? 4000 : Type == 'N' ? 1800 : Type == 'W' ? 1500 : 900);
+            C->SetAttenuationRadius(Type == 'F' ? 2000 : 1400);
             C->SetCastShadows(false);
         }
+    }
+    void CoverageLighting()
+    {
+        // Prototype presentation: floor strips are sampled at <=8m spacing.
+        // Collect first: spawning while iterating the actor array invalidates that iteration.
+        TArray<FVector> Positions;
+        for(AActor* A:World->PersistentLevel->Actors)
+        {
+            if(!A || !A->GetName().StartsWith(TEXT("Floor"))) continue;
+            const FVector Center=A->GetActorLocation();
+            const FVector Size=A->GetActorScale3D()*100.;
+            const int32 NX=FMath::CeilToInt(Size.X/800.);
+            const int32 NY=FMath::CeilToInt(Size.Y/800.);
+            for(int32 X=0;X<NX;++X) for(int32 Y=0;Y<NY;++Y)
+            {
+                const FVector P(Center.X-Size.X/2+(X+.5)*Size.X/NX,
+                    Center.Y-Size.Y/2+(Y+.5)*Size.Y/NY,250);
+                // Adjacent narrow union strips can share a fill; cap redundant overlap.
+                if(!Positions.ContainsByPredicate([&](const FVector& Q){ return FVector::DistSquared2D(P,Q)<FMath::Square(400.); }))
+                    Positions.Add(P);
+            }
+        }
+        for(int32 I=0;I<Positions.Num();++I)
+            Light(*FString::Printf(TEXT("Coverage_%03d"),I),Positions[I],'N');
     }
     bool WriteManifest(const FString& Map) const
     {
@@ -139,10 +163,10 @@ struct FBuilder
         if (auto* A = Actor<ASkyLight>(TEXT("Ambient"), FVector(0,0,800)))
         {
             auto* C = A->GetLightComponent(); C->SetMobility(EComponentMobility::Movable);
-            C->SetIntensity(bB3 ? 0.32 : 0.26); C->SetCastShadows(false);
+            C->SetIntensity(.8f); C->SetCastShadows(false);
             C->SourceType=SLS_SpecifiedCubemap;
             C->bRealTimeCapture=false; C->bLowerHemisphereIsBlack=false;
-            auto* Neutral=LoadObject<UTextureCube>(nullptr,TEXT("/Engine/EngineResources/GrayTextureCube.GrayTextureCube"));
+            auto* Neutral=LoadObject<UTextureCube>(nullptr,TEXT("/Engine/EngineResources/GrayLightTextureCube.GrayLightTextureCube"));
             if (!Neutral) bOK=false; else C->SetCubemap(Neutral);
             // Fixed engine gray calibration source; host must compare its brightness with other floors.
         }
@@ -151,13 +175,13 @@ struct FBuilder
             A->bUnbound = true;
             A->Settings.bOverride_AutoExposureMinBrightness = true;
             A->Settings.bOverride_AutoExposureMaxBrightness = true;
-            A->Settings.AutoExposureMinBrightness = 2;
-            A->Settings.AutoExposureMaxBrightness = 2;
+            A->Settings.AutoExposureMinBrightness = 1;
+            A->Settings.AutoExposureMaxBrightness = 1;
         // W4-09: explicit physical-camera exposure, independent of extended range.
         A->Settings.bOverride_AutoExposureMethod=true; A->Settings.AutoExposureMethod=AEM_Manual;
         A->Settings.bOverride_AutoExposureApplyPhysicalCameraExposure=true; A->Settings.AutoExposureApplyPhysicalCameraExposure=true;
         A->Settings.bOverride_CameraISO=true; A->Settings.CameraISO=100;
-        A->Settings.bOverride_CameraShutterSpeed=true; A->Settings.CameraShutterSpeed=1;
+        A->Settings.bOverride_CameraShutterSpeed=true; A->Settings.CameraShutterSpeed=.5f;
         A->Settings.bOverride_DepthOfFieldFstop=true; A->Settings.DepthOfFieldFstop=2;
             A->Settings.bOverride_AutoExposureBias = true; A->Settings.AutoExposureBias = 0;
         }
@@ -702,6 +726,7 @@ int32 ULHGenerateBasementBMapsCommandlet::Main(const FString& Params)
         FBuilder B{World,Cube,true,{}};
         B.Common(bB3,*Area);
         if (bB3) Geometry3(B); else Geometry4(B);
+        B.CoverageLighting();
         const FString Package=bB3 ? TEXT("/Game/Lighthaven/Maps/L_TempleB3") : TEXT("/Game/Lighthaven/Maps/L_TempleB4");
         const FString Filename=FPackageName::LongPackageNameToFilename(Package,FPackageName::GetMapPackageExtension());
         if (!B.bOK || !IFileManager::Get().MakeDirectory(*FPaths::GetPath(Filename),true) || !FEditorFileUtils::SaveMap(World,Filename)
