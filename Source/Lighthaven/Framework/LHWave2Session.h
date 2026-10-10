@@ -76,6 +76,7 @@ public:
 private:
     bool HasPendingCombat() const;
     bool IsTransactionBlocked() const { return IsBlocked() || bSaveQueued || bAwaitingSave || HasPendingCombat(); }
+    bool CaptureResources(FLHSaveSnapshot& Snapshot) const;
     bool SyncResources();
     bool AcceptBoundary(FLHSaveSnapshot&&, bool bInstallResources);
     FLHEntityId PlayerEntity() const;

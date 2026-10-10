@@ -260,9 +260,25 @@ void FLHWave2Session::Published(const FLHCommandResult& R,bool Creation)
 FLHCommandResult FLHWave2Session::Execute(const FLHCreateCharacterRequest& Q)
 { if (IsTransactionBlocked() || !Authority()) return LHWave2SessionPrivate::Busy(); auto R=Authority()->Execute(Q); Published(R,true); return R; }
 FLHCommandResult FLHWave2Session::Execute(const FLHAllocateAttributePointsRequest& Q)
-{ if (IsTransactionBlocked() || !Authority() || !SyncResources()) return LHWave2SessionPrivate::Busy(); auto R=Authority()->Execute(Q); Published(R,false); return R; }
+{
+    if (IsTransactionBlocked() || !Authority()) return LHWave2SessionPrivate::Busy();
+    auto Next=Complete; if (!CaptureResources(Next)) return LHWave2SessionPrivate::Busy();
+    auto Check=*Authority(); if (Check.Import(Next)!=ELHCommandReason::None) return LHWave2SessionPrivate::Busy();
+    auto R=Check.Execute(Q);
+    if (R.Disposition==ELHCommandDisposition::Accepted && !R.bReplay)
+    { *Authority()=MoveTemp(Check); Complete=MoveTemp(Next); Published(R,false); }
+    return R;
+}
 FLHCommandResult FLHWave2Session::Execute(const FLHEquipItemRequest& Q)
-{ if (IsTransactionBlocked() || !Authority() || !SyncResources()) return LHWave2SessionPrivate::Busy(); auto R=Authority()->Execute(Q); Published(R,false); return R; }
+{
+    if (IsTransactionBlocked() || !Authority()) return LHWave2SessionPrivate::Busy();
+    auto Next=Complete; if (!CaptureResources(Next)) return LHWave2SessionPrivate::Busy();
+    auto Check=*Authority(); if (Check.Import(Next)!=ELHCommandReason::None) return LHWave2SessionPrivate::Busy();
+    auto R=Check.Execute(Q);
+    if (R.Disposition==ELHCommandDisposition::Accepted && !R.bReplay)
+    { *Authority()=MoveTemp(Check); Complete=MoveTemp(Next); Published(R,false); }
+    return R;
+}
 void FLHWave2Session::Flush()
 {
     if (!bSaveQueued || bAwaitingSave || bWorldTravelFrozen) return;
