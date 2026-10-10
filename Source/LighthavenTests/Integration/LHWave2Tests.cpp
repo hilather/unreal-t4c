@@ -1489,6 +1489,7 @@ struct FRoute
             const auto Result=R.Session->Execute(Q);
             if(Result.Disposition!=ELHCommandDisposition::Accepted)
             {
+                Test.AddInfo(TEXT("F6 session status: ")+R.Session->Status());
                 auto* Resolved=R.World->GetSubsystem<ULHEncounterDirector>()->FindByEntity(Q.Target);
                 Test.AddInfo(FString::Printf(TEXT("TARGET requested=%s generation=%lld alive=%d resolved=%s generation=%lld alive=%d playerHP=%g"),
                     *Enemy->GetName(),Enemy->GetLife().LifeGeneration,Enemy->IsAlive(),*GetNameSafe(Resolved),Resolved?Resolved->GetLife().LifeGeneration:-1,
@@ -1521,7 +1522,7 @@ struct FRoute
                 for(const auto& Slot:LHWorld::Registry()[1].Spawns) if(Slot.Enemy.Value==TEXT("Enemy.BrownRat"))
                 { FString Why; D->IsSpawnSafe(Slot.SpawnId,&Why); Test.AddInfo(TEXT("RAT SAFETY ")+Why); }
             if(!Test.TestNotNull(TEXT("navigation-safe real respawn rat"),Rat)) return false;
-            if(!Fight(Rat,TEXT("Attack.Melee.Basic"))) return false;
+            if(!Fight(Rat,TEXT("Attack.Melee.Basic"))) { Test.AddInfo(FString::Printf(TEXT("F6 farm completed=%d requested=%d"),I,Kills)); return false; }
             const auto S=R.Session->Snapshot();
             const auto* A=S.World.Areas.FindByPredicate([](const auto& X){return X.Area.Content.Value==TEXT("Area.TempleB1");});
             const auto* Corpse=A?A->Corpses.FindByPredicate([&](const auto& X){return LHAI::SameLife(X.SourceLife,Rat->GetLife());}):nullptr;

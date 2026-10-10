@@ -245,6 +245,22 @@ bool FLHW603Corpse::RunTest(const FString&)
     Inner->SetObjectPropertyValue(Registry.GetRawPtr(Registry.AddValue()),Living);
     TestEqual(TEXT("combat resolves living generation"),D->FindByEntity(Living->GetEntityId(D->RunId)),Living);
     auto Old=Life; --Old.LifeGeneration; TestEqual(TEXT("corpse still addressable by life"),D->FindByLife(Old),Corpse);
+    // Real collision: the old life lies on the next life's attack segment.
+    Corpse->SetActorLocation(FVector(75,0,100));
+    Living->SetActorLocation(FVector(150,0,100));
+    auto* Attacker=R.World->SpawnActor<ALHEnemyCharacter>();
+    auto AttackLife=Life; AttackLife.SpawnSlot=FGuid::NewGuid();
+    TestTrue(TEXT("attacker runtime"),Attacker->ApplyRuntimeSpec(Row->Runtime,AttackLife,Row->Health,Error));
+    Attacker->SetActorLocation(FVector(0,0,100));
+    for(auto* Actor : {Corpse,Living,Attacker}) Actor->GetCapsuleComponent()->RecreatePhysicsState();
+    FHitResult Hit; FCollisionQueryParams Params; Params.AddIgnoredActor(Attacker); Params.AddIgnoredActor(Living);
+    TestTrue(TEXT("corpse remains cursor targetable"),R.World->LineTraceSingleByChannel(Hit,Attacker->GetActorLocation(),Living->GetActorLocation(),ECC_Visibility,Params) && Hit.GetActor()==Corpse);
+    TestEqual(TEXT("retained corpse does not block next-life attack"),Attacker->GetCombatComponent()->ValidateAttack(Living->GetCombatComponent()),ELHCommandReason::None);
+    Corpse->Destroy();
+    auto* Obstacle=R.World->SpawnActor<ALHEnemyCharacter>(); auto ObstacleLife=Life; ObstacleLife.SpawnSlot=FGuid::NewGuid();
+    TestTrue(TEXT("living obstacle runtime"),Obstacle->ApplyRuntimeSpec(Row->Runtime,ObstacleLife,Row->Health,Error));
+    Obstacle->SetActorLocation(FVector(75,0,100)); Obstacle->GetCapsuleComponent()->RecreatePhysicsState();
+    TestEqual(TEXT("living solid still blocks attack sight"),Attacker->GetCombatComponent()->ValidateAttack(Living->GetCombatComponent()),ELHCommandReason::OutOfRange);
     return !HasAnyErrors();
 }
 #endif

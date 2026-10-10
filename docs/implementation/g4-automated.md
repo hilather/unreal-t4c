@@ -149,3 +149,18 @@ logs. Final standard editor/game builds both succeeded; exact timings are retain
 in `final-build.log`. `git diff --check` passed. No cook/package, graphical editor
 or hands-on play was performed. Submit as blocked evidence for production follow-up;
 the unreached assertions are not claimed as passed.
+
+## W6-03fixe follow-up (2026-10-10)
+
+The F6 measurements identify retained corpse Visibility as the early earned-route
+attack blocker (150cm distance,200cm range). Combat now excludes corpses from
+attack sight while preserving their cursor/loot Visibility and life lookup.
+Two full runs each complete196 tests with195 passes; two focused G4 runs each
+complete8 with7 passes. Earned Melee/Ranged/Magic and DeathAndChurchRespawn pass
+in all four runs. The sole remaining failure is SessionInventoryRollback, which
+gets378/400 farming kills before the4096 accepted-activation replay cache rejects
+UseAbility as Busy. Inventory filling/rollback assertions remain unreached.
+All exported test states agree across repetitions and full/focused context.
+This is automated evidence, not G4 gate approval or hands-on coverage.
+Measurements, exact counts, commands and remaining limits:
+[W6-03fixe report](reviews/w6-03-fixes-f6.md).
