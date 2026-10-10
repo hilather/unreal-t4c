@@ -49,11 +49,12 @@ public:
     bool Build(const FLHVisualRecipe& Recipe);
     virtual void OnConstruction(const FTransform& Transform) override;
     virtual void BeginPlay() override;
+    virtual void PostLoad() override;
     const FLHVisualRecipe& GetRecipe() const { return BuiltRecipe; }
     UProceduralMeshComponent* GetMesh() const { return Mesh; }
     const TArray<TObjectPtr<UBoxComponent>>& GetBlockers() const { return Blockers; }
 private:
-    UPROPERTY(VisibleAnywhere) TObjectPtr<UProceduralMeshComponent> Mesh;
+    UPROPERTY(VisibleAnywhere, Transient) TObjectPtr<UProceduralMeshComponent> Mesh;
     UPROPERTY() TArray<TObjectPtr<UBoxComponent>> Blockers;
     UPROPERTY() FLHVisualRecipe BuiltRecipe;
     UPROPERTY() TObjectPtr<UMaterialInterface> MaterialParent;
