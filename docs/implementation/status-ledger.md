@@ -241,3 +241,9 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
   - **W5-08b (sol, a8a579a):** a technical creature pilot (rat, bat, slime; rigged, five actions, GLB validated). It still looks toy-like and uses an uppercase path. Superseded in look by **W5-08c (astra)**, now running.
   - **W5-07c (sol):** now running. It imports the kit into Unreal and binds B1Cellar in code, with no map regeneration; the coordinator commits the imported assets.
   - **Matt:** send him visuals only once they look great.
+- **B1 Blender kit integrated (3609b0e + assets 54f919e, 4.5 MB LFS).**
+  - **W5-07c:** headless Interchange import plus a B1-only code binding (procedural fallback for everything else).
+  - **W5-07d:** fixed a unity-build `-Wshadow` error that adaptive builds had hidden. Rule from now on: build checks use non-adaptive unity.
+  - **Host:** 208/209 (F9 now fails in the full suite); arrivals 9/9 unchanged; validator 0; package OK. Capture timed out at B2 room 3, so B3/B4 were not captured.
+  - **B1 in engine:** real stone geometry, but flat, cold, grey lighting (neutral sky fill plus grid lights, not at the torches). Cropped walls and arches show open cut faces, and torches float in the open floor. → **W5-09 (astra):** B1 lighting and atmosphere.
+- **Creature sources merged (d418294):** W5-08b–e give all 11 roster IDs in `artsource/creatures/`. They read as solid stylised game creatures in Blender; the in-engine verdict is pending. → **W5-10 (sol):** skeletal import, binding and a lineup capture, launched once W5-09 frees `Visual/`. **W6-03fixi (sol):** F9 root cause, now running.
