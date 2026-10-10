@@ -7,6 +7,8 @@ class UStaticMesh;
 class USkeletalMesh;
 class UAnimSequence;
 class USkeletalMeshComponent;
+class UStaticMeshComponent;
+class UMaterialInterface;
 enum class ELHMonsterMotion : uint8 { Idle, Move, Telegraph, Strike, Hit, Dead };
 // Presentation clock only. No gameplay writes, random draws or timers.
 UCLASS()
@@ -15,13 +17,19 @@ class LIGHTHAVEN_API ULHMonsterVisual : public USceneComponent
     GENERATED_BODY()
 public:
     ULHMonsterVisual();
+    // Import-only editor hook: Python cannot write UE's read-only SocketName.
+    UFUNCTION(BlueprintCallable, Category="Lighthaven|Art")
+    static bool ConfigureWeaponSocket(USkeletalMesh* Mesh, FName Bone);
     bool Build(FName DefinitionId, double Radius, double HalfHeight, bool UseImportedArt = true);
     bool UsesImportedArt() const { return CreatureMesh != nullptr; }
+    UStaticMeshComponent* GetWeaponComponent() const { return CreatureWeapon; }
     static FString ArtId(FName DefinitionId);
     static bool Known(FName DefinitionId);
     static uint32 RecipeFingerprint(FName DefinitionId);
     void Attack(double ImpactDelay, double CommitTime = -1);
     void CancelAttack();
+    UFUNCTION(BlueprintCallable, Category="Lighthaven|Art Import")
+    static bool ConfigureCreatureMaterial(USkeletalMesh* Mesh, UMaterialInterface* Material);
     void Strike();
     void Hit();
     void Die();
@@ -34,6 +42,8 @@ public:
 private:
     void Clear();
     UPROPERTY() TArray<TObjectPtr<USkeletalMesh>> CreatureAssets;
+    UPROPERTY() TArray<TObjectPtr<UStaticMesh>> CreatureWeapons;
+    UPROPERTY() TObjectPtr<UStaticMeshComponent> CreatureWeapon;
     UPROPERTY() TArray<TObjectPtr<UAnimSequence>> CreatureActions;
     UPROPERTY() TObjectPtr<USkeletalMeshComponent> CreatureMesh;
     int32 CreatureIndex = INDEX_NONE;

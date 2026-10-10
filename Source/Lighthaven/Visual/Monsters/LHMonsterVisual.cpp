@@ -3,6 +3,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
+#include "Engine/SkeletalMeshSocket.h"
 #include "Animation/AnimSequence.h"
 #include "Misc/PackageName.h"
 #include "ProceduralMeshComponent.h"
@@ -33,12 +34,51 @@ ULHMonsterVisual::ULHMonsterVisual()
         const FString Root=FString(TEXT("/Game/Lighthaven/Art/Creatures/"))+LHMonsterPrivate::Art[I]+TEXT("/");
         const FString Mesh=Root+TEXT("SK_")+LHMonsterPrivate::Art[I];
         CreatureAssets.Add(FPackageName::DoesPackageExist(Mesh)?LoadObject<USkeletalMesh>(nullptr,*Mesh):nullptr);
+        const FString Weapon=Root+TEXT("SM_Weapon");
+        CreatureWeapons.Add(FPackageName::DoesPackageExist(Weapon)?LoadObject<UStaticMesh>(nullptr,*Weapon):nullptr);
         for(const TCHAR* Action:LHMonsterPrivate::Actions)
         {
             const FString Path=Root+TEXT("A_")+Action;
             CreatureActions.Add(FPackageName::DoesPackageExist(Path)?LoadObject<UAnimSequence>(nullptr,*Path):nullptr);
         }
     }
+}
+bool ULHMonsterVisual::ConfigureCreatureMaterial(USkeletalMesh* Mesh,UMaterialInterface* Material)
+{
+#if WITH_EDITOR
+    if(!Mesh || !Material || Mesh->GetMaterials().IsEmpty()) return false;
+    Mesh->Modify();
+    auto Slots=Mesh->GetMaterials();
+    for(auto& Slot:Slots) Slot.MaterialInterface=Material;
+    Mesh->SetMaterials(Slots);
+    Mesh->MarkPackageDirty();
+    return true;
+#else
+    return false;
+#endif
+}
+bool ULHMonsterVisual::ConfigureWeaponSocket(USkeletalMesh* Mesh,FName Bone)
+{
+#if WITH_EDITOR
+    if(!Mesh || Mesh->GetRefSkeleton().FindBoneIndex(Bone)==INDEX_NONE) return false;
+    Mesh->Modify();
+    auto* Socket=Mesh->FindSocket(TEXT("WeaponSocket"));
+    if(!Socket)
+    {
+        Socket=NewObject<USkeletalMeshSocket>(Mesh);
+        Socket->SocketName=TEXT("WeaponSocket");
+        Mesh->AddSocket(Socket);
+    }
+    Socket->BoneName=Bone;
+    Socket->RelativeLocation=FVector::ZeroVector;
+    Socket->RelativeRotation=FRotator::ZeroRotator;
+    Socket->RelativeScale=FVector::OneVector;
+    Socket->bForceAlwaysAnimated=true;
+    Mesh->MarkPackageDirty();
+    return true;
+#else
+    return false;
+#endif
 }
 FString ULHMonsterVisual::ArtId(FName Id)
 {
@@ -63,8 +103,7 @@ void ULHMonsterVisual::Clear()
 {
     for(const auto& P:KitPieces) if(IsValid(P)) P->Destroy();
     for(const auto& P:Parts) if(IsValid(P) && P->GetOwner()==GetOwner()) P->DestroyComponent();
-    if(CreatureMesh) CreatureMesh->DestroyComponent();
-    CreatureMesh=nullptr; CreatureIndex=INDEX_NONE;
+    CreatureMesh=nullptr; CreatureWeapon=nullptr; CreatureIndex=INDEX_NONE;
     KitPieces.Reset(); Parts.Reset(); Rest.Reset(); Weapons.Reset();
 }
 void ULHMonsterVisual::EndPlay(const EEndPlayReason::Type Reason) { Clear(); Super::EndPlay(Reason); }
@@ -79,6 +118,8 @@ bool ULHMonsterVisual::Build(FName Id,double Radius,double HH,bool UseImportedAr
     {
         bool Complete=true;
         for(int32 A=0;A<5;++A) Complete &= CreatureActions[I*5+A]!=nullptr && CreatureActions[I*5+A]->GetSkeleton()==CreatureAssets[I]->GetSkeleton();
+        const bool Armed=I==3 || I==5 || I==6;
+        if(Armed) Complete &= CreatureWeapons[I]!=nullptr && CreatureAssets[I]->FindSocket(TEXT("WeaponSocket"))!=nullptr;
         if(!Complete) break;
         CreatureIndex=I;
         CreatureMesh=NewObject<USkeletalMeshComponent>(GetOwner());
@@ -88,7 +129,21 @@ bool ULHMonsterVisual::Build(FName Id,double Radius,double HH,bool UseImportedAr
         CreatureMesh->SetGenerateOverlapEvents(false); CreatureMesh->SetCanEverAffectNavigation(false);
         CreatureMesh->SetupAttachment(this); CreatureMesh->RegisterComponent();
         CreatureMesh->SetVisibility(IsVisible(),true);
+        // Include the imported body in the same inspection/cleanup collection as
+        // procedural parts, so collision and rebuild tests exercise real art.
+        Parts.Add(CreatureMesh); Rest.Add(CreatureMesh->GetRelativeTransform()); Weapons.Add(false);
         CreatureMesh->PlayAnimation(CreatureActions[I*5],true); CreatureMesh->SetPlayRate(0);
+        if(Armed)
+        {
+            CreatureWeapon=NewObject<UStaticMeshComponent>(GetOwner());
+            GetOwner()->AddInstanceComponent(CreatureWeapon);
+            CreatureWeapon->SetStaticMesh(CreatureWeapons[I]);
+            CreatureWeapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+            CreatureWeapon->SetGenerateOverlapEvents(false); CreatureWeapon->SetCanEverAffectNavigation(false);
+            CreatureWeapon->SetupAttachment(CreatureMesh,TEXT("WeaponSocket")); CreatureWeapon->RegisterComponent();
+            CreatureWeapon->SetVisibility(IsVisible(),true);
+            Parts.Add(CreatureWeapon); Rest.Add(CreatureWeapon->GetRelativeTransform()); Weapons.Add(true);
+        }
         return true;
     }
     auto Add=[&](const LHMonsterPrivate::FPiece& P)
