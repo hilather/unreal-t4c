@@ -1,4 +1,8 @@
 #include "Visual/LHVisualKit.h"
+#include "Visual/LHB1ArtBinding.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "StaticMeshResources.h"
 #include "ProceduralMeshComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/SceneComponent.h"
@@ -214,6 +218,16 @@ ALHVisualPiece::ALHVisualPiece()
     Mesh->SetupAttachment(GetRootComponent());
     Mesh->SetCollisionProfileName(TEXT("NoCollision")); Mesh->SetGenerateOverlapEvents(false); Mesh->SetCanEverAffectNavigation(false);
     Mesh->bUseComplexAsSimpleCollision=false;
+    ImportedMesh=CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("B1Art"),true);
+    ImportedMesh->SetFlags(RF_Transient);
+    ImportedMesh->SetupAttachment(GetRootComponent());
+    ImportedMesh->SetCollisionProfileName(TEXT("NoCollision"));
+    ImportedMesh->SetGenerateOverlapEvents(false); ImportedMesh->SetCanEverAffectNavigation(false);
+    for(const auto& Name:LHB1Art::AssetNames())
+    {
+        const FString Path=TEXT("/Game/Lighthaven/Art/Env/B1/SM_")+Name+TEXT(".SM_")+Name;
+        B1Assets.Add(LoadObject<UStaticMesh>(nullptr,*Path,nullptr,LOAD_NoWarn|LOAD_Quiet));
+    }
 }
 void ALHVisualPiece::PostLoad()
 {
@@ -258,7 +272,25 @@ bool ALHVisualPiece::Build(const FLHVisualRecipe& R)
         C->SetBoxExtent(B.Size/2); C->SetRelativeLocationAndRotation(B.Center,B.Rotation);
         C->SetCollisionProfileName(TEXT("BlockAll")); C->SetGenerateOverlapEvents(false); C->SetCanEverAffectNavigation(true); C->RegisterComponent(); Blockers.Add(C);
     }
-    BuiltRecipe=R; return true;
+    ImportedMesh->ClearInstances();
+    ImportedMesh->SetStaticMesh(nullptr); ImportedMesh->SetVisibility(false);
+    Mesh->SetVisibility(true);
+    LHB1Art::FFit Fit;
+    if(LHB1Art::Resolve(R,Fit))
+    {
+        const int32 Index=LHB1Art::AssetNames().IndexOfByKey(Fit.AssetName);
+        if(B1Assets.IsValidIndex(Index) && B1Assets[Index])
+        {
+            ImportedMesh->SetStaticMesh(B1Assets[Index]);
+            ImportedMesh->SetRelativeTransform(FTransform::Identity);
+            for(const auto& Instance:Fit.Instances) ImportedMesh->AddInstance(Instance);
+            for(int32 Slot=0;Slot<ImportedMesh->GetStaticMesh()->GetStaticMaterials().Num();++Slot)
+                ImportedMesh->SetMaterial(Slot,UMaterialInstanceDynamic::Create(ImportedMesh->GetStaticMesh()->GetMaterial(Slot),this));
+            UpdateArtClip();
+            ImportedMesh->SetVisibility(true); Mesh->SetVisibility(false);
+        }
+    }
+    BuiltRecipe=R; UpdateArtClip(); return true;
 }
 ALHVisualPiece* LHVisual::SpawnProp(UWorld* World,FName Id,const FTransform& T,ELHVisualStyle Style,bool bDescending)
 {
@@ -294,7 +326,22 @@ FLHVisualTotals LHVisual::ValidatePlacedSet(const TArray<ALHVisualPiece*>& Piece
         ++T.Pieces; auto* M=P->GetMesh(); int32 Tri=0,Draw=0;
         for(int32 I=0;I<M->GetNumSections();++I) if(const auto* S=M->GetProcMeshSection(I))
             if(!S->ProcIndexBuffer.IsEmpty()) { Tri+=S->ProcIndexBuffer.Num()/3; ++Draw; }
-        T.Triangles+=Tri; T.DrawCalls+=Draw; T.CollisionBoxes+=P->GetBlockers().Num();
+        auto* Imported=P->GetImportedMesh();
+        int32 VisibleTri=Tri, VisibleDraw=Draw;
+        if(Imported->IsVisible() && Imported->GetStaticMesh())
+        {
+            const auto* Data=Imported->GetStaticMesh()->GetRenderData();
+            if(Data && !Data->LODResources.IsEmpty())
+            {
+                VisibleTri=Data->LODResources[0].GetNumTriangles()*Imported->GetInstanceCount();
+                VisibleDraw=Data->LODResources[0].Sections.Num();
+                if(Data->LODResources[0].GetNumTriangles()>6000 || VisibleDraw>3) T.Errors.Add(P->GetRecipe().Id.ToString()+TEXT(": imported budget"));
+            }
+            else T.Errors.Add(TEXT("Imported mesh has no render data"));
+            if(Imported->GetCollisionEnabled()!=ECollisionEnabled::NoCollision || Imported->CanEverAffectNavigation())
+                T.Errors.Add(TEXT("Imported dressing collision/nav"));
+        }
+        T.Triangles+=VisibleTri; T.DrawCalls+=VisibleDraw; T.CollisionBoxes+=P->GetBlockers().Num();
         const auto& R=P->GetRecipe();
         if(R.Geometry.IsEmpty() || !P->GetActorScale3D().Equals(FVector::OneVector)) T.Errors.Add(R.Id.ToString()+TEXT(": empty recipe/nonunit scale"));
         if(Tri>R.TriangleBudget || Draw>R.DrawBudget || Tri!=R.Geometry.Num()*12)
@@ -313,4 +360,25 @@ FLHVisualTotals LHVisual::ValidatePlacedSet(const TArray<ALHVisualPiece*>& Piece
         }
     }
     return T;
+}
+
+void ALHVisualPiece::UpdateArtClip()
+{
+    LHB1Art::FFit Fit;
+    if(!LHB1Art::Resolve(BuiltRecipe,Fit) || !ImportedMesh->GetStaticMesh()) return;
+    const FTransform Actor=GetActorTransform();
+    const FVector Center=Actor.TransformPosition(Fit.ClipBounds.GetCenter());
+    const FVector Extent=Fit.ClipBounds.GetExtent()*Actor.GetScale3D().GetAbs();
+    for(int32 Slot=0;Slot<ImportedMesh->GetNumMaterials();++Slot)
+    {
+        auto* M=Cast<UMaterialInstanceDynamic>(ImportedMesh->GetMaterial(Slot));
+        if(!M) continue;
+        M->SetVectorParameterValue(TEXT("ClipOrigin"),FLinearColor(Center.X,Center.Y,Center.Z,0));
+        M->SetVectorParameterValue(TEXT("ClipExtent"),FLinearColor(Extent.X,Extent.Y,Extent.Z,0));
+        for(const auto& Pair:TArray<TPair<FName,FVector>>{{TEXT("ClipX"),FVector::ForwardVector},{TEXT("ClipY"),FVector::RightVector},{TEXT("ClipZ"),FVector::UpVector}})
+        {
+            const FVector Axis=Actor.TransformVectorNoScale(Pair.Value);
+            M->SetVectorParameterValue(Pair.Key,FLinearColor(Axis.X,Axis.Y,Axis.Z,0));
+        }
+    }
 }
