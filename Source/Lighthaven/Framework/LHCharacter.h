@@ -6,6 +6,7 @@
 class USpringArmComponent;
 class UCameraComponent;
 class UPointLightComponent;
+class ULHPlayerVisualComponent;
 UCLASS()
 class LIGHTHAVEN_API ALHCharacter : public ACharacter, public IAbilitySystemInterface
 {
@@ -22,6 +23,7 @@ public:
     UPROPERTY(EditAnywhere, Category="Prototype") float RunSpeed=450.f;
     UPROPERTY(VisibleAnywhere) TObjectPtr<USpringArmComponent> CameraBoom;
     UPROPERTY(VisibleAnywhere) TObjectPtr<UCameraComponent> Camera;
+    UPROPERTY(VisibleAnywhere) TObjectPtr<ULHPlayerVisualComponent> PlayerVisual;
 private:
     UPROPERTY() TObjectPtr<UPointLightComponent> SpellLight;
     bool bRunning=false;
