@@ -7,6 +7,6 @@ public class Lighthaven : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PublicIncludePaths.Add(ModuleDirectory);
-        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "GameplayTags", "GameplayAbilities", "GameplayTasks", "AIModule", "NavigationSystem", "EnhancedInput", "InputCore", "UMG", "Slate", "SlateCore" });
+        PublicDependencyModuleNames.AddRange(new string[] { "ProceduralMeshComponent", "Core", "CoreUObject", "Engine", "GameplayTags", "GameplayAbilities", "GameplayTasks", "AIModule", "NavigationSystem", "EnhancedInput", "InputCore", "UMG", "Slate", "SlateCore" });
     }
 }
