@@ -1,6 +1,11 @@
 #include "Visual/Monsters/LHMonsterVisual.h"
 #include "Visual/LHVisualKit.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
+#include "Engine/SkeletalMeshSocket.h"
+#include "Animation/AnimSequence.h"
+#include "Misc/PackageName.h"
 #include "ProceduralMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
@@ -9,6 +14,9 @@
 #include "Framework/LHEnemyCharacter.h"
 #include "AI/LHEnemyAIController.h"
 namespace LHMonsterPrivate {
+const TCHAR* Ids[]={TEXT("BrownRat"),TEXT("Bat"),TEXT("GreenSlime"),TEXT("Goblin"),TEXT("GiantSpider"),TEXT("Balork"),TEXT("GoblinWarrior"),TEXT("Atrocity"),TEXT("DungeonBat"),TEXT("GiantBat"),TEXT("UndeadBat")};
+const TCHAR* Art[]={TEXT("rat"),TEXT("bat"),TEXT("slime"),TEXT("goblin"),TEXT("giant_spider"),TEXT("balork"),TEXT("goblin_warrior"),TEXT("atrocity"),TEXT("dungeon_bat"),TEXT("giant_bat"),TEXT("undead_bat")};
+const TCHAR* Actions[]={TEXT("idle"),TEXT("move"),TEXT("attack"),TEXT("hit"),TEXT("death")};
 #include "LHMonsterRecipes.inl"
 bool Matches(FName Id, const FPiece& P) { return Id.ToString()==FString(TEXT("Enemy."))+P.Id; }
 }
@@ -20,6 +28,62 @@ ULHMonsterVisual::ULHMonsterVisual()
     static ConstructorHelpers::FObjectFinder<UStaticMesh> Cone(TEXT("/Engine/BasicShapes/Cone.Cone"));
     static ConstructorHelpers::FObjectFinder<UStaticMesh> Cylinder(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
     ShapeMeshes={Sphere.Object,Cone.Object,Cylinder.Object};
+    // Hard CDO references retain imported art and dependencies in cooks.
+    for(int32 I=0;I<11;++I)
+    {
+        const FString Root=FString(TEXT("/Game/Lighthaven/Art/Creatures/"))+LHMonsterPrivate::Art[I]+TEXT("/");
+        const FString Mesh=Root+TEXT("SK_")+LHMonsterPrivate::Art[I];
+        CreatureAssets.Add(FPackageName::DoesPackageExist(Mesh)?LoadObject<USkeletalMesh>(nullptr,*Mesh):nullptr);
+        const FString Weapon=Root+TEXT("SM_Weapon");
+        CreatureWeapons.Add(FPackageName::DoesPackageExist(Weapon)?LoadObject<UStaticMesh>(nullptr,*Weapon):nullptr);
+        for(const TCHAR* Action:LHMonsterPrivate::Actions)
+        {
+            const FString Path=Root+TEXT("A_")+Action;
+            CreatureActions.Add(FPackageName::DoesPackageExist(Path)?LoadObject<UAnimSequence>(nullptr,*Path):nullptr);
+        }
+    }
+}
+bool ULHMonsterVisual::ConfigureCreatureMaterial(USkeletalMesh* Mesh,UMaterialInterface* Material)
+{
+#if WITH_EDITOR
+    if(!Mesh || !Material || Mesh->GetMaterials().IsEmpty()) return false;
+    Mesh->Modify();
+    auto Slots=Mesh->GetMaterials();
+    for(auto& Slot:Slots) Slot.MaterialInterface=Material;
+    Mesh->SetMaterials(Slots);
+    Mesh->MarkPackageDirty();
+    return true;
+#else
+    return false;
+#endif
+}
+bool ULHMonsterVisual::ConfigureWeaponSocket(USkeletalMesh* Mesh,FName Bone)
+{
+#if WITH_EDITOR
+    if(!Mesh || Mesh->GetRefSkeleton().FindBoneIndex(Bone)==INDEX_NONE) return false;
+    Mesh->Modify();
+    auto* Socket=Mesh->FindSocket(TEXT("WeaponSocket"));
+    if(!Socket)
+    {
+        Socket=NewObject<USkeletalMeshSocket>(Mesh);
+        Socket->SocketName=TEXT("WeaponSocket");
+        Mesh->AddSocket(Socket);
+    }
+    Socket->BoneName=Bone;
+    Socket->RelativeLocation=FVector::ZeroVector;
+    Socket->RelativeRotation=FRotator::ZeroRotator;
+    Socket->RelativeScale=FVector::OneVector;
+    Socket->bForceAlwaysAnimated=true;
+    Mesh->MarkPackageDirty();
+    return true;
+#else
+    return false;
+#endif
+}
+FString ULHMonsterVisual::ArtId(FName Id)
+{
+    for(int32 I=0;I<11;++I) if(Id==FName(*(FString(TEXT("Enemy."))+LHMonsterPrivate::Ids[I]))) return LHMonsterPrivate::Art[I];
+    return FString();
 }
 bool ULHMonsterVisual::Known(FName Id)
 { for(const auto& P:LHMonsterPrivate::Pieces) if(LHMonsterPrivate::Matches(Id,P)) return true; return false; }
@@ -39,15 +103,49 @@ void ULHMonsterVisual::Clear()
 {
     for(const auto& P:KitPieces) if(IsValid(P)) P->Destroy();
     for(const auto& P:Parts) if(IsValid(P) && P->GetOwner()==GetOwner()) P->DestroyComponent();
+    CreatureMesh=nullptr; CreatureWeapon=nullptr; CreatureIndex=INDEX_NONE;
     KitPieces.Reset(); Parts.Reset(); Rest.Reset(); Weapons.Reset();
 }
 void ULHMonsterVisual::EndPlay(const EEndPlayReason::Type Reason) { Clear(); Super::EndPlay(Reason); }
-bool ULHMonsterVisual::Build(FName Id,double Radius,double HH)
+bool ULHMonsterVisual::Build(FName Id,double Radius,double HH,bool UseImportedArt)
 {
     if(!GetOwner() || !GetWorld() || !FMath::IsFinite(Radius) || !FMath::IsFinite(HH) || Radius<=0 || HH<=0) return false;
-    Clear(); Definition=Id; Clock=AttackElapsed=HitRemaining=StrikeRemaining=DeathElapsed=0; Pending=Dead=false;
+    Clear(); ComponentTags.Remove(TEXT("LH.Monster.UnknownPlaceholder")); Definition=Id; Clock=AttackElapsed=HitRemaining=StrikeRemaining=DeathElapsed=0; Pending=Dead=false;
     Motion=ELHMonsterMotion::Idle;
     SetRelativeLocation(FVector(0,0,-HH));
+    const FString Art=ArtId(Id);
+    for(int32 I=0;I<11;++I) if(UseImportedArt && Art==LHMonsterPrivate::Art[I] && CreatureAssets[I])
+    {
+        bool Complete=true;
+        for(int32 A=0;A<5;++A) Complete &= CreatureActions[I*5+A]!=nullptr && CreatureActions[I*5+A]->GetSkeleton()==CreatureAssets[I]->GetSkeleton();
+        const bool Armed=I==3 || I==5 || I==6;
+        if(Armed) Complete &= CreatureWeapons[I]!=nullptr && CreatureAssets[I]->FindSocket(TEXT("WeaponSocket"))!=nullptr;
+        if(!Complete) break;
+        CreatureIndex=I;
+        CreatureMesh=NewObject<USkeletalMeshComponent>(GetOwner());
+        GetOwner()->AddInstanceComponent(CreatureMesh);
+        CreatureMesh->SetSkeletalMesh(CreatureAssets[I]);
+        CreatureMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+        CreatureMesh->SetGenerateOverlapEvents(false); CreatureMesh->SetCanEverAffectNavigation(false);
+        CreatureMesh->SetupAttachment(this); CreatureMesh->RegisterComponent();
+        CreatureMesh->SetVisibility(IsVisible(),true);
+        // Include the imported body in the same inspection/cleanup collection as
+        // procedural parts, so collision and rebuild tests exercise real art.
+        Parts.Add(CreatureMesh); Rest.Add(CreatureMesh->GetRelativeTransform()); Weapons.Add(false);
+        CreatureMesh->PlayAnimation(CreatureActions[I*5],true); CreatureMesh->SetPlayRate(0);
+        if(Armed)
+        {
+            CreatureWeapon=NewObject<UStaticMeshComponent>(GetOwner());
+            GetOwner()->AddInstanceComponent(CreatureWeapon);
+            CreatureWeapon->SetStaticMesh(CreatureWeapons[I]);
+            CreatureWeapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+            CreatureWeapon->SetGenerateOverlapEvents(false); CreatureWeapon->SetCanEverAffectNavigation(false);
+            CreatureWeapon->SetupAttachment(CreatureMesh,TEXT("WeaponSocket")); CreatureWeapon->RegisterComponent();
+            CreatureWeapon->SetVisibility(IsVisible(),true);
+            Parts.Add(CreatureWeapon); Rest.Add(CreatureWeapon->GetRelativeTransform()); Weapons.Add(true);
+        }
+        return true;
+    }
     auto Add=[&](const LHMonsterPrivate::FPiece& P)
     {
         USceneComponent* Part=nullptr;
@@ -122,6 +220,21 @@ void ULHMonsterVisual::AdvancePresentation(float Dt,bool Moving)
     HitRemaining=FMath::Max(0.,HitRemaining-Dt); StrikeRemaining=FMath::Max(0.,StrikeRemaining-Dt);
     if(Dead) DeathElapsed+=Dt;
     Motion=Dead?ELHMonsterMotion::Dead:StrikeRemaining>0?ELHMonsterMotion::Strike:Pending?(AttackElapsed<Impact?ELHMonsterMotion::Telegraph:ELHMonsterMotion::Strike):HitRemaining>0?ELHMonsterMotion::Hit:Moving?ELHMonsterMotion::Move:ELHMonsterMotion::Idle;
+    if(CreatureMesh)
+    {
+        const int32 A=Dead?4:Motion==ELHMonsterMotion::Hit?3:(Motion==ELHMonsterMotion::Telegraph || Motion==ELHMonsterMotion::Strike)?2:Moving?1:0;
+        UAnimSequence* Clip=CreatureActions[CreatureIndex*5+A];
+        // Source contact is frame 30. The authority owns impact; animation only samples.
+        double Time=Clock;
+        if(A==2) Time=Pending?(Impact>0?FMath::Min(AttackElapsed/Impact,1.):1.):1.+(.18-StrikeRemaining);
+        else if(A==3) Time=.22-HitRemaining;
+        else if(A==4) Time=DeathElapsed;
+        if(A<2 && Clip->GetPlayLength()>0) Time=FMath::Fmod(Time,double(Clip->GetPlayLength()));
+        else Time=FMath::Clamp(Time,0.,double(Clip->GetPlayLength()));
+        CreatureMesh->PlayAnimation(Clip,A<2); CreatureMesh->SetPlayRate(0);
+        CreatureMesh->SetPosition(Time,false);
+        return;
+    }
     const FString S=Definition.ToString(); const bool Bat=S.Contains(TEXT("Bat")), Slime=S.EndsWith(TEXT("Slime"));
     const double Phase=Clock*(Bat?12:Slime?4:Moving?16:3);
     for(int32 I=0;I<Parts.Num();++I)

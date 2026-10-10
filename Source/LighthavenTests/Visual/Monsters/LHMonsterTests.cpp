@@ -6,6 +6,7 @@
 #include "Abilities/LHAttributeSet.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Visual/LHVisualKit.h"
@@ -69,7 +70,7 @@ bool FLHMonsterCatalogTest::RunTest(const FString&) {
         if(!TestNotNull(TEXT("A"),A)||!TestNotNull(TEXT("B"),B)) continue;
         auto* X=A->GetMonsterVisual(); auto* Y=B->GetMonsterVisual();
         TestFalse(TEXT("Never silent placeholder"),X->ComponentHasTag(TEXT("LH.Monster.UnknownPlaceholder")));
-        TestTrue(TEXT("Intentional multi-part body"),X->GetParts().Num()>2);
+        TestTrue(TEXT("Imported body or procedural multi-part body"),X->UsesImportedArt() || X->GetParts().Num()>2);
         TestEqual(TEXT("Part count"),X->GetParts().Num(),Y->GetParts().Num());
         const uint32 Hash=ULHMonsterVisual::RecipeFingerprint(R.Id.Value); TestFalse(TEXT("Distinct recipe"),Hashes.Contains(Hash)); Hashes.Add(Hash);
         TestEqual(TEXT("Checksum repeat"),Hash,ULHMonsterVisual::RecipeFingerprint(R.Id.Value));
@@ -101,6 +102,23 @@ bool FLHMonsterCollisionTest::RunTest(const FString&) {
         auto* V=E->GetMonsterVisual(); const int32 Count=V->GetParts().Num();
         TestTrue(TEXT("Rebuild"),V->Build(R.Id.Value,R.Runtime.CapsuleRadiusCm.Value,R.Runtime.CapsuleHalfHeightCm.Value));
         TestEqual(TEXT("No accumulated pieces"),Count,V->GetParts().Num());
+        if(V->UsesImportedArt())
+        {
+            TestTrue(TEXT("Imported body participates in component checks"),V->GetParts().Num()>0);
+            const FString Art=ULHMonsterVisual::ArtId(R.Id.Value);
+            if(Art==TEXT("goblin") || Art==TEXT("goblin_warrior") || Art==TEXT("balork"))
+            {
+                auto* Weapon=V->GetWeaponComponent();
+                if(TestNotNull(TEXT("Removable weapon component"),Weapon))
+                {
+                    TestEqual(TEXT("Weapon attaches to named socket"),Weapon->GetAttachSocketName(),FName(TEXT("WeaponSocket")));
+                    Weapon->DestroyComponent();
+                    TestTrue(TEXT("Weapon removal retains imported body"),V->UsesImportedArt());
+                    TestTrue(TEXT("Weapon rebuild"),V->Build(R.Id.Value,R.Runtime.CapsuleRadiusCm.Value,R.Runtime.CapsuleHalfHeightCm.Value));
+                    TestNotNull(TEXT("Rebuilt weapon"),V->GetWeaponComponent());
+                }
+            }
+        }
         V->Attack(1); V->AdvancePresentation(.5,true); V->Hit(); V->AdvancePresentation(.1,false); V->Die(); V->AdvancePresentation(1,false);
         TestEqual(TEXT("Radius unchanged"),double(C->GetUnscaledCapsuleRadius()),R.Runtime.CapsuleRadiusCm.Value);
         TestEqual(TEXT("Height unchanged"),double(C->GetUnscaledCapsuleHalfHeight()),R.Runtime.CapsuleHalfHeightCm.Value);
@@ -112,6 +130,9 @@ bool FLHMonsterCollisionTest::RunTest(const FString&) {
         }
     }
     auto* E=F.Spawn(LHEnemyData::Catalog()[0]);
+    TestTrue(TEXT("Explicit procedural fallback"),E->GetMonsterVisual()->Build(TEXT("Enemy.BrownRat"),25,25,false));
+    TestFalse(TEXT("Fallback has no skeletal component"),E->GetMonsterVisual()->UsesImportedArt());
+    TestTrue(TEXT("Fallback retains body"),E->GetMonsterVisual()->GetParts().Num()>2);
     AddExpectedError(TEXT("UNKNOWN MONSTER Enemy.Unregistered"),EAutomationExpectedErrorFlags::Contains,2);
     TestFalse(TEXT("Unknown returns explicit failure"),E->GetMonsterVisual()->Build(TEXT("Enemy.Unregistered"),25,25));
     TestTrue(TEXT("Named placeholder"),E->GetMonsterVisual()->ComponentHasTag(TEXT("LH.Monster.UnknownPlaceholder")));
