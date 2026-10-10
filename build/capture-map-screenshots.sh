@@ -43,10 +43,25 @@ for area, view, position, yaw in shots:
     label = map_name if view == 'arrival' else map_name + '-overview'
     shot = out / (label + '.png')
     log = out / (label + '.log')
-    # BugItGo rotates the PAWN, not the absolute spring arm. Keep the capsule upright;
-    # a nonzero registry pitch would tilt the pawn, and +180 elevates the camera target.
-    # Native LHCharacter supplies boom1200, pitch-55/yaw45, collision probe and FOV45.
-    commands = f'EnableCheats,BugItGo {x} {y} {z} 0 {yaw} 0,r.HighResScreenshotDelay 120,HighResShot 1280x720 filename={shot}'
+    # BugItGo sets pawn/control rotation, not the absolute native spring arm.
+    # Drive its target rotation from control rotation for this capture process only;
+    # keep the pawn upright and retain the game's sphere collision probe and camera.
+    # Camera Default avoids the engine's generic ThirdPerson camera implementation.
+    commands = ','.join([
+        'EnableCheats', f'BugItGo {x} {y} {z} 0 {yaw} 0', 'Camera Default',
+        'setnopec SpringArmComponent TargetArmLength 1200',
+        'setnopec SpringArmComponent bUsePawnControlRotation True',
+        # Separate struct members avoid ExecCmds' comma separator; omitted members persist.
+        'setnopec LHPlayerController ControlRotation (Pitch=-55)',
+        'setnopec LHPlayerController ControlRotation (Yaw=45)',
+        'setnopec LHPlayerController ControlRotation (Roll=0)',
+        'setnopec CameraComponent FieldOfView 45',
+        'getall LHPlayerController ControlRotation',
+        'getall SpringArmComponent TargetArmLength',
+        'getall SpringArmComponent bUsePawnControlRotation',
+        'getall CameraComponent FieldOfView',
+        'r.HighResScreenshotDelay 120', f'HighResShot 1280x720 filename={shot}'])
+    print(f'{label}: target=({x},{y},{z}) boom=1200 pitch=-55 yaw=45 FOV=45; native collision may shorten boom', flush=True)
     args = [str(binary)]
     if 'UnrealEditor' in binary.name:
         args += [str(root / 'Lighthaven.uproject'), '-game']
@@ -63,7 +78,8 @@ for area, view, position, yaw in shots:
                 process.kill(); process.wait(timeout=5)
             code = None
     text = log.read_text(errors='replace') if log.exists() else ''
-    if code != 0 or not shot.exists() or 'BugItGo to:' not in text:
+    if (code != 0 or not shot.exists() or 'BugItGo to:' not in text
+            or 'Unrecognized property' in text or 'ImportText (' in text):
         print(f'{label}: capture/placement failed exit={code}; inspect {log}')
         failed = True
         continue

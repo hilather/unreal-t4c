@@ -175,13 +175,13 @@ struct FBuilder
             A->bUnbound = true;
             A->Settings.bOverride_AutoExposureMinBrightness = true;
             A->Settings.bOverride_AutoExposureMaxBrightness = true;
-            A->Settings.AutoExposureMinBrightness = 1;
-            A->Settings.AutoExposureMaxBrightness = 1;
+            A->Settings.AutoExposureMinBrightness = 2.5f;
+            A->Settings.AutoExposureMaxBrightness = 2.5f;
         // W4-09: explicit physical-camera exposure, independent of extended range.
         A->Settings.bOverride_AutoExposureMethod=true; A->Settings.AutoExposureMethod=AEM_Manual;
         A->Settings.bOverride_AutoExposureApplyPhysicalCameraExposure=true; A->Settings.AutoExposureApplyPhysicalCameraExposure=true;
         A->Settings.bOverride_CameraISO=true; A->Settings.CameraISO=100;
-        A->Settings.bOverride_CameraShutterSpeed=true; A->Settings.CameraShutterSpeed=.5f;
+        A->Settings.bOverride_CameraShutterSpeed=true; A->Settings.CameraShutterSpeed=FMath::Pow(2.f,2.5f)/4.f; // Prototype EV100 2.5; +1.5 stops from W4-09c.
         A->Settings.bOverride_DepthOfFieldFstop=true; A->Settings.DepthOfFieldFstop=2;
             A->Settings.bOverride_AutoExposureBias = true; A->Settings.AutoExposureBias = 0;
         }
