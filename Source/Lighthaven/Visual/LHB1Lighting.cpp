@@ -13,8 +13,8 @@ ULHB1TorchLightComponent::ULHB1TorchLightComponent()
     SetMobility(EComponentMobility::Movable);
     SetCastShadows(false);
     SetIntensityUnits(ELightUnits::Lumens);
-    SetUseTemperature(true); SetTemperature(2000.f);
-    SetIntensity(1800.f); SetAttenuationRadius(700.f);
+    SetUseTemperature(true); SetTemperature(2900.f);
+    SetIntensity(1000.f); SetAttenuationRadius(375.f);
     bUseInverseSquaredFalloff=true;
     SourceRadius=12.f; SoftSourceRadius=20.f;
     SetCanEverAffectNavigation(false);
@@ -70,7 +70,7 @@ ULHB1TorchLightComponent* ULHB1TorchLightComponent::Configure(ALHVisualPiece* Pi
 void ULHB1TorchLightComponent::TickComponent(float DeltaTime,ELevelTick TickType,FActorComponentTickFunction* ThisTickFunction)
 {
     Super::TickComponent(DeltaTime,TickType,ThisTickFunction);
-    if(GetWorld()) SetIntensity(1800.f*Flicker(GetWorld()->GetTimeSeconds(),PhaseSeed));
+    if(GetWorld()) SetIntensity(1000.f*Flicker(GetWorld()->GetTimeSeconds(),PhaseSeed));
 }
 ALHB1Atmosphere::ALHB1Atmosphere()
 {

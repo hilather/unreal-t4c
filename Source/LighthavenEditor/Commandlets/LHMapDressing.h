@@ -47,6 +47,7 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
     for (TActorIterator<AStaticMeshActor> It(World); It; ++It) Surfaces.Add(*It);
     for (TActorIterator<APointLight> It(World); It; ++It) Lights.Add(*It);
     TArray<ALHVisualPiece*> Pieces;
+    TArray<FBox> B1VisibleWalls;
     TArray<FVector> Protected;
     for (TActorIterator<AActor> It(World); It; ++It)
     {
@@ -87,6 +88,9 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
             C->SetVisibility(false); C->SetCastShadow(false);
         }
         if (!Floor && !Wall) continue; // NPC assemblies, signs and route proxies retain their owner.
+        if(Style==ELHVisualStyle::B1Cellar && Wall && A->GetActorRotation().IsNearlyZero()
+            && A->GetActorLocation().Z-Size.Z/2<=.1 && A->GetActorLocation().Z+Size.Z/2<=120.1)
+            B1VisibleWalls.Add(FBox(A->GetActorLocation()-Size/2,A->GetActorLocation()+Size/2));
         if (Floor && !A->GetActorRotation().IsNearlyZero() && FMath::IsNearlyEqual(FMath::Min(Size.X,Size.Y),300.,1.))
         {
             const FVector Axis = Size.X > Size.Y ? FVector::ForwardVector : FVector::RightVector;
@@ -135,12 +139,90 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
             Pieces.Add(Prop); ++Props;
         }
     }
+    TArray<FVector> B1FixtureFlames;
     for (auto* Light : Lights)
     {
         if (Light->GetActorLocation().Z > 350) continue; // ceiling/fill lights have no fixture.
-        auto* Fixture = Piece(World,TEXT("Presentation.Environment.Shared.Sconce"),Style,
-            Light->GetActorLocation(),FRotator::ZeroRotator);
+        FVector Position=Light->GetActorLocation(); FRotator Rotation=FRotator::ZeroRotator;
+        FName FixtureId=TEXT("Presentation.Environment.Shared.Sconce");
+        if(Style==ELHVisualStyle::B1Cellar)
+        {
+            FixtureId=TEXT("Presentation.Environment.Shared.Torch");
+            double Nearest=FMath::Square(240.); bool Mounted=false; FVector B1MountPosition;
+            for(const FBox& Wall:B1VisibleWalls)
+            {
+                const FVector Size=Wall.GetSize(), Center=Wall.GetCenter();
+                const bool AlongX=Size.X>=Size.Y;
+                const double HalfLength=(AlongX?Size.X:Size.Y)/2;
+                if(HalfLength<45) continue; // plate clear of segment cuts and door jambs
+                FVector Candidate=Center, Inward;
+                if(AlongX)
+                {
+                    Candidate.X=FMath::Clamp(Position.X,Wall.Min.X+45,Wall.Max.X-45);
+                    const double Sign=Position.Y>=Center.Y?1.:-1.;
+                    Candidate.Y=Center.Y+Sign*(Size.Y/2+.5); Inward={0,Sign,0};
+                }
+                else
+                {
+                    Candidate.Y=FMath::Clamp(Position.Y,Wall.Min.Y+45,Wall.Max.Y-45);
+                    const double Sign=Position.X>=Center.X?1.:-1.;
+                    Candidate.X=Center.X+Sign*(Size.X/2+.5); Inward={Sign,0,0};
+                }
+                const double Distance=FVector::DistSquared2D(Position,Candidate);
+                if(Distance>=Nearest) continue;
+                Nearest=Distance;
+                Candidate.Z=Wall.Max.Z-30;
+                // Imported plate projects in local +Y, below the 120cm cutaway.
+                Rotation=FRotator(0,Inward.Rotation().Yaw-90,0);
+                // Keep search source unchanged until every candidate has been compared.
+                Mounted=true;
+                FixtureId=TEXT("Presentation.Environment.Shared.Sconce");
+                // Candidate is retained separately below to avoid order-dependent distance.
+                B1MountPosition=Candidate;
+            }
+            if(Mounted) Position=B1MountPosition;
+            else
+            {
+                FHitResult Floor;
+                FCollisionQueryParams Query(SCENE_QUERY_STAT(LHB1BrazierPlacement),false);
+                bool FoundFloor=false;
+                for(int32 Retry=0;Retry<8;++Retry)
+                {
+                    if(!World->LineTraceSingleByObjectType(Floor,Position,Position-FVector(0,0,2000),
+                        FCollisionObjectQueryParams(ECC_WorldStatic),Query)) break;
+                    if(!Floor.bStartPenetrating && Floor.ImpactNormal.Z>=.5f) { FoundFloor=true; break; }
+                    if(!Floor.GetActor()) break;
+                    Query.AddIgnoredActor(Floor.GetActor());
+                }
+                if(!FoundFloor) continue; // never float a floor fixture over a stair void
+                Position.Z=Floor.ImpactPoint.Z+90;
+            }
+            const FVector Flame=Position+Rotation.RotateVector(FVector(0,25,14));
+            if(Mounted)
+            {
+                // Cutaway height is fixed while a neighboring ramp may rise up
+                // into a wall fixture. Drop that visual seed rather than bury it.
+                FHitResult Floor;
+                FCollisionQueryParams Query(SCENE_QUERY_STAT(LHB1WallFixtureGround),false);
+                bool FoundFloor=false;
+                for(int32 Retry=0;Retry<8;++Retry)
+                {
+                    if(!World->LineTraceSingleByObjectType(Floor,Flame+FVector(0,0,200),Flame-FVector(0,0,2000),
+                        FCollisionObjectQueryParams(ECC_WorldStatic),Query)) break;
+                    if(!Floor.bStartPenetrating && Floor.ImpactNormal.Z>=.5f) { FoundFloor=true; break; }
+                    if(!Floor.GetActor()) break;
+                    Query.AddIgnoredActor(Floor.GetActor());
+                }
+                if(!FoundFloor || Flame.Z-Floor.ImpactPoint.Z<70) continue;
+            }
+            if(B1FixtureFlames.ContainsByPredicate([&](const FVector& P)
+                {return FVector::DistSquared2D(P,Flame)<FMath::Square(300.);})) continue;
+            B1FixtureFlames.Add(Flame);
+        }
+        auto* Fixture = Piece(World,FixtureId,Style,Position,Rotation);
         if (!Fixture) return false;
+        if(Style==ELHVisualStyle::B1Cellar)
+            Fixture->Tags.Add(FixtureId.ToString().EndsWith(TEXT("Sconce"))?TEXT("LH.B1.WallFixture"):TEXT("LH.B1.FloorFixture"));
         Pieces.Add(Fixture);
     }
     if (Style == ELHVisualStyle::B1Cellar || Style == ELHVisualStyle::B2Damp)
