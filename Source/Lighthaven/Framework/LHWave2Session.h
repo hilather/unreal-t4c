@@ -96,5 +96,5 @@ private:
     FLHCharacterAuthority* Authority() const;
     void OnSave(const FLHSaveEvent& Event);
     void Published(const FLHCommandResult&, bool bCreation);
-    bool InstallDerived();
+    bool InstallDerived(bool bRestoreEffects = false);
 };
