@@ -1,4 +1,5 @@
 #include "Misc/AutomationTest.h"
+#include "../Review/LHSnapshotDiff.h"
 #include "Framework/LHWave2Session.h"
 #include "Framework/LHWave2Profile.h"
 #include "Framework/LHWave2Closure.h"
@@ -1625,12 +1626,20 @@ bool FLHG4InventoryRollback::RunTest(const FString&)
         FLHTakeLootRequest Q; Q.Request=LHG4TestsPrivate::Request(F.R); Q.Container=C->Container; Q.Kind=ELHLootTransferKind::Item;
         Q.Item=C->RemainingItems[0].Id; Q.Quantity=C->RemainingItems[0].Quantity;
         const int32 Writes=F.Disk->Writes;
+        // Timer progress can already be newer than the last durable boundary.
+        // Rejection must preserve each baseline independently (persistence.md).
+        FLHSaveStore BeforeStore(F.Disk); FLHSaveSnapshot DurableBefore; FLHSaveError BeforeError;
+        TestTrue(TEXT("durable baseline readable"),BeforeStore.Load(S.Header.CharacterId,FLHWave2Session::Compatibility(),DurableBefore,BeforeError));
+        LHSnapshotDiff::Snapshot(*this,S,DurableBefore,TEXT("pre-live-to-durable"));
         const auto Result=F.R.Session->Execute(Q);
+        LHSnapshotDiff::Snapshot(*this,S,F.R.Session->Snapshot(),TEXT("live-rejection"));
         TestTrue(TEXT("session rejects full inventory"),Result.Disposition==ELHCommandDisposition::Rejected && Result.Reason==ELHCommandReason::InventoryFull);
         TestTrue(TEXT("exact live state rollback incl corpse and request journal"),Equal(S,F.R.Session->Snapshot()));
         F.R.Flush(); TestEqual(TEXT("rejection has no storage write"),F.Disk->Writes,Writes);
         FLHSaveStore Independent(F.Disk); FLHSaveSnapshot Loaded; FLHSaveError E;
-        TestTrue(TEXT("independent durable rollback"),Independent.Load(S.Header.CharacterId,FLHWave2Session::Compatibility(),Loaded,E) && Equal(S,Loaded));
+        TestTrue(TEXT("independent durable rollback"),Independent.Load(S.Header.CharacterId,FLHWave2Session::Compatibility(),Loaded,E) && Equal(DurableBefore,Loaded));
+        LHSnapshotDiff::Snapshot(*this,DurableBefore,Loaded,TEXT("durable-rejection"));
+        LHSnapshotDiff::Snapshot(*this,S,Loaded,TEXT("live-to-durable-after"));
         return !HasAnyErrors();
     }
     AddError(TEXT("No catalog item drop in 100 actual encounter opportunities; no synthetic loot substitute.")); return false;

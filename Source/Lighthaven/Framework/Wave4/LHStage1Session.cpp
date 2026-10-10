@@ -62,18 +62,18 @@ FLHEntityId FLHWave2Session::PlayerEntity() const
     FLHEntityId Id; Id.RunId=Complete.World.RunId; Id.Area.Content.Value=TEXT("Area.LighthavenTempleDistrict");
     Id.InstanceId=Complete.Header.CharacterId.Value; return Id;
 }
-bool FLHWave2Session::SyncResources()
+bool FLHWave2Session::CaptureResources(FLHSaveSnapshot& Snapshot) const
 {
     if (!Authority() || !HasCharacter()) return false;
-    Authority()->Export(Complete);
+    Authority()->Export(Snapshot);
     if (Owner->GetCombatAvatar())
     {
         auto* C=Owner->GetCombatComponent(); auto* A=C->GetCombatAttributes();
         if (!FMath::IsFinite(A->GetHealth()) || !FMath::IsFinite(A->GetMana())) return false;
-        Complete.Character.CurrentHealth.Value=A->GetHealth(); Complete.Character.CurrentMana.Value=A->GetMana();
-        Complete.Session.ManaRegenFractionalSeconds=LHWave2::PrototypeNumber(C->ManaRegenFractionalSeconds);
-        LHAbilities::CaptureCooldowns(*C,PlayerEntity(),Complete.Session.Cooldowns);
-        auto* Rng=Complete.Session.GameplayRng.FindByPredicate([](const auto& R){return R.StreamId==TEXT("RNG.Combat");});
+        Snapshot.Character.CurrentHealth.Value=A->GetHealth(); Snapshot.Character.CurrentMana.Value=A->GetMana();
+        Snapshot.Session.ManaRegenFractionalSeconds=LHWave2::PrototypeNumber(C->ManaRegenFractionalSeconds);
+        LHAbilities::CaptureCooldowns(*C,PlayerEntity(),Snapshot.Session.Cooldowns);
+        auto* Rng=Snapshot.Session.GameplayRng.FindByPredicate([](const auto& R){return R.StreamId==TEXT("RNG.Combat");});
         if (Rng)
         { const uint32 Seed=uint32(C->GetCombatRandomState().GetCurrentSeed()); Rng->State.Reset(); for(int32 B=0;B<4;++B) Rng->State.Add(uint8(Seed>>(B*8))); }
     }
@@ -82,19 +82,29 @@ bool FLHWave2Session::SyncResources()
     // the action finishes; Flush already waits for the complete combat boundary.
     if (!Light->IsActionPending() && !Light->IsPublishingActionEvents())
     {
-        if (bDeadAwaitingRespawn) Light->RestoreLightRemainingSeconds(0);
-        auto LightOwner=PlayerEntity(); LightOwner.Area=Complete.Character.ActiveEntrance.Area;
-        if (!LHAbilities::CaptureLightEffect(*Light,LightOwner,Complete.Session)) return false;
+        auto LightOwner=PlayerEntity(); LightOwner.Area=Snapshot.Character.ActiveEntrance.Area;
+        if (!LHAbilities::CaptureLightEffect(*Light,LightOwner,Snapshot.Session)) return false;
+        if (bDeadAwaitingRespawn) Snapshot.Session.DurableEffects.Reset();
     }
-    if (Director.IsValid()) if (auto* A=LHStage1SessionPrivate::Area(Complete)) Director->CaptureLive(*A);
+    if (Director.IsValid()) if (auto* A=LHStage1SessionPrivate::Area(Snapshot)) Director->CaptureLive(*A);
     if (Director.IsValid()) for (TActorIterator<ALHEnemyCharacter> It(Owner->GetWorld());It;++It)
-        if (!It->IsCorpse() && LHWorld::SameArea(It->GetLife().Area,Complete.Character.ActiveEntrance.Area)) LHStage1SessionPrivate::CaptureEnemy(**It,Complete);
-    return Authority()->Import(Complete)==ELHCommandReason::None;
+        if (!It->IsCorpse() && LHWorld::SameArea(It->GetLife().Area,Snapshot.Character.ActiveEntrance.Area)) LHStage1SessionPrivate::CaptureEnemy(**It,Snapshot);
+    auto Check=*Authority();
+    return Check.Import(Snapshot)==ELHCommandReason::None;
+}
+bool FLHWave2Session::SyncResources()
+{
+    auto Next=Complete;
+    if (!CaptureResources(Next) || Authority()->Import(Next)!=ELHCommandReason::None) return false;
+    Complete=MoveTemp(Next); return true;
 }
 bool FLHWave2Session::AcceptBoundary(FLHSaveSnapshot&& Next,bool InstallResources)
 {
     if (!Authority()) return false;
     auto Check=*Authority(); if (Check.Import(Next)!=ELHCommandReason::None) return false;
+    // InstallDerived(false) can reject only at its authority/derived-stat preflight.
+    // Check that before publishing either half of this completed boundary.
+    if (InstallResources && (!Owner.IsValid() || !Check.Stats().Diagnostic.IsAccepted())) return false;
     *Authority()=MoveTemp(Check); Complete=MoveTemp(Next);
     if (InstallResources && !InstallDerived()) return false;
     bSaveQueued=true; if (!bDurabilityError) Message=TEXT("Saving completed action…"); return true;
@@ -108,8 +118,11 @@ FLHCommandResult FLHWave2Session::Persist(const FLHRequestId& Id,FName Name,cons
     if (IsTransactionBlocked() || !Authority()) { R.Reason=ELHCommandReason::Busy; return R; }
     auto* Combat=Owner->GetCombatComponent();
     if (Combat->IsActionPending() || Combat->IsPublishingActionEvents()) { R.Reason=ELHCommandReason::ActiveAction; return R; }
-    if (!SyncResources()) { R.Reason=ELHCommandReason::InvalidRequest; return R; }
-    auto Next=Complete; R.Reason=Domain(Next); if (R.Reason!=ELHCommandReason::None) return R;
+    // D-series rejection: runtime resource capture belongs to the candidate,
+    // never to the live authority before the domain accepts the transaction.
+    auto Next=Complete;
+    if (!CaptureResources(Next)) { R.Reason=ELHCommandReason::InvalidRequest; return R; }
+    R.Reason=Domain(Next); if (R.Reason!=ELHCommandReason::None) return R;
     auto Check=*Authority(); R.Reason=Check.Import(Next); if (R.Reason!=ELHCommandReason::None) return R;
     LHSave::CommitRequest(Next,Id,Digest,R);
     if (R.Disposition==ELHCommandDisposition::Accepted && !R.bReplay && !AcceptBoundary(MoveTemp(Next),true))

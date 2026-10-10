@@ -1,4 +1,5 @@
 #include "Misc/AutomationTest.h"
+#include "LHSnapshotDiff.h"
 #include "Framework/LHWave2Session.h"
 #include "Framework/LHWave2Profile.h"
 #include "Framework/LHWave2Closure.h"
@@ -337,6 +338,58 @@ bool FLHW603AbilityReplay::RunTest(const FString&)
     const auto AfterFresh=Runtime.Session->Execute(Q);
     TestFalse(TEXT("Fresh cleared receipt"),AfterFresh.bReplay);
     TestEqual(TEXT("Fresh permits original activation again"),AfterFresh.Disposition,ELHCommandDisposition::Accepted);
+    return !HasAnyErrors();
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHW603RejectedResourceCapture,"Lighthaven.Review.W603.RejectedResourceCapture",LHW603TestsPrivate::LHW603TestsFlags)
+bool FLHW603RejectedResourceCapture::RunTest(const FString&)
+{
+    using namespace LHW603TestsPrivate;
+    auto Disk=MakeShared<FStorage>(); FRuntime Runtime(Disk);
+    if(!TestEqual(TEXT("created"),Runtime.Create().Disposition,ELHCommandDisposition::Accepted)) return false;
+    Runtime.Flush(); Runtime.Session->Bind(Runtime.State);
+    auto* Pawn=Runtime.World->SpawnActor<ALHCharacter>(); Runtime.State->InitializeAvatar(Pawn);
+    if(!TestTrue(TEXT("start resource owner"),Runtime.Session->StartEncounters())) return false;
+    Runtime.Session->bInGameplay=true;
+    const auto Before=Runtime.Session->Snapshot();
+    FLHSaveStore Independent(Disk); FLHSaveSnapshot DurableBefore,DurableAfter; FLHSaveError Error;
+    if(!TestTrue(TEXT("independent baseline"),Independent.Load(Before.Header.CharacterId,FLHWave2Session::Compatibility(),DurableBefore,Error))) return false;
+    auto* Combat=Runtime.State->GetCombatComponent();
+    // Deliberately newer runtime resources, with no clock tick or fixture order dependency.
+    Combat->ManaRegenFractionalSeconds=0.375;
+    Combat->SetCombatRandomState(FRandomStream(12345));
+    TMap<FName,double> Cooldowns; Cooldowns.Add(TEXT("Attack.Melee.Basic"),1.25); Combat->RestoreCooldownMap(Cooldowns);
+    FLHUseItemRequest Q; Q.Request.Value=FGuid::NewGuid(); Q.Request.Epoch=Before.Session.RequestEpoch;
+    Q.Item=Before.Character.Inventory[0].Id; Q.Item.InstanceId=FGuid::NewGuid();
+    const int32 Writes=Disk->Writes;
+    const auto Rejected=Runtime.Session->Execute(Q);
+    TestEqual(TEXT("domain rejection after resource capture"),Rejected.Reason,ELHCommandReason::NotFound);
+    TestEqual(TEXT("rejected disposition"),Rejected.Disposition,ELHCommandDisposition::Rejected);
+    LHSnapshotDiff::Snapshot(*this,Before,Runtime.Session->Snapshot(),TEXT("native-live-rejection"));
+    TestTrue(TEXT("rejected capture leaves exact live state"),Equal(Before,Runtime.Session->Snapshot()));
+    Runtime.Flush();
+    TestEqual(TEXT("no rejection write"),Disk->Writes,Writes);
+    TestTrue(TEXT("durable readable"),Independent.Load(Before.Header.CharacterId,FLHWave2Session::Compatibility(),DurableAfter,Error));
+    LHSnapshotDiff::Snapshot(*this,DurableBefore,DurableAfter,TEXT("native-durable-rejection"));
+    TestTrue(TEXT("exact durable rollback"),Equal(DurableBefore,DurableAfter));
+    FLHAllocateAttributePointsRequest Allocate; Allocate.Request.Value=FGuid::NewGuid(); Allocate.Request.Epoch=Before.Session.RequestEpoch;
+    Allocate.Points=Points();
+    TestEqual(TEXT("allocation rejected without earned points"),Runtime.Session->Execute(Allocate).Disposition,ELHCommandDisposition::Rejected);
+    TestTrue(TEXT("allocation capture leaves live state"),Equal(Before,Runtime.Session->Snapshot()));
+    FLHEquipItemRequest Equip; Equip.Request.Value=FGuid::NewGuid(); Equip.Request.Epoch=Before.Session.RequestEpoch;
+    Equip.Item=Q.Item; Equip.Slot=ELHEquipmentSlot::MainHand;
+    TestEqual(TEXT("missing equipment rejected"),Runtime.Session->Execute(Equip).Disposition,ELHCommandDisposition::Rejected);
+    TestTrue(TEXT("equipment capture leaves live state"),Equal(Before,Runtime.Session->Snapshot()));
+    Runtime.Flush(); TestEqual(TEXT("all rejection paths have no writes"),Disk->Writes,Writes);
+    TestTrue(TEXT("durable after all rejections"),Independent.Load(Before.Header.CharacterId,FLHWave2Session::Compatibility(),DurableAfter,Error) && Equal(DurableBefore,DurableAfter));
+    TestEqual(TEXT("runtime recovery is retained"),Combat->ManaRegenFractionalSeconds,0.375);
+    TestEqual(TEXT("runtime RNG is retained"),Combat->GetCombatRandomState().GetCurrentSeed(),12345);
+    TestEqual(TEXT("runtime cooldown is retained"),Combat->GetCooldownMap().FindRef(FName(TEXT("Attack.Melee.Basic"))),1.25);
+    // A subsequent legitimate save boundary still captures those runtime values.
+    TestTrue(TEXT("completed save requested"),Runtime.Session->RequestExit().IsEmpty()); Runtime.Flush();
+    const auto Saved=Runtime.Session->Snapshot();
+    TestEqual(TEXT("save captures fractional recovery"),Saved.Session.ManaRegenFractionalSeconds.Value,0.375);
+    TestTrue(TEXT("save captures cooldown"),Saved.Session.Cooldowns.ContainsByPredicate([](const auto& C){return C.Ability.Value==TEXT("Attack.Melee.Basic") && C.RemainingSeconds.Value==1.25;}));
+    TestTrue(TEXT("save captures RNG"),Saved.Session.GameplayRng.ContainsByPredicate([](const auto& R){return R.StreamId==TEXT("RNG.Combat") && R.State==TArray<uint8>({57,48,0,0});}));
     return !HasAnyErrors();
 }
 #endif
