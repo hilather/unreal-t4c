@@ -190,3 +190,150 @@ balance, real disk/process crash, controller hardware or Windows checks were run
 They require coordinator host execution with regenerated/hydrated frontend/content
 and the Rules/Character corrections. The candidate is submitted with these blockers;
 no release/G4 success is asserted.
+
+# W4-06b — G4 integration candidate
+
+Base `4e69d68a3c0de8008fec88b2f9caf394782a5bda`, contract revision 1.
+The Stage 1A observations above describe the previous attempt, not this revision.
+This section supersedes its B1/melee-only runtime restrictions; neither host checklist
+is marked passed by this candidate.
+
+Train/Learn/Buy/Sell now resolve the actual GUID-bearing NPC and dispatch the native
+service domain through Persist (receipt replay before spatial/resource checks, live
+resource capture, temporary Import, CommitRequest, swap, queued durable save). Offer
+views expose native prices and one-unit intents, and only resolved sales of unequipped
+items. Unlimited vendor stock remains unpersisted. HUD lists the native ability catalog,
+learned spell availability, equipment-dependent bow/melee availability, selected enemy
+pools and Balork completion notice. The command domain still enforces cast requirements,
+mana, range, LOS and cooldown. Self-target Light/Heal resolve to the player combat owner.
+All registry floors populate their actual encounter slots; gameplay travel uses the
+existing reviewed portal/arrival path without the Stage 1A destination filter. Balork
+continues through the existing quest observer, OrdinaryRepeat 900s lifecycle and unique
+boss claim; only Brother Kiran's return topic completes the objective. Arrival does not.
+Existing generator NPC positions/identities satisfy service placement: no generator,
+lighting, entrance geometry or binary map change is included.
+
+Catalog closure is LHGameplayCatalog5 and runtime policy explicitly includes service,
+all-floor ability routes and enemy continuation. Earlier catalog saves are incompatible;
+no migration is claimed. Character formulas are unchanged by instruction: HP linear
+floor(7+END/20), MP floor(4+INT/30+WIS/60), capacity100. Matt's MP-band/nonlinear STR
+policy must land in Rules/Character, replay historical growth using the frozen law,
+then update ruleset revision and closure; do not reinterpret saves under another law.
+
+Enemy combat RNG now captures in existing GameplayRng records as
+RNG.Enemy.S<spawn-GUID>.Life<life-generation>, UE.FRandomStream revision1/4-byte state;
+loaded enemies restore this and their owner-scoped cooldown map at hydration. New lives
+use the constructor seed and no prior-life remainder. One RNG per slot replaces older
+saved life state when captured. Off-floor records do not tick. AI chase/decision state
+and positions remain reconstructed; this is combat RNG/cooldown continuation only.
+Light presentation is a native caster point light, 600cm Prototype radius from R-03;
+3000 intensity is explicitly Prototype presentation tuning pending visual review.
+No generator lighting code was changed.
+
+## Required follow-ups / limitations after 06b
+
+- Light duration restore remains blocked by the read-only Persistence validator, which
+  rejects every DurableEffects entry. Proposal to W4-03/04: allow Effect.SpellLight with
+  owner, remaining active seconds, stacks1, no modifiers; expose a validated restore
+  accessor in combat; include policy in closure. Migrate empty effects as no Light.
+  Current Light expires on world time and clears with avatar/travel; pause-duration
+  semantics need domain review. This candidate does not encode duration as a cooldown
+  or mint an unapproved durable effect.
+- Corpse reload still uses registry anchors. Proposal to Core/Persistence/Rewards:
+  add a canonical finite DeathTransform to corpse records, capture lethal actor position,
+  schema/content migration or rejection for old saves, validate against area bounds,
+  hydrate at that transform. No diagnostic/RNG field is repurposed as a transform.
+- Capacity4096 Busy retains all receipts and runtime activation latches, preserving replay.
+  Session status now explains runtime save/reload recovery or the durable epoch-policy
+  blocker. Runtime reload resets its transient latch; durable receipts remain full after
+  reload. Coordinator/UI/Persistence must agree an explicit epoch rollover with stale
+  intent invalidation and completed-boundary durability before indefinite soak approval.
+- Balork completion UI reads bCompleted (the quest domain's field); unique boss claim is
+  granted on first defeat, while church return records completion with no second numeric
+  reward. No invented return XP/gold/item is added.
+- Physical reachability, spawn safety, largest enemy clearance, ordinary-cadence economy,
+  simultaneous lethal/save failure play, target readability and Light appearance remain
+  host checks. The older Data/Rewards fixture notes above are historical; those tests passed in this attempt.
+
+## 06b checks and evidence
+
+Appended after final-source validation. Acceptance fixtures earn budgets with real
+Brown Rat specs, live session melee settlement and corpse gold transfers; they reset
+cooldowns and advance the real respawn transaction with a synthetic safe callback.
+NPC actors are synthetic at player range, not physical map reachability evidence.
+Potion fixture spends live mana by injection to isolate replay/consumption; no claim
+of a normal-cadence magic/potion playthrough. Balork fixture resets cooldowns and
+advances899+1 seconds, not a real fifteen-minute wait or physical safe-spawn check.
+
+G4 host checklist above remains required: regenerate/review/validate five maps, real
+training/purchases/all-floor traversal, Balork repeat/reload/return, crash/save failures,
+Linux packaged play and screenshots/logs; Windows deferred. Stage 1A checklist remains
+required as regression coverage. No gate is certified by this source candidate.
+
+### Production service blocker (W4-07 owner)
+
+Source evidence: `Services/LHServiceAuthority.cpp` Ready(FLHInteger) accepts only
+Confirmed/Prototype; Execute(BuyItem) applies it to the item StackLimit. Every native
+item in `Data/Items/LHItemCatalog.cpp` intentionally uses Modernized StackLimit1
+(individual-instance slice inventory policy). Thus the real bow/quiver/potion purchases
+return UnresolvedRules before cost/commit. Dedicated Services tests use synthetic
+Prototype stack limits and do not catch this production cross-domain mismatch.
+Do not relabel the native stack limit or grant debug items in the session to evade it.
+W4-07 must accept the reviewed Modernized inventory policy consistently (while rejecting
+Missing/Disputed), or coordinate another explicit policy with W4-02. These are read-only
+paths in this contract. Production purchase tests remain failing evidence. Services,
+ranged acquisition and potion progression cannot be declared playable until this lands.
+Further dependent gameplay work stops at this ownership checkpoint; this candidate is
+submitted as instructed, with G4 blocked. Service fixture guards prevent null-item
+crashes after a failed purchase. Earlier exploratory crashes were fixture defects,
+not evidence of an observed production crash.
+
+Save/transaction/exit/travel capture now waits for all loaded-floor enemy and player
+pending/publishing actions, rather than only the player. Movement/combat still runs
+while saves queue. This enforces a completed combat boundary; prolonged continuous
+combat can defer durability until a quiet boundary or pause cancels enemy windups.
+
+Observed 06b runtime-source validation (UID1000, UE5.8.3 Linux):
+
+- Direct Build.sh editor/game Linux Development, worktree project, -WaitMutex -NoUBA,
+  XDG_CONFIG_HOME=$PWD/Saved/BuildEnvironment/config and UBA_ROOT=$PWD/Saved/UBA:
+  both exit0, Result:Succeeded. Runtime-final editor UBT53.89s; game UBT101.93s.
+  Final Balork-fixture-only editor rebuild exit0, UBT37.80s, shell38.380s.
+- Full headless Lighthaven suite before the final reload-fixture Bind correction:
+  expected/found/completed156;145 succeeded,5 succeededWithWarnings,6 failed,
+  zero notRun/inProcess. Exit255, shell106.459s, report testDuration62.023s.
+  Failures: Wave3.ArrivalSafety and World.LightingAudit (all five local .umaps are
+  unhydrated LFS pointers); Wave4.ProgressionRouteAffordable, ServicesThroughSession,
+  UseItemThroughSession (production purchase UnresolvedRules, reason3); and
+  Wave4.BalorkSingleClaim (return/replay fixture remained travel-frozen after Continue).
+  The final fixture calls Bind before the new avatar, matching actual arrival binding;
+  its targeted rerun is appended below. All Data/Rewards tests passed, superseding the
+  older four-fixture regression notes. Both200-rat budgets reached the purchase seam.
+- Final suite command: UnrealEditor-Cmd worktree Lighthaven.uproject,
+  -ExecCmds="Automation RunTests Lighthaven; Quit" -DDC-ForceMemoryCache
+  -ddc=InstalledNoZenLocalFallback -LocalDataCachePath=$PWD/DerivedDataCache
+  -nullrhi -unattended -nosound -nop4
+  -ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0
+  -ini:EditorSettings:[/Script/UnrealEd.AnalyticsPrivacySettings]:bSendUsageData=False
+  -ReportExportPath=$PWD/Saved/Automation06bHandoff.
+  The last override is process-local: a preceding run was interrupted by sandbox
+  rejection of Unreal telemetry to datarouter.ol.epicgames.com, before report completion.
+  No global/system privacy setting was edited. Earlier default UBA runs failed with
+  transient compiler-input nulls and read-only home cache; NoUBA actions with worktree
+  config/cache succeeded. Initial in-progress header edits also invalidated UHT output;
+  the completed final rebuilds supersede those exploratory failures.
+- git diff --check and submission script bash -n: exit0.
+
+No map generation/arrival-review refresh/LHValidateWorld, cook/package, graphical play,
+visual review or Windows execution in this attempt. Coordinator must hydrate/regenerate
+maps before the two map-dependent tests and host checklists can be evaluated. Only the
+native runtime and synthetic transaction boundaries were exercised here. Library logs
+and automation JSON are retained in the attempt worker-output, with report.md handoff.
+
+Final-source targeted `Lighthaven.Integration.Wave4.BalorkSingleClaim` rerun with the
+same headless flags/analytics override and export `Saved/Automation06bBalorkFinal`:
+expected/found/completed1;0 succeeded,1 succeededWithWarnings,0 failed,0 notRun/inProcess;
+exit0, shell44.174s, testDuration0.544s. This supersedes the full-suite Balork fixture
+failure. Two live kills,899+1s respawn, one unique claim, reload, church return and replay
+assertions passed. Remaining observed failures are the three production purchase seams
+and the two pointer-map-dependent checks. No combined hypothetical pass count is claimed.

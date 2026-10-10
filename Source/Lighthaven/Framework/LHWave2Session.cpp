@@ -144,7 +144,7 @@ void FLHWave2Session::Published(const FLHCommandResult& R,bool Creation)
     Authority()->Export(Complete);
     if (Creation)
     {
-        Complete.Header.BuildId=TEXT("Wave4.Stage1A.Prototype.v1"); Complete.Header.ContentRevision=LHWave2::CatalogHash();
+        Complete.Header.BuildId=TEXT("Wave4.G4.Prototype.v1"); Complete.Header.ContentRevision=LHWave2::CatalogHash();
         Complete.Header.ChecksumAlgorithm=TEXT("SHA256"); Complete.Header.PayloadCodec=TEXT("LHCanonicalBinary1");
         FLHAreaRecord Area; Area.Area.Content.Value=TEXT("Area.LighthavenTempleDistrict"); Complete.World.Areas.Add(Area);
         Complete.Character.ActiveEntrance.Area=Area.Area; Complete.Character.ActiveEntrance.LocalId=TEXT("Temple.SafeSpawn");
@@ -183,7 +183,7 @@ FLHCommandResult FLHWave2Session::Execute(const FLHEquipItemRequest& Q)
 void FLHWave2Session::Flush()
 {
     if (!bSaveQueued || bAwaitingSave || bWorldTravelFrozen) return;
-    if (Owner.IsValid() && (Owner->GetCombatComponent()->IsActionPending() || Owner->GetCombatComponent()->IsPublishingActionEvents())) return;
+    if (HasPendingCombat()) return;
     if (HasCharacter() && !SyncResources()) return;
     bSaveQueued=false; bAwaitingSave=true; AwaitedSequence=Complete.Header.TransactionSequence;
     FLHSaveError E;
@@ -231,7 +231,7 @@ FString FLHWave2Session::Continue(FLHCharacterId Id,bool Ack)
 FString FLHWave2Session::RequestExit()
 {
     if (bContentUnavailable) { if (Exit) Exit(); return {}; }
-    if (bContentUnavailable || bTravel || bWorldTravelFrozen || bSaveQueued || bAwaitingSave) return TEXT("Wait for completed-action durability.");
+    if (bContentUnavailable || bTravel || bWorldTravelFrozen || bSaveQueued || bAwaitingSave || HasPendingCombat()) return TEXT("Wait for completed-action durability.");
     if (HasCharacter() && Saves->IsDirty(Complete.Header.CharacterId))
     { bExit=true; return Continue(Complete.Header.CharacterId,false); }
     if (HasCharacter() && bInGameplay)
@@ -273,7 +273,7 @@ void FLHWave2Session::FreezeWorldTravel(bool Frozen)
 bool FLHWave2Session::CaptureTravel(FLHSaveSnapshot& Out,FString& Error)
 {
     if (!HasCharacter() || bSaveQueued || bAwaitingSave || !Authority() ||
-        Owner->GetCombatComponent()->IsActionPending())
+        HasPendingCombat())
     { Error=TEXT("Travel requires a completed action and durable session"); return false; }
     if (!SyncResources()) { Error=TEXT("Resource capture failed"); return false; }
     Out=Complete; return true;
@@ -289,8 +289,6 @@ FLHCommandResult FLHWave2Session::Execute(const FLHRequestTravelRequest& Q)
 {
     if (IsTransactionBlocked() || !RequestWorldTravel) return LHWave2SessionPrivate::Busy();
     FString Error; FLHCommandResult R;
-    if (bInGameplay && Q.Destination.Area.Content.Value!=TEXT("Area.TempleB1") && Q.Destination.Area.Content.Value!=TEXT("Area.LighthavenTempleDistrict"))
-    { R.Reason=ELHCommandReason::UnresolvedRules; Message=TEXT("Deeper-floor gameplay is deferred to Stage 1B."); return R; }
     if (RequestWorldTravel(Q,Error)) R.Disposition=ELHCommandDisposition::Accepted;
     else { R.Reason=ELHCommandReason::InvalidRequest; Message=Error; }
     return R;

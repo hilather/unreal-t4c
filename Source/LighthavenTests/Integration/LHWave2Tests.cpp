@@ -18,6 +18,7 @@
 #include "TimerManager.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "Engine/TargetPoint.h"
 #include "Engine/GameViewportClient.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/GameInstance.h"
@@ -404,7 +405,7 @@ bool Kill(FRuntime& R,ALHCharacter* Pawn,ALHEnemyCharacter* Enemy)
     Pawn->SetActorLocation(Enemy->GetActorLocation()+FVector(100,0,0));
     auto* Combat=R.State->GetCombatComponent();
     const auto Before=R.Session->Snapshot();
-    for(int32 Swing=0;Swing<100 && Enemy->IsAlive();++Swing)
+    for(int32 Swing=0;Swing<1000 && Enemy->IsAlive();++Swing)
     {
         TMap<FName,double> Empty; Combat->RestoreCooldownMap(Empty);
         FLHUseAbilityRequest Q; Q.Request.Value=FGuid::NewGuid(); Q.Request.Epoch=Before.Session.RequestEpoch;
@@ -527,4 +528,192 @@ bool FLHStage1Death::RunTest(const FString&)
     // This is a session/review-hash fixture; physical capsule/floor/nav review remains the host ArrivalSafety test.
     return !HasAnyErrors();
 }
+namespace LHG4TestsPrivate
+{
+using namespace LHStage1IntegrationTestsPrivate;
+FLHRequestId Request(FRuntime& R)
+{ FLHRequestId Id; Id.Epoch=R.Session->Snapshot().Session.RequestEpoch; Id.Value=FGuid::NewGuid(); return Id; }
+bool Floor(FRuntime& R,ALHCharacter* Pawn,int32 Index)
+{
+    auto S=R.Session->Snapshot(); S.Character.ActiveEntrance=LHWorld::Registry()[Index].Entrances[0].Id;
+    if (!R.Session->InstallTravel(S)) return false;
+    for (const auto& Slot:LHWorld::Registry()[Index].Spawns)
+    {
+        auto* M=R.World->SpawnActor<ALHSpawnMarker>(Slot.Anchor.GetLocation(),Slot.Anchor.Rotator());
+        M->Area=LHWorld::Registry()[Index].Id; M->SpawnId=Slot.SpawnId; M->EnemyDefinitionId=Slot.Enemy;
+    }
+    if (Index==4)
+    {
+        const auto* Slot=LHWorld::Registry()[4].Spawns.FindByPredicate([](const auto& X){return X.Enemy.Value==TEXT("Enemy.Balork");});
+        if(!Slot) return false;
+        auto* Arena=R.World->SpawnActor<ATargetPoint>(Slot->Anchor.GetLocation(),FRotator::ZeroRotator); Arena->Tags.Add(TEXT("B4.BalorkArena"));
+    }
+    return R.Session->StartEncounters();
+}
+// Synthetic safety callback, real respawn law and settlement/loot/session commands.
+// Does not establish physical nav safety or time-to-afford at normal attack cadence.
+bool Earn(FRuntime& R,ALHCharacter* Pawn,int32 Count)
+{
+    if(!B1(R,Pawn)) return false; R.Flush();
+    auto* Director=R.World->GetSubsystem<ULHEncounterDirector>();
+    for(int32 I=0;I<Count;++I)
+    {
+        auto S=R.Session->Snapshot(); auto* A=S.World.Areas.FindByPredicate([](const auto& X){return X.Area.Content.Value==TEXT("Area.TempleB1");});
+        if(!A) return false;
+        auto* E=A->Encounters.FindByPredicate([](const auto& X){return X.Definition.Value==TEXT("Enemy.BrownRat") && X.State==ELHEncounterLifeState::Alive;});
+        if(!E)
+        {
+            TArray<FLHSpawnLifeId> Lives;
+            if(LHRewards::AdvanceRespawns(*A,S.World.RunId,120,[](const FGuid&){return true;},[](const FLHContentId& Id){return LHEnemyData::Find(Id)->Health;},Lives)!=ELHCommandReason::None) return false;
+            if(!R.Session->InstallTravel(S)) return false; Director->Populate(*A);
+            E=A->Encounters.FindByPredicate([](const auto& X){return X.Definition.Value==TEXT("Enemy.BrownRat") && X.State==ELHEncounterLifeState::Alive;});
+        }
+        if(!E) return false; const auto Life=E->Life;
+        if(!Kill(R,Pawn,Director->FindByLife(Life))) return false; R.Flush();
+        FLHTakeLootRequest Q; Q.Request=Request(R); Q.Container=LHRewards::CorpseContainerFor(S.World.RunId,Life); Q.Kind=ELHLootTransferKind::Gold; Q.Quantity=LHWave2::PrototypeInteger(3);
+        if(R.Session->Execute(Q).Disposition!=ELHCommandDisposition::Accepted) return false; R.Flush();
+    }
+    auto S=R.Session->Snapshot(); S.Character.ActiveEntrance=LHWorld::Registry()[0].SafeFallback;
+    return R.Session->InstallTravel(S);
+}
+FLHBuyItemRequest Buy(FRuntime& R,ALHInteractableMarker* N,const TCHAR* Offer)
+{ FLHBuyItemRequest Q; Q.Request=Request(R); Q.Vendor=N->Materialize(R.Session->Snapshot().World.RunId); Q.Offer.Value=Offer; Q.Quantity=LHWave2::PrototypeInteger(1); return Q; }
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4Services,"Lighthaven.Integration.Wave4.ServicesThroughSession",LHWave2TestsPrivate::Flags)
+bool FLHG4Services::RunTest(const FString&)
+{
+    using namespace LHG4TestsPrivate; auto Disk=MakeShared<FStorage>(); FRuntime R(Disk);
+    if(!TestTrue(TEXT("create"),R.Create().Disposition==ELHCommandDisposition::Accepted)) return false;
+    R.Flush(); R.Session->Bind(R.State); auto* Pawn=Avatar(R);
+    if(!TestTrue(TEXT("normal kills earn costs/points"),Earn(R,Pawn,200))) return false;
+    AddInfo(TEXT("Budget: 200 Brown Rats, 9000 XP and 600 looted gold + 100 starting; 129 bow/quiver + 15 Archery + 532 FireDart = 676 gold."));
+    auto* Sig=Npc(R,TEXT("NPC.Sigfried"),Pawn); auto Bow=Buy(R,Sig,TEXT("Offer.Sigfried.Item.AshwoodFlatbow"));
+    const auto BowResult=R.Session->Execute(Bow); AddInfo(FString::Printf(TEXT("Production buy reason=%d"),int32(BowResult.Reason)));
+    if(!TestTrue(TEXT("buy bow"),BowResult.Disposition==ELHCommandDisposition::Accepted)) return false; R.Flush();
+    TestTrue(TEXT("buy replays"),R.Session->Execute(Bow).bReplay);
+    auto Arrows=Buy(R,Sig,TEXT("Offer.Sigfried.Item.WoodenArrows")); TestTrue(TEXT("buy unlimited quiver"),R.Session->Execute(Arrows).Disposition==ELHCommandDisposition::Accepted); R.Flush();
+    auto* Trainer=Npc(R,TEXT("NPC.Ortanalas"),Pawn); FLHTrainSkillRequest Train; Train.Request=Request(R); Train.Trainer=Trainer->Materialize(R.Session->Snapshot().World.RunId); Train.Skill.Value=TEXT("Skill.Archery"); Train.Points=LHWave2::PrototypeInteger(1);
+    TestTrue(TEXT("train"),R.Session->Execute(Train).Disposition==ELHCommandDisposition::Accepted); R.Flush(); TestTrue(TEXT("train replays"),R.Session->Execute(Train).bReplay);
+    FLHAllocateAttributePointsRequest Allocate; Allocate.Request=Request(R); Allocate.Points.Strength=Allocate.Points.Endurance=Allocate.Points.Agility=Allocate.Points.Intelligence=Allocate.Points.Wisdom=LHWave2::PrototypeInteger(0); Allocate.Points.Intelligence.Value=5;
+    TestTrue(TEXT("earned INT21"),R.Session->Execute(Allocate).Disposition==ELHCommandDisposition::Accepted); R.Flush();
+    auto* Mage=Npc(R,TEXT("NPC.Iraltok"),Pawn); FLHLearnSpellRequest Learn; Learn.Request=Request(R); Learn.Trainer=Mage->Materialize(R.Session->Snapshot().World.RunId); Learn.Spell.Value=TEXT("Spell.FireDart");
+    TestTrue(TEXT("learn first damage spell"),R.Session->Execute(Learn).Disposition==ELHCommandDisposition::Accepted); R.Flush(); TestTrue(TEXT("learn replays"),R.Session->Execute(Learn).bReplay);
+    const auto S=R.Session->Snapshot(); FLHEquipItemRequest Unequip; Unequip.Request=Request(R); Unequip.bUnequip=true; Unequip.Item=S.Character.Inventory.FindByPredicate([](const auto& I){return I.Definition.Value==TEXT("Item.RustedDirk");})->Id; Unequip.Slot=ELHEquipmentSlot::MainHand;
+    TestTrue(TEXT("unequip starter for sale"),R.Session->Execute(Unequip).Disposition==ELHCommandDisposition::Accepted); R.Flush();
+    FLHSellItemRequest Sell; Sell.Request=Request(R); Sell.Vendor=Sig->Materialize(S.World.RunId); Sell.Item=S.Character.Inventory.FindByPredicate([](const auto& I){return I.Definition.Value==TEXT("Item.RustedDirk");})->Id; Sell.Quantity=LHWave2::PrototypeInteger(1);
+    TestTrue(TEXT("sell"),R.Session->Execute(Sell).Disposition==ELHCommandDisposition::Accepted); R.Flush(); TestTrue(TEXT("sell replays"),R.Session->Execute(Sell).bReplay);
+    if(!TestTrue(TEXT("populate B3"),Floor(R,Pawn,3))) return false; R.Flush();
+    const auto Deep=R.Session->Snapshot(); const auto* Area=Deep.World.Areas.FindByPredicate([](const auto& X){return X.Area.Content.Value==TEXT("Area.TempleB3");});
+    if(!Area || Area->Encounters.IsEmpty()) return false;
+    auto* Enemy=R.World->GetSubsystem<ULHEncounterDirector>()->FindByLife(Area->Encounters[0].Life); if(!Enemy) return false;
+    Pawn->SetActorLocation(Enemy->GetActorLocation()+FVector(100,0,0));
+    const float Mana=R.State->GetCombatComponent()->GetCombatAttributes()->GetMana();
+    FLHUseAbilityRequest Spell; Spell.Request=Request(R); Spell.Ability=Learn.Spell; Spell.Target=Enemy->GetEntityId(Deep.World.RunId);
+    TestTrue(TEXT("earned FireDart routes to live combat"),R.Session->Execute(Spell).Disposition==ELHCommandDisposition::Accepted);
+    TestEqual(TEXT("real mana cost"),R.State->GetCombatComponent()->GetCombatAttributes()->GetMana(),Mana-1.f);
+    R.Session->bInGameplay=true;
+    TestTrue(TEXT("exit captures cast boundary"),R.Session->RequestExit().IsEmpty()); R.Flush();
+    FRuntime Reload(Disk); TestTrue(TEXT("reload earned purchases and spell"),Reload.Restore(S.Header.CharacterId));
+    TestTrue(TEXT("same durable state"),Equal(R.Session->Snapshot(),Reload.Session->Snapshot())); return !HasAnyErrors();
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4Potion,"Lighthaven.Integration.Wave4.UseItemThroughSession",LHWave2TestsPrivate::Flags)
+bool FLHG4Potion::RunTest(const FString&)
+{
+    using namespace LHG4TestsPrivate; auto Disk=MakeShared<FStorage>(); FRuntime R(Disk); R.Create(); R.Flush(); R.Session->Bind(R.State); auto* Pawn=Avatar(R);
+    auto* Fali=Npc(R,TEXT("NPC.Fali"),Pawn); auto Purchase=Buy(R,Fali,TEXT("Offer.Fali.Item.PotionOfMana"));
+    if(!TestTrue(TEXT("real potion purchase"),R.Session->Execute(Purchase).Disposition==ELHCommandDisposition::Accepted)) return false; R.Flush();
+    R.State->GetCombatComponent()->SetNumericAttributeBase(ULHAttributeSet::GetManaAttribute(),0);
+    auto S=R.Session->Snapshot(); FLHUseItemRequest Q; Q.Request=Request(R); Q.Item=S.Character.Inventory.FindByPredicate([](const auto& I){return I.Definition.Value==TEXT("Item.PotionOfMana");})->Id;
+    TestTrue(TEXT("UseItem accepted"),R.Session->Execute(Q).Disposition==ELHCommandDisposition::Accepted); R.Flush();
+    TestEqual(TEXT("live mana clamped"),R.State->GetCombatComponent()->GetCombatAttributes()->GetMana(),10.f);
+    TestTrue(TEXT("potion replay"),R.Session->Execute(Q).bReplay); TestFalse(TEXT("one consumed"),R.Session->Snapshot().Character.Inventory.ContainsByPredicate([&](const auto& I){return I.Id.InstanceId==Q.Item.InstanceId;})); return !HasAnyErrors();
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4Balork,"Lighthaven.Integration.Wave4.BalorkSingleClaim",LHWave2TestsPrivate::Flags)
+bool FLHG4Balork::RunTest(const FString&)
+{
+    using namespace LHG4TestsPrivate; auto Disk=MakeShared<FStorage>(); FLHSaveSnapshot Finished;
+    {
+        FRuntime R(Disk); R.Create(); R.Flush(); R.Session->Bind(R.State); auto* Pawn=Avatar(R);
+        if(!TestTrue(TEXT("hydrate B4 encounters"),Floor(R,Pawn,4))) return false; R.Flush();
+        auto* Director=R.World->GetSubsystem<ULHEncounterDirector>();
+        for(int32 I=0;I<2;++I)
+        {
+            auto S=R.Session->Snapshot(); auto* A=S.World.Areas.FindByPredicate([](const auto& X){return X.Area.Content.Value==TEXT("Area.TempleB4");});
+            if(!A) return false;
+            auto* E=A->Encounters.FindByPredicate([](const auto& X){return X.Definition.Value==TEXT("Enemy.Balork");}); if(!E) return false;
+            if(I)
+            {
+                TArray<FLHSpawnLifeId> Lives; auto Hp=[](const FLHContentId& Id){return LHEnemyData::Find(Id)->Health;};
+                LHRewards::AdvanceRespawns(*A,S.World.RunId,899,[](const FGuid&){return true;},Hp,Lives);
+                E=A->Encounters.FindByPredicate([](const auto& X){return X.Definition.Value==TEXT("Enemy.Balork");});
+                TestTrue(TEXT("Balork still dead before 15:00"),E && E->State!=ELHEncounterLifeState::Alive);
+                LHRewards::AdvanceRespawns(*A,S.World.RunId,1,[](const FGuid&){return true;},Hp,Lives);
+                E=A->Encounters.FindByPredicate([](const auto& X){return X.Definition.Value==TEXT("Enemy.Balork");});
+                if(!TestTrue(TEXT("Balork alive at 15:00"),E && E->State==ELHEncounterLifeState::Alive)) return false;
+                Pawn->SetActorLocation(LHWorld::Registry()[4].Spawns.FindByPredicate([](const auto& X){return X.Enemy.Value==TEXT("Enemy.Balork");})->Anchor.GetLocation()+FVector(1500,0,90));
+                R.Session->InstallTravel(S); Director->Populate(*A);
+            }
+            if(!TestTrue(TEXT("live Balork kill"),Kill(R,Pawn,Director->FindByLife(E->Life)))) return false; R.Flush();
+            TestEqual(TEXT("single unique boss claim"),R.Session->Snapshot().World.ClaimedUniqueRewards.Num(),1);
+        }
+        Finished=R.Session->Snapshot();
+    }
+    FRuntime R(Disk); if(!TestTrue(TEXT("reload B4"),R.Restore(Finished.Header.CharacterId))) return false; R.Session->Bind(R.State); auto* Pawn=Avatar(R);
+    auto S=R.Session->Snapshot(); S.Character.ActiveEntrance=LHWorld::Registry()[0].SafeFallback; R.Session->InstallTravel(S);
+    TestFalse(TEXT("arrival does not complete"),S.World.Quests[0].bCompleted);
+    auto* Kiran=Npc(R,TEXT("NPC.BrotherKiran"),Pawn); auto Q=Interact(R,Kiran,TEXT("Topic.BalorkReturn"));
+    TestTrue(TEXT("return topic completes"),R.Session->Execute(Q).Disposition==ELHCommandDisposition::Accepted); R.Flush();
+    TestTrue(TEXT("repeat replays"),R.Session->Execute(Q).bReplay); TestEqual(TEXT("still one claim"),R.Session->Snapshot().World.ClaimedUniqueRewards.Num(),1);
+    TestTrue(TEXT("new return intent cannot complete twice"),R.Session->Execute(Interact(R,Kiran,TEXT("Topic.BalorkReturn"))).Disposition==ELHCommandDisposition::Rejected); return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4Economy,"Lighthaven.Integration.Wave4.ProgressionRouteAffordable",LHWave2TestsPrivate::Flags)
+bool FLHG4Economy::RunTest(const FString&)
+{
+    using namespace LHG4TestsPrivate; auto Disk=MakeShared<FStorage>(); FRuntime R(Disk); R.Create(); R.Flush(); R.Session->Bind(R.State); auto* Pawn=Avatar(R);
+    if(!TestTrue(TEXT("normal kill route"),Earn(R,Pawn,200))) return false;
+    AddInfo(TEXT("Observed normal kill budget: 200 Brown Rat settlements/loot transfers. Shared route costs 676 gold, initial100 + loot600 = 700; 9000 XP awards growth/points."));
+    TestEqual(TEXT("normal gold budget"),R.Session->Snapshot().Character.Gold.Value,int64(700));
+    TestEqual(TEXT("normal XP budget"),R.Session->Snapshot().Character.ExperienceBalance.Value,int64(9000));
+    auto* Sig=Npc(R,TEXT("NPC.Sigfried"),Pawn);
+    for(const TCHAR* Offer:{TEXT("Offer.Sigfried.Item.AshwoodFlatbow"),TEXT("Offer.Sigfried.Item.WoodenArrows")})
+    { const auto Result=R.Session->Execute(Buy(R,Sig,Offer)); AddInfo(FString::Printf(TEXT("Production buy reason=%d"),int32(Result.Reason))); if(!TestTrue(TEXT("earned purchase"),Result.Disposition==ELHCommandDisposition::Accepted)) return false; R.Flush(); }
+    for(const auto Slot:{ELHEquipmentSlot::MainHand,ELHEquipmentSlot::Quiver})
+    {
+        const auto S=R.Session->Snapshot(); const FName Name=Slot==ELHEquipmentSlot::MainHand?TEXT("Item.AshwoodFlatbow"):TEXT("Item.WoodenArrows");
+        FLHEquipItemRequest Q; Q.Request=Request(R); Q.Slot=Slot; Q.Item=S.Character.Inventory.FindByPredicate([&](const auto& I){return I.Definition.Value==Name;})->Id;
+        TestTrue(TEXT("equip earned ranged gear"),R.Session->Execute(Q).Disposition==ELHCommandDisposition::Accepted); R.Flush();
+    }
+    if(!TestTrue(TEXT("populate B2"),Floor(R,Pawn,2))) return false; R.Flush();
+    auto S=R.Session->Snapshot(); auto* Director=R.World->GetSubsystem<ULHEncounterDirector>(); const auto* A=S.World.Areas.FindByPredicate([](const auto& X){return X.Area.Content.Value==TEXT("Area.TempleB2");});
+    if(!A || A->Encounters.IsEmpty()) return false;
+    auto* E=Director->FindByLife(A->Encounters[0].Life); if(!E) return false; Pawn->SetActorLocation(E->GetActorLocation()+FVector(100,0,0));
+    FLHUseAbilityRequest Attack; Attack.Request=Request(R); Attack.Ability.Value=TEXT("Attack.Ranged.Bow"); Attack.Target=E->GetEntityId(S.World.RunId);
+    TestTrue(TEXT("earned bow routes to live combat"),R.Session->Execute(Attack).Disposition==ELHCommandDisposition::Accepted);
+    TestTrue(TEXT("activation replay"),R.Session->Execute(Attack).bReplay); return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHG4EnemyContinuation,"Lighthaven.Integration.Wave4.EnemyContinuation",LHWave2TestsPrivate::Flags)
+bool FLHG4EnemyContinuation::RunTest(const FString&)
+{
+    using namespace LHG4TestsPrivate; auto Disk=MakeShared<FStorage>(); FLHSaveSnapshot Captured; FLHSpawnLifeId Life; int32 ExpectedSeed=0;
+    {
+        FRuntime R(Disk); R.Create(); R.Flush(); R.Session->Bind(R.State); auto* Pawn=Avatar(R);
+        if(!TestTrue(TEXT("hydrate B2"),Floor(R,Pawn,2))) return false; R.Flush();
+        const auto S=R.Session->Snapshot(); const auto* Area=S.World.Areas.FindByPredicate([](const auto& A){return A.Area.Content.Value==TEXT("Area.TempleB2");});
+        if(!Area || Area->Encounters.IsEmpty()) return false; Life=Area->Encounters[0].Life;
+        auto* Enemy=R.World->GetSubsystem<ULHEncounterDirector>()->FindByLife(Life); if(!Enemy) return false;
+        auto* Combat=Enemy->GetCombatComponent(); auto Random=Combat->GetCombatRandomState(); Random.FRand(); ExpectedSeed=Random.GetCurrentSeed(); Combat->SetCombatRandomState(Random);
+        TMap<FName,double> Cooldowns; Cooldowns.Add(TEXT("Attack.Melee.Basic"),1.25); Combat->RestoreCooldownMap(Cooldowns);
+        FString Detail; TestTrue(TEXT("capture all combat continuation"),R.Session->CaptureTravel(Captured,Detail));
+        R.Session->bInGameplay=true; TestTrue(TEXT("save exit boundary"),R.Session->RequestExit().IsEmpty()); R.Flush();
+    }
+    FRuntime R(Disk); if(!TestTrue(TEXT("reload saved enemy continuation"),R.Restore(Captured.Header.CharacterId))) return false;
+    auto* Pawn=Avatar(R); if(!TestTrue(TEXT("rehydrate same B2 lives"),Floor(R,Pawn,2))) return false;
+    auto* Enemy=R.World->GetSubsystem<ULHEncounterDirector>()->FindByLife(Life); if(!Enemy) return false;
+    TestEqual(TEXT("enemy RNG resumes exact state"),Enemy->GetCombatComponent()->GetCombatRandomState().GetCurrentSeed(),ExpectedSeed);
+    FLHContentId Ability; Ability.Value=TEXT("Attack.Melee.Basic");
+    TestEqual(TEXT("enemy cooldown resumes remainder"),Enemy->GetCombatComponent()->GetRemainingCooldown(Ability),1.25); return !HasAnyErrors();
+}
+
 #endif
