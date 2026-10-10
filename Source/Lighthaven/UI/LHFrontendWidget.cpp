@@ -1,4 +1,6 @@
 #include "UI/LHFrontendWidget.h"
+#include "UI/LHPresentation.h"
+#include "Input/LHInputGlyphs.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Layout/SScaleBox.h"
@@ -26,7 +28,7 @@ FSlateFontInfo Font(float Size) { return FCoreStyle::GetDefaultFontStyle("Regula
 }
 void SLHFrontendWidget::Construct(const FArguments& Args)
 {
-    P = Args._Presenter; check(P);
+    P = Args._Presenter; check(P); FLHInputGlyphs::Initialize();
     ButtonStyle = FCoreStyle::Get().GetWidgetStyle<FButtonStyle>("Button");
     ButtonStyle.SetNormal(FSlateColorBrush(Style.Raised)).SetHovered(FSlateColorBrush(Style.Raised))
         .SetPressed(FSlateColorBrush(Style.Panel)).SetDisabled(FSlateColorBrush(Style.Raised));
@@ -93,13 +95,19 @@ FText SLHFrontendWidget::Summary() const
         S = FString(P->HasUnsavedChanges() ? TEXT("Inventory (unsaved) | Gold ") : TEXT("Inventory | Gold ")) + FLHUIPresenter::Format(C.Gold) + TEXT("\nOwned items: ") + FString::FromInt(C.Inventory.Num())
             + TEXT("\nRequirements: — (not available in this prototype). Equip is validated by the owner."); break;
     case ELHUIScreen::Hud: case ELHUIScreen::Dialogue: case ELHUIScreen::Services: case ELHUIScreen::Loot: case ELHUIScreen::Death: case ELHUIScreen::Pause: S=P->GameplaySummary(); break;
-    default: S = TEXT("Settings\nUnavailable: settings adapter has not been connected."); break;
+    default: S = TEXT("Settings\nLeft/right changes values. Apply stores user preferences; Revert restores them.\nAudio seams: UI.Click and Combat.Impact (silent; no approved runtime sound)." ); break;
     }
     return FText::FromString(S);
 }
 FText SLHFrontendWidget::Label(FName Id) const
 {
     FString S = P->GameplayLabel(Id);
+    const auto& V=FLHPresentationSettings::Get();
+    if(Id=="Master") S=FString::Printf(TEXT("Master volume: %.0f%%"),V.Master*100);
+    if(Id=="Effects") S=FString::Printf(TEXT("Effects volume: %.0f%%"),V.Effects*100);
+    if(Id=="UI") S=FString::Printf(TEXT("UI volume: %.0f%%"),V.UI*100);
+    if(Id=="TextScale") S=FString::Printf(TEXT("Text scale: %.0f%%"),V.TextScale*100);
+    if(Id=="HighContrast") S=FString(TEXT("High contrast: "))+(V.HighContrast?TEXT("On"):TEXT("Off"));
     if (Id == "Profiles") S = P->Profiles().IsValidIndex(ProfileIndex) ? P->Profiles()[ProfileIndex].Name + TEXT(" | Selected") : TEXT("Select character: no selection (left/right)");
     if (Id == "Recovery" && !P->IsControlEnabled(Id)) S = TEXT("Recovery unavailable: no earlier readable generation requires acknowledgment.");
     else if (Id == "Recovery") S = bRecovery ? TEXT("Recovery acknowledged | Selected") : TEXT("Acknowledge earlier save recovery");
@@ -175,6 +183,9 @@ void SLHFrontendWidget::AddControl(FName Id)
 }
 void SLHFrontendWidget::Build()
 {
+    const auto& V=FLHPresentationSettings::Get();
+    Style=FLHUIStyle(); Style.Body*=V.TextScale; Style.Control*=V.TextScale; Style.Metadata*=V.TextScale;
+    if(V.HighContrast) { Style.Panel=FLinearColor::Black; Style.Background=FLinearColor::Black; Style.TextPrimary=FLinearColor::White; Style.TextSecondary=FLinearColor::White; }
     Targets.Empty(); NameField.Reset();
     TSharedPtr<SVerticalBox> Layout;
     ChildSlot
@@ -218,7 +229,7 @@ void SLHFrontendWidget::Build()
     }
     Layout->AddSlot().AutoHeight().Padding(0,Style.Gutter)
     [ SNew(STextBlock).Text_Lambda([this]() { return FText::FromString(P->Error().IsEmpty() ? LocalMessage : P->FeedbackText()); }).Font(LHFrontendWidgetPrivate::Font(Style.Body)).ColorAndOpacity_Lambda([this]() { return P->HasError()?Style.Error:Style.Info; }).AutoWrapText(true) ];
-    Layout->AddSlot().AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("Arrows / D-pad: focus | Left / Right: change | Enter / South: confirm | Escape / East: back | LB / RB: journal tabs"))).Font(LHFrontendWidgetPrivate::Font(Style.Metadata)).ColorAndOpacity(Style.TextSecondary).AutoWrapText(true)];
+    Layout->AddSlot().AutoHeight()[SNew(STextBlock).Text_Lambda([](){ return FText::FromString(FLHInputGlyphs::MenuHints()); }).Font(LHFrontendWidgetPrivate::Font(Style.Metadata)).ColorAndOpacity(Style.TextSecondary).AutoWrapText(true)];
 }
 void SLHFrontendWidget::Focus()
 {
@@ -249,6 +260,12 @@ FString SLHFrontendWidget::FieldName() const { return NameField.IsValid() ? Name
 void SLHFrontendWidget::StageCreation() { P->EditCreation(P->NameInput(),Appearance,Answers); SubmittedAction = NAME_None; }
 void SLHFrontendWidget::Adjust(FName Id, int32 D)
 {
+    if(Id=="Master" || Id=="Effects" || Id=="UI" || Id=="TextScale" || Id=="HighContrast")
+    {
+        auto& V=FLHPresentationSettings::Get();
+        if(Id=="Master") V.Master+=D*.1f; else if(Id=="Effects") V.Effects+=D*.1f; else if(Id=="UI") V.UI+=D*.1f; else if(Id=="TextScale") V.TextScale+=D*.1f; else V.HighContrast=!V.HighContrast;
+        V.Normalize(); Build(); Focus(); return;
+    }
     if (Id == "Profiles")
     {
         const auto& V = P->Profiles(); if (V.IsEmpty()) return;
@@ -322,6 +339,13 @@ void SLHFrontendWidget::Submit()
 void SLHFrontendWidget::Activate(FName Id)
 {
     if (!P->IsControlEnabled(Id)) return;
+    FLHPresentationAudio::Cue("UI.Click",true);
+    if(P->Screen()==ELHUIScreen::Settings)
+    {
+        if(Id=="Apply") { const bool Saved=FLHPresentationSettings::Get().Save(FLHPresentationSettings::UserFile()); LocalMessage=Saved?TEXT("Settings saved."):TEXT("Error: Settings could not be saved. Session preview retained."); return; }
+        if(Id=="Revert") { FLHPresentationSettings::Get().Load(FLHPresentationSettings::UserFile()); Build(); Focus(); return; }
+        if(Id=="Master" || Id=="Effects" || Id=="UI" || Id=="TextScale" || Id=="HighContrast") { Adjust(Id,1); return; }
+    }
     if (ModalAction == "Keyboard") { Keyboard(KeyboardFocus); return; }
     if (IsModal()) { Submit(); return; }
     const int32 I = P->FocusOrder().IndexOfByKey(Id); if (I != INDEX_NONE) P->MoveFocus(I - P->FocusOrder().IndexOfByKey(P->FocusedControl()));
@@ -412,7 +436,7 @@ FReply SLHFrontendWidget::OnPreviewKeyDown(const FGeometry&, const FKeyEvent& E)
                 if (Index != INDEX_NONE) P->MoveFocus(Index-P->FocusOrder().IndexOfByKey(P->FocusedControl()));
                 break;
             }
-    const FKey K = E.GetKey();
+    const FKey K = E.GetKey(); FLHInputGlyphs::Observe(K);
     const bool Confirm = K == EKeys::Enter || K == EKeys::SpaceBar || K == EKeys::Gamepad_FaceButton_Bottom;
     if (E.IsRepeat() && (Confirm || K == EKeys::C || K == EKeys::I || K == EKeys::Escape || K == EKeys::Gamepad_FaceButton_Right)) return FReply::Handled();
     if (K == EKeys::Up || K == EKeys::Gamepad_DPad_Up) Navigate(-1);
@@ -439,6 +463,7 @@ FReply SLHFrontendWidget::OnPreviewKeyDown(const FGeometry&, const FKeyEvent& E)
 FReply SLHFrontendWidget::OnKeyDown(const FGeometry& G, const FKeyEvent& E) { return OnPreviewKeyDown(G,E); }
 FReply SLHFrontendWidget::OnAnalogValueChanged(const FGeometry&, const FAnalogInputEvent& E)
 {
+    if(FMath::Abs(E.GetAnalogValue())>.25f) FLHInputGlyphs::Observe(E.GetKey());
     if (E.GetKey() != EKeys::Gamepad_LeftY && E.GetKey() != EKeys::Gamepad_LeftX) return FReply::Unhandled();
     if (E.GetKey() == EKeys::Gamepad_LeftY) Stick.Y = E.GetAnalogValue(); else Stick.X = E.GetAnalogValue();
     if (FMath::Max(FMath::Abs(Stick.X),FMath::Abs(Stick.Y)) < .25f) { bStickNeutral = true; return FReply::Handled(); }

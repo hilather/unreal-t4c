@@ -18,7 +18,7 @@ public:
     void Key(ELHUITestKey K, bool Repeat) override
     {
         const FKey Keys[] = {EKeys::Gamepad_DPad_Down,EKeys::Gamepad_DPad_Up,EKeys::Gamepad_FaceButton_Bottom,
-            EKeys::Gamepad_FaceButton_Right,EKeys::Gamepad_RightShoulder,EKeys::Gamepad_DPad_Right,EKeys::Gamepad_DPad_Left,EKeys::C,EKeys::I};
+            EKeys::Gamepad_FaceButton_Right,EKeys::Gamepad_RightShoulder,EKeys::Gamepad_DPad_Right,EKeys::Gamepad_DPad_Left,EKeys::C,EKeys::I,EKeys::Down};
         const FKeyEvent E(Keys[static_cast<uint8>(K)],FModifierKeysState(),0,Repeat,0,0);
         Widget->OnPreviewKeyDown(FGeometry(),E);
     }

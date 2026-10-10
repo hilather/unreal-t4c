@@ -3,7 +3,7 @@
 #include "UI/LHUIPresenter.h"
 // Opaque test seam: widget/event construction lives in the runtime UI module,
 // keeping the test module free of a new direct Slate dependency.
-enum class ELHUITestKey : uint8 { Down, Up, South, East, RightShoulder, Right, Left, Character, Inventory };
+enum class ELHUITestKey : uint8 { Down, Up, South, East, RightShoulder, Right, Left, Character, Inventory, KeyboardDown };
 class LIGHTHAVEN_API ILHUIWidgetHarness
 {
 public:
