@@ -57,6 +57,7 @@ public:
     virtual ~ILHUIReadOwner() = default;
     virtual FLHUIHud HudState() const { return {}; }
     virtual TArray<FLHUIAbility> AbilityCatalog() const { return HudState().Abilities; }
+    virtual FString DialogueName(const FLHEntityId&) const { return {}; }
     virtual TArray<FLHUIDialogueTopic> DialogueTopics(const FLHEntityId&) const { return {}; }
     virtual TArray<FLHUIServiceOffer> ServiceOffers(const FLHEntityId&) const { return {}; }
     virtual TArray<FLHUILootRow> CorpseContents(const FLHEntityId&) const { return {}; }
@@ -113,7 +114,7 @@ public:
     FLHCommandResult UseAbility(const FLHEntityId& Target);
     FLHCommandResult RetryCommand();
     void SetPaused(bool Value) { Session.SetGameplayPaused(Value); }
-    FString Respawn() { Message=Session.RequestRespawn(); return Message; }
+    FString Respawn() { bMessageError=true; Message=Session.RequestRespawn(); return Message; }
 
     FLHUIIntentReview ReviewAllocation(const FLHAttributeBlock& Deltas) const { return Read.ReviewAllocation(Deltas); }
     FLHUIIntentReview ReviewEquipment(const FLHEntityId& Item, ELHEquipmentSlot Slot, bool bUnequip) const { return Read.ReviewEquipment(Item,Slot,bUnequip); }
@@ -123,8 +124,13 @@ public:
     const TArray<FLHQuestionAnswer>& AnswerInput() const { return QuestionAnswers; }
     const FLHSaveSnapshot& Snapshot() const { return View; }
     const TArray<FLHUIProfile>& Profiles() const { return ProfileView; }
+    bool HasError() const { return !Message.IsEmpty() && bMessageError; }
+    FString FeedbackText() const { const FString Text=Error(); return HasError()?TEXT("Error: ")+Text:Text; }
+    static FString DisplayItemNames(FString Text);
+    static FString ItemName(const FLHContentId& Id);
+    FString EquippedItemName(const FLHEntityId& Id) const;
     FString Error() const { const FString Status=Read.OwnerStatus(); return Status.IsEmpty()?Message:Message.IsEmpty()?Status:Message+TEXT("\n")+Status; }
-    void RetryPersistence() { Message=Session.RetryPersistence(); if (Read.OwnsPersistenceStatus()) Message.Empty(); }
+    void RetryPersistence() { bMessageError=true; Message=Session.RetryPersistence(); if (Read.OwnsPersistenceStatus()) Message.Empty(); }
     bool HasUnsavedChanges() const { return Read.HasUnsavedChanges(); }
     FString DerivedSummary() const { return Read.DerivedSummary(); }
     bool IsPending() const { return bPending; }
@@ -172,6 +178,8 @@ private:
     TArray<FLHContentId> AppearanceIds;
     TArray<FLHQuestionAnswer> QuestionAnswers;
     FLHUICreationPreview Preview;
+    bool bMessageError = true;
+    FLHEntranceId FeedbackEntrance;
     bool bPending = false, bConfirmed = false;
     FLHCommandResult Confirmation;
 };
