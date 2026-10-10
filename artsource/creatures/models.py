@@ -12,6 +12,17 @@ PARTS = []
 TAU = math.tau
 
 
+def slime_height(x, y, r):
+    lobes=[(-.08,.065,.20,.185,.203),(.135,-.075,.155,.15,.185),
+           (-.19,-.15,.13,.135,.135),(.015,-.24,.135,.105,.09),
+           (.19,.18,.13,.13,.11)]
+    heights=[h*math.exp(-(((x-cx)/rx)**2+((y-cy)/ry)**2)**1.45)
+             for cx,cy,rx,ry,h in lobes]
+    mound=sum(h**5 for h in heights)**.2
+    folds=.006*math.sin(x*39+2*math.sin(y*17))*math.sin(y*31+x*9)*math.sin(math.pi*r)
+    return max(.005,.009+mound+folds)*(1-.55*r**12)
+
+
 def ramp(nodes, values):
     node = nodes.new('ShaderNodeValToRGB')
     for i, (position, color) in enumerate(values):
@@ -21,7 +32,7 @@ def ramp(nodes, values):
     return node
 
 
-def shader(name, kind):
+def shader(name, kind, creature='rat'):
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     n, l = m.node_tree.nodes, m.node_tree.links
@@ -45,28 +56,49 @@ def shader(name, kind):
         noise.inputs['Scale'].default_value = 1
         noise.inputs['Detail'].default_value = 2
         noise.inputs['Roughness'].default_value = .55
-        color = ramp(n, [(.22,(.012,.006,.003)),(.45,(.043,.022,.010)),(.62,(.12,.067,.028)),(.79,(.24,.15,.067))])
+        # Broad anatomical values survive minification; the fine strokes do not
+        # carry identity. Dark saddle, warm flanks, pale underside, silver tips.
+        color = ramp(n, [(.20,(.32,.27,.23)),(.48,(.73,.64,.52)),(.68,(1.15,1.03,.88)),(.84,(1.55,1.4,1.17))])
         l.new(noise.outputs['Fac'], color.inputs[0])
         sep = n.new('ShaderNodeSeparateXYZ'); l.new(tex.outputs['Object'],sep.inputs[0])
-        height = n.new('ShaderNodeMapRange');height.inputs['From Min'].default_value=.055; height.inputs['From Max'].default_value=.24
-        height.inputs['To Min'].default_value=.48; height.inputs['To Max'].default_value=1
+        height = n.new('ShaderNodeMapRange')
+        height.inputs['From Min'].default_value=.05 if creature=='rat' else .935
+        height.inputs['From Max'].default_value=.247 if creature=='rat' else 1.14
         l.new(sep.outputs['Z'],height.inputs['Value'])
-        mult = n.new('ShaderNodeMixRGB');mult.blend_type='MULTIPLY';mult.inputs[0].default_value=.72
-        l.new(color.outputs[0],mult.inputs[1]);l.new(height.outputs[0],mult.inputs[2]);l.new(mult.outputs[0],p.inputs['Base Color'])
+        region=ramp(n,[(.02,(.23,.17,.11)),(.27,(.185,.102,.046)),(.50,(.105,.052,.023)),(.76,(.057,.032,.018)),(1,(.055,.038,.025))])
+        if creature=='bat':
+            region.color_ramp.elements[-1].color=(.038,.025,.016,1)
+        l.new(height.outputs[0],region.inputs[0])
+        coat_color=region.outputs[0]
+        if creature=='rat':
+            across=n.new('ShaderNodeMath');across.operation='ABSOLUTE';l.new(sep.outputs['Y'],across.inputs[0])
+            ridge=n.new('ShaderNodeMapRange');ridge.inputs['From Max'].default_value=.024;ridge.inputs['To Min'].default_value=1;ridge.inputs['To Max'].default_value=0;l.new(across.outputs[0],ridge.inputs['Value'])
+            high=n.new('ShaderNodeMapRange');high.inputs['From Min'].default_value=.19;high.inputs['From Max'].default_value=.236;l.new(sep.outputs['Z'],high.inputs['Value'])
+            mask=n.new('ShaderNodeMath');mask.operation='MULTIPLY';l.new(ridge.outputs[0],mask.inputs[0]);l.new(high.outputs[0],mask.inputs[1])
+            tips=n.new('ShaderNodeMixRGB');l.new(mask.outputs[0],tips.inputs[0]);l.new(coat_color,tips.inputs[1]);tips.inputs[2].default_value=(.12,.087,.055,1);coat_color=tips.outputs[0]
+        mult = n.new('ShaderNodeMixRGB');mult.blend_type='MULTIPLY';mult.inputs[0].default_value=1
+        l.new(color.outputs[0],mult.inputs[1]);l.new(coat_color,mult.inputs[2]);l.new(mult.outputs[0],p.inputs['Base Color'])
         p.inputs['Roughness'].default_value = .83
         bump.inputs['Strength'].default_value=.48
         bump.inputs['Distance'].default_value=.0018
     elif kind in ('skin','tail','ear'):
         noise.inputs['Scale'].default_value=180
-        color=ramp(n,[(.22,(.105,.044,.029)),(.72,(.34,.17,.105))])
+        color=ramp(n,[(.22,(.16,.062,.044)),(.72,(.34,.17,.12))])
         l.new(noise.outputs['Fac'],color.inputs[0]);l.new(color.outputs[0],p.inputs['Base Color'])
         p.inputs['Roughness'].default_value=.57
         if kind=='tail':
             wave=n.new('ShaderNodeTexWave');wave.wave_type='BANDS';wave.bands_direction='X'
-            wave.inputs['Scale'].default_value=210;wave.inputs['Distortion'].default_value=3
+            wave.inputs['Scale'].default_value=45;wave.inputs['Distortion'].default_value=.65
             l.new(tex.outputs['Object'],wave.inputs['Vector']);l.new(wave.outputs['Fac'],bump.inputs['Height'])
-            bump.inputs['Strength'].default_value=.6
-        if kind=='ear':p.inputs['Base Color'].default_value=(.3,.12,.075,1)
+            bump.inputs['Strength'].default_value=.3
+            rings=ramp(n,[(.18,(.62,.55,.50)),(.38,(1,1,1)),(.85,(1,1,1))])
+            l.new(wave.outputs['Fac'],rings.inputs[0])
+            mix=n.new('ShaderNodeMixRGB');mix.blend_type='MULTIPLY';mix.inputs[0].default_value=.45
+            l.new(color.outputs[0],mix.inputs[1]);l.new(rings.outputs[0],mix.inputs[2]);l.new(mix.outputs[0],p.inputs['Base Color'])
+        if kind=='ear':
+            color.color_ramp.elements[0].color=(.19,.061,.045,1)
+            color.color_ramp.elements[1].color=(.46,.235,.18,1)
+            p.inputs['Roughness'].default_value=.62
     elif kind=='membrane':
         noise.inputs['Scale'].default_value=30
         color=ramp(n,[(.2,(.075,.032,.012)),(.48,(.23,.12,.048)),(.78,(.43,.26,.12))])
@@ -79,19 +111,28 @@ def shader(name, kind):
         l.new(veins.outputs['Distance'],bump.inputs['Height']);bump.inputs['Distance'].default_value=.0005
         p.inputs['Roughness'].default_value=.70
     elif kind=='slime':
-        noise.inputs['Scale'].default_value=13
-        # Thickness-color approximation: dark interior, lime thin tissue, bright bubble rims.
-        color=ramp(n,[(.18,(.001,.009,.0004)),(.4,(.005,.034,.001)),(.65,(.024,.10,.003)),(.83,(.073,.18,.009))])
+        noise.inputs['Scale'].default_value=9
+        # Opaque thickness illusion: dense central mass and a pale thin rim.
+        # Deliberately no Voronoi rings: they read as painted polka dots.
+        color=ramp(n,[(.20,(.0008,.006,.001)),(.46,(.002,.022,.0025)),(.72,(.008,.056,.004)),(.86,(.018,.088,.008))])
         l.new(noise.outputs['Fac'],color.inputs[0])
-        bubbles=n.new('ShaderNodeTexVoronoi');bubbles.inputs['Scale'].default_value=19
-        l.new(tex.outputs['Object'],bubbles.inputs['Vector'])
-        bubblecolor=ramp(n,[(.07,(.013,.067,.001)),(.20,(.002,.011,.0004)),(.245,(.074,.17,.006)),(.29,(.011,.06,.001)),(.43,(.008,.042,.001))])
-        l.new(bubbles.outputs['Distance'],bubblecolor.inputs[0])
-        mix=n.new('ShaderNodeMixRGB');mix.inputs[0].default_value=.28
-        l.new(color.outputs[0],mix.inputs[1]);l.new(bubblecolor.outputs[0],mix.inputs[2]);l.new(mix.outputs[0],p.inputs['Base Color'])
-        rough=n.new('ShaderNodeMapRange');rough.inputs['To Min'].default_value=.16;rough.inputs['To Max'].default_value=.27
+        sep=n.new('ShaderNodeSeparateXYZ');l.new(tex.outputs['Object'],sep.inputs[0])
+        depth=n.new('ShaderNodeMapRange');depth.inputs['From Min'].default_value=.012;depth.inputs['From Max'].default_value=.095
+        depth.inputs['To Min'].default_value=1;depth.inputs['To Max'].default_value=0
+        l.new(sep.outputs['Z'],depth.inputs['Value'])
+        rim=ramp(n,[(.18,(.015,.063,.007)),(.78,(.068,.18,.022))]);l.new(noise.outputs['Fac'],rim.inputs[0])
+        mix=n.new('ShaderNodeMixRGB');l.new(depth.outputs[0],mix.inputs[0]);l.new(color.outputs[0],mix.inputs[1]);l.new(rim.outputs[0],mix.inputs[2])
+        # Only four irregular soft inclusions, colored beneath the surface film.
+        previous=mix.outputs[0]
+        for x,y,radius in [(.12,-.10,.017),(-.12,-.145,.013),(.18,.075,.011),(-.19,.115,.014)]:
+            center=(x,y,slime_height(x,y,math.hypot(x,y)/.41)-.008)
+            dist=n.new('ShaderNodeVectorMath');dist.operation='DISTANCE';dist.inputs[1].default_value=center;l.new(tex.outputs['Object'],dist.inputs[0])
+            fade=n.new('ShaderNodeMapRange');fade.interpolation_type='SMOOTHERSTEP';fade.inputs['From Min'].default_value=radius*.2;fade.inputs['From Max'].default_value=radius*2.2;fade.inputs['To Min'].default_value=.42;fade.inputs['To Max'].default_value=0;l.new(dist.outputs['Value'],fade.inputs['Value'])
+            bubble=n.new('ShaderNodeMixRGB');l.new(fade.outputs[0],bubble.inputs[0]);l.new(previous,bubble.inputs[1]);bubble.inputs[2].default_value=(.12,.23,.04,1);previous=bubble.outputs[0]
+        l.new(previous,p.inputs['Base Color'])
+        rough=n.new('ShaderNodeMapRange');rough.inputs['To Min'].default_value=.105;rough.inputs['To Max'].default_value=.19
         l.new(noise.outputs['Fac'],rough.inputs[0]);l.new(rough.outputs[0],p.inputs['Roughness'])
-        bump.inputs['Strength'].default_value=.3;bump.inputs['Distance'].default_value=.007
+        bump.inputs['Strength'].default_value=.16;bump.inputs['Distance'].default_value=.0025
     else:
         colors={'eye':((.003,.002,.001),.12),'claw':((.5,.37,.23),.43),'mouth':((.033,.005,.003),.65),'tooth':((.63,.51,.31),.35)}
         c,r=colors[kind];p.inputs['Base Color'].default_value=(*c,1);p.inputs['Roughness'].default_value=r
@@ -158,12 +199,68 @@ def coat(name,surface,count,mat,bone='body',length=.021):
     for _ in range(count):
         p,normal,tangent=surface();normal=Vector(normal).normalized();tangent=Vector(tangent).normalized();p=Vector(p)
         side=normal.cross(tangent).normalized()
-        ln=length*random.uniform(.55,1.35);width=ln*random.uniform(.05,.085)
+        ln=(length(p) if callable(length) else length)*random.uniform(.55,1.35);width=ln*random.uniform(.025,.055)
         # Lance-shaped two-triangle blades: buried root, raised middle, swept tip.
-        base=len(v);root=p-normal*.0015;middle=p+tangent*ln*.45+normal*.002
-        tip=p+tangent*ln+normal*.004
+        base=len(v);root=p-normal*.001;middle=p+tangent*ln*.45+normal*(ln*.14)
+        tip=p+tangent*ln+normal*(ln*.28)
         v.extend([root,middle-side*width,tip,middle+side*width]);f.extend([(base,base+1,base+2),(base,base+2,base+3)])
     return mesh(name,v,f,mat,bone)
+
+
+def fuse_rat_anatomy(parts, mat):
+    """Unify intersecting muscle masses, then restore explicit deformation zones.
+
+    Voxel remesh is applied at build time only. No runtime sculpt modifier or
+    high-poly mesh is exported; the final continuous skin is ~1750 triangles.
+    """
+    bpy.ops.object.select_all(action='DESELECT')
+    for obj in parts:obj.select_set(True)
+    obj=parts[0];bpy.context.view_layer.objects.active=obj
+    bpy.ops.object.join()
+    for part in parts:PARTS.remove(part)
+    obj.name='Continuous rat shoulder neck and haunch skin'
+    obj.data.remesh_voxel_size=.0035
+    bpy.ops.object.voxel_remesh()
+    sm=obj.modifiers.new('Blend anatomical transitions','SMOOTH');sm.factor=1.15;sm.iterations=5
+    bpy.ops.object.modifier_apply(modifier=sm.name)
+    dec=obj.modifiers.new('Authored skin budget','DECIMATE');dec.ratio=min(1,1750/(len(obj.data.polygons)*2))
+    bpy.ops.object.modifier_apply(modifier=dec.name)
+    obj.data.materials.clear();obj.data.materials.append(mat)
+    for poly in obj.data.polygons:poly.use_smooth=True
+    obj.vertex_groups.clear();PARTS.append(obj)
+    def weights(co):
+        x,y,z=co
+        head=max(0,min(1,(x-.024)/.047))
+        if x<.095:head*=max(0,min(1,(z-.075)/.025))
+        limb=max(0,min(.9,(.099-z)/.044))*(1-head)
+        bn=('front' if x>-.055 else 'rear')+str(1 if y>0 else -1)
+        return {'head':head,'body':1-limb-head,bn:limb}
+    def skin(ob):
+        ob.vertex_groups.clear()
+        groups={bn:ob.vertex_groups.new(name=bn) for bn in ['body','head','front-1','front1','rear-1','rear1']}
+        for vert in ob.data.vertices:
+            for bn,w in weights(vert.co).items():
+                if w>0:groups[bn].add([vert.index],w,'REPLACE')
+    skin(obj)
+    # Root each guard hair on the final fused surface, including the neck and
+    # haunch, instead of leaving smooth balls between independent fur patches.
+    obj.data.calc_loop_triangles()
+    triangles=[tri for tri in obj.data.loop_triangles if tri.center.z>.065 and tri.center.x<.19 and tri.normal.z>-.55]
+    import bisect
+    cumulative=[];total=0
+    for tri in triangles:total+=tri.area;cumulative.append(total)
+    def surface():
+        tri=triangles[bisect.bisect_left(cumulative,random.random()*total)]
+        a,b,c=[obj.data.vertices[i] for i in tri.vertices]
+        u=math.sqrt(random.random());v=random.random()
+        p=a.co*(1-u)+b.co*(u*(1-v))+c.co*(u*v)
+        normal=(a.normal*(1-u)+b.normal*(u*(1-v))+c.normal*(u*v)).normalized()
+        direction=Vector((-1,0,-.15))
+        tangent=(direction-normal*normal.dot(direction)).normalized()
+        return p,normal,tangent
+    fur=coat('Continuous swept anatomical coat',surface,1600,mat,length=lambda p:.005 if p.x>.09 else (.009 if p.x>.025 else .013))
+    skin(fur)
+    return obj
 
 
 def ellipsoid_coat(center,axes):
@@ -176,25 +273,27 @@ def ellipsoid_coat(center,axes):
     return surface
 
 
-def ear(name,center,side,mat,bone='head',pointed=False):
+def ear(name,center,side,mat,bone='head',pointed=False,outer=None):
     # A cupped, genuinely thin pinna; its central fold is shaded by geometric AO.
     v=[];f=[];N=20
     for r in [0,.38,.75,1]:
         for j in range(N):
             a=TAU*j/N
-            width=.030 if not pointed else .031
-            height=.030 if not pointed else .046
+            width=.027 if not pointed else .031
+            height=.032 if not pointed else .046
             yy=width*r*math.cos(a)*(1-.62*max(0,math.sin(a)) if pointed else 1)
             if pointed:yy+=.016*r*max(0,math.sin(a))
             zz=height*r*math.sin(a)
-            v.append((center[0]+.013*(1-r*r)+.003*math.sin(a),center[1]+side*yy,center[2]+zz))
+            v.append((center[0]-.012*(1-r*r)+.007*r*math.sin(a),center[1]+side*(yy+.008*r*math.sin(a)),center[2]+zz))
     for i in range(3):
         for j in range(N):a=i*N+j;b=i*N+(j+1)%N;f.append((a,b,b+N,a+N))
     if side>0:f=[tuple(reversed(face)) for face in f]
     obj=mesh(name,v,f,mat,bone)
+    if outer:
+        mesh(name+' thin furred back',[(x-.0015,y,z) for x,y,z in v],[tuple(reversed(face)) for face in f],outer,bone)
     # Merge repeated center vertices happens in build. Thin two-sided surface, no balloon.
     rim=[v[3*N+j] for j in range(N)]+[v[3*N]]
-    tube(name+' rolled rim',rim,.0017,mat,bone,5)
+    tube(name+' rolled rim',rim,.0012,mat,bone,5)
     return obj
 
 
@@ -203,32 +302,24 @@ def rat(m,bones):
     bones['head']=((.055,0,.12),(.16,0,.10),'body')
     bones['jaw']=((.125,0,.073),(.207,0,.064),'head')
     sections=[(-.235,.009,.014,.128),(-.218,.052,.068,.146),(-.184,.078,.091,.151),(-.135,.086,.093,.15),(-.075,.077,.084,.146),(-.015,.062,.065,.138),(.048,.047,.053,.128),(.083,.023,.032,.12)]
-    loft('Long back and narrow shoulders',sections,m['fur'])
-    def back_surface():
-        x=random.uniform(-.222,.065);i=next(i for i in range(len(sections)-1) if sections[i][0]<=x<=sections[i+1][0]);a,b=sections[i:i+2];t=(x-a[0])/(b[0]-a[0]);s=[a[k]*(1-t)+b[k]*t for k in range(4)]
-        theta=random.uniform(-.4,math.pi+.4);p=(x,s[1]*math.cos(theta),s[3]+s[2]*math.sin(theta))
-        slope=[(b[k]-a[k])/(b[0]-a[0]) for k in range(4)]
-        along=Vector((1,slope[1]*math.cos(theta),slope[3]+slope[2]*math.sin(theta)))
-        around=Vector((0,-s[1]*math.sin(theta),s[2]*math.cos(theta)))
-        return p,around.cross(along),-along
-    coat('Dense swept guard hairs',back_surface,1220,m['fur_tip'],length=.014)
-    headsections=[(.046,.035,.036,.125),(.075,.043,.041,.118),(.115,.038,.037,.103),(.158,.030,.028,.085),(.193,.016,.015,.071),(.216,.006,.007,.068)]
-    loft('Tapered wedge skull',headsections,m['fur'],'head',20)
-    coat('Cheek hairs',ellipsoid_coat((.096,0,.109),(.045,.037,.037)),210,m['fur_tip'],'head',.010)
+    anatomy=[loft('Long back and narrow shoulders',sections,m['fur'])]
+    headsections=[(.014,.049,.053,.132),(.042,.049,.049,.128),(.075,.043,.043,.119),(.115,.038,.037,.103),(.135,.034,.031,.097),(.158,.028,.025,.086),(.178,.022,.020,.079),(.193,.016,.015,.071),(.216,.006,.007,.068)]
+    anatomy.append(loft('Tapered wedge skull',headsections,m['fur'],'head',20))
     ellipsoid('Lower jaw',(.169,0,.062),(.035,.017,.008),m['skin'],'jaw',12,6)
     ellipsoid('Nose',(.216,0,.07),(.006,.009,.006),m['skin'],'head',12,6)
     for s in [-1,1]:
-        ear('Thin rounded ear',(.072,s*.043,.178),s,m['ear'])
-        ellipsoid('Beady eye',(.119,s*.034,.125),(.007,.0045,.0065),m['eye'],'head',12,7)
-        ellipsoid('Hind haunch',(-.161,s*.057,.102),(.060,.032,.061),m['fur'],'body',16,9)
-        coat('Haunch guard hairs',ellipsoid_coat((-.161,s*.057,.102),(.060,.032,.061)),130,m['fur_tip'],length=.01)
+        anatomy.append(ellipsoid('Soft whisker pad',(.177,s*.014,.076),(.028,.016,.016),m['fur'],'head',12,7))
+        ear('Cupped pink pinna',(.063,s*.044,.177),s,m['ear'],outer=m['fur'])
+        ellipsoid('Beady eye',(.119,s*.030,.122),(.006,.004,.0055),m['eye'],'head',12,7)
+        anatomy.append(ellipsoid('Rounded powerful hind haunch',(-.16,s*.061,.101),(.062,.039,.066),m['fur'],'body',16,9))
+        anatomy.append(ellipsoid('Blended shoulder mass',(.028,s*.041,.102),(.044,.029,.047),m['fur'],'body',12,7))
         for front in [False,True]:
             bn=('front' if front else 'rear')+str(s)
             x=.062 if front else -.155
             bones[bn]=((x,s*.055,.09),(x+.02,s*.085,.032),'body')
-            if front:pts=[(.058,s*.046,.126),(.038,s*.065,.07),(.081,s*.087,.022)]
-            else:pts=[(-.145,s*.073,.103),(-.194,s*.085,.060),(-.153,s*.096,.024)]
-            tube('Angled slender limb',pts,[.014,.01,.0055],m['fur'],bn,8)
+            if front:pts=[(.040,s*.049,.126),(.035,s*.066,.075),(.081,s*.087,.022)]
+            else:pts=[(-.149,s*.077,.101),(-.190,s*.086,.061),(-.153,s*.096,.024)]
+            anatomy.append(tube('Tapered muscular limb',pts,[.026,.016,.0065],m['fur'],bn,8))
             end=pts[-1];tube('Bare wrist',[end,(end[0]+.013,s*.099,.012)],[.006,.006],m['skin'],bn,6)
             for j in range(4):
                 y=s*(.09+j*.008);x0=end[0]+.011;x1=x0+.023+(1-abs(j-1.5)/2)*.009
@@ -236,6 +327,7 @@ def rat(m,bones):
                 tube('Pale curved claw',[(x1,y+s*.006,.006),(x1+.005,y+s*.007,.006),(x1+.007,y+s*.007,.002)],[.0017,.0012,.0002],m['claw'],bn,5)
         for j in range(4):
             tube('Fine whisker',[(.197,s*.013,.078+j*.003),(.204-j*.009,s*.056,.084+j*.007),(.189-j*.013,s*(.087+j*.006),.09+j*.007)],[.00045,.0003,.00006],m['claw'],'head',3)
+    fuse_rat_anatomy(anatomy,m['fur'])
     bones['tail']=((-.219,0,.104),(-.37,0,.04),'body')
     bones['tail_mid']=((-.37,0,.04),(-.52,.035,.015),'tail')
     bones['tail_tip']=((-.52,.035,.015),(-.66,.06,.012),'tail_mid')
@@ -246,94 +338,46 @@ def rat(m,bones):
         if t<.4: w=min(1,t/.4);weights.append({'tail':1-w,'tail_mid':w})
         else: w=(t-.4)/.6;weights.append({'tail_mid':1-w,'tail_tip':w})
     tube('Long ring-scaled tapering tail',pts,r,m['tail'],sides=7,weights=weights)
-
-
-def bat(m,bones):
-    bones['body']=((0,0,1),(0,.1,1),'root');bones['head']=((.02,0,1.055),(.1,0,1.075),'body')
-    bones['jaw']=((.091,0,1.045),(.14,0,1.043),'head')
-    ellipsoid('Small furry torso',(-.016,0,1.018),(.067,.043,.063),m['fur'],seg=20,rings=12)
-    coat('Body ruff',ellipsoid_coat((-.016,0,1.018),(.067,.043,.063)),420,m['fur_tip'],length=.013)
-    loft('Short wedge skull',[(.025,.023,.023,1.087),(.055,.042,.032,1.077),(.082,.036,.026,1.07),(.105,.026,.014,1.068),(.12,.014,.009,1.069)],m['fur'],'head',20)
-    coat('Brow fur',ellipsoid_coat((.056,0,1.081),(.03,.037,.024)),120,m['fur_tip'],'head',.008)
-    ellipsoid('Dark mouth opening',(.111,0,1.055),(.016,.024,.008),m['mouth'],'jaw',12,6)
-    ellipsoid('Broad flat nose',(.12,0,1.074),(.007,.014,.007),m['skin'],'head',12,7)
-    for s in [-1,1]:
-        ellipsoid('Tiny nostril',(.126,s*.007,1.077),(.002,.0025,.0016),m['eye'],'head',8,5)
-        ellipsoid('Bat eye',(.083,s*.030,1.083),(.0055,.004,.005),m['eye'],'head',12,7)
-        tube('Brow ridge',[(.066,s*.03,1.096),(.083,s*.033,1.092),(.096,s*.026,1.083)],[.0025,.002,.0005],m['fur'],'head',7)
-        tube('Small fang',[(.119,s*.019,1.06),(.12,s*.018,1.048)],[.003,.0003],m['tooth'],'head',6)
-        ear('Pointed pinna',(.028,s*.036,1.13),s,m['ear'],pointed=True)
-        tube('Pinna inner ridge',[(.038,s*.035,1.094),(.048,s*.041,1.123),(.037,s*.039,1.163)],[.0025,.002,.0004],m['skin'],'head',5)
-        wing='wing'+str(s);tipbone='wingtip'+str(s)
-        bones[wing]=((-.008,s*.035,1.042),(.025,s*.15,1.15),'body')
-        bones[tipbone]=((.025,s*.15,1.15),(-.045,s*.388,1.215),wing)
-        wrist=Vector((.035,.135,1.155))
-        tips=[Vector((-.025,.387,1.225)),Vector((-.15,.318,1.087)),Vector((-.207,.198,.984)),Vector((-.145,.064,.947)),Vector((-.047,.036,.972))]
-        v=[];faces=[];weights=[];U=10;R=8
-        for panel in range(len(tips)-1):
-            a,b=tips[panel:panel+2];base=len(v)
-            for i in range(R+1):
-                t=i/R
-                for j in range(U+1):
-                    u=j/U
-                    # Scallop is a taut catenary-like curve pulled towards the wrist.
-                    edge=a.lerp(b,u);edge=edge.lerp(wrist,.25*math.sin(math.pi*u))
-                    q=wrist.lerp(edge,t);q.z+=.014*math.sin(math.pi*t)*math.sin(math.pi*u)
-                    v.append((q.x,s*q.y,q.z));w=max(0,min(1,(q.y-.13)/.17))
-                    weights.append({wing:1-w,tipbone:w})
-            for i in range(R):
-                for j in range(U):k=base+i*(U+1)+j;faces.append((k,k+1,k+U+2,k+U+1))
-        if s>0:faces=[tuple(reversed(face)) for face in faces]
-        mesh('Four scalloped membrane panels',v,faces,m['membrane'],weights=weights)
-        tube('Arm and leading spar',[(-.015,s*.035,1.046),(-.036,s*.078,1.118),(.035,s*.135,1.155),(-.025,s*.387,1.225)],[.006,.005,.004,.001],m['skin'],wing,7,
-             [{wing:1},{wing:1},{wing:1},{tipbone:1}])
-        for tip in tips[1:]:
-            pts=[];ws=[]
-            for i in range(7):
-                t=i/6;q=wrist.lerp(tip,t);q.z+=.004*math.sin(math.pi*t);pts.append((q.x,s*q.y,q.z+.001))
-                w=max(0,min(1,(q.y-.13)/.17));ws.append({wing:1-w,tipbone:w})
-            tube('Spreading finger',pts,[.0035*(1-i/7)+.0007 for i in range(7)],m['skin'],wing,5,ws)
-        tube('Thumb hook',[(.035,s*.135,1.155),(.064,s*.139,1.18),(.073,s*.135,1.172)],[.004,.0025,.0003],m['claw'],wing,5)
-        tube('Hind ankle',[(-.041,s*.025,.974),(-.09,s*.035,.946),(-.099,s*.039,.927)],[.005,.004,.002],m['skin'],'body',6)
-        for j in range(3):tube('Hind claw',[(-.099,s*(.032+j*.007),.928),(-.084,s*(.032+j*.007),.92),(-.078,s*(.032+j*.007),.926)],[.002,.0014,.0002],m['claw'],'body',5)
+    # Shorten the distal muzzle while preserving the 45 cm body allowance.
+    # The broad cheek-to-whisker-pad union avoids a long planar shrew snout.
+    def shorten(x):return .10+(x-.10)*.82 if x>.10 else x
+    for obj in PARTS:
+        for vert in obj.data.vertices:vert.co.x=shorten(vert.co.x)
+    for name,(head,tail,parent) in list(bones.items()):
+        bones[name]=((shorten(head[0]),head[1],head[2]),(shorten(tail[0]),tail[1],tail[2]),parent)
 
 
 def slime(m,bones):
-    N=72;R=32;v=[(0,0,0)];f=[];weights=[{'root':1}]
-    def height(x,y,r):
-        mound=.29*math.exp(-(((x+.07)/.21)**2+((y-.055)/.21)**2)*1.25)
-        mound+=.15*math.exp(-(((x-.16)/.115)**2+((y+.025)/.16)**2)*1.3)
-        mound+=.12*math.exp(-(((x+.205)/.105)**2+((y+.15)/.11)**2))
-        mound+=.085*math.exp(-(((x-.015)/.11)**2+((y+.245)/.10)**2))
-        folds=.018*math.sin(x*49+2*math.sin(y*19))*math.sin(y*37+x*12)*math.sin(math.pi*r)
-        return max(.006,.009+mound+folds)*(1-.45*r**12)
+    N=96;R=28;v=[(0,0,0)];f=[];weights=[{'root':1}]
     for i in range(R):
         r=1-i/(R-1)
         for j in range(N):
-            a=TAU*j/N;edge=.410*(1+.065*math.sin(5*a+.4)+.026*math.sin(11*a))
+            a=TAU*j/N;edge=.409*(1+.064*math.sin(5*a+.4)+.032*math.sin(9*a+.3))
             x=r*edge*math.cos(a);y=r*edge*math.sin(a)
-            z=height(x,y,r)
-            if i==0:z=.008+.003*(1+math.sin(7*a))
+            z=slime_height(x,y,r)
+            # Low rounded edge lobes feed into several small flattened drips.
+            z+=.014*math.exp(-((r-.85)/.105)**2)*(max(0,math.sin(7*a+.7))**4)
+            if i==0:z=.0025
             v.append((x,y,z));w=min(1,max(0,(z-.016)/.14));weights.append({'root':1-w,'body':w})
     for j in range(N):f.append((0,1+(j+1)%N,1+j))
     for i in range(R-1):
         for j in range(N):a=1+i*N+j;b=1+i*N+(j+1)%N;f.append((a,b,b+N,a+N))
-    mesh('Asymmetric pooled jelly and streaming folds',v,f,m['slime'],weights=weights)
-    # Surface-near inclusions model bubbles beneath a thin film, with the same skin.
-    for x,y,r in [(.11,-.1,.023),(-.12,-.09,.019),(.20,.065,.022),(-.23,-.13,.014),(.03,.15,.016),(.16,-.2,.013),(-.16,.14,.024),(.25,-.03,.012)]:
-        z=height(x,y,math.hypot(x,y)/.41)-r*.75
-        obj=ellipsoid('Bubble beneath wet skin',(x,y,z),(r,r,r*.83),m['slime'],seg=12,rings=7)
-        obj.vertex_groups.clear();root=obj.vertex_groups.new(name='root');body=obj.vertex_groups.new(name='body')
-        for vert in obj.data.vertices:
-            w=min(1,max(0,(vert.co.z-.016)/.14));root.add([vert.index],1-w,'REPLACE');body.add([vert.index],w,'REPLACE')
+    obj=mesh('Low rounded lobes with pooled dripping rim',v,f,m['slime'],weights=weights)
+    # A flat underside must not pull the wet upper lip's normals downward.
+    # Keep the outer rim below its adjacent ring to avoid isolated upturned
+    # triangular flaps that reflect as black notches in a grazing hero view.
+    for poly in obj.data.polygons[:N]:poly.use_smooth=False
+    for edge in obj.data.edges:
+        if all(1<=i<=N for i in edge.vertices):edge.use_edge_sharp=True
 
 
 def create(kind):
     global PARTS
     PARTS=[];random.seed({'rat':508,'bat':509,'slime':510}[kind])
-    m={k:shader(k,k) for k in ['fur','fur_tip','skin','tail','ear','eye','claw','mouth','tooth','membrane','slime']}
+    m={k:shader(k,k,kind) for k in ['fur','fur_tip','skin','tail','ear','eye','claw','mouth','tooth','membrane','slime']}
     bones={'root':((0,0,0),(0,0,.05),None),'body':((0,0,0),(0,.1,0),'root')}
-    {'rat':rat,'bat':bat,'slime':slime}[kind](m,bones)
+    from bat_polish import bat as polished_bat
+    {'rat':rat,'bat':polished_bat,'slime':slime}[kind](m,bones)
     if kind=='bat':
         # Authored 6% resting-span reserve keeps the downward flap inside 80 cm.
         for obj in PARTS:
