@@ -11,6 +11,10 @@ import models
 import roster
 OUT=Path(__file__).resolve().parent/'output'; OUT.mkdir(exist_ok=True)
 RESULT=[]
+# W5-10c: 1024 -> 512 for every atlas, including Balork base pigment.
+# Only pixel resolution changes; authored geometry, pigments and motion remain.
+def texture_size(kind, channel):
+    return 512
 def material(name, color, rough=.7, scale=70):
     m=bpy.data.materials.new(name); m.use_nodes=True
     n=m.node_tree.nodes; l=m.node_tree.links; p=n.get('Principled BSDF')
@@ -79,7 +83,8 @@ def build(kind, bake_assets=True):
         scene=bpy.context.scene;scene.render.fps=30;scene.render.engine='CYCLES';scene.cycles.device='CPU';scene.cycles.samples=8
         images={}
         for channel in ['base','normal','orm']:
-            im=bpy.data.images.new(kind+'_'+channel,width=1024,height=1024,alpha=False)
+            size=texture_size(kind,channel)
+            im=bpy.data.images.new(kind+'_'+channel,width=size,height=size,alpha=False)
             if channel!='base':im.colorspace_settings.name='Non-Color'
             for m in mesh.data.materials:
                 n=m.node_tree.nodes; node=n.new('ShaderNodeTexImage');node.image=im;n.active=node
@@ -116,7 +121,7 @@ def build(kind, bake_assets=True):
                     e=n.new('ShaderNodeEmission');links.new(combine.outputs[0],e.inputs[0]);links.new(e.outputs[0],out.inputs[0])
                 bpy.ops.object.bake(type='EMIT',margin=2)
             if channel=='orm':
-                pixels=array('f',[0.0])*(1024*1024*4);im.pixels.foreach_get(pixels)
+                pixels=array('f',[0.0])*(size*size*4);im.pixels.foreach_get(pixels)
                 ao=[pixels[i] for i in range(0,len(pixels),4) if pixels[i+1]>.01]
                 rough=[pixels[i+1] for i in range(0,len(pixels),4) if pixels[i+1]>.01]
                 mesh['ao_range']=[min(ao),max(ao)];mesh['roughness_range']=[min(rough),max(rough)]
@@ -354,7 +359,7 @@ def main(kinds=('rat','bat','slime'), do_render=True, geometry_only=False):
         assert imported,kind+' missing armature';assert len(names)>=5,(kind,names)
         skinned=[o for o in bpy.context.scene.objects if o.type=='MESH' and any(m.type=='ARMATURE' for m in o.modifiers)]
         assert skinned,kind+' missing skin'
-        RESULT.append(dict(creature=kind,triangles=tris,bones=len(imported[0].data.bones),texture_size=1024,rest_bounds=rest_bounds,baked_ranges=baked_ranges,bake={'ao':'Cycles geometric AO shader','ao_distance_m':.065,'ao_samples':32,'uv_margin':.0005,'uv_margin_method':'FRACTION','bake_margin_px':2,'channels':'AO/roughness/metallic'},animation_bounds=bounds,imported_actions=names,glb_bytes=(OUT/(kind+'.glb')).stat().st_size))
+        RESULT.append(dict(creature=kind,triangles=tris,bones=len(imported[0].data.bones),texture_size=texture_size(kind,'base'),texture_sizes={channel:texture_size(kind,channel) for channel in ('base','normal','orm')},rest_bounds=rest_bounds,baked_ranges=baked_ranges,bake={'ao':'Cycles geometric AO shader','ao_distance_m':.065,'ao_samples':32,'uv_margin':.0005,'uv_margin_method':'FRACTION','bake_margin_px':2,'channels':'AO/roughness/metallic'},animation_bounds=bounds,imported_actions=names,glb_bytes=(OUT/(kind+'.glb')).stat().st_size))
         (OUT/(kind+'-validation.json')).write_text(json.dumps(RESULT[-1],indent=2)+'\n')
         previous=json.loads((OUT/'validation.json').read_text()) if (OUT/'validation.json').exists() else []
         merged={r['creature']:r for r in previous};merged.update({r['creature']:r for r in RESULT})

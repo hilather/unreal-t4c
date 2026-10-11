@@ -105,3 +105,220 @@ After locally generating the five playable maps and running `build/build-art.sh`
 ```
 
 Observed exit 0: 38 successful tests (Rules 14, Visual 14, World.Dressing 10), zero failed/not-run/in-process; one success with a GameplayCueNotifyPaths fallback warning in `Lighthaven.Visual.Monsters.CatalogDeterminism`. Map generation and art import returned 1 from baseline pointer-package AssetRegistry errors; the generated playable maps and 4,454,854-byte art receipt existed, and scoped tests exercised them successfully. Map pointers were restored and generated art moved under ignored `Saved/` before submission. No package, rendered review, Windows build, or gameplay gate is claimed by this compile fix.
+
+## W5-10 creature import and presentation candidate (blocked validation)
+
+Base: `0fb6dc50c59ff2d4cf2c218796480e1044290227`. This section describes a
+source/tooling candidate, **not an observed successful creature import**.
+
+`build/build-art.sh` now builds and validates both creature batches after B1,
+then invokes an embedded Unreal Python importer. Destinations are
+`/Game/Lighthaven/Art/Creatures/<kind>/SK_<kind>` and
+`A_idle/move/attack/hit/death`. The importer checks skeleton compatibility and
+rest bounds against each source validation JSON within 0.5 cm. It fails if
+Interchange does not produce exactly one combined skeletal mesh. A small
+skeletal master and per-creature instances bind explicit sRGB base, normal
+(with green flipped), and linear ORM textures. Generated package inventories
+report bytes per creature and reject totals over **25,000,000 bytes**.
+
+B1 and creature receipts now live under their respective `Content/` art roots.
+The coordinator must commit these JSON receipts alongside the LFS packages.
+An unchanged signature plus every output package SHA-256 skips all import/save
+operations. Changed inputs against read-only lockable packages stop unless the
+asset owner explicitly sets `LH_ART_REIMPORT=1`; that opt-in grants owner write
+permission on existing packages. A legacy checkout without a committed receipt
+requires one authorized rebuild. Receipts are written only after a successful
+import. Byte stability across repeated Blender exports and Interchange
+reimports has **not been measured**; the skip path preserves bytes when the
+generated GLB/signature and inventory match. No receipt or binary is in this
+worker candidate.
+
+**Axis checkpoint:** the environment's vertex-only reflection cannot be copied
+to skeletal GLBs: joint transforms, inverse bind matrices and animation tracks
+must receive the same basis change. This candidate uses native glTF skeletal
+conversion and rejects a bounds mismatch. Native conversion correctness,
+animation handedness, winding and multi-part weapon combining remain untested.
+If this checkpoint fails, extend the import-only conversion consistently for
+the whole rig (or export FBX from a disposable Blender scene); do not change
+the visual lane's authored exports or relax the bounds tolerance.
+
+`ULHMonsterVisual` optionally loads eleven meshes and five clips per mesh as
+hard CDO references, retaining their transitive skeleton/material/texture cook
+dependencies when packages exist before cook. An absent mesh, absent clip or
+incompatible skeleton retains the procedural recipe. `Build(...,false)`
+explicitly exercises that branch in the collision/fallback test. Imported
+components have no collision, overlaps or navigation influence. Animation
+position is manually sampled: source attack contact frame 30 maps to the
+authority's impact delay. Animations never invoke damage or root motion.
+Authored dimensions are retained; capsule sizes and gameplay code are unchanged.
+
+**Weapon limitation:** the candidate retains the source's skinned weapon parts
+and named bones in a combined mesh. It does not yet create separately removable
+weapon components attached to sockets. This is a remaining W5-10 requirement,
+not a claim of completed weapon attachment.
+
+Development builds expose `lh.CreatureLineup [index 0..10] [close]`; Shipping
+excludes the command implementation. It creates generic presentation actors at
+the current player's room, cycles visual attacks, and selects a review camera.
+There is no enemy runtime specification, AI or reward authority on these
+actors. Use it in a lit B1 room. `build/capture-creature-lineup.sh <Development
+binary>` requests gameplay and closer images for all eleven IDs under ignored
+`Saved/CreatureCapture/`. The camera is a review approximation (55-degree
+overview / 40-degree close), not a measured match to the gameplay spring arm.
+Room clearance, packaged command startup timing and visible captures remain
+unvalidated.
+
+Checks actually run in this attempt:
+- Shell syntax for both scripts, embedded Python AST parsing and
+  `git diff --check`: passed.
+- B1 Blender export and validator: 12 meshes / 9 textures, **4,841,071 bytes**
+  including manifest. The following Unreal process exited 1 because the game
+  module `Lighthaven` could not be found; creature build/import was not reached.
+- First editor build failed before compilation: UBA attempted to create
+  `/home/brewerm/.herdr-farm-homes/codex-sol/.epic` on a read-only filesystem.
+  The documented project-local configuration and UBA root avoided that initial
+  error, but the retry remained at the UBA action queue and was interrupted.
+  No compiler success or runnable test module is claimed.
+
+The new catalog test covers all eleven distinct mappings; the imported-assets
+test requires real packages and checks source rest rulers and compatible clips.
+Exact import bounds checks are in the importer. Full-suite counts, generated
+maps, arrival review 9/9, cook, package and host display captures require a
+successful build/import and remain unverified. Existing map and arrival bytes
+were not edited. Windows validation remains deferred by the Linux-first
+decision. See the attempt report for final command exits and evidence.
+
+## W5-10b — compiled creature binding; import budget remains blocked
+
+Task ID: W5-10b.
+Base revision / result revision: `2ddebf7e823ae8d26b4a2ebd1aeaa8ea3b5927d0` / submission candidate (see attempt receipt).
+Contract revision: 1.
+Owned paths / binary assets: `build/build-art.sh`, `build/capture-creature-lineup.sh`, `Source/Lighthaven/Visual/Monsters/`, `Source/LighthavenTests/Visual/Monsters/`, and this document. Generated maps and art are local validation inputs only; no binaries are submitted.
+
+Behavior changed: the import-only glTF conversion reflects the entire rig, including node translations/quaternions/matrices, inverse bind matrices, animation translations/quaternions, vertices, normals, tangents and triangle winding. Authored exports remain untouched. Native conversion originally reflected the asymmetric slime's Y bounds: actual approximately [-44.669, 41.075] versus authored [-41.075, 44.669] cm. The fixed importer checks every body's signed rest bounds within the original 0.5 cm tolerance. The independent conversion check reflected every one of the eleven GLBs twice and recovered its original JSON transforms and binary data.
+
+Goblin, goblin warrior and Balork now import a body skeletal mesh and a separate `SM_Weapon`. The importer verifies rigid 100% weighting to `Weapon_R` or Balork's `Weapon_Main`, applies that bone's inverse bind matrix to produce bone-local geometry, and creates `WeaponSocket` on the body. The native component attaches an independently removable, non-colliding static mesh to that socket. An editor-only implementation of `ConfigureWeaponSocket` is necessary because UE 5.8 marks socket names read-only in Python; its game implementation returns false. Body and weapon participate in the inspection/cleanup collection, so collision tests no longer inspect an empty collection when imported art is active. Missing required weapons/sockets retain the procedural fallback.
+
+The imported-assets test now reconstructs the weapon's reference-pose vertices through its socket bone and checks the complete body-plus-weapon signed rest bounds against the authored validation JSON. Collision tests remove and rebuild each weapon and exercise the explicit procedural branch. No gameplay, capsule, AI, reward or save implementation changed.
+
+A reload regression exposed that direct Python assignment to UE 5.8's transient skeletal Materials field did not persist its material references. Force-saving alone did not fix it. `ConfigureCreatureMaterial` calls native `SetMaterials`, which updates the persistent `SkeletalMaterialsInfo` cache. A separate reload commandlet then checked the correct MI on all eleven bodies (exit 0); the imported-assets test now asserts this binding. Both latest targets rebuilt with the helper: editor `Result: Succeeded`, exit 0, 64.74 s; game `Result: Succeeded`, exit 0, 81.47 s. The preceding material-regression test build also succeeded in 59.69 s.
+
+Source-backed mechanics: none changed.
+Provisional tuning introduced: no gameplay tuning. Numerical tolerances and rest rulers are presentation evidence from authored creature exports; the 0.5 cm ruler remains unchanged. Rigid weighting uses a 1e-6 numerical tolerance.
+
+Build/editor checks actually run: both pinned UE 5.8.3 native targets build. The ignored XML was installed in both `Saved/UnrealBuildTool/BuildConfiguration.xml` and `$XDG_CONFIG_HOME/Unreal Engine/UnrealBuildTool/BuildConfiguration.xml`, using the prescribed contents. Commands from the checkout root:
+
+```sh
+export UE_ROOT=/home/brewerm/Downloads/unreal
+export XDG_CONFIG_HOME="$PWD/Saved/BuildEnvironment/config"
+export UBA_ROOT="$PWD/Saved/UBA" HOME="$PWD/Saved/home"
+mkdir -p "$HOME"
+bash "$UE_ROOT/Engine/Build/BatchFiles/Linux/Build.sh" LighthavenEditor Linux Development "-Project=$PWD/Lighthaven.uproject" -WaitMutex -DisableAdaptiveUnity -UBASharedMemoryTempFile=true -NoUBA
+bash "$UE_ROOT/Engine/Build/BatchFiles/Linux/Build.sh" Lighthaven Linux Development "-Project=$PWD/Lighthaven.uproject" -WaitMutex -DisableAdaptiveUnity -UBASharedMemoryTempFile=true -NoUBA
+```
+
+Initial editor: `Result: Succeeded`, exit 0, 198.29 s. Initial game: `Result: Succeeded`, exit 0, 245.19 s. Final editor after the socket helper/tests: `Result: Succeeded`, exit 0, 118.64 s. The game compiled the final binding in the preceding serialized build (`Result: Succeeded`, 164.62 s); final confirmation was up to date, `Result: Succeeded`, exit 0, 73.26 s including mutex wait. UE still logs its UBA executor, with compiler actions marked [NoUba]; no ten-minute build stall occurred. Deprecated configuration and action-result-store warnings were nonfatal.
+
+All eight maps were generated locally. Generator invocations returned 1 because AssetRegistry scanned baseline LFS-pointer packages; real output maps were produced and exercised by the completed suite. B1 export validation: twelve meshes/nine textures, 4,841,071 source bytes. B1 imported packages remain 4,454,854 bytes.
+
+`BLENDER_ROOT=/home/brewerm/Downloads/blender-5.2.2-linux-x64 bash build/build-art.sh` completed both creature export/validation batches and returned 255 at the unchanged 25,000,000-byte import gate. `LH_ART_SKIP_EXPORT=1` is an optional retry mode that still runs the independent validators and imports existing exports. A fresh validated-input import generated all eleven bodies, 55 compatible clips and three socket weapons, but its 136 packages total **55,231,963 bytes**, so the task's import budget does not pass. No approved creature receipt was written.
+
+| Creature / shared package | Imported bytes |
+|---|---:|
+| rat | 5,729,211 |
+| bat | 5,353,681 |
+| slime | 1,904,711 |
+| goblin | 4,317,973 |
+| giant_spider | 6,310,820 |
+| balork | 6,141,242 |
+| goblin_warrior | 4,466,932 |
+| atrocity | 5,081,484 |
+| dungeon_bat | 5,430,430 |
+| giant_bat | 5,221,497 |
+| undead_bat | 5,266,919 |
+| shared M_Creature | 7,063 |
+| **Total** | **55,231,963** |
+
+Interchange duplicate materials/textures are removed after rebinding. An isolated metadata experiment reduced the total only to 54,235,813 bytes (meshes 23,751,532; textures 22,245,736; animations 7,825,838; other 412,707); that experiment was discarded and is not part of the importer. No source geometry, textures or animation authoring was altered to conceal the budget failure. Interchange replacement of an interrupted partial creature directory also failed with invalid skeleton references; fresh import used an empty local directory. Forced reimport into existing assets remains unvalidated; the hash-checked skip is the byte-preserving path. Further authoring/storage optimization remains necessary.
+
+Receipt signatures now include the external base/normal/ORM PNGs and bounds JSON, as well as GLBs, importer source and engine version. A signature check confirmed stable identical inputs and invalidation on each of these five per-creature input types. Completed but oversized imports get a scratch inventory under `Saved/ArtExport/`, never an approved Content receipt. A normal Blender rerun preserved all 55 source inputs and all 136 generated package hashes; it logged `CREATURE_IMPORT_UNCHANGED_REJECTED` and returned 255 without importing or saving. After the material correction, an additional validated-input rerun preserved the final 55 input and 136 package hashes and scratch inventory, with the same rejected-skip result. This establishes byte preservation through the rejected-candidate skip, not engine-native forced-reimport determinism or successful budget acceptance.
+
+Scoped headless suite: 6 observed / 6 Success with warnings, zero failed/unfinished, exit 0. It exercised actual assets, exact signed rulers, socket placement, weapon removal/rebuild, collision/navigation isolation, fallback and presentation-invariant combat/settlement. First full suite: 211 observed / 209 Success with warnings / two Fail, zero unfinished, exit 255, reported duration 389.255 s. A concurrent editor cache write failed inside `DeathAndChurchRespawn`; the other failure was `SessionInventoryRollback`.
+
+Corrected full suite, with `-AssetRegistryCacheRootFolder=$PWD/Saved/W510bFullIsolatedCache`: **211 observed / 210 Success with warnings / one Fail**, zero not-run/in-process, exit 255, reported duration **379.838 s**. All six monster tests passed. The sole failure was `Lighthaven.Integration.G4.SessionInventoryRollback`, with the two assertions "exact live state rollback incl corpse and request journal" and "independent durable rollback". These match the earlier W5-07c report; this attempt does not establish a full-suite pass or independently prove when that defect originated. The implementation/test needing review is outside this task's ownership. The warnings include NullRHI/SDL Wayland queries.
+
+An intermediate full run with the new material regression failed only `CreatureImportedAssets` (211 observed, 210 Success with warnings, one Fail; duration 159.258 s); it caught the actual missing persisted materials. A subsequent final-content run was interrupted by sandbox denial of an editor request to www.google.com and emitted no index; it is not completed evidence. Final full suite after native material persistence, with the privacy/home-screen arguments restored and isolated cache: **211 observed / 210 Success with warnings / 1 Fail**, zero unfinished, exit 255; duration 171.593 s. All six monster tests, including the new persisted-material assertions, passed. The sole failure was `Lighthaven.Integration.G4.SessionInventoryRollback`, with the same two rollback assertions described above. The intermediate red run passed that test, so this evidence indicates variable failure rather than an established baseline-only defect. No full-suite pass is claimed.
+
+Arrival review: `env "UE-LocalDataCachePath=$PWD/Saved/DerivedDataCache" bash build/review-arrivals.sh`, exit 0, 9/9 PASS. `Config/Lighthaven/ReviewedArrivals.tsv` stayed byte-identical (SHA-256 e56cc528fcbdee98194c878edf84347d5a71f49eb6c23cf927e47634a724e5fc).
+
+Linux B1 cook command (with isolated cache/home and Local DDC):
+
+```sh
+"$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$PWD/Lighthaven.uproject" -run=Cook -TargetPlatform=Linux -Map=L_TempleB1 -SkipZenStore '-DDC=(Local)' "-LocalDataCachePath=$PWD/Saved/DerivedDataCache" "-AssetRegistryCacheRootFolder=$PWD/Saved/W510bCookPersistentCache" -unattended -nosound -nop4 -NoCrashDialog
+```
+
+Final cook exited 0: 665 cooked packages, zero remaining. Every one of the 136 editor creature package paths has a corresponding cooked `.uasset`; none missing. The 305 cooked creature files, including sidecars, total 36,268,168 bytes. The first cook exited 0 but included only 107/136 creature packages: 29 material/texture dependencies were absent because the body bindings had not persisted. A force-save retry reproduced that deficiency. The native-setter correction resolved it. Package inclusion does not establish a rendered or packaged-launch check.
+
+Checks not run and concrete missing prerequisite: lineup capture preflight returned 1, "Host display required"; neither DISPLAY nor WAYLAND_DISPLAY is set in this worker. No rendered screenshot, visual-quality review, frame timing or packaged executable launch is claimed. Capture startup timing and room clearance remain unvalidated. Windows build/package/launch is deferred by the Linux-first decision.
+
+Known defects or remaining decisions: the imported editor packages exceed the mandated 25 MB by 30,231,963 bytes. The full suite retains the inventory rollback failure. No budget exception, visual acceptance or gameplay gate is declared. Art-source authoring/storage changes and the rollback implementation are outside the owned paths.
+
+Results and evidence paths: canonical attempt `attempt-68e9fec778df3140d81065dea00fa5fc6d997ef1b38c0d5d36d261e0f2156b6f`, worker-output `report.md` and trimmed `library/` evidence. No binary assets or full automation indexes/logs are copied there.
+
+Cleanup: all 34 tracked B1 asset/map files were restored byte-for-byte from HEAD (26 B1 assets and eight maps); generated creature packages and B1 receipt are absent from Content. ReviewedArrivals.tsv remains byte-identical. The final diff contains only the five edited code/script paths and this owned document; shell syntax, both embedded Python ASTs and `git diff --check` passed. No `.umap`, `.uasset`, texture, arrival-registry or binary result is committed. Worker-output contains only small text/JSON evidence, below 40 MiB.
+
+Next task and integration notes: the coordinator/art owner needs a scoped budget-reduction follow-up before importing these packages under LFS; the integrator should review the rollback failure; the host visuals lane must capture and review the lineup. Compile/import/binding evidence is a candidate for review, not task-success or G5 acceptance.
+
+
+## W5-10c creature storage reduction candidate
+
+Base: `5f34ac80183b1da2a128639ad9bef8838619ae90`. Owned changes are the two art/capture shell scripts, creature export resolution parameters, monster presentation import helpers/tests, and this document. No creature binary is submitted.
+
+The local rebuilt baseline is 55,232,837 bytes across 136 packages; W5-10b reported 55,231,963 bytes. Deltas below use the measured local baseline, rather than assuming package byte equality across fresh imports.
+
+| Asset class | Baseline | 512 textures, Balork base 1024 | Omit cached LOD vertices | Balork base 512 | Final clean recipe |
+|---|---:|---:|---:|---:|---:|
+| Material | 7,063 | 7,063 | 7,063 | 7,063 | 7,063 |
+| AnimSequence | 7,825,838 | 7,825,838 | 7,825,838 | 7,825,838 | 7,825,838 |
+| MaterialInstanceConstant | 46,602 | 46,602 | 46,602 | 46,602 | 46,602 |
+| SkeletalMesh | 24,538,368 | 24,538,368 | 9,038,446 | 9,038,446 | 9,038,448 |
+| Texture2D | 22,246,610 | 7,963,961 | 7,963,961 | 7,382,217 | 7,379,156 |
+| PhysicsAsset | 186,036 | 186,036 | 186,036 | 186,036 | 186,036 |
+| Skeleton | 60,210 | 60,210 | 60,210 | 60,210 | 60,210 |
+| StaticMesh | 322,110 | 322,110 | 322,110 | 322,110 | 322,110 |
+| **Total bytes** | **55,232,837** | **40,950,188** | **25,450,266** | **24,868,522** | **24,865,463** |
+
+| Creature / shared package | Baseline | First texture reduction | Cached vertices omitted | Balork base 512 | Final clean recipe |
+|---|---:|---:|---:|---:|---:|
+| shared | 7,063 | 7,063 | 7,063 | 7,063 | 7,063 |
+| atrocity | 5,081,538 | 3,604,962 | 2,459,026 | 2,459,026 | 2,458,749 |
+| balork | 6,141,296 | 5,269,667 | 3,498,811 | 2,917,067 | 2,916,790 |
+| bat | 5,353,735 | 3,784,046 | 2,176,525 | 2,176,525 | 2,176,244 |
+| dungeon_bat | 5,430,484 | 3,870,550 | 2,273,909 | 2,273,909 | 2,273,634 |
+| giant_bat | 5,221,551 | 3,779,026 | 2,199,794 | 2,199,794 | 2,199,518 |
+| giant_spider | 6,310,874 | 4,625,994 | 2,775,170 | 2,775,170 | 2,774,891 |
+| goblin | 4,318,027 | 3,142,054 | 2,199,166 | 2,199,166 | 2,198,887 |
+| goblin_warrior | 4,466,986 | 3,353,517 | 2,302,509 | 2,302,509 | 2,302,230 |
+| rat | 5,729,545 | 4,158,930 | 2,224,466 | 2,224,466 | 2,224,186 |
+| slime | 1,904,765 | 1,510,904 | 1,089,984 | 1,089,984 | 1,089,704 |
+| undead_bat | 5,266,973 | 3,843,475 | 2,243,843 | 2,243,843 | 2,243,567 |
+
+Reduction 1 saves 14,282,649 bytes, changing only the 33 texture packages. `artsource/creatures/build.py` first changed ordinary base/normal/ORM and Balork normal/ORM from 1024 to 512 pixels; reduction 3 also changes Balork base from 1024 to 512, saving another 581,744 bytes. Final exports use 512 for all 33 atlases. Pixel buffer allocation and resolution metadata follow the selected size. Shapes, pigments, UV authoring, bake shader settings and animation authoring are unchanged. The importer explicitly requests no-alpha compression, character texture groups and group-generated mipmaps; opaque base/ORM use TC_Default/TC_Masks, normals TC_Normalmap with the existing green-channel flip. UE 5.8.3 `FTextureSource::Compress` applies its UE-delta/Kraken source-storage path on texture save; source pixels are retained for rebuilds, rather than discarded.
+
+Reduction 2 saves 15,499,922 bytes from the eleven skeletal meshes. The import audit finds one LOD, one UV channel, zero morph targets, vertex colors, and 3,095–14,224 cached skin vertices per body. These seam-split vertices exceed the triangle-based intuition for package size. The native `CompactCreatureStorage` hook omits `FSkelMeshSection::SoftVertices` from the last body save, while preserving vertex counts, indices, section/bone maps, vertex colors and the full source MeshDescription. UE's section API explicitly permits empty cached arrays; `FSkeletalMeshRenderData::Cache` restores sections from the skeletal DDC or calls `BuildLODModel` from retained source on a miss. Deleting source MeshDescriptions was rejected because UE's skeletal builder requires them. Precision settings, geometry, LODs, physics assets and sockets remain intact. Compaction runs after material cleanup and directory saving so those operations cannot reintroduce the duplicate arrays into the final package.
+
+No bat skeletons or sequences are shared: all eleven distinct meshes, materials and skeletons, 55 compatible clips and three removable weapons remain. No animation key reduction or compression tolerance is introduced; engine import compression remains unchanged, preserving contact and impact sampling. All 55 animation packages, skeletons, physics assets, weapons and material packages were byte-identical through the staged reductions. Fresh imports regenerate package identities and are not claimed byte-identical. An accessor/node comparison of the original and final GLBs finds identical mesh, rig and animation streams for all eleven creatures; embedded texture data is excluded from that comparison.
+
+`capture-creature-lineup.sh` now uses `lh_capture_common.launch` and `retry_view`: up to three bounded attempts per view, stale-image isolation, per-attempt JSONL records and diagnostics for a child surviving SIGKILL. It attempts subsequent views after an exhausted view and exits nonzero if any view fails. The shared helper self-test passes through this script. No real rendered lineup is claimed.
+
+Validation observed so far: staged scoped suites are 6 observed / 5 Success / 1 Fail at baseline, first texture reduction and cached-vertex reduction; the sole failure each time is `CreatureImportedAssets`' explicit package budget assertion. After Balork base reaches 512: 6/6 Success, zero failed/unfinished, exit 0. The cached-vertex suite used a fresh filesystem DDC and logged all eleven skeletal meshes rebuilding from retained source, so it exercises a real cold-cache rebuild. Final clean-content full suite: **215 observed / 215 Success with warnings / zero Fail / zero unfinished**, exit 0, test duration 172.016 s; every monster test and `SessionInventoryRollback` passed. The former variable rollback failure was not reproduced here and is not claimed fixed.
+
+All eight maps were generated locally; final hub and both basement generators exited 0 against the real imported assets. The full suite writes 9/9 PASS arrival rows, and `Config/Lighthaven/ReviewedArrivals.tsv` remains byte-identical (SHA-256 `e56cc528fcbdee98194c878edf84347d5a71f49eb6c23cf927e47634a724e5fc`). Final native target confirmations using the W5-10b XML (including both UBA false aliases), non-adaptive unity and checkout-local HOME/XDG/UBA_ROOT: editor exit 0 / `Result: Succeeded` / 6.70 s; game exit 0 / `Result: Succeeded` / 14.06 s. The preceding final-code builds also succeeded (editor 68.98 s; game 61.14 s). Blender 5.2.2 exports and both independent GLB validators completed in the full `build/build-art.sh` run, which exited 0 and wrote the 24,865,463-byte creature receipt.
+
+One early scoped editor launch was interrupted by the sandbox's blocked request to `www.google.com`, with no completed report. The retry with HomeScreen disabled completed; subsequent checks use the existing privacy/home-screen command arguments. The first environment import encountered baseline LFS pointer packages during replacement; a fresh local environment import succeeded, and final map regeneration returned 0. An initial texture reduction used the wrong Python texture-group enum spelling; it was corrected to `TEXTUREGROUP_CHARACTER_NORMAL_MAP` before the measured successful reduction. These partial/interrupted runs are not counted as completed passing checks.
+
+Linux B1 cook exited 0 using `-run=Cook -TargetPlatform=Linux -Map=L_TempleB1 -SkipZenStore`, Local filesystem DDC, isolated asset-registry cache and the privacy/home-screen arguments. It cooked 665 packages with none remaining, zero errors and one netlink-socket warning; commandlet duration 1,400.56 s (23m20s), dominated by cold Vulkan shader compilation. Every one of the **136 creature editor package paths** has its cooked `.uasset`; none missing. The 305 creature files including sidecars total **13,200,618 bytes**. All 136 editor package hashes remain unchanged after map generation, full-suite execution and cook, still **24,865,463 bytes**. This is cook inclusion, not a packaged executable launch.
+
+Submission preparation restores all eight `.umap` pointers and the 26 original B1 environment package pointers, removes generated Content receipts/packages from the submitted tree, and leaves ReviewedArrivals.tsv byte-identical. Only the seven owned source/tool/document files are submitted. Supporting evidence is trimmed under the canonical attempt output `library/` (no full logs/indexes/binaries). `bash -n` for both scripts, embedded importer Python syntax and `git diff --check` pass.
+
+Assumptions/remaining uncertainty: 512 atlases are taken as adequate at the brief's gameplay distance; no rendered visual acceptance is claimed because this worker has no DISPLAY/WAYLAND_DISPLAY. Windows packaging/launch is deferred under Linux-first evidence, and no packaged Development launch is performed. The final editor package margin is only 134,537 bytes. An editor save after a mesh edit/rebuild can persist the restored cache again; rerun native compaction at the final save and remeasure generated packages. Forced reimport into existing skeleton packages remains unvalidated; this evidence uses fresh creature packages and preserves the prior receipt skip. No gate status, integration, push or capacity release is declared. Next: coordinator independently reviews this candidate and the binary-generating recipe; a renderer-enabled visual worker checks gameplay-distance texture quality.

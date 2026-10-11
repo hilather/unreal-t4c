@@ -4,9 +4,11 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/lh-env.sh"
 : "${BLENDER_ROOT:?Set BLENDER_ROOT to the pinned Blender 5.2.2 directory}"
 cd "$LH_PROJECT_ROOT"
 mkdir -p Saved/ArtExport artsource/blender/.config
+if [[ ${LH_ART_SKIP_EXPORT:-0} != 1 ]]; then
 XDG_CONFIG_HOME="$PWD/artsource/blender/.config" "$BLENDER_ROOT/blender" \
   --background --factory-startup --python-exit-code 1 --python artsource/blender/build_env.py \
   -- --output Saved/ArtExport/env --skip-renders
+fi
 python3 artsource/blender/validate_env.py Saved/ArtExport/env
 # Use the engine's existing PythonScript commandlet and AssetTools/Interchange.
 # No project/plugin configuration is modified. Keep scratch scripts in Saved/.
@@ -15,6 +17,7 @@ import hashlib
 import json
 import struct
 import shutil
+import os
 from pathlib import Path
 import unreal as u
 
@@ -31,7 +34,7 @@ def main():
     # Include tool source and engine version so edits cannot silently reuse stale assets.
     signature = hashlib.sha256((Path(__file__).read_bytes() +
         (source / 'manifest.json').read_bytes() + u.SystemLibrary.get_engine_version().encode())).hexdigest()
-    stamp = root / 'Saved/ArtExport/b1-import-receipt.json'
+    stamp = root / 'Content/Lighthaven/Art/Env/B1/import-receipt.json'
     content = root / 'Content/Lighthaven/Art/Env/B1'
     def inventory():
         return {str(p.relative_to(content)): {'bytes': p.stat().st_size,
@@ -43,6 +46,13 @@ def main():
             u.log('B1_IMPORT_UNCHANGED: package bytes preserved')
             return
     
+    # LFS lockable packages are read-only on a fresh clone. Never silently chmod.
+    locked = [p for p in content.rglob('*.uasset') if not p.stat().st_mode & 0o200]
+    if locked and os.environ.get('LH_ART_REIMPORT') != '1':
+        raise RuntimeError('Changed B1 inputs require LH_ART_REIMPORT=1 (explicit owner write permission)')
+    for p in locked:
+        p.chmod(p.stat().st_mode | 0o200)
+
     def import_one(filename, name, folder=dest):
         task = u.AssetImportTask()
         task.set_editor_property('filename', str(filename))
@@ -242,5 +252,338 @@ main()
 PY
 "$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$LH_PROJECT" \
   -run=pythonscript "-Script=$PWD/Saved/ArtExport/import_b1.py" -EnablePlugins=PythonScriptPlugin \
-  -nullrhi -unattended -nosound -nop4 '-DDC=(Local)' "-LocalDataCachePath=$PWD/Saved/DerivedDataCache" \
+  -stdout -FullStdOutLogOutput -nullrhi -unattended -nosound -nop4 '-DDC=(Local)' "-LocalDataCachePath=$PWD/Saved/DerivedDataCache" \
+  '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0'
+
+# Creature source remains owned by the visual lane; only ignored outputs are written.
+mkdir -p Saved/CreatureBlenderConfig
+for batch in pilot batch2; do
+  args=()
+  if [[ $batch == batch2 ]]; then args+=(--batch2); fi
+  if [[ ${LH_ART_SKIP_EXPORT:-0} != 1 ]]; then
+  XDG_CONFIG_HOME="$PWD/Saved/CreatureBlenderConfig" "$BLENDER_ROOT/blender" \
+    --background --factory-startup --threads 3 --python-exit-code 1 \
+    --python artsource/creatures/build.py -- --no-render "${args[@]}"
+  fi
+  python3 artsource/creatures/validate_glb.py "${args[@]}" > "Saved/ArtExport/creatures-$batch-validation.json"
+done
+cat > Saved/ArtExport/import_creatures.py <<'PY'
+import hashlib, json, os, struct
+from pathlib import Path
+import unreal as u
+
+root=Path(u.Paths.project_dir()).resolve()
+source=root/'artsource/creatures/output'
+content=root/'Content/Lighthaven/Art/Creatures'
+dest='/Game/Lighthaven/Art/Creatures'
+kinds=('rat','bat','slime','goblin','giant_spider','balork','goblin_warrior','atrocity','dungeon_bat','giant_bat','undead_bat')
+tools=u.AssetToolsHelpers.get_asset_tools()
+assets=u.EditorAssetLibrary
+signature=hashlib.sha256(Path(__file__).read_bytes()+u.SystemLibrary.get_engine_version().encode())
+# Hash every input consumed below, including external textures and the bounds
+# evidence. A texture-only edit must not reuse a receipt for older materials.
+for kind in kinds:
+    for suffix in ('.glb', '_base.png', '_normal.png', '_orm.png', '-validation.json'):
+        path=source/(kind+suffix)
+        signature.update(path.name.encode())
+        signature.update(path.read_bytes())
+signature=signature.hexdigest()
+stamp=content/'import-receipt.json'
+def inventory():
+    return {str(p.relative_to(content)):dict(bytes=p.stat().st_size,sha256=hashlib.sha256(p.read_bytes()).hexdigest())
+            for p in sorted(content.rglob('*.uasset'))}
+if stamp.exists():
+    old=json.loads(stamp.read_text())
+    if old['signature']==signature and old['assets']==inventory():
+        u.log('CREATURE_IMPORT_UNCHANGED: package bytes preserved')
+        raise SystemExit(0)
+# A fully imported but over-budget candidate stays local, with a scratch inventory.
+# Same-input rejection must preserve its bytes as well; it is never an approved receipt.
+candidate=root/'Saved/ArtExport/creature-import-candidate.json'
+if candidate.exists():
+    old=json.loads(candidate.read_text())
+    current=inventory()
+    if old['signature']==signature and old['assets']==current:
+        total=sum(v['bytes'] for v in current.values())
+        if total>25_000_000:
+            u.log('CREATURE_IMPORT_UNCHANGED_REJECTED: package bytes preserved')
+            raise RuntimeError('Creature asset budget exceeded: '+str(total))
+locked=[p for p in content.rglob('*.uasset') if not p.stat().st_mode & 0o200]
+if locked and os.environ.get('LH_ART_REIMPORT')!='1':
+    raise RuntimeError('Changed creature inputs require LH_ART_REIMPORT=1')
+for p in locked:
+    p.chmod(p.stat().st_mode | 0o200)
+def canonical_creature(kind):
+    """Reflect the complete glTF rig into the project's authored Unreal basis."""
+    raw=(source/(kind+'.glb')).read_bytes()
+    json_size=struct.unpack_from('<I',raw,12)[0]
+    doc=json.loads(raw[20:20+json_size])
+    offset=20+json_size
+    bin_size,tag=struct.unpack_from('<II',raw,offset)
+    assert tag==0x004e4942
+    data=bytearray(raw[offset+8:offset+8+bin_size])
+    seen={}
+    def reflect(index,components,width):
+        if index in seen:
+            assert seen[index]==(components,width), 'Accessor used with incompatible basis transforms'
+            return
+        seen[index]=(components,width)
+        acc=doc['accessors'][index]; view=doc['bufferViews'][acc['bufferView']]
+        assert acc['componentType']==5126 and 'sparse' not in acc
+        start=view.get('byteOffset',0)+acc.get('byteOffset',0)
+        stride=view.get('byteStride',width*4)
+        for i in range(acc['count']):
+            for c in components:
+                pos=start+i*stride+c*4
+                struct.pack_into('<f',data,pos,-struct.unpack_from('<f',data,pos)[0])
+        if 'min' in acc:
+            for c in components:
+                low,high=acc['min'][c],acc['max'][c]
+                acc['min'][c],acc['max'][c]=-high,-low
+    # Column-major matrices transform as S M S, S=diag(1,1,-1,1).
+    matrix_components=tuple(c*4+r for c in range(4) for r in range(4) if (r==2)!=(c==2))
+    for node in doc['nodes']:
+        if 'translation' in node: node['translation'][2]*=-1
+        if 'rotation' in node:
+            node['rotation'][0]*=-1; node['rotation'][1]*=-1
+        if 'matrix' in node:
+            for c in matrix_components: node['matrix'][c]*=-1
+    for skin in doc['skins']:
+        if 'inverseBindMatrices' in skin:
+            reflect(skin['inverseBindMatrices'],matrix_components,16)
+    for animation in doc['animations']:
+        for channel in animation['channels']:
+            path=channel['target']['path']
+            sampler=animation['samplers'][channel['sampler']]
+            assert sampler.get('interpolation','LINEAR') in ('LINEAR','STEP')
+            if path=='translation': reflect(sampler['output'],(2,),3)
+            elif path=='rotation': reflect(sampler['output'],(0,1),4)
+            else: assert path=='scale', 'Unsupported morph animation'
+    reversed_indices=set()
+    for mesh in doc['meshes']:
+        for primitive in mesh['primitives']:
+            assert not primitive.get('targets') and primitive.get('mode',4)==4
+            for semantic,components,width in (('POSITION',(2,),3),('NORMAL',(2,),3),('TANGENT',(2,3),4)):
+                if semantic in primitive['attributes']:
+                    reflect(primitive['attributes'][semantic],components,width)
+            index=primitive['indices']
+            if index in reversed_indices: continue
+            reversed_indices.add(index)
+            acc=doc['accessors'][index]; view=doc['bufferViews'][acc['bufferView']]
+            fmt={5121:'B',5123:'H',5125:'I'}[acc['componentType']]
+            size=struct.calcsize(fmt); start=view.get('byteOffset',0)+acc.get('byteOffset',0)
+            assert acc['count']%3==0 and 'byteStride' not in view
+            for i in range(0,acc['count'],3):
+                pos=start+i*size
+                a,b,c=struct.unpack_from('<'+fmt*3,data,pos)
+                struct.pack_into('<'+fmt*3,data,pos,a,c,b)
+    encoded=json.dumps(doc,separators=(',',':')).encode()
+    encoded+=b' '*((-len(encoded))%4)
+    payload=struct.pack('<II',len(encoded),0x4e4f534a)+encoded+struct.pack('<II',len(data),tag)+data
+    normalized=root/'Saved/ArtExport/unreal-creatures'
+    normalized.mkdir(parents=True,exist_ok=True)
+    path=normalized/(kind+'.glb')
+    path.write_bytes(struct.pack('<III',0x46546c67,2,12+len(payload))+payload)
+    return path
+
+def split_weapon(path,kind):
+    """Bake rigid equipment into its named bone's local space, without changing source."""
+    if kind not in ('goblin','goblin_warrior','balork'):
+        return path,None,None,None
+    raw=path.read_bytes(); size=struct.unpack_from('<I',raw,12)[0]
+    doc=json.loads(raw[20:20+size]); offset=20+size
+    length,tag=struct.unpack_from('<II',raw,offset)
+    data=bytearray(raw[offset+8:offset+8+length])
+    def values(index):
+        acc=doc['accessors'][index]; view=doc['bufferViews'][acc['bufferView']]
+        width={'VEC3':3,'VEC4':4,'MAT4':16}[acc['type']]
+        fmt,unit={5126:('f',4),5123:('H',2),5121:('B',1)}[acc['componentType']]
+        start=view.get('byteOffset',0)+acc.get('byteOffset',0); stride=view.get('byteStride',width*unit)
+        return acc,start,stride,fmt,width,[struct.unpack_from('<'+fmt*width,data,start+i*stride) for i in range(acc['count'])]
+    def write(filename,d,b):
+        encoded=json.dumps(d,separators=(',',':')).encode(); encoded+=b' '*((-len(encoded))%4)
+        payload=struct.pack('<II',len(encoded),0x4e4f534a)+encoded+struct.pack('<II',len(b),tag)+b
+        filename.write_bytes(struct.pack('<III',0x46546c67,2,12+len(payload))+payload)
+    weapon_node=next(n for n in doc['nodes'] if n.get('name')==kind+'_weapon')
+    body_node=next(n for n in doc['nodes'] if n.get('name')==kind+'_body')
+    assert set(weapon_node)=={'name','mesh','skin'}, 'Unexpected weapon mesh transform'
+    bone='Weapon_Main' if kind=='balork' else 'Weapon_R'
+    bone_index=next(i for i,n in enumerate(doc['nodes']) if n.get('name')==bone)
+    skin=doc['skins'][weapon_node['skin']]
+    joint=skin['joints'].index(bone_index)
+    matrix=values(skin['inverseBindMatrices'])[-1][joint]
+    points=[]
+    for primitive in doc['meshes'][body_node['mesh']]['primitives']:
+        points.extend((p[0]*100,p[2]*100,p[1]*100) for p in values(primitive['attributes']['POSITION'])[-1])
+    spec=dict(min_cm=[min(p[c] for p in points) for c in range(3)],max_cm=[max(p[c] for p in points) for c in range(3)])
+    weapon_mesh=doc['meshes'][weapon_node.pop('mesh')]
+    weapon_node.pop('skin')
+    doc['meshes']=[doc['meshes'][body_node['mesh']]]; body_node['mesh']=0
+    body=path.with_name(kind+'-body.glb'); write(body,doc,data)
+    for primitive in weapon_mesh['primitives']:
+        attrs=primitive['attributes']
+        joints=values(attrs.pop('JOINTS_0'))[-1]
+        weights=values(attrs.pop('WEIGHTS_0'))[-1]
+        assert all(all(w<1.e-6 or (j==joint and abs(w-1)<1.e-6) for j,w in zip(js,ws)) for js,ws in zip(joints,weights)), 'Equipment is not rigid to its named bone'
+        for semantic in ('POSITION','NORMAL','TANGENT'):
+            if semantic not in attrs: continue
+            acc,start,stride,fmt,width,rows=values(attrs[semantic])
+            transformed=[]
+            for i,row in enumerate(rows):
+                xyz=[sum(matrix[c*4+r]*row[c] for c in range(3))+(matrix[12+r] if semantic=='POSITION' else 0) for r in range(3)]
+                if semantic!='POSITION':
+                    norm=sum(x*x for x in xyz)**.5; xyz=[x/norm for x in xyz]
+                result=xyz+list(row[3:]); transformed.append(result)
+                struct.pack_into('<'+fmt*width,data,start+i*stride,*result)
+            if 'min' in acc:
+                acc['min']=[min(p[c] for p in transformed) for c in range(width)]
+                acc['max']=[max(p[c] for p in transformed) for c in range(width)]
+    doc['meshes']=[weapon_mesh]; doc['nodes']=[dict(name='SM_Weapon',mesh=0)]
+    doc['scenes']=[dict(nodes=[0])]; doc['scene']=0
+    doc.pop('skins'); doc.pop('animations')
+    weapon=path.with_name(kind+'-weapon.glb'); write(weapon,doc,data)
+    return body,weapon,bone,spec
+
+for kind in kinds:
+    folder=dest+'/'+kind
+    body_file,weapon_file,weapon_bone,body_bounds=split_weapon(canonical_creature(kind),kind)
+    task=u.AssetImportTask()
+    for key,value in dict(filename=str(body_file),destination_path=folder,
+                          destination_name='SK_'+kind,automated=True,replace_existing=True,save=False).items():
+        task.set_editor_property(key,value)
+    tools.import_asset_tasks([task])
+    objects=task.get_objects()
+    meshes=[o for o in objects if isinstance(o,u.SkeletalMesh)]
+    # Bounds below verify the full-rig conversion, including asymmetric meshes.
+    if len(meshes)!=1:
+        raise RuntimeError(kind+': expected one combined skeletal mesh; got '+str(len(meshes)))
+    mesh=meshes[0]
+    wanted=folder+'/SK_'+kind
+    if mesh.get_path_name().split('.')[0]!=wanted and not assets.rename_asset(mesh.get_path_name(),wanted):
+        raise RuntimeError('Cannot normalize skeletal name '+kind)
+    spec=body_bounds or json.loads((source/(kind+'-validation.json')).read_text())['rest_bounds']
+    box=mesh.get_bounds()
+    low=box.origin-box.box_extent
+    high=box.origin+box.box_extent
+    u.log('CREATURE_IMPORT_BOUNDS '+kind+' '+json.dumps(dict(
+        actual_min_cm=[low.x,low.y,low.z], actual_max_cm=[high.x,high.y,high.z],
+        expected_min_cm=spec['min_cm'], expected_max_cm=spec['max_cm'])))
+    for actual,expected in ((low,spec['min_cm']),(high,spec['max_cm'])):
+        if max(abs(a-b) for a,b in zip((actual.x,actual.y,actual.z),expected))>.5:
+            raise RuntimeError(kind+': native glTF axis/unit/bounds mismatch: '+str(box))
+    clips=[o for o in objects if isinstance(o,u.AnimSequence)]
+    for action in ('idle','move','attack','hit','death'):
+        matches=[a for a in clips if action in a.get_name().lower()]
+        if len(matches)!=1 or matches[0].get_editor_property('skeleton')!=mesh.get_editor_property('skeleton'):
+            raise RuntimeError(kind+': missing/ambiguous compatible action '+action)
+        wanted=folder+'/A_'+action
+        if matches[0].get_path_name().split('.')[0]!=wanted and not assets.rename_asset(matches[0].get_path_name(),wanted):
+            raise RuntimeError('Cannot normalize animation '+action)
+    for path in assets.list_assets(folder,recursive=True,include_folder=False):
+        obj=assets.load_asset(path)
+        if isinstance(obj,u.Texture2D):
+            name=obj.get_name().lower()
+            normal='normal' in name
+            orm='orm' in name or 'occlusion' in name or 'metallic' in name
+            obj.set_editor_property('srgb',not(normal or orm))
+            obj.set_editor_property('compression_settings',u.TextureCompressionSettings.TC_NORMALMAP if normal else u.TextureCompressionSettings.TC_MASKS if orm else u.TextureCompressionSettings.TC_DEFAULT)
+            if normal: obj.set_editor_property('flip_green_channel',True)
+    editor=u.MaterialEditingLibrary
+    textures={}
+    for channel in ('base','normal','orm'):
+        texture_task=u.AssetImportTask()
+        for key,value in dict(filename=str(source/(kind+'_'+channel+'.png')),destination_path=folder,
+                              destination_name='T_'+channel,automated=True,replace_existing=True,save=False).items():
+            texture_task.set_editor_property(key,value)
+        tools.import_asset_tasks([texture_task])
+        tex=next(o for o in texture_task.get_objects() if isinstance(o,u.Texture2D))
+        tex.set_editor_property('srgb',channel=='base')
+        tex.set_editor_property('compression_no_alpha',True)
+        tex.set_editor_property('mip_gen_settings',u.TextureMipGenSettings.TMGS_FROM_TEXTURE_GROUP)
+        tex.set_editor_property('lod_group',u.TextureGroup.TEXTUREGROUP_CHARACTER_NORMAL_MAP if channel=='normal' else
+                                u.TextureGroup.TEXTUREGROUP_CHARACTER_SPECULAR if channel=='orm' else u.TextureGroup.TEXTUREGROUP_CHARACTER)
+        tex.set_editor_property('compression_settings',u.TextureCompressionSettings.TC_NORMALMAP if channel=='normal' else u.TextureCompressionSettings.TC_MASKS if channel=='orm' else u.TextureCompressionSettings.TC_DEFAULT)
+        if channel=='normal': tex.set_editor_property('flip_green_channel',True)
+        textures[channel]=tex
+    master=assets.load_asset(dest+'/M_Creature') if assets.does_asset_exist(dest+'/M_Creature') else None
+    if master is None:
+        master=tools.create_asset('M_Creature',dest,u.Material,u.MaterialFactoryNew())
+        for channel in ('base','normal','orm'):
+            node=editor.create_material_expression(master,u.MaterialExpressionTextureSampleParameter2D)
+            node.set_editor_property('parameter_name',channel)
+            node.set_editor_property('texture',textures[channel])
+            if channel=='normal': node.set_editor_property('sampler_type',u.MaterialSamplerType.SAMPLERTYPE_NORMAL)
+            if channel=='orm': node.set_editor_property('sampler_type',u.MaterialSamplerType.SAMPLERTYPE_MASKS)
+            if channel=='base': editor.connect_material_property(node,'RGB',u.MaterialProperty.MP_BASE_COLOR)
+            elif channel=='normal': editor.connect_material_property(node,'RGB',u.MaterialProperty.MP_NORMAL)
+            else:
+                for c,prop in [('R',u.MaterialProperty.MP_AMBIENT_OCCLUSION),('G',u.MaterialProperty.MP_ROUGHNESS),('B',u.MaterialProperty.MP_METALLIC)]:
+                    editor.connect_material_property(node,c,prop)
+        master.set_editor_property('used_with_skeletal_mesh',True)
+        editor.recompile_material(master)
+    material=assets.load_asset(folder+'/MI_Creature') if assets.does_asset_exist(folder+'/MI_Creature') else tools.create_asset('MI_Creature',folder,u.MaterialInstanceConstant,u.MaterialInstanceConstantFactoryNew())
+    editor.set_material_instance_parent(material,master)
+    for channel,texture in textures.items(): editor.set_material_instance_texture_parameter_value(material,channel,texture)
+    if weapon_file:
+        weapon_task=u.AssetImportTask()
+        for key,value in dict(filename=str(weapon_file),destination_path=folder,
+                              destination_name='SM_Weapon',automated=True,replace_existing=True,save=False).items():
+            weapon_task.set_editor_property(key,value)
+        tools.import_asset_tasks([weapon_task])
+        weapon=next(o for o in weapon_task.get_objects() if isinstance(o,u.StaticMesh))
+        wanted=folder+'/SM_Weapon'
+        if weapon.get_path_name().split('.')[0]!=wanted and not assets.rename_asset(weapon.get_path_name(),wanted):
+            raise RuntimeError('Cannot normalize weapon '+kind)
+        for i in range(len(weapon.get_editor_property('static_materials'))): weapon.set_material(i,material)
+        if not u.LHMonsterVisual.configure_weapon_socket(mesh,weapon_bone):
+            raise RuntimeError('Cannot configure named weapon socket '+kind)
+        assets.save_loaded_asset(weapon)
+    # Python cannot call UE 5.8's BlueprintSetter directly. The native helper
+    # updates the persistent SkeletalMaterialsInfo cache through SetMaterials.
+    if not u.LHMonsterVisual.configure_creature_material(mesh,material):
+        raise RuntimeError('Cannot bind skeletal materials '+kind)
+    if not assets.save_loaded_asset(mesh,only_if_is_dirty=False):
+        raise RuntimeError('Cannot persist skeletal material bindings '+kind)
+    keep={o.get_path_name().split('.')[0] for o in [material,*textures.values()]}
+    generated=assets.list_assets(folder,recursive=True,include_folder=False)
+    generated.sort(key=lambda p: (0 if isinstance(assets.load_asset(p),u.MaterialInterface) else 1,p))
+    for path in generated:
+        obj=assets.load_asset(path)
+        if isinstance(obj,(u.MaterialInterface,u.Texture2D)) and path.split('.')[0] not in keep:
+            if not assets.delete_asset(path): raise RuntimeError('Cannot remove duplicate material/texture '+path)
+    assets.save_loaded_asset(master)
+    if not assets.save_directory(folder,only_if_is_dirty=True,recursive=True):
+        raise RuntimeError('Saving creature failed '+kind)
+    # Last save of this body: material cleanup must finish before omitting the
+    # redundant DDC-restorable vertex arrays. Retain all MeshDescription data.
+    if not u.LHMonsterVisual.compact_creature_storage(mesh):
+        raise RuntimeError('Cannot compact rebuildable creature cache '+kind)
+    if not assets.save_loaded_asset(mesh,only_if_is_dirty=False):
+        raise RuntimeError('Cannot persist compact creature '+kind)
+files=inventory()
+# Report actual Unreal classes rather than inferring types from filenames.
+by_type={}
+by_creature={}
+for path,info in files.items():
+    obj=assets.load_asset(dest+'/'+path[:-7])
+    asset_type=obj.get_class().get_name()
+    by_type[asset_type]=by_type.get(asset_type,0)+info['bytes']
+    creature=path.split('/')[0] if '/' in path else 'shared'
+    by_creature[creature]=by_creature.get(creature,0)+info['bytes']
+(root/'Saved/ArtExport/creature-size-summary.json').write_text(json.dumps(
+    dict(by_type=by_type,by_creature=by_creature,packages=len(files)),indent=2)+'\n')
+u.log('CREATURE_BYTES_BY_TYPE '+json.dumps(by_type,sort_keys=True))
+files=inventory()
+total=sum(v['bytes'] for v in files.values())
+for kind in kinds:
+    u.log('CREATURE_ASSET_BYTES '+kind+' '+str(sum(v['bytes'] for p,v in files.items() if p.startswith(kind+'/'))))
+candidate.write_text(json.dumps(dict(signature=signature,assets=files,total_bytes=total),indent=2)+'\n')
+if total>25_000_000:
+    raise RuntimeError('Creature asset budget exceeded: '+str(total))
+stamp.write_text(json.dumps(dict(signature=signature,assets=files,total_bytes=total),indent=2)+'\n')
+u.log('CREATURE_IMPORT_TOTAL_BYTES '+str(total))
+PY
+"$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$LH_PROJECT" \
+  -run=pythonscript "-Script=$PWD/Saved/ArtExport/import_creatures.py" -EnablePlugins=PythonScriptPlugin \
+  -stdout -FullStdOutLogOutput -nullrhi -unattended -nosound -nop4 '-DDC=(Local)' "-LocalDataCachePath=$PWD/Saved/DerivedDataCache" \
   '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0'
