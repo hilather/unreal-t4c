@@ -22,6 +22,7 @@
 #include "Components/BoxComponent.h"
 #include "Engine/PostProcessVolume.h"
 #include "Engine/World.h"
+#include "Engine/Level.h"
 #include "GameFramework/PlayerStart.h"
 #include "GameFramework/WorldSettings.h"
 #include "Framework/LHGameMode.h"
@@ -31,9 +32,197 @@
 #include "HAL/FileManager.h"
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
+#include "Misc/FileHelper.h"
+#include "Misc/EngineVersion.h"
+#include "Misc/StringOutputDevice.h"
+#include "Exporters/Exporter.h"
+#include "UnrealExporter.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UnrealType.h"
+#include "Internationalization/Regex.h"
 
 namespace LHBasementAGeneration
 {
+// SaveMap introduces fresh actor/light/build GUIDs and package serialization IDs even
+// when the generated B2 is semantically identical. Compare the complete authored T3D
+// graph before saving, rather than the narrower gameplay/transform audit below. Unreal's
+// exporter includes nested components, brush geometry, recipes, materials, lights,
+// post process, markers, cameras and WorldSettings; transient runtime meshes are rebuilt
+// from their serialized recipes. External assets retain their actual reference paths.
+// The receipt also hashes the existing map: restored LFS pointers, edits or corruption
+// cannot be mistaken for the map whose semantics we previously generated.
+// Keep the JSON beside the map so the integrator commits the receipt and host-
+// generated map together; a fresh hydrated checkout then has the same evidence.
+struct FB2ExportContext : FExportObjectInnerContext
+{
+    FB2ExportContext(UWorld* World,const TArray<UObject*>& Objects,const TArray<UObject*>& TransientObjects)
+        : FExportObjectInnerContext(false)
+    {
+        for(UObject* Object:Objects)
+            if(!TransientObjects.Contains(Object)) AddObjectToInnerMap(Object);
+        // UObject pool order varies when B1 creates a different number of fixtures.
+        // Component names sort numerically, so counter 9->10 does not change order.
+        for(auto& Pair:ObjectToInnerMap)
+            Pair.Value.Sort([](const UObject& A,const UObject& B)
+            {
+                const FName AN=A.GetFName(),BN=B.GetFName();
+                const FString AP=AN.GetPlainNameString(),BP=BN.GetPlainNameString();
+                return AP==BP?AN.GetNumber()<BN.GetNumber():AP<BP;
+            });
+        auto& Actors=ObjectToInnerMap.FindOrAdd(World->PersistentLevel);
+        Actors.Reset();
+        for(AActor* Actor:World->PersistentLevel->Actors)
+            if(IsValid(Actor) && !Actor->HasAnyFlags(RF_Transient)) Actors.Add(Actor);
+    }
+};
+FString B2SemanticSnapshot(UWorld* World)
+{
+    TArray<UObject*> Objects,TransientObjects;
+    GetObjectsWithOuter(World,Objects,EGetObjectsFlags::IncludeNestedObjects);
+    for(UObject* Object:Objects)
+        for(UObject* Outer=Object; Outer && Outer!=World; Outer=Outer->GetOuter())
+            if(Outer->HasAnyFlags(RF_Transient)) { TransientObjects.Add(Object); break; }
+    FB2ExportContext Context(World,Objects,TransientObjects);
+    FStringOutputDevice Export;
+    if(!UExporter::ExportToOutputDevice(&Context,World,nullptr,Export,TEXT("T3D"),0,PPF_ForDiff)) return FString();
+    // T3D is a delta against each archetype. Include complete archetype properties
+    // too, so a changed native/CDO default cannot disappear from both old/new deltas.
+    // ExportTextItem with the value as its own default writes even default-valued
+    // struct fields; ExternalEditor also preserves all array element defaults.
+    TArray<UObject*> Archetypes;
+    for(UObject* Object:Objects)
+        if(!TransientObjects.Contains(Object)) Archetypes.AddUnique(Object->GetArchetype());
+    Archetypes.Sort([](const UObject& A,const UObject& B){return A.GetPathName()<B.GetPathName();});
+    for(UObject* Archetype:Archetypes)
+    {
+        if(!Archetype) continue;
+        Export.Logf(TEXT("ArchetypeDefaults %s"),*Archetype->GetPathName());
+        for(TFieldIterator<FProperty> It(Archetype->GetClass());It;++It)
+        {
+            if(!It->ShouldPort(PPF_ForDiff)) continue;
+            for(int32 Index=0;Index<It->ArrayDim;++Index)
+            {
+                const void* Data=It->ContainerPtrToValuePtr<void>(Archetype,Index);
+                FString Value;
+                It->ExportTextItem_Direct(Value,Data,Data,Archetype,PPF_ForDiff|PPF_ExternalEditor|PPF_Delimited);
+                Export.Logf(TEXT("%s[%d]=%s"),*It->GetName(),Index,*Value);
+            }
+        }
+    }
+    FString Text=Export;
+    Text.ReplaceInline(*World->GetOutermost()->GetName(),TEXT("$B2Package"));
+
+    // Only engine-assigned object names are canonicalized. Explicit names such as
+    // Geometry_0001, entrance IDs, tags, asset references and all gameplay GUIDs stay.
+    TMap<FString,FString> AutomaticNames;
+    for(const UObject* Object:Objects)
+    {
+        const FString Name=Object->GetName(), ClassName=Object->GetClass()->GetName();
+        const FString Prefix=ClassName+TEXT("_");
+        if(Name.StartsWith(Prefix) && Name.Mid(Prefix.Len()).IsNumeric()) AutomaticNames.Add(Name,ClassName);
+    }
+    TMap<FString,FString> CanonicalNames;
+    TMap<FString,int32> Counters;
+    const FRegexPattern Tokens(TEXT("[A-Za-z_][A-Za-z_0-9]*"));
+    FRegexMatcher Token(Tokens,Text);
+    // An external asset may coincidentally share an automatic short name. Its
+    // package/object reference is semantic and must never be renamed by this pass.
+    TArray<TPair<int32,int32>> ExternalRanges;
+    const FRegexPattern ExternalPaths(TEXT("/(Game|Engine|Script)/[^\\s\"']*"));
+    FRegexMatcher External(ExternalPaths,Text);
+    while(External.FindNext()) ExternalRanges.Emplace(External.GetMatchBeginning(),External.GetMatchEnding());
+    int32 ExternalIndex=0;
+    FString NamesStable;
+    int32 End=0;
+    while(Token.FindNext())
+    {
+        while(ExternalIndex<ExternalRanges.Num() && ExternalRanges[ExternalIndex].Value<=Token.GetMatchBeginning()) ++ExternalIndex;
+        if(ExternalIndex<ExternalRanges.Num() && ExternalRanges[ExternalIndex].Key<=Token.GetMatchBeginning()) continue;
+        const FString Name=Token.GetCaptureGroup(0);
+        const FString* ClassName=AutomaticNames.Find(Name);
+        if(!ClassName) continue;
+        FString* Canonical=CanonicalNames.Find(Name);
+        if(!Canonical) Canonical=&CanonicalNames.Add(Name,*ClassName+TEXT("_Auto")+FString::FromInt(Counters.FindOrAdd(*ClassName)++));
+        NamesStable+=Text.Mid(End,Token.GetMatchBeginning()-End)+*Canonical;
+        End=Token.GetMatchEnding();
+    }
+    NamesStable+=Text.Mid(End);
+
+    // These are engine-generated cache/lighting identities, not authored actor IDs.
+    // Normalize only their GUID values (including nested MapBuildDataId in LODData).
+    // Unknown fields remain conservative: any difference forces regeneration.
+    const FRegexPattern CacheGuids(TEXT("(ActorGuid|ActorInstanceGuid|LightGuid|OriginalLightGuid|MapBuildDataId|LightingGuid|LevelBuildDataId)=[A-Fa-f0-9]{32}"));
+    FRegexMatcher Guid(CacheGuids,NamesStable);
+    FString Stable=TEXT("B2-semantic-v1|")+FEngineVersion::Current().ToString()+TEXT("\n");
+    End=0;
+    while(Guid.FindNext())
+    {
+        Stable+=NamesStable.Mid(End,Guid.GetMatchBeginning()-End)+Guid.GetCaptureGroup(1)+TEXT("=(Regenerated)");
+        End=Guid.GetMatchEnding();
+    }
+    Stable+=NamesStable.Mid(End);
+    return Stable;
+}
+FString B2SemanticDigest(UWorld* World)
+{
+    const FString Snapshot=B2SemanticSnapshot(World);
+    return Snapshot.IsEmpty()?FString():FMD5::HashAnsiString(*Snapshot);
+}
+bool VerifyB2Fingerprint(UWorld* World,const FString& Baseline)
+{
+    // Mutation controls exercise settings that the old identity/transform hash missed.
+    // Restore everything before a cache decision or save; no gameplay changes persist.
+    bool Good=!Baseline.IsEmpty();
+    bool SawLight=false,SawSky=false,SawExposure=false,SawRecipe=false;
+    auto Changed=[&](const TCHAR* Field)
+    {
+        const bool Different=B2SemanticDigest(World)!=Baseline;
+        UE_LOG(LogTemp,Display,TEXT("B2 semantic mutation %s: %s"),Field,Different?TEXT("detected"):TEXT("MISSED"));
+        Good &= Different;
+    };
+    for(TActorIterator<AActor> It(World);It;++It)
+    {
+        if(auto* A=Cast<APointLight>(*It); A && !SawLight)
+        {
+            auto* C=CastChecked<UPointLightComponent>(A->GetLightComponent());
+            const float Original=C->Intensity; C->SetIntensity(Original+37.f); Changed(TEXT("point intensity")); C->SetIntensity(Original);
+            auto* Default=CastChecked<UPointLightComponent>(C->GetArchetype());
+            const float OriginalDefault=Default->SourceRadius, OriginalRadius=C->SourceRadius;
+            Default->SourceRadius+=1.f; C->SourceRadius=Default->SourceRadius;
+            Changed(TEXT("class default")); Default->SourceRadius=OriginalDefault; C->SourceRadius=OriginalRadius;
+            SawLight=true;
+        }
+        if(auto* A=Cast<ASkyLight>(*It); A && !SawSky)
+        {
+            auto* C=A->GetLightComponent(); const float Original=C->Intensity;
+            C->SetIntensity(Original+.125f); Changed(TEXT("sky intensity")); C->SetIntensity(Original); SawSky=true;
+        }
+        if(auto* A=Cast<APostProcessVolume>(*It); A && !SawExposure)
+        {
+            const float Original=A->Settings.CameraISO; A->Settings.CameraISO+=25.f;
+            Changed(TEXT("post process")); A->Settings.CameraISO=Original; SawExposure=true;
+        }
+        if(auto* A=Cast<ALHVisualPiece>(*It); A && !SawRecipe)
+        {
+            auto* Property=FindFProperty<FStructProperty>(ALHVisualPiece::StaticClass(),TEXT("BuiltRecipe"));
+            if(!Property) { Good=false; continue; }
+            auto* Recipe=Property->ContainerPtrToValuePtr<FLHVisualRecipe>(A);
+            const float Original=Recipe->Colors[0].R; Recipe->Colors[0].R+=.1f;
+            Changed(TEXT("visual recipe")); Recipe->Colors[0].R=Original; SawRecipe=true;
+        }
+    }
+    Good &= SawLight && SawSky && SawExposure && SawRecipe && B2SemanticDigest(World)==Baseline;
+    UE_LOG(LogTemp,Display,TEXT("B2 semantic mutation controls and restoration: %s"),Good?TEXT("passed"):TEXT("FAILED"));
+    return Good;
+}
+FString B2Receipt(const FString& Semantic,const FString& Filename)
+{
+    if(Semantic.IsEmpty() || IFileManager::Get().FileSize(*Filename)<=0) return FString();
+    const FMD5Hash FileHash=FMD5Hash::HashFile(*Filename);
+    if(!FileHash.IsValid()) return FString();
+    return FString::Printf(TEXT("{\n  \"version\": 1,\n  \"content_md5\": \"%s\",\n  \"map_md5\": \"%s\"\n}\n"),*Semantic,*LexToString(FileHash));
+}
+
 // All geometry is V-01/A-02 prototype, U=100cm. Lighting is A-04 prototype.
 struct FRect
 {
@@ -395,9 +584,45 @@ int32 ULHGenerateBasementAMapsCommandlet::Main(const FString& Params)
             for(AActor* Light:LegacyLights) World->DestroyActor(Light);
             Builder.Actor<ALHB1Atmosphere>(TEXT("B1Atmosphere"),FVector::ZeroVector);
         }
-        if(!Builder.bOK || !IFileManager::Get().MakeDirectory(*FPaths::GetPath(Filename),true) || !FEditorFileUtils::SaveMap(World,Filename)) return 1;
+        if(!Builder.bOK) return 1;
+        FString Semantic, ReceiptPath;
+        if(!B1)
+        {
+            const FString Snapshot=B2SemanticSnapshot(World);
+            if(Snapshot.IsEmpty()) return 1;
+            Semantic=FMD5::HashAnsiString(*Snapshot);
+            FString SnapshotPath;
+            if(FParse::Value(*Params,TEXT("B2Snapshot="),SnapshotPath)
+                && !FFileHelper::SaveStringToFile(Snapshot,*SnapshotPath)) return 1;
+            if(FParse::Param(*Params,TEXT("VerifyB2Fingerprint")) && !VerifyB2Fingerprint(World,Semantic)) return 1;
+            ReceiptPath=FPaths::ChangeExtension(Filename,TEXT("gen-receipt.json"));
+            FString Previous;
+            const FString Current=B2Receipt(Semantic,Filename);
+            if(!Current.IsEmpty() && FFileHelper::LoadFileToString(Previous,*ReceiptPath) && Previous==Current)
+            {
+                UE_LOG(LogTemp,Display,TEXT("B2 semantic content unchanged (%s); preserving map bytes: %s"),*Semantic,*Filename);
+                continue;
+            }
+            UE_LOG(LogTemp,Display,TEXT("B2 semantic content or map receipt changed (%s); saving"),*Semantic);
+        }
+        if(!IFileManager::Get().MakeDirectory(*FPaths::GetPath(Filename),true) || !FEditorFileUtils::SaveMap(World,Filename)) return 1;
+        if(!B1)
+        {
+            const FString Receipt=B2Receipt(Semantic,Filename);
+            if(Receipt.IsEmpty() || !FFileHelper::SaveStringToFile(Receipt,*ReceiptPath,
+                FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM)) return 1;
+        }
         UE_LOG(LogTemp,Display,TEXT("Generated %s: %d encounter anchors; safety unreviewed"),*Package,Area->Spawns.Num());
         UE_LOG(LogTemp,Display,TEXT("Authored actor identity/transform fingerprint %s: %s"),*Package,*Builder.Fingerprint());
+        if(B1 && FParse::Param(*Params,TEXT("B1AllocationProbe")))
+        {
+            // Regression-only allocation noise after B1 is saved; never persisted.
+            // Mimics a B1-only fixture-count change before the B2 world is generated.
+            FActorSpawnParameters Probe; Probe.ObjectFlags|=RF_Transient;
+            for(int32 I=0;I<97;++I)
+                if(!World->SpawnActor<ALHVisualPiece>(FVector::ZeroVector,FRotator::ZeroRotator,Probe)) return 1;
+            UE_LOG(LogTemp,Display,TEXT("B1 allocation probe: 97 unsaved transient pieces before B2"));
+        }
     }
     return 0;
 }

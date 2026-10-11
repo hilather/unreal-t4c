@@ -81,6 +81,9 @@ bool FLHB1ReadabilityLifecycleTest::RunTest(const FString& Parameters)
     auto* First=MakePawn(FVector(100,200,80));
     auto* Respawn=MakePawn(FVector(-400,500,90));
     const FVector FogOrigin=Atmosphere->Haze->GetComponentLocation();
+    TArray<FVector> BouncePositions;
+    for(const auto& Fill:Atmosphere->RoomFills) BouncePositions.Add(Fill->GetComponentLocation());
+    TestEqual(TEXT("Four room bounce fills"),BouncePositions.Num(),4);
     Atmosphere->Tick(0);
     TestFalse(TEXT("No pawn hides fill"),Atmosphere->ReadabilityFill->IsVisible());
     Controller->Possess(First); Atmosphere->Tick(0);
@@ -98,6 +101,14 @@ bool FLHB1ReadabilityLifecycleTest::RunTest(const FString& Parameters)
     TestTrue(TEXT("Repossessed fill visible"),Atmosphere->ReadabilityFill->IsVisible());
     TestEqual(TEXT("Repossessed fill rebinds"),Atmosphere->ReadabilityFill->GetComponentLocation(),FVector(800,-100,305));
     TestEqual(TEXT("Fog never follows player"),Atmosphere->Haze->GetComponentLocation(),FogOrigin);
+    for(int32 I=0;I<Atmosphere->RoomFills.Num();++I)
+    {
+        const auto* Fill=Atmosphere->RoomFills[I].Get();
+        TestEqual(TEXT("Room bounce stays fixed through possession and respawn"),Fill->GetComponentLocation(),BouncePositions[I]);
+        TestTrue(TEXT("Room bounce remains visible without player"),Fill->IsVisible());
+        TestFalse(TEXT("Room bounce has no shadows"),Fill->CastShadows);
+        TestFalse(TEXT("Room bounce has no nav influence"),Fill->CanEverAffectNavigation());
+    }
     World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
     return true;
 }
