@@ -1,0 +1,185 @@
+{
+  "provenance": "Current LHCharacterAuthority appearance policy; visual assets original W5-12 prototypes",
+  "combinations": [
+    {
+      "ids": [
+        "Presentation.Player.Body.A",
+        "Presentation.Player.Face.A",
+        "Presentation.Player.Hair.Cropped",
+        "Presentation.Player.Outfit.StarterLinen",
+        "Presentation.Player.Skin.LightWarm"
+      ],
+      "file": "player_a.glb",
+      "visible_meshes": [
+        "body",
+        "Hair.Cropped"
+      ],
+      "skin_tint": "LightWarm"
+    },
+    {
+      "ids": [
+        "Presentation.Player.Body.A",
+        "Presentation.Player.Face.A",
+        "Presentation.Player.Hair.Cropped",
+        "Presentation.Player.Outfit.StarterLinen",
+        "Presentation.Player.Skin.MediumWarm"
+      ],
+      "file": "player_a.glb",
+      "visible_meshes": [
+        "body",
+        "Hair.Cropped"
+      ],
+      "skin_tint": "MediumWarm"
+    },
+    {
+      "ids": [
+        "Presentation.Player.Body.A",
+        "Presentation.Player.Face.A",
+        "Presentation.Player.Hair.Cropped",
+        "Presentation.Player.Outfit.StarterLinen",
+        "Presentation.Player.Skin.DeepWarm"
+      ],
+      "file": "player_a.glb",
+      "visible_meshes": [
+        "body",
+        "Hair.Cropped"
+      ],
+      "skin_tint": "DeepWarm"
+    },
+    {
+      "ids": [
+        "Presentation.Player.Body.A",
+        "Presentation.Player.Face.A",
+        "Presentation.Player.Hair.Tied",
+        "Presentation.Player.Outfit.StarterLinen",
+        "Presentation.Player.Skin.LightWarm"
+      ],
+      "file": "player_a.glb",
+      "visible_meshes": [
+        "body",
+        "Hair.Tied"
+      ],
+      "skin_tint": "LightWarm"
+    },
+    {
+      "ids": [
+        "Presentation.Player.Body.A",
+        "Presentation.Player.Face.A",
+        "Presentation.Player.Hair.Tied",
+        "Presentation.Player.Outfit.StarterLinen",
+        "Presentation.Player.Skin.MediumWarm"
+      ],
+      "file": "player_a.glb",
+      "visible_meshes": [
+        "body",
+        "Hair.Tied"
+      ],
+      "skin_tint": "MediumWarm"
+    },
+    {
+      "ids": [
+        "Presentation.Player.Body.A",
+        "Presentation.Player.Face.A",
+        "Presentation.Player.Hair.Tied",
+        "Presentation.Player.Outfit.StarterLinen",
+        "Presentation.Player.Skin.DeepWarm"
+      ],
+      "file": "player_a.glb",
+      "visible_meshes": [
+        "body",
+        "Hair.Tied"
+      ],
+      "skin_tint": "DeepWarm"
+    },
+    {
+      "ids": [
+        "Presentation.Player.Body.B",
+        "Presentation.Player.Face.B",
+        "Presentation.Player.Hair.Cropped",
+        "Presentation.Player.Outfit.StarterLinen",
+        "Presentation.Player.Skin.LightWarm"
+      ],
+      "file": "player_b.glb",
+      "visible_meshes": [
+        "body",
+        "Hair.Cropped"
+      ],
+      "skin_tint": "LightWarm"
+    },
+    {
+      "ids": [
+        "Presentation.Player.Body.B",
+        "Presentation.Player.Face.B",
+        "Presentation.Player.Hair.Cropped",
+        "Presentation.Player.Outfit.StarterLinen",
+        "Presentation.Player.Skin.MediumWarm"
+      ],
+      "file": "player_b.glb",
+      "visible_meshes": [
+        "body",
+        "Hair.Cropped"
+      ],
+      "skin_tint": "MediumWarm"
+    },
+    {
+      "ids": [
+        "Presentation.Player.Body.B",
+        "Presentation.Player.Face.B",
+        "Presentation.Player.Hair.Cropped",
+        "Presentation.Player.Outfit.StarterLinen",
+        "Presentation.Player.Skin.DeepWarm"
+      ],
+      "file": "player_b.glb",
+      "visible_meshes": [
+        "body",
+        "Hair.Cropped"
+      ],
+      "skin_tint": "DeepWarm"
+    },
+    {
+      "ids": [
+        "Presentation.Player.Body.B",
+        "Presentation.Player.Face.B",
+        "Presentation.Player.Hair.Tied",
+        "Presentation.Player.Outfit.StarterLinen",
+        "Presentation.Player.Skin.LightWarm"
+      ],
+      "file": "player_b.glb",
+      "visible_meshes": [
+        "body",
+        "Hair.Tied"
+      ],
+      "skin_tint": "LightWarm"
+    },
+    {
+      "ids": [
+        "Presentation.Player.Body.B",
+        "Presentation.Player.Face.B",
+        "Presentation.Player.Hair.Tied",
+        "Presentation.Player.Outfit.StarterLinen",
+        "Presentation.Player.Skin.MediumWarm"
+      ],
+      "file": "player_b.glb",
+      "visible_meshes": [
+        "body",
+        "Hair.Tied"
+      ],
+      "skin_tint": "MediumWarm"
+    },
+    {
+      "ids": [
+        "Presentation.Player.Body.B",
+        "Presentation.Player.Face.B",
+        "Presentation.Player.Hair.Tied",
+        "Presentation.Player.Outfit.StarterLinen",
+        "Presentation.Player.Skin.DeepWarm"
+      ],
+      "file": "player_b.glb",
+      "visible_meshes": [
+        "body",
+        "Hair.Tied"
+      ],
+      "skin_tint": "DeepWarm"
+    }
+  ]
+}
