@@ -286,3 +286,10 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
   - **B1 room means .24 / .21 / .20, in band.** A second regeneration left B2 byte-identical via the tracked receipt `L_TempleB2.gen-receipt.json`; B1 bytes still vary between runs.
   - **Look:** readable floor, warm wall-sconce pools, iron fire-bowl braziers, readable stone. Good, not yet great. Missing: a warm-brown gap palette (gaps are cool grey), concept clutter (barrels, crates, rubble, cobwebs), and the player still lies flat (W5-12).
 - **LAUNCH-LEASE-EXPIRED-1 hit (01:12Z):** the W5-10d launch op is `ambiguous` ("lease expired"); the attempt is Reserved. Reported to the orch; not forced. New launches (W5-12) are held until the orch answers.
+- **W5-10e integrated (354c6e6).** The creature lineup is now judgeable: a clear lit spot, hidden pawn, framed close-ups and a contact sheet.
+  - **Host:** build OK; the art build is a no-op via the receipts; 216/216; package OK; 22/22 shots.
+  - **In-engine verdict:** Balork, rat, goblins, atrocity and spider read well as stylised game creatures. The bat family is small and plain (the dungeon and undead bats are grey and hard to tell apart), and the slime is small. Captures are in `scratch/captures/w5-10e-lineup/`.
+- **W5-12 player Blender sources merged (52eb996).** Two starters and twelve appearance combinations. → **W5-13 (sol):** Unreal import, binding and the lying-flat idle fix.
+- **W5-09g (492b5ab) submitted.** B1 warm palette, 20 clutter props, larger varied stone, segmented coping; 216/216. Host check running.
+- **Farm:** the W5-10d launch lease expired at 01:12Z, and the farm closed it as `dedicated_server_lost` at 03:07Z. Control auto-paused and re-activated on the ticker's own pass (epoch 714). Nothing forced.
+- **Temp space:** host clones now live in `~/.cache/unreal-t4c-host/` (they filled the /tmp quota). `CLAUDE_CODE_TMPDIR` is set to `~/.cache/claude-tmp` in user settings for new sessions. The build recipe for workers is in `wave4/_env.md`.
