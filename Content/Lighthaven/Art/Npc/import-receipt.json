@@ -1,0 +1,1704 @@
+{
+  "signature": "1180683bf6affa1bbbad4c960732556595471fe8e04e94842802504a47655ad5",
+  "assets": {
+    "DA_BrotherKiran.uasset": {
+      "bytes": 6601,
+      "sha256": "997a3d0781969c4982eee5515bcd52167dae8248c0c1cceaaaa15b0194a86a03"
+    },
+    "DA_Fali.uasset": {
+      "bytes": 6394,
+      "sha256": "f20775bff14d0d577b6bcfabcae0ddec9ec26d3ba5d0257fec4c86f5d5bb2eb0"
+    },
+    "DA_Iraltok.uasset": {
+      "bytes": 6350,
+      "sha256": "d400160c96b552aca0f33a750138925398ae98d7fb988ab1e3ad1546c03bdef8"
+    },
+    "DA_JagarKar.uasset": {
+      "bytes": 6188,
+      "sha256": "ba73577e0e59d9dae08ddf4ea454d97fe5abde0ad50dbb8a3dd1311799fc8de6"
+    },
+    "DA_Kalastor.uasset": {
+      "bytes": 6738,
+      "sha256": "58015d077b7c817c8d2dfbaf10585dd2633ece663742662a715cea8ea4e1b346"
+    },
+    "DA_Kilhiam.uasset": {
+      "bytes": 5951,
+      "sha256": "da41befc511fc5e25a2fde789d8e01998aea25d5b666ba472d04cf637365c798"
+    },
+    "DA_Moonrock.uasset": {
+      "bytes": 6412,
+      "sha256": "837c23f8250bd2559226ee2f9e7dd5f40be471b688bda1575326d7379fef7323"
+    },
+    "DA_Murmuntag.uasset": {
+      "bytes": 6350,
+      "sha256": "57c18ce2bfd8b33dd72c21c495aa15cbb387ec513b61ab931406e819d7007cd0"
+    },
+    "DA_Nevanis.uasset": {
+      "bytes": 6423,
+      "sha256": "52224ae5573c2d867817ef0b985a154555d9ae69270fbb3eccf86bdcd6d173cc"
+    },
+    "DA_Ortanalas.uasset": {
+      "bytes": 6513,
+      "sha256": "74a67bbfcc68496708d9bdceff5aac120da3253daecc3f6bdc2336d1f1f9d215"
+    },
+    "DA_Rolph.uasset": {
+      "bytes": 6536,
+      "sha256": "6fddf0a9c055e220f48cf9d71455482ccbb53acd6ee0845af4f28f155c972fa4"
+    },
+    "DA_Samaritan.uasset": {
+      "bytes": 6048,
+      "sha256": "c1e937cf1b05f96f111e00fdd49b5777d60b001c41ed9f4090635092652c1eff"
+    },
+    "DA_Shovanis.uasset": {
+      "bytes": 6194,
+      "sha256": "b31982b9dd1eb47ee65fc3ff14ea105a00d14ede8a5006f3625f5efa721a9a9f"
+    },
+    "DA_Sigfried.uasset": {
+      "bytes": 6883,
+      "sha256": "9685545206f8d5c2292f98c466e3728128d3a0c400db4871f555d8b16aeca8fd"
+    },
+    "DA_Uranos.uasset": {
+      "bytes": 6575,
+      "sha256": "52ba91d54e59a70731f5b01b0998760fa0a68643a45678f9ac501aa8f90bb57c"
+    },
+    "M_Solid.uasset": {
+      "bytes": 5859,
+      "sha256": "3d17de946d66a078ce7c9b0e0dcebdee15389fd02e97b1e118748f81e97d6477"
+    },
+    "M_Textile.uasset": {
+      "bytes": 7980,
+      "sha256": "23cbf7c5c9b95f7d7df71ea7135e7afcab74428d1e48aef3f8551c736395e55d"
+    },
+    "Materials/MI_120F0D_Pupil.uasset": {
+      "bytes": 4405,
+      "sha256": "40bfbbe96d82551a50e86eea746e2e38964489998a3650817c1df8c11946097f"
+    },
+    "Materials/MI_211C18_Hair.uasset": {
+      "bytes": 4400,
+      "sha256": "fac5a63776f847cd0678d0b265af3db78f296032ab932feae6ce4ce88d1c7e3f"
+    },
+    "Materials/MI_26211A_Hair.uasset": {
+      "bytes": 4400,
+      "sha256": "62276e84ac63f592b885f4815d7c9247f56ed2a126eccce5a6af0eb5fba18b3b"
+    },
+    "Materials/MI_29211B_Hair.uasset": {
+      "bytes": 4400,
+      "sha256": "add77d56ee58aeab6961903ac8b5cb789af23138fb348f7022555d5a3101b9a6"
+    },
+    "Materials/MI_31231B_Hair.uasset": {
+      "bytes": 4400,
+      "sha256": "5918e889db58fbdbdfdbc21fc2aaa1db82046b19cc6b25cdf285e25fa4d32659"
+    },
+    "Materials/MI_312B23_Hair.uasset": {
+      "bytes": 4400,
+      "sha256": "81c7abc47a52a2d6b395beda8d8958f005035ba737dfbc84b7fd2a9097b7ea2f"
+    },
+    "Materials/MI_32291F_Hair.uasset": {
+      "bytes": 4400,
+      "sha256": "d8f3431db8602ae2206821020d5d173807240e7ca4e796f70eb90ae40c1d6bf5"
+    },
+    "Materials/MI_36251E_Crease.uasset": {
+      "bytes": 4410,
+      "sha256": "aba69ff837bb4fd0c5e9d177ae2f59219993101bb1e16dacee12d6c453b7e236"
+    },
+    "Materials/MI_3B2C20_Hair.uasset": {
+      "bytes": 4400,
+      "sha256": "e074f13b8b0cf36def604726607abbdebae159fe009868696a95d7486b8de7d1"
+    },
+    "Materials/MI_465F5B_Cloth.uasset": {
+      "bytes": 4413,
+      "sha256": "88c387f81b988544813a21a1e57d2921737d7236c007b12ba39eef76415a2f03"
+    },
+    "Materials/MI_48563C_Accent.uasset": {
+      "bytes": 4418,
+      "sha256": "e3c79cbf9a2ec99e745d75f3de9dd10137dab88ec93e0d3e63480fcd6de70ce8"
+    },
+    "Materials/MI_4B3326_Hair.uasset": {
+      "bytes": 4400,
+      "sha256": "318a3b98b031a12ec0ff0b639408156d3f5b5f1b76b3e177e51d76f331bc76ec"
+    },
+    "Materials/MI_4D3020_Leather.uasset": {
+      "bytes": 4415,
+      "sha256": "f419861c63df568dc25fa834432c2542d382aaf0cbd1a96f0586c733d4cb61a4"
+    },
+    "Materials/MI_4E4836_Pants.uasset": {
+      "bytes": 4413,
+      "sha256": "95daa872ee9bc7af664c142c202931b4445da06c996ec67bc51b5890b17f129e"
+    },
+    "Materials/MI_4F5B56_Accent.uasset": {
+      "bytes": 4418,
+      "sha256": "c42de3ffc7edab9658b304723286da588f048123c7783577d2a2aa39f96e40ab"
+    },
+    "Materials/MI_504031_Iris.uasset": {
+      "bytes": 4400,
+      "sha256": "cbb115c1e61d8e53ea6aaa6db34998051b98fc869be729f9591a556723251104"
+    },
+    "Materials/MI_51322D_Lip.uasset": {
+      "bytes": 4395,
+      "sha256": "1ac327e2f506a80664d796a9b379253a6ba26b3a7014c64e6997087c9c44e637"
+    },
+    "Materials/MI_51362C_Skin.uasset": {
+      "bytes": 4400,
+      "sha256": "a8230f5f4601d58b3f37238a975fd559970cf8d09f996fa161b93745a5ac675e"
+    },
+    "Materials/MI_52382F_Lip.uasset": {
+      "bytes": 4395,
+      "sha256": "3f53f11e0b38846d98f951433b9f57ee058128cd72db17ec26820ec5051c6f96"
+    },
+    "Materials/MI_543830_Lip.uasset": {
+      "bytes": 4395,
+      "sha256": "cd4e4065ae72071f8279cd42feafe5951c9ef2b4067b9d34a8898e478e4d8048"
+    },
+    "Materials/MI_566054_Accent.uasset": {
+      "bytes": 4418,
+      "sha256": "498201b4a44b0284390d84927d2ccb29fae410fc27bed7f49ac2f450e588933a"
+    },
+    "Materials/MI_5B4631_Hair.uasset": {
+      "bytes": 4400,
+      "sha256": "d950dc4d60f25f9721213a83dd55a69220b2bb7bdfdcb2c112341035940ce515"
+    },
+    "Materials/MI_5C4430_Hair.uasset": {
+      "bytes": 4400,
+      "sha256": "2cf360d846e0275943a7ac8b1e35fc8f86b3794be1a99e809dfba0716da8248b"
+    },
+    "Materials/MI_5C6952_Cloth.uasset": {
+      "bytes": 4413,
+      "sha256": "fc5a32944846e54c10699475c850ba06c78d0a2c6e15cc2d37f49f40afe492d4"
+    },
+    "Materials/MI_606447_Accent.uasset": {
+      "bytes": 4418,
+      "sha256": "a04a90e9d2c0614e1e511070c5bc6c0577564f98c627e30d40cad0b0cb1cc652"
+    },
+    "Materials/MI_646C6C_Iron.uasset": {
+      "bytes": 4400,
+      "sha256": "f1fe45eea8d6890b3b46bb70b9bac960264fdb8e39ed39f8882a94590255a292"
+    },
+    "Materials/MI_65614B_Cloth.uasset": {
+      "bytes": 4413,
+      "sha256": "9edbbb930e642fa8c4197367a7983c70069ab207834b84272e74e3f094d94a33"
+    },
+    "Materials/MI_667C7D_Cloth.uasset": {
+      "bytes": 4413,
+      "sha256": "4db13fbb45cf189da5dd2e765850e776349f1242590933fdae1cae229bc01d93"
+    },
+    "Materials/MI_67452E_Wood.uasset": {
+      "bytes": 4400,
+      "sha256": "72f6542fdba54e6801cc499497da0f4ded6e4fbddbd1866473e8c808f37a0878"
+    },
+    "Materials/MI_675D40_Trim.uasset": {
+      "bytes": 4408,
+      "sha256": "468c96f05a91dd375b026719e7ad3c7e561771d08b62d726ffa701e213244b02"
+    },
+    "Materials/MI_6B4229_Hair.uasset": {
+      "bytes": 4400,
+      "sha256": "6b2395d51abd27141576aae590619d486481e2bea41e8451bb1090378cdf2a30"
+    },
+    "Materials/MI_6D5362_Cloth.uasset": {
+      "bytes": 4413,
+      "sha256": "b312ebcba6e563648830a6619360cac86776c62863fd700c7df60a76bb843bf2"
+    },
+    "Materials/MI_6D6C55_Cloth.uasset": {
+      "bytes": 4413,
+      "sha256": "f51c2ceb34929eec54a597f4bdc92397980360e7102c4e08f68c94f5e1cd1fd1"
+    },
+    "Materials/MI_70372E_Accent.uasset": {
+      "bytes": 4418,
+      "sha256": "c1b04f92371e9b68aab4e3cf5baac3013db90d3ed012d41467ceb8ca67163283"
+    },
+    "Materials/MI_72453B_Lip.uasset": {
+      "bytes": 4395,
+      "sha256": "313030c30521078b51821d85e42fdad2944bd675495dde96e52c080029fec5b6"
+    },
+    "Materials/MI_72473C_Lip.uasset": {
+      "bytes": 4395,
+      "sha256": "b13fc6c4542e84c053a4f905e16fe8e8124b8190bf5816b01e7b764afe372e75"
+    },
+    "Materials/MI_737957_Cloth.uasset": {
+      "bytes": 4413,
+      "sha256": "7036a6adb398b2bb34cb674b3101a57a877d1cba51632f56c86c2cf7701d8ee3"
+    },
+    "Materials/MI_753D32_Accent.uasset": {
+      "bytes": 4418,
+      "sha256": "93852d2d61bece9dad880d9face4ad5363cc6599e51350669ceeb43bfcc9d3d9"
+    },
+    "Materials/MI_775042_Lip.uasset": {
+      "bytes": 4395,
+      "sha256": "ded9b799c84bac6c6dd3aa1c3e23bceb29e848c7b66637c6a0ec521d623ad824"
+    },
+    "Materials/MI_775046_Lip.uasset": {
+      "bytes": 4395,
+      "sha256": "9ad11dd0c37d44aa3558259021d036b8d5c8dacfc01a7e4916adf6e5c82aaecd"
+    },
+    "Materials/MI_785039_Accent.uasset": {
+      "bytes": 4418,
+      "sha256": "bb4d7629a66e58ef17ed4db963beca9fbe4385cc24133f55538ca88e0e4eddf6"
+    },
+    "Materials/MI_785245_Lip.uasset": {
+      "bytes": 4395,
+      "sha256": "e9675bfcddedc006f9d77465f8150060ee0772b2fbb7b9eee487e7395737fbe5"
+    },
+    "Materials/MI_785333_Edge.uasset": {
+      "bytes": 4400,
+      "sha256": "61a76e71fbe31d0a908dd32fecfcebf98fecd34ac81c2501f1db8723353edff5"
+    },
+    "Materials/MI_79735C_Cloth.uasset": {
+      "bytes": 4413,
+      "sha256": "ca8c5005ec6ee21e598e679527d64280b090b2321bdb495439db4a8b15effb6f"
+    },
+    "Materials/MI_807052_Accent.uasset": {
+      "bytes": 4418,
+      "sha256": "27105503dadcb3b46b17b1faf7877f88419dbea10f1b2b1c5a51c146812e135a"
+    },
+    "Materials/MI_80747A_Accent.uasset": {
+      "bytes": 4418,
+      "sha256": "fa5f1289cf9bad53f3a92aa33396864f8f71922a65c410848faa1dba3c40afed"
+    },
+    "Materials/MI_855239_Cloth.uasset": {
+      "bytes": 4413,
+      "sha256": "a227f5f8853de145b200d6a3e0d6bb875eb3f1114b53bdc0dc4b440e0a108ff1"
+    },
+    "Materials/MI_898777_Hair.uasset": {
+      "bytes": 4400,
+      "sha256": "50eb85c972ea5d0cbae2f4195a1431f03e580cf5fec919c539768a91ebe4eb27"
+    },
+    "Materials/MI_8B5A40_Skin.uasset": {
+      "bytes": 4400,
+      "sha256": "a78357b52468c40b76e68e5610cbbacf32a9ff4099f715f8f43443b58f5fbf5c"
+    },
+    "Materials/MI_8D4734_Cloth.uasset": {
+      "bytes": 4413,
+      "sha256": "d6e6f23ba099b0d8c1131d57b2bb2bdc7afa3ead5197649dd1df1d29674883f2"
+    },
+    "Materials/MI_926052_Lip.uasset": {
+      "bytes": 4395,
+      "sha256": "8d877f31302b14394841efbf636a4b805334c0f8834d277e833b334551d89f31"
+    },
+    "Materials/MI_926252_Lip.uasset": {
+      "bytes": 4395,
+      "sha256": "77ae956467ca006c6c988624b5e5c85890abed870c75e7f7ab37fb82b3907a2d"
+    },
+    "Materials/MI_92734A_Metal.uasset": {
+      "bytes": 4405,
+      "sha256": "5559afceb77e83fb78330e0002753853b50116c727dda39bee937eb35b66f137"
+    },
+    "Materials/MI_946459_Lip.uasset": {
+      "bytes": 4395,
+      "sha256": "27e5f04817e5c5a7785b29bbb911cb636854adae33854077702c327da90d17fb"
+    },
+    "Materials/MI_956357_Lip.uasset": {
+      "bytes": 4395,
+      "sha256": "da51490677ec6f718baa99f11fca184a07ef22b9a54f4c74ae71119a13c1561c"
+    },
+    "Materials/MI_98655A_Lip.uasset": {
+      "bytes": 4395,
+      "sha256": "42ce500398283e0501fd4d68a7945acdee2cccb3cda760e206ff2c97bd4d959b"
+    },
+    "Materials/MI_98675A_Lip.uasset": {
+      "bytes": 4395,
+      "sha256": "7f9c0dd3eb4d4b4989cef3d88232e00697dadba1801dd43212959169b81fd404"
+    },
+    "Materials/MI_98675B_Lip.uasset": {
+      "bytes": 4395,
+      "sha256": "0fa504bfa37aaf00110a645f25c65a3b41182b4e68fcaa483e28fe69e9f2a7c9"
+    },
+    "Materials/MI_9D895C_Accent.uasset": {
+      "bytes": 4418,
+      "sha256": "b306dcece95546f17e28d25c21b506e81800fcb848ac0798a94dd9718d48169c"
+    },
+    "Materials/MI_A18C65_Cloth.uasset": {
+      "bytes": 4413,
+      "sha256": "8aa16c76c042eeb1d91cc0804e25cfa32bb1da0584ea9d48917ff92e85258661"
+    },
+    "Materials/MI_A3693E_Accent.uasset": {
+      "bytes": 4418,
+      "sha256": "ac0a594db2c08032370606355cb151fe03891c2498b1551cad96e829f18d6913"
+    },
+    "Materials/MI_A48A62_Cloth.uasset": {
+      "bytes": 4413,
+      "sha256": "c4c50f3f3aef7caa513811385f28b097f8238ebad69b84a595d5d79a514fcc6f"
+    },
+    "Materials/MI_A68C61_Stitch.uasset": {
+      "bytes": 4410,
+      "sha256": "fa0b429749cde9e074c4747c26405f817ccdf8c8524095a9b1a94ccd095e96e1"
+    },
+    "Materials/MI_A89D78_Trim.uasset": {
+      "bytes": 4408,
+      "sha256": "edb7eb2c339f8296f2cd94c790676c5c045085ff51525298095642e03e4f6453"
+    },
+    "Materials/MI_AD9465_Cloth.uasset": {
+      "bytes": 4413,
+      "sha256": "0212870a0a92894fe7801cd7497c9624a5fb6b1cd75a51455b57b40e1a457431"
+    },
+    "Materials/MI_AF7942_Accent.uasset": {
+      "bytes": 4418,
+      "sha256": "0625b56e18a6c2bd93762fad6ed73587af86a49d0babd8ca29b7a36fd5a93aa6"
+    },
+    "Materials/MI_B0A08A_Eye.uasset": {
+      "bytes": 4395,
+      "sha256": "d71c5676f1c8b114cf71642c08ef367e93afc7169d70e5e43d353aae3d1dee7d"
+    },
+    "Materials/MI_B18D50_Accent.uasset": {
+      "bytes": 4418,
+      "sha256": "527a426227362bd7043eb0eef9177be5a97ea590291b44d3b42163dc5795138f"
+    },
+    "Materials/MI_B39866_Trim.uasset": {
+      "bytes": 4408,
+      "sha256": "91f6078ad95f0a7f65451547f0f5a2eb2065ad276c763995a89ddbee91f15141"
+    },
+    "Materials/MI_B49B61_Trim.uasset": {
+      "bytes": 4408,
+      "sha256": "97b832b614949f53d277288256c6933e30247dc99c0d5ec2ce8f3e8541d84616"
+    },
+    "Materials/MI_B4AB95_Hair.uasset": {
+      "bytes": 4400,
+      "sha256": "4a669ac775b0d563d73a4275c6f55dd951af51979bb99169ba056c12017b1f10"
+    },
+    "Materials/MI_B68E70_Skin.uasset": {
+      "bytes": 4400,
+      "sha256": "d17f316328211812d89bd48605a75ac0286ad058e282619aab70162dd582aac2"
+    },
+    "Materials/MI_B9A673_Trim.uasset": {
+      "bytes": 4408,
+      "sha256": "54ad08a61f2921386dc821d4757bb049afeb2c24082b02727ebd71d698e42165"
+    },
+    "Materials/MI_B9AC8B_Trim.uasset": {
+      "bytes": 4408,
+      "sha256": "560e40942e7e612ac8c36b43988196d6d6239b9cb3d30f79275fbbb0ee8f0633"
+    },
+    "Materials/MI_B9B09C_Hair.uasset": {
+      "bytes": 4400,
+      "sha256": "092cf16023b321befcb4ae4f5dd4d27ad38289b7d2c7cf44e3a01a009ba0aec9"
+    },
+    "Materials/MI_BCA467_Trim.uasset": {
+      "bytes": 4408,
+      "sha256": "05b333b0f6682ea6ff8fdd34b162971435f8274a024a289debebe0f9b0209310"
+    },
+    "Materials/MI_BCAD86_Cloth.uasset": {
+      "bytes": 4413,
+      "sha256": "347b620a0ea9e4aa86d093c95ce87e4c5d424b0deb916ac347423719dc7e5088"
+    },
+    "Materials/MI_BD8E72_Skin.uasset": {
+      "bytes": 4400,
+      "sha256": "1798b606a120d02318f3c8dad3e2b483f6844e47975930018d99ec1d5e661e45"
+    },
+    "Materials/MI_BD9A66_Trim.uasset": {
+      "bytes": 4408,
+      "sha256": "1a70f90ed5b1ea2216d58f08d7f011d50b892971ca908da6b7d747902b3f1686"
+    },
+    "Materials/MI_C1A46F_Trim.uasset": {
+      "bytes": 4408,
+      "sha256": "c90f7c81607209f6f248fa3b0ecb1c46aeb146e1edee362f5d75c00182734339"
+    },
+    "Materials/MI_C1B8A3_Hair.uasset": {
+      "bytes": 4400,
+      "sha256": "ff412e7059e03c08d64f00bbc881b499e96679e7b94f1f548a5867503a64e36b"
+    },
+    "Materials/MI_C2B498_Trim.uasset": {
+      "bytes": 4408,
+      "sha256": "d3bc4bc9a34b72191ce2bba2c3094d00bcb456b070fc05f635b8499198c1427f"
+    },
+    "Materials/MI_C6BA99_Trim.uasset": {
+      "bytes": 4408,
+      "sha256": "c5de16ed6e247626378218774cfd5beae7925d0a331e38c733129787a7068bd3"
+    },
+    "Materials/MI_C8AF78_Trim.uasset": {
+      "bytes": 4408,
+      "sha256": "ccfb5f7f9071fca59390cfbc98555cdedfb236ff4a326e766b0748aa482e1496"
+    },
+    "Materials/MI_CCC09A_Trim.uasset": {
+      "bytes": 4408,
+      "sha256": "ab6b474de18a1cde8f09a4ffa0ac01ed9e5ec52adb419dcec9ad9622a214149c"
+    },
+    "Materials/MI_CEC39F_Trim.uasset": {
+      "bytes": 4408,
+      "sha256": "6711296c313b24936628a105aa7db368b55ecc4429fa918745e88ed495ee13e8"
+    },
+    "Materials/MI_D0C5A5_Accent.uasset": {
+      "bytes": 4418,
+      "sha256": "36b58dd6adae14f2357637467cdb332259ada47a85be89ebcd616e6ade0bb583"
+    },
+    "Materials/MI_D1C4A1_Trim.uasset": {
+      "bytes": 4408,
+      "sha256": "9905546f94f2ff913c2ebdea922f69a4f4a60c4a410d71f5153a9a28aec923fa"
+    },
+    "Materials/MI_D2C4A2_Cloth.uasset": {
+      "bytes": 4413,
+      "sha256": "eab0cceb42706f70407798aef6831930a2560ab5444a19672952803a422a5ce5"
+    },
+    "Materials/MI_D5CAAF_Accent.uasset": {
+      "bytes": 4418,
+      "sha256": "2a03246e8b0dca6e0bdda87d4da9ac2e719a35c0e757b0ebe1fb5e9e725bf33c"
+    },
+    "Materials/MI_D6C69B_Paper.uasset": {
+      "bytes": 4405,
+      "sha256": "e05e331933a6b12252e279f4a4d8c153aeec95abdf5940a7d8eff5e40c610788"
+    },
+    "Modules/A_Body/npc_A_Body/SkeletalMeshes/SK_A_Body.uasset": {
+      "bytes": 406591,
+      "sha256": "dfda42a2abec5c81e906a1955f8751c49abd73734e66ce606504e7355656b5af"
+    },
+    "Modules/A_Body/npc_A_Body/SkeletalMeshes/SK_A_Bodyidle.uasset": {
+      "bytes": 146006,
+      "sha256": "ec7b490438f8a923ee6b087b4e0472f0e18886e1ff7eda69e6f59e91a892a18c"
+    },
+    "Modules/A_Body/npc_A_Body/SkeletalMeshes/SK_A_Bodytalk.uasset": {
+      "bytes": 159670,
+      "sha256": "cebf3e4dd4efb3e6994080ea46c63c71d59fc8392b39f4eb202e61f964a6966e"
+    },
+    "Modules/A_Hair_Cropped/npc_A_Hair_Cropped/SkeletalMeshes/SK_A_Hair_Cropped.uasset": {
+      "bytes": 86669,
+      "sha256": "cbce699e36564edd2966658a85aa2131151684e956972b8624894214adbcd144"
+    },
+    "Modules/A_Head/npc_A_Head/SkeletalMeshes/SK_A_Head.uasset": {
+      "bytes": 178466,
+      "sha256": "49362bbdf70b7705b2ab766fdfb28acde3cc4b09dfbef7e9976698ec04c95a08"
+    },
+    "Modules/A_Legs/npc_A_Legs/SkeletalMeshes/SK_A_Legs.uasset": {
+      "bytes": 172658,
+      "sha256": "96e2ca246ee757c529c23d80065551a8833eb581eff15b3163e8fe2f340e0641"
+    },
+    "Modules/A_Outfit_apron/npc_A_Outfit_apron/SkeletalMeshes/SK_A_Outfit_apron.uasset": {
+      "bytes": 75214,
+      "sha256": "ec1c783c739267299df8d70038625a171e4f8825706533e85c68b3f1246ad1be"
+    },
+    "Modules/A_Outfit_coat/npc_A_Outfit_coat/SkeletalMeshes/SK_A_Outfit_coat.uasset": {
+      "bytes": 96870,
+      "sha256": "cb4bb7ed75de1a8af1fd8c56ce8acf5c3d1b66cf1b0af45b74e34e4e02d3c86f"
+    },
+    "Modules/A_Outfit_priest/npc_A_Outfit_priest/SkeletalMeshes/SK_A_Outfit_priest.uasset": {
+      "bytes": 205037,
+      "sha256": "c2858cdaab5e150509a8cc28d72dc1386e2c7de95f937b93e7c92e576fa6ac3b"
+    },
+    "Modules/A_Outfit_ranger/npc_A_Outfit_ranger/SkeletalMeshes/SK_A_Outfit_ranger.uasset": {
+      "bytes": 61995,
+      "sha256": "16111dec4d975337060552b064f95d1332df0207ae61accf2c86a3935a819214"
+    },
+    "Modules/A_Outfit_scholar/npc_A_Outfit_scholar/SkeletalMeshes/SK_A_Outfit_scholar.uasset": {
+      "bytes": 220219,
+      "sha256": "573b8fb04d575c3adea1c0e87b851ca8a9c4468bb4aa375b5b6fdbb3bcc30d4a"
+    },
+    "Modules/A_Outfit_tabard/npc_A_Outfit_tabard/SkeletalMeshes/SK_A_Outfit_tabard.uasset": {
+      "bytes": 105977,
+      "sha256": "fe00f3ffa75748d0311228356ea4106c247477f889b2abc32067382004f737d9"
+    },
+    "Modules/A_Prop_beard/npc_A_Prop_beard/SkeletalMeshes/SK_A_Prop_beard.uasset": {
+      "bytes": 32351,
+      "sha256": "629078de0b372fa58e30a87863ca559c3470de81edeee958b7c67b425f298606"
+    },
+    "Modules/A_Prop_book/npc_A_Prop_book/SkeletalMeshes/SK_A_Prop_book.uasset": {
+      "bytes": 20324,
+      "sha256": "7dd178902cab302d72887bd27c864544643b4e8271fa8e530cb32d4f20ba6e69"
+    },
+    "Modules/A_Prop_bow/npc_A_Prop_bow/SkeletalMeshes/SK_A_Prop_bow.uasset": {
+      "bytes": 49219,
+      "sha256": "b8ef0e6a291ca71b46e216d44b9567e10039e95a6243c5c1d69fcf6e96e23f96"
+    },
+    "Modules/A_Prop_cap/npc_A_Prop_cap/SkeletalMeshes/SK_A_Prop_cap.uasset": {
+      "bytes": 59642,
+      "sha256": "382168bc394acc576c00afaa8291ce0d0a74199fc70e730820d0700ca38b093d"
+    },
+    "Modules/A_Prop_hammer/npc_A_Prop_hammer/SkeletalMeshes/SK_A_Prop_hammer.uasset": {
+      "bytes": 17098,
+      "sha256": "6943d0b6f9a6359cafabd7069e82329436717169778dcc2168020050cfa83db9"
+    },
+    "Modules/A_Prop_hood/npc_A_Prop_hood/SkeletalMeshes/SK_A_Prop_hood.uasset": {
+      "bytes": 85756,
+      "sha256": "99e5bb182ce30cd22c4aee9e4605f9bbed4cf841e984694b9600fbac19d045f6"
+    },
+    "Modules/A_Prop_longbeard/npc_A_Prop_longbeard/SkeletalMeshes/SK_A_Prop_longbeard.uasset": {
+      "bytes": 32647,
+      "sha256": "e74db54483bdeade1d6b35ba7fc8d9d9161ef738e329e7b930a32240090677f4"
+    },
+    "Modules/A_Prop_medallion/npc_A_Prop_medallion/SkeletalMeshes/SK_A_Prop_medallion.uasset": {
+      "bytes": 44207,
+      "sha256": "73819cc0cba7ea40b6fb4ea48a8fcf271a9f6a3aa958815bb94e079c471bf650"
+    },
+    "Modules/A_Prop_satchel/npc_A_Prop_satchel/SkeletalMeshes/SK_A_Prop_satchel.uasset": {
+      "bytes": 54580,
+      "sha256": "1f08804fb1ed40afb9e2a3b12222050ecfd451d101c52f0fcd6446bfd2951c0f"
+    },
+    "Modules/A_Prop_spear/npc_A_Prop_spear/SkeletalMeshes/SK_A_Prop_spear.uasset": {
+      "bytes": 19683,
+      "sha256": "ed3cea15dc4f864d312de5a627996a875f9e00f247602c28d86c54814dd82073"
+    },
+    "Modules/A_Prop_staff/npc_A_Prop_staff/SkeletalMeshes/SK_A_Prop_staff.uasset": {
+      "bytes": 80192,
+      "sha256": "4efaec4565571d300338d35d36bcc7feace909974467cc049a232f01c9e20c11"
+    },
+    "Modules/A_Prop_stole/npc_A_Prop_stole/SkeletalMeshes/SK_A_Prop_stole.uasset": {
+      "bytes": 69471,
+      "sha256": "48a1d37284948d9c436b8b537d7628462322759deff7542ef882f944e702bc48"
+    },
+    "Modules/A_Prop_sword/npc_A_Prop_sword/SkeletalMeshes/SK_A_Prop_sword.uasset": {
+      "bytes": 29061,
+      "sha256": "ff72723e9b90e61b9d869ddf6b9fa9c92fce48dc01d7f3805eef2efabf9689d8"
+    },
+    "Modules/B_Body/npc_B_Body/SkeletalMeshes/SK_B_Body.uasset": {
+      "bytes": 411059,
+      "sha256": "e6d97186682745898753d4501f98f2b02898722654a7ec16ca462faccdbd3bfd"
+    },
+    "Modules/B_Body/npc_B_Body/SkeletalMeshes/SK_B_Bodyidle.uasset": {
+      "bytes": 146015,
+      "sha256": "bad6ea55d61b004c40ac4083f68b9baf6fbdc78821f15d2a537fb374f57813f9"
+    },
+    "Modules/B_Body/npc_B_Body/SkeletalMeshes/SK_B_Bodytalk.uasset": {
+      "bytes": 159679,
+      "sha256": "6807e988951a4db419d11e56bca2ba9182a8b5127506d2174d781f8dcbd92518"
+    },
+    "Modules/B_Hair_Cropped/npc_B_Hair_Cropped/SkeletalMeshes/SK_B_Hair_Cropped.uasset": {
+      "bytes": 86701,
+      "sha256": "05d12170b2b8d09781295a6d592bdd64ce055dff0a97d1d2cfebff07f0c39b25"
+    },
+    "Modules/B_Hair_Tied/npc_B_Hair_Tied/SkeletalMeshes/SK_B_Hair_Tied.uasset": {
+      "bytes": 119273,
+      "sha256": "2c12ecd2ee904e48a73dac2b1c7964c57025e05c1d406b61667e5f222289bb3d"
+    },
+    "Modules/B_Head/npc_B_Head/SkeletalMeshes/SK_B_Head.uasset": {
+      "bytes": 184710,
+      "sha256": "2cf6ccf5c9625bf20f4b3bcaf28c50a4819013bfb4fd3c6d44f69d2371117c42"
+    },
+    "Modules/B_Legs/npc_B_Legs/SkeletalMeshes/SK_B_Legs.uasset": {
+      "bytes": 173514,
+      "sha256": "b49da74d0c21e6a443b56a43ecb9450d775be0b4f5f848660fcc241c1751733d"
+    },
+    "Modules/B_Outfit_coat/npc_B_Outfit_coat/SkeletalMeshes/SK_B_Outfit_coat.uasset": {
+      "bytes": 102813,
+      "sha256": "2be3a28ba08d561d1f43376c5398c3a57d4c627a600a5d6e288544baf9409c5a"
+    },
+    "Modules/B_Outfit_priest/npc_B_Outfit_priest/SkeletalMeshes/SK_B_Outfit_priest.uasset": {
+      "bytes": 206601,
+      "sha256": "ab357b6ee4172d12e0279eecfa280ed90c4ef6deec739d24c1cbd4c084dd71be"
+    },
+    "Modules/B_Outfit_ranger/npc_B_Outfit_ranger/SkeletalMeshes/SK_B_Outfit_ranger.uasset": {
+      "bytes": 62704,
+      "sha256": "fbbfec96c3d3339b816c4f37072edfc1452677c5e41c5e41312ea35aa0a14ffc"
+    },
+    "Modules/B_Outfit_traveller/npc_B_Outfit_traveller/SkeletalMeshes/SK_B_Outfit_traveller.uasset": {
+      "bytes": 51413,
+      "sha256": "e9005a3ef8e8655388995aa4897a9d5b32897651d76d3907ef3aea5e4ed3698a"
+    },
+    "Modules/B_Prop_book/npc_B_Prop_book/SkeletalMeshes/SK_B_Prop_book.uasset": {
+      "bytes": 21122,
+      "sha256": "3022e864661d0431ce4982836cb5b2132bbb8b8281b76f29505ab175e6ddbe75"
+    },
+    "Modules/B_Prop_bottles/npc_B_Prop_bottles/SkeletalMeshes/SK_B_Prop_bottles.uasset": {
+      "bytes": 45861,
+      "sha256": "e7b85e9769d232a406fb3e0a37dd8d5589eb34f7b8aca0882fee3737221b3363"
+    },
+    "Modules/B_Prop_bow/npc_B_Prop_bow/SkeletalMeshes/SK_B_Prop_bow.uasset": {
+      "bytes": 50438,
+      "sha256": "07711ec1f7909d552d477a5ec4bf6f4485bbda1846fbcf98728496e94e8612f3"
+    },
+    "Modules/B_Prop_coif/npc_B_Prop_coif/SkeletalMeshes/SK_B_Prop_coif.uasset": {
+      "bytes": 38806,
+      "sha256": "c7be269a45e146cc254d5d6c9a068a6a11e0bbc2b484eb6096165319dac42830"
+    },
+    "Modules/B_Prop_hood/npc_B_Prop_hood/SkeletalMeshes/SK_B_Prop_hood.uasset": {
+      "bytes": 86584,
+      "sha256": "b83a4d837304b72ff531236ea756c31c45996fd7d4f91685f8856cccfadb07b5"
+    },
+    "Modules/B_Prop_medallion/npc_B_Prop_medallion/SkeletalMeshes/SK_B_Prop_medallion.uasset": {
+      "bytes": 45297,
+      "sha256": "590966da13eccb1a6545ce31d5a09bb971ee2abb5088fc202e5b0e1e35893d01"
+    },
+    "Modules/B_Prop_satchel/npc_B_Prop_satchel/SkeletalMeshes/SK_B_Prop_satchel.uasset": {
+      "bytes": 54484,
+      "sha256": "2e80ff2634869303a6fd0b0ec217f74216f2dd1fe3fea05d83537cff664f3e75"
+    },
+    "Modules/B_Prop_stole/npc_B_Prop_stole/SkeletalMeshes/SK_B_Prop_stole.uasset": {
+      "bytes": 72771,
+      "sha256": "bce3671989e13be352e483ac32d7f0711fb09818aaf561b08e13e569d246ddfe"
+    },
+    "T_base.uasset": {
+      "bytes": 151918,
+      "sha256": "74d580f961a4cad2594be0e78111866a0b7fc08371bc0cba4083619b35023695"
+    },
+    "T_normal.uasset": {
+      "bytes": 114871,
+      "sha256": "db5f4210d81382f485a35e205a728c78eb59d5fba75f32c9af614210adc62b5d"
+    }
+  },
+  "total_bytes": 5407200,
+  "bounds": {
+    "A.Body": {
+      "source_cm": [
+        [
+          -14.22017514705658,
+          -37.63819932937622,
+          82.78793096542358
+        ],
+        [
+          15.629689395427704,
+          37.63819932937622,
+          145.81422805786133
+        ]
+      ],
+      "actual_cm": [
+        [
+          -14.220174789428711,
+          -37.63819885253906,
+          82.78793334960938
+        ],
+        [
+          15.62968921661377,
+          37.63819885253906,
+          145.81422424316406
+        ]
+      ],
+      "max_error_cm": 3.814697265625e-06
+    },
+    "A.Hair.Cropped": {
+      "source_cm": [
+        [
+          -12.436752021312714,
+          -9.87938567996025,
+          161.6602659225464
+        ],
+        [
+          10.947199910879135,
+          10.024809092283249,
+          178.7386178970337
+        ]
+      ],
+      "actual_cm": [
+        [
+          -12.436752319335938,
+          -9.879385948181152,
+          161.66026306152344
+        ],
+        [
+          10.947199821472168,
+          10.024808883666992,
+          178.73861694335938
+        ]
+      ],
+      "max_error_cm": 2.86102294921875e-06
+    },
+    "A.Head": {
+      "source_cm": [
+        [
+          -10.80000028014183,
+          -12.800000607967377,
+          132.00000524520874
+        ],
+        [
+          12.43293285369873,
+          12.800000607967377,
+          174.4069218635559
+        ]
+      ],
+      "actual_cm": [
+        [
+          -10.800000190734863,
+          -12.800000190734863,
+          132.0
+        ],
+        [
+          12.43293285369873,
+          12.800000190734863,
+          174.40692138671875
+        ]
+      ],
+      "max_error_cm": 5.245208740234375e-06
+    },
+    "A.Legs": {
+      "source_cm": [
+        [
+          -9.69497561454773,
+          -19.79381889104843,
+          0.7966211065649986
+        ],
+        [
+          21.7529758810997,
+          19.67928260564804,
+          97.72599935531616
+        ]
+      ],
+      "actual_cm": [
+        [
+          -9.694975852966309,
+          -19.793819427490234,
+          0.7966210842132568
+        ],
+        [
+          21.752975463867188,
+          19.679283142089844,
+          97.72599792480469
+        ]
+      ],
+      "max_error_cm": 1.430511474609375e-06
+    },
+    "A.Outfit.apron": {
+      "source_cm": [
+        [
+          -16.499999165534973,
+          -20.399999618530273,
+          55.892544984817505
+        ],
+        [
+          19.867926836013794,
+          20.399999618530273,
+          146.6413140296936
+        ]
+      ],
+      "actual_cm": [
+        [
+          -16.5,
+          -20.399999618530273,
+          55.89254379272461
+        ],
+        [
+          19.86792755126953,
+          20.399999618530273,
+          146.6413116455078
+        ]
+      ],
+      "max_error_cm": 2.384185791015625e-06
+    },
+    "A.Outfit.coat": {
+      "source_cm": [
+        [
+          -16.139665246009827,
+          -21.999935805797577,
+          48.98357689380646
+        ],
+        [
+          16.79999977350235,
+          21.999935805797577,
+          146.05000019073486
+        ]
+      ],
+      "actual_cm": [
+        [
+          -16.139665603637695,
+          -21.999935150146484,
+          48.983577728271484
+        ],
+        [
+          16.799999237060547,
+          21.999935150146484,
+          146.0500030517578
+        ]
+      ],
+      "max_error_cm": 2.86102294921875e-06
+    },
+    "A.Outfit.priest": {
+      "source_cm": [
+        [
+          -24.25583451986313,
+          -44.71704363822937,
+          7.228844612836838
+        ],
+        [
+          24.298778176307678,
+          44.71704363822937,
+          147.83159494400024
+        ]
+      ],
+      "actual_cm": [
+        [
+          -24.255834579467773,
+          -44.717044830322266,
+          7.22884464263916
+        ],
+        [
+          24.298778533935547,
+          44.717044830322266,
+          147.8315887451172
+        ]
+      ],
+      "max_error_cm": 6.198883056640625e-06
+    },
+    "A.Outfit.ranger": {
+      "source_cm": [
+        [
+          -18.000000715255737,
+          -29.974281787872314,
+          97.85901308059692
+        ],
+        [
+          16.509422659873962,
+          29.974281787872314,
+          148.13857078552246
+        ]
+      ],
+      "actual_cm": [
+        [
+          -18.0,
+          -29.974281311035156,
+          97.85901641845703
+        ],
+        [
+          16.509422302246094,
+          29.974281311035156,
+          148.13856506347656
+        ]
+      ],
+      "max_error_cm": 5.7220458984375e-06
+    },
+    "A.Outfit.scholar": {
+      "source_cm": [
+        [
+          -24.25583451986313,
+          -44.71704363822937,
+          7.228844612836838
+        ],
+        [
+          24.148663878440857,
+          44.71704363822937,
+          148.21648597717285
+        ]
+      ],
+      "actual_cm": [
+        [
+          -24.255834579467773,
+          -44.717044830322266,
+          7.22884464263916
+        ],
+        [
+          24.148664474487305,
+          44.717044830322266,
+          148.21649169921875
+        ]
+      ],
+      "max_error_cm": 5.7220458984375e-06
+    },
+    "A.Outfit.tabard": {
+      "source_cm": [
+        [
+          -17.500001192092896,
+          -31.700000166893005,
+          63.88147473335266
+        ],
+        [
+          18.580302596092224,
+          31.700000166893005,
+          146.10251188278198
+        ]
+      ],
+      "actual_cm": [
+        [
+          -17.500001907348633,
+          -31.700000762939453,
+          63.881473541259766
+        ],
+        [
+          18.580303192138672,
+          31.700000762939453,
+          146.10250854492188
+        ]
+      ],
+      "max_error_cm": 3.337860107421875e-06
+    },
+    "A.Prop.beard": {
+      "source_cm": [
+        [
+          2.2927051410079002,
+          -6.700000166893005,
+          148.03776741027832
+        ],
+        [
+          11.395054310560226,
+          6.700000166893005,
+          161.50000095367432
+        ]
+      ],
+      "actual_cm": [
+        [
+          2.2927050590515137,
+          -6.700000286102295,
+          148.0377655029297
+        ],
+        [
+          11.39505386352539,
+          6.700000286102295,
+          161.5
+        ]
+      ],
+      "max_error_cm": 1.9073486328125e-06
+    },
+    "A.Prop.book": {
+      "source_cm": [
+        [
+          -4.349999874830246,
+          17.749999463558197,
+          91.94999933242798
+        ],
+        [
+          9.200000017881393,
+          27.799999713897705,
+          112.04999685287476
+        ]
+      ],
+      "actual_cm": [
+        [
+          -4.349999904632568,
+          17.75,
+          91.94999694824219
+        ],
+        [
+          9.199999809265137,
+          27.799999237060547,
+          112.04999542236328
+        ]
+      ],
+      "max_error_cm": 2.384185791015625e-06
+    },
+    "A.Prop.bow": {
+      "source_cm": [
+        [
+          -36.000001430511475,
+          -26.08513832092285,
+          50.63810348510742
+        ],
+        [
+          -11.999999731779099,
+          19.499999284744263,
+          157.29999542236328
+        ]
+      ],
+      "actual_cm": [
+        [
+          -36.0,
+          -26.08513832092285,
+          50.63810348510742
+        ],
+        [
+          -12.0,
+          19.5,
+          157.29998779296875
+        ]
+      ],
+      "max_error_cm": 7.62939453125e-06
+    },
+    "A.Prop.cap": {
+      "source_cm": [
+        [
+          -15.399999916553497,
+          -11.699999868869781,
+          169.30999755859375
+        ],
+        [
+          11.992421001195908,
+          11.699999868869781,
+          182.38986730575562
+        ]
+      ],
+      "actual_cm": [
+        [
+          -15.399999618530273,
+          -11.699999809265137,
+          169.30999755859375
+        ],
+        [
+          11.99242115020752,
+          11.699999809265137,
+          182.38986206054688
+        ]
+      ],
+      "max_error_cm": 5.245208740234375e-06
+    },
+    "A.Prop.hammer": {
+      "source_cm": [
+        [
+          -6.199999898672104,
+          -27.000001072883606,
+          81.00000023841858
+        ],
+        [
+          9.799999743700027,
+          -20.999999344348907,
+          113.90000581741333
+        ]
+      ],
+      "actual_cm": [
+        [
+          -6.199999809265137,
+          -27.000001907348633,
+          81.0
+        ],
+        [
+          9.800000190734863,
+          -21.0,
+          113.90000915527344
+        ]
+      ],
+      "max_error_cm": 3.337860107421875e-06
+    },
+    "A.Prop.hood": {
+      "source_cm": [
+        [
+          -18.000000715255737,
+          -14.19592797756195,
+          145.65616846084595
+        ],
+        [
+          12.367472052574158,
+          14.19592797756195,
+          182.74383544921875
+        ]
+      ],
+      "actual_cm": [
+        [
+          -18.0,
+          -14.195927619934082,
+          145.6561737060547
+        ],
+        [
+          12.367471694946289,
+          14.195927619934082,
+          182.74383544921875
+        ]
+      ],
+      "max_error_cm": 5.245208740234375e-06
+    },
+    "A.Prop.longbeard": {
+      "source_cm": [
+        [
+          2.2927051410079002,
+          -6.700000166893005,
+          141.53776168823242
+        ],
+        [
+          11.395054310560226,
+          6.700000166893005,
+          161.50000095367432
+        ]
+      ],
+      "actual_cm": [
+        [
+          2.2927050590515137,
+          -6.700000286102295,
+          141.5377655029297
+        ],
+        [
+          11.39505386352539,
+          6.700000286102295,
+          161.5
+        ]
+      ],
+      "max_error_cm": 3.814697265625e-06
+    },
+    "A.Prop.medallion": {
+      "source_cm": [
+        [
+          6.039628013968468,
+          -7.752187550067902,
+          124.19999837875366
+        ],
+        [
+          17.499999701976776,
+          7.752187550067902,
+          146.14742994308472
+        ]
+      ],
+      "actual_cm": [
+        [
+          6.039628028869629,
+          -7.752187728881836,
+          124.19999694824219
+        ],
+        [
+          17.5,
+          7.752187728881836,
+          146.14743041992188
+        ]
+      ],
+      "max_error_cm": 1.430511474609375e-06
+    },
+    "A.Prop.satchel": {
+      "source_cm": [
+        [
+          1.9999999552965164,
+          -30.899998545646667,
+          74.59999918937683
+        ],
+        [
+          18.598434329032898,
+          18.266960978507996,
+          143.6410427093506
+        ]
+      ],
+      "actual_cm": [
+        [
+          2.0,
+          -30.89999771118164,
+          74.5999984741211
+        ],
+        [
+          18.598434448242188,
+          18.26696014404297,
+          143.6410369873047
+        ]
+      ],
+      "max_error_cm": 5.7220458984375e-06
+    },
+    "A.Prop.spear": {
+      "source_cm": [
+        [
+          3.3125698566436768,
+          -39.59999978542328,
+          4.30000014603138
+        ],
+        [
+          7.6874300837516785,
+          -28.79999876022339,
+          222.00000286102295
+        ]
+      ],
+      "actual_cm": [
+        [
+          3.3125698566436768,
+          -39.599998474121094,
+          4.300000190734863
+        ],
+        [
+          7.687429904937744,
+          -28.799999237060547,
+          222.0
+        ]
+      ],
+      "max_error_cm": 2.86102294921875e-06
+    },
+    "A.Prop.staff": {
+      "source_cm": [
+        [
+          3.1999997794628143,
+          -42.69999861717224,
+          4.30000014603138
+        ],
+        [
+          7.789970934391022,
+          -25.708553194999695,
+          209.36603546142578
+        ]
+      ],
+      "actual_cm": [
+        [
+          3.1999998092651367,
+          -42.69999694824219,
+          4.300000190734863
+        ],
+        [
+          7.789970874786377,
+          -25.708553314208984,
+          209.36602783203125
+        ]
+      ],
+      "max_error_cm": 7.62939453125e-06
+    },
+    "A.Prop.stole": {
+      "source_cm": [
+        [
+          2.131046913564205,
+          -14.59999829530716,
+          44.99339759349823
+        ],
+        [
+          22.997717559337616,
+          14.504610002040863,
+          146.85591459274292
+        ]
+      ],
+      "actual_cm": [
+        [
+          2.131047010421753,
+          -14.599998474121094,
+          44.9933967590332
+        ],
+        [
+          22.997716903686523,
+          14.504610061645508,
+          146.8559112548828
+        ]
+      ],
+      "max_error_cm": 3.337860107421875e-06
+    },
+    "A.Prop.sword": {
+      "source_cm": [
+        [
+          -12.537017464637756,
+          -31.283873319625854,
+          42.555928230285645
+        ],
+        [
+          11.999999731779099,
+          -15.51612764596939,
+          119.50000524520874
+        ]
+      ],
+      "actual_cm": [
+        [
+          -12.537017822265625,
+          -31.283872604370117,
+          42.55592727661133
+        ],
+        [
+          12.0,
+          -15.516127586364746,
+          119.50000762939453
+        ]
+      ],
+      "max_error_cm": 2.384185791015625e-06
+    },
+    "B.Body": {
+      "source_cm": [
+        [
+          -13.442365825176239,
+          -35.75615584850311,
+          79.06227707862854
+        ],
+        [
+          14.886635541915894,
+          35.75615584850311,
+          139.29362297058105
+        ]
+      ],
+      "actual_cm": [
+        [
+          -13.442365646362305,
+          -35.75615692138672,
+          79.0622787475586
+        ],
+        [
+          14.886635780334473,
+          35.75615692138672,
+          139.2936248779297
+        ]
+      ],
+      "max_error_cm": 1.9073486328125e-06
+    },
+    "B.Hair.Cropped": {
+      "source_cm": [
+        [
+          -11.814913898706436,
+          -9.385417401790619,
+          154.38555479049683
+        ],
+        [
+          10.399840027093887,
+          9.523569792509079,
+          170.69555521011353
+        ]
+      ],
+      "actual_cm": [
+        [
+          -11.814913749694824,
+          -9.385416984558105,
+          154.38555908203125
+        ],
+        [
+          10.399840354919434,
+          9.52357006072998,
+          170.695556640625
+        ]
+      ],
+      "max_error_cm": 4.291534423828125e-06
+    },
+    "B.Hair.Tied": {
+      "source_cm": [
+        [
+          -11.969999969005585,
+          -9.385417401790619,
+          153.6525011062622
+        ],
+        [
+          10.399840027093887,
+          9.523569792509079,
+          172.24199771881104
+        ]
+      ],
+      "actual_cm": [
+        [
+          -11.970000267028809,
+          -9.385416984558105,
+          153.65249633789062
+        ],
+        [
+          10.399840354919434,
+          9.52357006072998,
+          172.24200439453125
+        ]
+      ],
+      "max_error_cm": 6.67572021484375e-06
+    },
+    "B.Head": {
+      "source_cm": [
+        [
+          -10.260000079870224,
+          -11.392000317573547,
+          126.06000900268555
+        ],
+        [
+          11.811333894729614,
+          11.392000317573547,
+          166.55809879302979
+        ]
+      ],
+      "actual_cm": [
+        [
+          -10.260000228881836,
+          -11.392000198364258,
+          126.06001281738281
+        ],
+        [
+          11.811333656311035,
+          11.392000198364258,
+          166.55810546875
+        ]
+      ],
+      "max_error_cm": 6.67572021484375e-06
+    },
+    "B.Legs": {
+      "source_cm": [
+        [
+          -9.210226684808731,
+          -18.80412846803665,
+          0.7608067244291306
+        ],
+        [
+          20.66427767276764,
+          18.695317208766937,
+          93.32827925682068
+        ]
+      ],
+      "actual_cm": [
+        [
+          -9.210227012634277,
+          -18.804128646850586,
+          0.7608067393302917
+        ],
+        [
+          20.664278030395508,
+          18.695316314697266,
+          93.32827758789062
+        ]
+      ],
+      "max_error_cm": 1.6689300537109375e-06
+    },
+    "B.Outfit.coat": {
+      "source_cm": [
+        [
+          -15.332682430744171,
+          -20.424939692020416,
+          46.779316663742065
+        ],
+        [
+          15.960000455379486,
+          20.424939692020416,
+          139.4777536392212
+        ]
+      ],
+      "actual_cm": [
+        [
+          -15.332682609558105,
+          -20.42494010925293,
+          46.77931594848633
+        ],
+        [
+          15.960000038146973,
+          20.42494010925293,
+          139.47775268554688
+        ]
+      ],
+      "max_error_cm": 9.5367431640625e-07
+    },
+    "B.Outfit.priest": {
+      "source_cm": [
+        [
+          -23.043042421340942,
+          -42.48119294643402,
+          6.903833895921707
+        ],
+        [
+          23.08383882045746,
+          42.48119294643402,
+          141.17097854614258
+        ]
+      ],
+      "actual_cm": [
+        [
+          -23.04304313659668,
+          -42.48119354248047,
+          6.903833866119385
+        ],
+        [
+          23.083839416503906,
+          42.48119354248047,
+          141.1709747314453
+        ]
+      ],
+      "max_error_cm": 3.814697265625e-06
+    },
+    "B.Outfit.ranger": {
+      "source_cm": [
+        [
+          -17.100000381469727,
+          -26.67711079120636,
+          93.45535635948181
+        ],
+        [
+          15.6839519739151,
+          26.67711079120636,
+          141.47233963012695
+        ]
+      ],
+      "actual_cm": [
+        [
+          -17.100000381469727,
+          -26.67711067199707,
+          93.45535278320312
+        ],
+        [
+          15.683952331542969,
+          26.67711067199707,
+          141.4723358154297
+        ]
+      ],
+      "max_error_cm": 3.814697265625e-06
+    },
+    "B.Outfit.traveller": {
+      "source_cm": [
+        [
+          -20.899999141693115,
+          -29.424750804901123,
+          73.91701936721802
+        ],
+        [
+          17.207753658294678,
+          29.424750804901123,
+          141.47233963012695
+        ]
+      ],
+      "actual_cm": [
+        [
+          -20.899999618530273,
+          -29.42475128173828,
+          73.91702270507812
+        ],
+        [
+          17.207754135131836,
+          29.42475128173828,
+          141.4723358154297
+        ]
+      ],
+      "max_error_cm": 3.814697265625e-06
+    },
+    "B.Prop.book": {
+      "source_cm": [
+        [
+          -4.132499918341637,
+          15.79749882221222,
+          87.81225085258484
+        ],
+        [
+          8.739999681711197,
+          26.409998536109924,
+          107.00774192810059
+        ]
+      ],
+      "actual_cm": [
+        [
+          -4.132499694824219,
+          15.79749870300293,
+          87.81224822998047
+        ],
+        [
+          8.739999771118164,
+          26.409997940063477,
+          107.00774383544922
+        ]
+      ],
+      "max_error_cm": 2.6226043701171875e-06
+    },
+    "B.Prop.bottles": {
+      "source_cm": [
+        [
+          14.630000293254852,
+          -10.164999961853027,
+          83.08500051498413
+        ],
+        [
+          20.520000159740448,
+          10.164999961853027,
+          96.93250060081482
+        ]
+      ],
+      "actual_cm": [
+        [
+          14.630000114440918,
+          -10.164999961853027,
+          83.08499908447266
+        ],
+        [
+          20.520000457763672,
+          10.164999961853027,
+          96.93250274658203
+        ]
+      ],
+      "max_error_cm": 2.1457672119140625e-06
+    },
+    "B.Prop.bow": {
+      "source_cm": [
+        [
+          -34.20000076293945,
+          -23.778221011161804,
+          48.35938811302185
+        ],
+        [
+          -11.400000005960464,
+          17.954999208450317,
+          150.22149085998535
+        ]
+      ],
+      "actual_cm": [
+        [
+          -34.20000076293945,
+          -23.778221130371094,
+          48.3593864440918
+        ],
+        [
+          -11.399999618530273,
+          17.954999923706055,
+          150.22149658203125
+        ]
+      ],
+      "max_error_cm": 5.7220458984375e-06
+    },
+    "B.Prop.coif": {
+      "source_cm": [
+        [
+          -15.366639196872711,
+          -9.52325388789177,
+          146.19011878967285
+        ],
+        [
+          9.434303641319275,
+          9.61858332157135,
+          172.91221618652344
+        ]
+      ],
+      "actual_cm": [
+        [
+          -15.366639137268066,
+          -9.523253440856934,
+          146.19012451171875
+        ],
+        [
+          9.434303283691406,
+          9.618583679199219,
+          172.91221618652344
+        ]
+      ],
+      "max_error_cm": 5.7220458984375e-06
+    },
+    "B.Prop.hood": {
+      "source_cm": [
+        [
+          -17.100000381469727,
+          -13.486132025718689,
+          139.10163640975952
+        ],
+        [
+          11.74909844994545,
+          13.486132025718689,
+          174.52036142349243
+        ]
+      ],
+      "actual_cm": [
+        [
+          -17.100000381469727,
+          -13.48613166809082,
+          139.1016387939453
+        ],
+        [
+          11.749098777770996,
+          13.48613166809082,
+          174.52035522460938
+        ]
+      ],
+      "max_error_cm": 6.198883056640625e-06
+    },
+    "B.Prop.medallion": {
+      "source_cm": [
+        [
+          5.737646669149399,
+          -6.899446994066238,
+          118.61100196838379
+        ],
+        [
+          16.624999046325684,
+          6.899446994066238,
+          139.57079648971558
+        ]
+      ],
+      "actual_cm": [
+        [
+          5.737646579742432,
+          -6.899446964263916,
+          118.61100006103516
+        ],
+        [
+          16.625,
+          6.899446964263916,
+          139.57080078125
+        ]
+      ],
+      "max_error_cm": 4.291534423828125e-06
+    },
+    "B.Prop.satchel": {
+      "source_cm": [
+        [
+          1.899999938905239,
+          -29.354998469352722,
+          71.24300003051758
+        ],
+        [
+          17.66851246356964,
+          16.257596015930176,
+          137.17719316482544
+        ]
+      ],
+      "actual_cm": [
+        [
+          1.899999976158142,
+          -29.354997634887695,
+          71.24299621582031
+        ],
+        [
+          17.66851234436035,
+          16.25759506225586,
+          137.1772003173828
+        ]
+      ],
+      "max_error_cm": 7.152557373046875e-06
+    },
+    "B.Prop.stole": {
+      "source_cm": [
+        [
+          2.024494484066963,
+          -13.86999785900116,
+          42.96869337558746
+        ],
+        [
+          21.847832202911377,
+          13.779379427433014,
+          140.24739265441895
+        ]
+      ],
+      "actual_cm": [
+        [
+          2.0244944095611572,
+          -13.86999797821045,
+          42.968692779541016
+        ],
+        [
+          21.84783172607422,
+          13.779379844665527,
+          140.2473907470703
+        ]
+      ],
+      "max_error_cm": 1.9073486328125e-06
+    }
+  }
+}
