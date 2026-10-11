@@ -214,7 +214,12 @@ struct FHub
     {
         FTransform T=Owner->GetActorTransform();
         auto* A=Shape(Owner->GetActorLabel()+TEXT(".")+Name,T.TransformPosition(P),Size,Hex,false,(T.GetRotation()*R.Quaternion()).Rotator(),Mesh);
-        if(A) A->AttachToActor(Owner,FAttachmentTransformRules::KeepWorldTransform);
+        if(A)
+        {
+            A->AttachToActor(Owner,FAttachmentTransformRules::KeepWorldTransform);
+            if (auto* Npc=Cast<ALHInteractableMarker>(Owner))
+                if (!Npc->RegisterNpcFallback(A)) bOK=false;
+        }
     }
     void Rod(AActor* Owner,const FString& Name,int32 Mesh,double Diameter,FVector Start,FVector End,const FString& Hex)
     {

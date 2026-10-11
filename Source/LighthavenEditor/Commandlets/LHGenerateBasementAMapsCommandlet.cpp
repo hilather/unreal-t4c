@@ -496,6 +496,14 @@ struct FBuilder
         {
             A->Area.Content.Value=TEXT("Area.TempleB1"); A->DefinitionId.Value=Definition;
             A->InstanceId=Guid; A->Tags.Add(TEXT("LH.Service.Bound"));
+            // Same box transform/material/collision as the former anonymous proxy.
+            if (auto* Figure=Actor<AStaticMeshActor>(FString::Printf(TEXT("Geometry_%04d"),GeometryIndex++),(Grid+FVector(0,0,.9))*100))
+            {
+                auto* C=Figure->GetStaticMeshComponent(); C->SetMobility(EComponentMobility::Static);
+                C->SetStaticMesh(Cube); C->SetCollisionProfileName(TEXT("NoCollision"));
+                C->SetCanEverAffectNavigation(false); Figure->SetActorScale3D(FVector(.7,.7,1.8));
+                if (!A->RegisterNpcFallback(Figure)) bOK=false;
+            }
         }
     }
     void B1()
@@ -519,7 +527,6 @@ struct FBuilder
         Box({-12,12,1.7},{.15,.15,.8},false);
         Npc(TEXT("B1.NPC.Nevanis"),TEXT("NPC.Nevanis"),FGuid(0x32a8de01,0x573448aa,0x9fa6de27,0x056614c2),{-25,6,0});
         Npc(TEXT("B1.NPC.Shovanis"),TEXT("NPC.Shovanis"),FGuid(0xc451f507,0xb1d44278,0x8b34a5d0,0x97516bc8),{-25,14,0});
-        Box({-25,6,.9},{.7,.7,1.8},false); Box({-25,14,.9},{.7,.7,1.8},false);
         Mark(TEXT("B1.Healer.ServiceCue"),{-12,12,0},{1,1,1},TEXT("LH.Landmark.Healer"));
         Light(1,2,-20,'N'); Light(2,7.7,-5,'T'); Light(3,9,.4,'T'); Light(4,.4,12,'T');
         Light(5,17.6,12,'T'); Light(6,-12,12,'W'); Light(7,-31.6,10,'N'); Light(8,24,10.3,'T');

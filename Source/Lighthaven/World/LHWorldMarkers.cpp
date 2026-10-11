@@ -22,3 +22,22 @@ bool ALHSpawnMarker::ResolveLife(const FLHAreaRecord& Record,FLHSpawnLifeId& Out
     if (Found) Life=Found->Life;
     Out=Life; return true;
 }
+
+bool ALHInteractableMarker::RegisterNpcFallback(AActor* Figure)
+{
+    if (!IsValid(Figure) || Figure == this || !DefinitionId.Value.ToString().StartsWith(TEXT("NPC."))) return false;
+    if (Figure->GetOwner() && Figure->GetOwner() != this) return false;
+    Figure->SetOwner(this);
+    Figure->Tags.AddUnique(TEXT("LH.NpcFallback"));
+    Figure->Tags.AddUnique(DefinitionId.Value);
+    NpcFallbackFigures.AddUnique(Figure);
+    return true;
+}
+void ALHInteractableMarker::SetNpcFallbackVisible(bool bVisible)
+{
+    for (AActor* Figure : NpcFallbackFigures)
+        if (IsValid(Figure) && Figure->GetOwner() == this &&
+            Figure->ActorHasTag(TEXT("LH.NpcFallback")) && Figure->ActorHasTag(DefinitionId.Value))
+            Figure->SetActorHiddenInGame(!bVisible);
+    // Collision, navigation, interaction identity and transforms are unchanged.
+}

@@ -1,45 +1,47 @@
-# W5-18 — receipt fix and NPC scope checkpoint
+# W5-18b — fallback identity and UI scope checkpoint
 
-Evidence candidate; **partial and blocked**, not an import, build or gameplay acceptance result.
+Evidence candidate: **partial, stopped at an ownership boundary**. This does not satisfy NPC import/binding acceptance.
 
-Task ID: W5-18.
-Base revision: `7728272561214927936f12add7ed21a813ae0ba0` (the canonical attempt baseline, overriding the older ffc2ba7 brief label).
-Result revision: submission candidate containing this report; exact hash is in the submission receipt.
-Contract revision: 1.
-Owned paths changed: `build/build-art.sh`, `docs/implementation/art-npc-import.md`. No binary assets.
+Task ID: W5-18b. Base revision: `17ae743bbf4a70806c491a30760718a3276381c5`. Result revision: the candidate in the submission receipt. Contract revision: 1.
 
-Behavior changed: the build script stages the existing player Python importer in ignored `Saved/ArtExport/import_player.py`, replacing its single compiled-module signature input with `LHPlayerVisual.h`. The importer already hashes `LHPlayerVisual.cpp`, appearance JSON, all eight source exports, its script bytes and the engine version. Import behavior otherwise remains the source importer's behavior. The adapter checks that the expected input occurs exactly once and fails if the upstream layout changes. Generated adapter bytes include the complete original importer, so changes to that importer still invalidate the receipt. Direct invocation of the original player importer continues to have the old behavior; invoke through `build/build-art.sh`.
+Owned paths changed: `Source/Lighthaven/World/LHWorldMarkers.cpp/.h`, hub and Basement A generator NPC placement sections, `Source/LighthavenTests/Visual/Npc/LHNpcFallbackTests.cpp`, this report. No binary assets, receipts, maps, shared schema, gameplay rules or build-script changes.
 
-Source-backed mechanics: none changed.
-Provisional tuning: none introduced.
+## Completed source work
 
-## Scope checkpoint
+Every hub fallback piece is registered with its marker. Nevanis and Shovanis now create their identical fallback cubes in the NPC placement helper and register them there instead of creating two anonymous cubes after the markers. Registration stores explicit actor references on the marker, sets the figure's owner, and adds `LH.NpcFallback` plus the exact `NPC.*` identity tag. It refuses a figure already owned by another actor. Hub's existing attachment call is retained; B1's boxes remain unattached. Ownership/tags avoid requiring a static mesh to attach to a movable marker root.
 
-The retained worker instruction says: “If the right change needs a file outside them, stop and say so in your report.” The NPC portion is stopped at this boundary:
+B1 dimensions, pivot, rotation, cube, NoCollision profile, navigation flag and mobility are the original Box values. Hub geometry/placement recipes are unchanged. Generated geometry counts and cube names retain the same sequence. All initial fallbacks remain visible. Basement B was searched: it has no placed NPCs and needs no NPC placement edit. Existing maps must be regenerated to obtain these explicit references; no proximity-based legacy adoption is provided.
 
-- `Source/LighthavenEditor/Commandlets/LHGenerateBasementAMapsCommandlet.cpp:520–522` creates Nevanis and Shovanis markers, then independently creates their fallback boxes.
-- Its `Box` helper at line 248 creates unrelated `AStaticMeshActor`s named `Geometry_%04d`, carrying generic generation/provenance tags. They have no NPC identity or marker ownership. Attaching a character to the marker would leave the old box visible inside it.
-- The source NPC README explicitly calls out these unattached proxies. Hiding arbitrary geometry by location/shape would couple presentation to incidental generated geometry and could hide other dressing. This report does not implement that heuristic.
+The marker exposes `SetNpcFallbackVisible` for the subsequent imported visual hook. It hides/restores only explicitly registered actors whose current owner and both tags still match. It changes no collision or interaction state. **No production caller hides the figures yet.** The new automation fixture covers ownership, refusal to steal another NPC's figure, preserving transforms/collision/GUID, hiding exactly the owned figure, restoring fallback visibility, and ignoring a stale wrong-owner serialized reference. This is a source fixture, not a passed test or asset-missing integration test.
 
-Smallest requested integrator seam: identify/attach the two fallback actors to their corresponding markers (or add an explicit, persistent NPC fallback identity) in the generator-owned code. Existing generated maps additionally need a deliberately reviewed legacy adoption rule if the no-regeneration requirement remains absolute. Changing the generator alone would not fix an already saved map. Authorize that migration and its fixtures before continuing replacement/fallback work. No generator, marker, interaction, service, save or map was changed here.
+Source-backed mechanics: none changed. Provisional tuning: none introduced; original presentation dimensions are preserved.
+
+## Required seam outside this contract
+
+The retained worker instruction says: “If the right change needs a file outside them, stop and say so in your report.” Talk presentation needs the actual NPC associated with the open dialogue/service UI and reliable closure/screen-transition state. The current API does not expose it:
+
+- `Source/Lighthaven/UI/LHUIPresenter.h`: `Screen()` is public, but `InteractionTarget` is private and has no getter or notification.
+- `Source/Lighthaven/Framework/LHPlayerController.h`: `JournalPresenter` and `JournalWidget` are private with no public access to either active UI state or target.
+- `LHPlayerController.cpp` pauses the world when opening the journal, and closes/resumes it privately. `OnInteractRequested` reports an input request, not accepted UI lifetime; it is also bypassed by the live-session NPC path. Selected target is not authoritative UI ownership.
+
+Smallest integrator seam: add a public read-only controller query returning the actual dialogue/service target (or a presentation-only open/close notification), driven by the presenter's private target and `Screen()`; return no target on every other screen and journal close. The visual component must tick while paused to animate talk in the paused UI. This requires controller/presenter files outside the owned paths. Do not substitute name matching, global pause, selected target, or an input notification for actual UI state. Implementation stopped here; no UI file was modified and no unconnected importer/runtime binding is presented as completed.
 
 ## Checks actually run
 
-UID: 1000. Installed engine and Blender executable paths both exist; lack of installation is **not** claimed.
+UID 1000; pinned engine and Blender executables exist. Canonical attempt brief/input/receipts were read; receipts returned an empty list (no update to acknowledge).
 
-- `bash -n build/build-art.sh`: exit 0.
-- Executed the signature-adapter heredoc, then `python3 -m py_compile Saved/ArtExport/import_player.py`: exit 0.
-- Executed the generated importer's actual signature prefix in a temporary filesystem with a stub Unreal module: exit 0. Changing an unrelated C++ fixture and compiled editor module preserved the signature; changing the helper header invalidated it. Evidence: attempt `library/receipt-check.txt`. This proves dependency selection, **not** unchanged recognition of the committed 49 packages.
-- `UE_ROOT=/home/brewerm/Downloads/unreal BLENDER_ROOT=/home/brewerm/Downloads/blender-5.2.2-linux-x64 LH_ART_PLAYER_ONLY=1 LH_ART_SKIP_EXPORT=1 bash build/build-art.sh`: exit 1 in approximately 0.7 seconds. Missing `artsource/player/output/player_a.glb`; validation stopped before the Unreal importer. This is a deliberately export-skipping prerequisite probe, not a full art pipeline run.
-- Both pinned `Build.sh` invocations were started with Linux Development, `-WaitMutex -DisableAdaptiveUnity -UBASharedMemoryTempFile=true -NoUBA`, local XDG config/UBA paths and the prescribed XML configuration. Editor reached “Using Unreal Build Accelerator local executor to run 18 action(s)” without any completed action being logged; game waited at “Starting shared memory files at 1”. Both were interrupted at the scope checkpoint with exit 130. These are incomplete checks, not compiler failures or successes. No 10-minute stall/retry diagnosis was performed. HOME was not reassigned.
-- `git diff --check`: exit 0. No Content or map pointers were edited.
+- `git diff --check`: exit 0.
+- `bash -n build/build-art.sh`: exit 0; unchanged script.
+- Source audit: 13 hub NPC placements, two B1 placements, zero Basement B placements. All `Content/` `.uasset` and `.umap` files inspected remain LFS pointers. No binary or receipt was generated/committed.
+- Both targets started using the farm XML (non-adaptive unity, UBA executors disabled, shared-memory temp file) and `XDG_CONFIG_HOME=$PWD/Saved/BuildEnvironment/config UBA_ROOT=$PWD/Saved/UBA bash /home/brewerm/Downloads/unreal/Engine/Build/BatchFiles/Linux/Build.sh TARGET Linux Development -Project=$PWD/Lighthaven.uproject -WaitMutex -DisableAdaptiveUnity -UBASharedMemoryTempFile=true -NoUBA`, with TARGET `LighthavenEditor` and `Lighthaven`. Editor reached “Using Unreal Build Accelerator local executor to run 18 action(s)” with no completed compile action; game reached “Starting shared memory files at 1”. Both were interrupted at the scope checkpoint, exit 130. Neither target reported success or compiler failure. No 10-minute stall diagnosis/retry was performed. Exact total build timing was not captured; these were interrupted prerequisite checks, not a timed completed build. HOME was not reassigned.
+- `UE_ROOT=/home/brewerm/Downloads/unreal BLENDER_ROOT=/home/brewerm/Downloads/blender-5.2.2-linux-x64 LH_ART_PLAYER_ONLY=1 LH_ART_SKIP_EXPORT=1 bash build/build-art.sh`: exit 1, missing `artsource/player/output/player_a.glb` in the actual validator. This is a skip-export prerequisite probe, not the full art pipeline. Exact elapsed time was not captured.
 
-Commands and trimmed logs are retained in this attempt's output library. No rendered review, Windows package or play observation is claimed.
+Trimmed build/probe logs are in this attempt's `library/`. No Unreal test execution, rendered review or gameplay result is inferred from source checks.
 
 ## Remaining acceptance work
 
-NPC export/import step, shared skeleton/module assembly, material/texture sharing, four idle/talk clips, hard cook references, marker binding, dialogue/service state observation and fallback tests are **not implemented** at this scope checkpoint. Imported byte totals by asset type and per NPC, ≤8 MB budget, source/import bounds within 0.5 cm, upright imported idle and interaction equivalence are **not measured**. Full headless suite: not run; expected/observed counts unknown, no failure names available. Map generation, arrivals 9/9 and hub cook: not run; no results inferred.
+NPC export/import, shared player skeleton and identical texture reuse, per-module material tinting, hard cook references, idle/talk runtime binding and source/import bounds are **not implemented**. NPC imported bytes: **unmeasured**; no ≤8 MB claim. Full suite: **not run**, expected/observed counts unknown, failure names unavailable. Newly added test: expected one test, observed zero executions. Both-target builds: incomplete. All-map generation, arrivals 9/9, LHValidateWorld zero errors and hub NPC cook: **not run**; current candidate modules must first build and real maps/assets must be generated. Windows checks remain deferred. No Content/map pointer restoration was needed because none changed.
 
-The player signature change has no legacy receipt migration. Existing receipts hash the old compiled module and do not store independently comparable source-input evidence. The new signature therefore differs on first use and may trigger one reimport (or the existing read-only asset guard). **Do not integrate this as satisfying unchanged recognition of already committed packages.** The coordinator needs hydrated packages plus the exact legacy inputs/module, or separately reviewed historical input evidence, to migrate the receipt without falsely endorsing stale imports. This checkout contains LFS pointer packages; no package hashes were fabricated or silently accepted. Subsequent receipts created through the staged importer exclude compiled code, but an actual same-input Unreal skip remains untested.
+Known limitations: the new test covers the fallback ownership helper only, not every generated NPC or actual interaction equivalence. The import pipeline/player receipt behavior remains exactly the W5-18 baseline; this task does not migrate historical receipts. Existing player input exports and NPC output manifest are absent locally. No guessed receipts or packages were written.
 
-Next task/integration notes: resolve the legacy B1 fallback adoption seam and player receipt migration evidence, then finish W5-18 against hydrated/exported inputs and run both targets, full suite, arrivals and cook. Keep the NPC importer signature limited to source exports, importer/native helper source and engine version. No push, merge, receipt or package commit is part of this candidate.
+Next task: integrator supplies/authorizes the exact UI state seam, then resume W5-18b importing the two deduplicated NPC kits with body-specific player skeletons, asset-only receipt evidence, ≤0.5 cm bounds checks and ≤8 MB measured package budget. Finish the production hook and acceptance suite after real source exports and successful builds. Coordinator generates/commits LFS packages and regenerated maps. Do not integrate this checkpoint as a completed NPC replacement.
