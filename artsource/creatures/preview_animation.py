@@ -6,6 +6,7 @@ Gameplay panels use an orthographic crop at 55 degrees down / 45 degrees
  yaw, not the fixed-distance perspective gameplay camera. Each creature gets
 one 20-panel attack PNG and one five-panel idle PNG. No export or bake occurs.
 With --reactions, render only one hit/death sheet per selected creature.
+--attack-only skips idle; --separate-views writes two 5x2 attack sheets.
 """
 import argparse
 import math
@@ -80,10 +81,11 @@ def sheet(kind, poses, views, output, size, samples):
     scene.render.image_settings.compression = 85
     scene.render.resolution_percentage = 100
     scene.view_settings.look = 'AgX - Medium High Contrast'
+    scene.view_settings.exposure = .7
     scene.world.use_nodes = True
     background = scene.world.node_tree.nodes.get('Background')
-    background.inputs['Color'].default_value = (.035, .045, .065, 1)
-    background.inputs['Strength'].default_value = .65
+    background.inputs['Color'].default_value = (.25, .28, .34, 1)
+    background.inputs['Strength'].default_value = .8
     rotations = [(title, view_rotation(elev, yaw).inverted())
                  for title, elev, yaw in views]
     projected = [rotation @ (obj.matrix_world @ vertex.co)
@@ -93,7 +95,7 @@ def sheet(kind, poses, views, output, size, samples):
     hi = Vector(tuple(max(v[i] for v in projected) for i in range(3)))
     center = (lo + hi) * .5
     span = max(hi.x - lo.x, hi.y - lo.y, .1)
-    tile = span * 1.35
+    tile = span * 1.22
     cols = 5
     rows_per_view = math.ceil(len(poses) / cols)
     rows = rows_per_view * len(views)
@@ -125,8 +127,8 @@ def sheet(kind, poses, views, output, size, samples):
     camera.data.ortho_scale = cols * tile
     scene.camera = camera
     objects.append(camera)
-    for direction, energy, color in [((3, -4, 6), 3, (1, .85, .7)),
-                                      ((-4, 2, 4), 1.5, (.65, .8, 1))]:
+    for direction, energy, color in [((3, -4, 6), 3.5, (1, 1, 1)),
+                                      ((-4, 2, 4), 1.5, (.9, .95, 1))]:
         bpy.ops.object.light_add(type='SUN', location=direction)
         sun = bpy.context.object
         sun.data.energy = energy
@@ -146,12 +148,17 @@ def sheet(kind, poses, views, output, size, samples):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--only', choices=roster.KINDS)
+    parser.add_argument('--attack-only', action='store_true', help='Skip idle sheets')
+    parser.add_argument('--separate-views', action='store_true',
+                        help='Write one 5x2 attack sheet per camera')
+    parser.add_argument('--attack-view', choices=('gameplay', 'three_quarter'),
+                        help='Render only this attack camera (bounded single-view job)')
     parser.add_argument('--reactions', action='store_true',
                         help='Render only a combined five-hit/five-death pose sheet')
     parser.add_argument('--output', type=Path,
                         default=Path(__file__).resolve().parent / 'output' / 'w5-20')
     parser.add_argument('--samples', type=int, default=8)
-    parser.add_argument('--size', type=int, default=320, help='Pixels per square panel')
+    parser.add_argument('--size', type=int, default=360, help='Pixels per square panel')
     args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else [])
     if args.samples < 1 or args.size < 64:
         parser.error('--samples must be positive and --size must be at least 64')
@@ -171,13 +178,21 @@ def main():
             print(f'W5-20 source reaction sheet complete: {kind}', flush=True)
             continue
         attack = freeze(mesh, rig, actions['attack'], ATTACK_FRAMES)
-        idle = freeze(mesh, rig, actions['idle'], IDLE_FRAMES)
+        idle = [] if args.attack_only else freeze(mesh, rig, actions['idle'], IDLE_FRAMES)
         mesh.hide_render = True
         rig.hide_render = True
-        sheet(kind, attack, [('gameplay crop 55/45', 55, 45), ('three-quarter 25/45', 25, 45)],
-              args.output / f'{kind}_attack.png', args.size, args.samples)
-        sheet(kind, idle, [('idle three-quarter 25/45', 25, 45)],
-              args.output / f'{kind}_idle.png', args.size, args.samples)
+        views = [('gameplay crop 55/45', 55, 45), ('three-quarter 25/45', 25, 45)]
+        if args.separate_views or args.attack_view:
+            for name, view in zip(('gameplay', 'three_quarter'), views):
+                if args.attack_view and name != args.attack_view:
+                    continue
+                sheet(kind, attack, [view], args.output / f'{kind}_attack_{name}.png',
+                      args.size, args.samples)
+        else:
+            sheet(kind, attack, views, args.output / f'{kind}_attack.png', args.size, args.samples)
+        if idle:
+            sheet(kind, idle, [('idle three-quarter 25/45', 25, 45)],
+                  args.output / f'{kind}_idle.png', args.size, args.samples)
         print(f'W5-20 source sheets complete: {kind}', flush=True)
 
 

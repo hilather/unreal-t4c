@@ -665,3 +665,228 @@ and re-import the five actions for all eleven existing skeletons, keeping game
 capsules and authority timing unchanged. Measure actual compressed animation
 bytes and the **hard 25 MB total imported-creature limit**, and replay attacks
 against a target at the isometric camera before accepting the result.
+
+# W5-20b — second creature attack pass candidate
+
+Task **W5-20b**, contract revision **1**, base
+`dba5b7c615cd13ab2508ff53a717408b31388657`. Result revision is the commit
+containing this appendix; the attempt report and submission receipt identify it.
+Owned paths are `artsource/creatures/` (scripts) and this appendix. This is
+Blender evidence for review, not visual acceptance, Unreal integration or a gate.
+
+## Motion changes and preserved interfaces
+
+[animation_attack_second.py](../../artsource/creatures/animation_attack_second.py)
+now supplies the rat, spider and four bat attacks;
+[animation_humanoids_second.py](../../artsource/creatures/animation_humanoids_second.py)
+supplies goblin, goblin warrior and atrocity. The existing animation dispatch
+retains the original slime and Balork attack bodies exactly. All non-attack
+animation functions and geometry/material/build source files are unchanged.
+Balork's idle is also unchanged. New angles, curves, translations, envelopes,
+review lighting and diagnostic thresholds are **Prototype presentation tuning:
+W5-20b / LH_Prototype_v1 / 2026-10-11 / source_url null**. No mechanics changed.
+
+- **Spider:** thorax translates up 31 cm and pitches back about 34° in the
+  held preparation. Both front leg pairs reach high and wide, with ankle
+  targets 92/75 cm above rest. The whole body travels from −13 to +26 cm
+  along the target axis, the head adds 10 cm, forelegs stab down at f30,
+  and the abdomen kicks upward into f32. Rear leg placement uses the existing
+  joints, preserving joint lengths and hip connections.
+- **Rat:** body translation changes from −11 cm at the haunch coil to +19 cm
+  at contact, with another 4.5 cm of head thrust. The jaw opens before f30
+  and closes at contact. Three delayed tail joints whip through, and a raised
+  backward hop follows the bite before f42 returns to rest.
+- **Goblins:** body pitch/yaw and hip translation now drive the shoulder turn,
+  neck lead, advancing foot and follow-through. The ordinary goblin levels and
+  thrusts its spear; the warrior coils into a high overhead chop. The body
+  shifts −13 to +16 cm with approximately 35–40° of opposing wind-up yaw and
+  28° at contact. Existing weapon/hand solves retain their rigid grip offsets.
+- **Atrocity:** a slower coil shifts the body −16 cm, then the strike drives it
+  +20 cm with about 22° forward lean. Asymmetric claw preparation leads into
+  a broad rake, 20% body overshoot at f33, and a slower recovery. The arm
+  elevation was corrected after an early pose drove the claws below the floor.
+- **Bats:** greater forward travel and a visible drop/rebound accompany the
+  bite. Ordinary bat rebounds at f36; dungeon bat prepares earlier and
+  rebounds at f35; giant bat hangs in its heavier low pose through f33 and
+  rebounds later at f38; undead bat has arrested holds, abrupt pulses and a
+  small left/right wing delay. Body proportions remain unchanged.
+
+The humanoids have **one existing spine/body bone**, so hips and upper torso
+cannot counter-rotate independently as Balork's hip/chest rig can. Larger
+whole-body pitch/yaw, head lead and connected leg placement improve the pose
+without claiming a new articulated spine. All IK here is an authoring-time
+analytic solve baked to existing joints; no constraints or bones are exported.
+
+Contact remains **f30 / 1.0 s**, attack end **f42 / 1.4 s**, at **30 fps**.
+Idle/move remain 60/24 frames with closed endpoints; hit/death retain 18/60
+frames and the f45–60 death hold. Floor roots, action names, bone hierarchy,
+sockets, rest sizes and geometry are retained. The authored contact key does
+not certify authoritative in-game collision timing.
+
+## Numerical motion guard and presentation clearance
+
+[audit_attack_readability.py](../../artsource/creatures/audit_attack_readability.py)
+measures every deforming bone head/tail at rest f0, wind-up f28, impact f30,
+and diagnostic follow-through f32. The table reports the largest endpoint
+change over the three rest/wind/impact pairs, plus the body/head subset so a
+weapon or tail alone cannot stand in for body involvement. It also software
+rasterizes the evaluated mesh triangles at 160² in both review camera angles,
+using fixed framing for all three poses. Silhouette change is **1 − IoU**
+(0 = identical occupied pixels; 100% = disjoint). This mask is an orthographic
+geometry diagnostic, not a measurement of lit pixels in the contact-sheet PNG.
+
+The prototype motion floor is 10% of the largest rest extent overall and 8%
+of rest height for the core. Slime's horizontal body-bone endpoints miss its
+vertical squash/stretch, so its guard uses at least 20% silhouette change.
+Small results fail the audit. These deliberately simple guards also pass the
+W5-20 baseline; **they do not certify animation quality**. The before/after
+values and visual review, rather than a generic numeric pass alone, establish
+what changed. `readability-before.json` and `readability-after.json` retain
+per-pair, per-view and per-bone evidence.
+
+| Creature | Largest bone change before → after (cm) | Core body/head before → after (cm) | Largest silhouette change before → after |
+|---|---:|---:|---:|
+| rat | 19.45 → 46.55 | 11.29 → 46.55 | 63.3% → 99.9% |
+| bat | 54.34 → 82.40 | 13.63 → 42.93 | 97.2% → 100.0% |
+| slime | 4.14 → 4.14 | 4.14 → 4.14 | 27.3% → 27.3% |
+| goblin | 32.58 → 88.47 | 25.97 → 72.19 | 52.5% → 85.5% |
+| giant_spider | 40.56 → 98.34 | 37.26 → 89.10 | 63.5% → 89.6% |
+| balork | 311.46 → 311.46 | 42.30 → 42.30 | 72.2% → 72.2% |
+| goblin_warrior | 59.89 → 94.58 | 25.97 → 70.19 | 52.7% → 84.3% |
+| atrocity | 159.44 → 259.73 | 36.92 → 112.81 | 49.2% → 82.9% |
+| dungeon_bat | 66.01 → 123.20 | 15.02 → 59.17 | 97.2% → 100.0% |
+| giant_bat | 106.32 → 174.83 | 20.38 → 80.47 | 95.3% → 100.0% |
+| undead_bat | 71.13 → 129.48 | 16.03 → 64.78 | 96.3% → 100.0% |
+
+[roster.ATTACK_RULERS](../../artsource/creatures/roster.py) is enlarged for the
+nine revised attacks only. The measured boxes below cover every integer
+attack frame, including weapons, tails and wings. Units are centimetres.
+They are **presentation extents**, not new capsules, nav clearance or damage
+reach. Wider visual intersections with nearby walls/actors need integration
+review. Slime and Balork bounds are unchanged.
+
+| Creature | X min / max | Y min / max | Z min / max |
+|---|---:|---:|---:|
+| rat | -68.80 / 41.94 | -22.00 / 32.05 | 0.10 / 45.93 |
+| bat | -35.25 / 35.53 | -39.67 / 39.94 | 54.32 / 150.68 |
+| slime | -42.79 / 44.07 | -41.11 / 44.58 | 0.00 / 54.37 |
+| goblin | -52.84 / 172.53 | -64.57 / 64.75 | 1.78 / 184.13 |
+| giant_spider | -72.27 / 107.07 | -99.37 / 99.37 | 0.10 / 111.47 |
+| balork | -219.91 / 226.76 | -216.47 / 215.00 | 0.10 / 302.76 |
+| goblin_warrior | -74.35 / 186.57 | -52.75 / 64.75 | 1.78 / 222.00 |
+| atrocity | -94.88 / 157.02 | -132.90 / 127.65 | 0.76 / 215.47 |
+| dungeon_bat | -42.07 / 39.80 | -49.09 / 48.31 | 50.72 / 167.94 |
+| giant_bat | -62.11 / 57.71 | -81.66 / 81.17 | 27.71 / 213.93 |
+| undead_bat | -45.35 / 43.54 | -52.32 / 51.37 | 44.07 / 178.30 |
+
+| Creature | W5-20b glTF animation bytes | Change from W5-20 |
+|---|---:|---:|
+| rat | 34,052 | -1,572 |
+| bat | 25,816 | +48 |
+| slime | 6,728 | +0 |
+| goblin | 42,100 | +396 |
+| giant_spider | 69,956 | +6,800 |
+| balork | 52,384 | +0 |
+| goblin_warrior | 42,100 | +396 |
+| atrocity | 61,532 | +3,468 |
+| dungeon_bat | 26,912 | +72 |
+| giant_bat | 26,728 | +24 |
+| undead_bat | 26,824 | +0 |
+
+The actual unique glTF animation sampler payload is **415,132 bytes**: **+9,632**
+from W5-20, and **+164,924 bytes (0.165 MB)** from the pre-W5-20 total
+of **250,208 bytes** recorded above. The same exporter was used for both
+local W5-20/W5-20b measurements. This meets the approximate +1 MB allowance
+at the exchange-file level only. Actual post-import Unreal compression and
+the 25 MB imported total remain unmeasured in this Blender-only lane.
+
+## Evidence, validation and handoff
+
+The renderer retains the same ten frames **0,12,22,26,28,30,32,35,38,42** and
+angles **55° down / 45° yaw** and **25° / 45°**. Each angle now has a separate
+1800×720 sheet with 360 px panels, tighter framing (1.22 rather than 1.35
+span padding), brighter neutral illumination and +0.7 exposure. These are
+source procedural materials rendered in CPU Cycles, 12 samples with denoising,
+not baked-atlas or Unreal captures. The two angles use fixed framing across
+all ten poses. Camera crops do not enlarge the actual creatures or certify
+readability at the fixed-distance gameplay camera.
+
+Final evidence contains **22 PNGs**, one ten-frame sheet per angle for each
+of eleven creatures. Draft spider/atrocity sheets were overwritten after the
+leg-solve and claw-clearance corrections. Visual review found clear rest,
+wind-up, contact and recovery differences. Near-side raised spider legs still
+overlap its face/thorax at these camera yaws; the far-side outlines separate
+more cleanly. The humanoid trunk remains a little rigid as a single segment,
+even though its much larger turn and lean now drive the strike. These are
+remaining craft limitations, not an assertion of final animation acceptance.
+
+Actually run on Blender **5.2.2 LTS, d13f752e3b9c**, with background/factory
+startup, checkout-local configuration and two-thread jobs:
+
+- Full baseline and candidate source → temporary glTF export → independent
+  Blender re-import audits: **11 creatures, 55 clips, 2,299 source frames and
+  2,299 re-imported frames each**, zero final failures or geometry warnings.
+  Rig/rest geometry hashes and exported hierarchy/skins match baseline.
+  Source/re-import bounds differ by at most **0.0001 cm**. Constant roots,
+  clip names/durations, f30 source keys, closed idle/move endpoints, f45–60
+  death hold and final clearance boxes pass.
+- Both eleven-creature motion/silhouette audits pass their stated prototype
+  floors. Results are before/after measurements, not a visual acceptance test.
+- Bone-only humanoid diagnostics check connected feet, endpoint continuity
+  and limb length through all 43 attack frames; the largest reported limb
+  stretch is within 0.000001 of unity. A separate spider endpoint check found
+  no start/end pose pop. Bone clearance alone is not mesh clearance.
+- Syntax compilation of all creature scripts and `git diff --check` pass.
+  An AST comparison confirms every non-attack animation function and the
+  retained slime/Balork attack bodies are unchanged; byte comparisons confirm
+  all seven build/geometry/material construction files are unchanged.
+
+Animation JSON metadata grows by only **96 bytes** versus W5-20 in addition
+to the sampler payload reported above. No texture rebake was needed, and the
+texture/AO validator was not rerun on these unbaked diagnostic exports.
+
+Several processes ended with **exit 143** without a diagnostic cause: the
+baseline motion audit after five creatures, candidate export audit after
+eight, a bat render batch after its first camera sheets, and one giant-bat
+render startup. Completed records were retained and missing creatures/views
+were rerun as bounded jobs. The merged JSONs record rerun provenance; partial
+runs are not counted as complete passes. Blender socket/deprecation notices
+also occurred. Final files replace interrupted/obsolete evidence.
+
+Reproduce a bounded single-view render (repeat for `three_quarter` and each
+roster stem; omit `--only` only if a longer process is acceptable):
+
+```sh
+XDG_CONFIG_HOME="$PWD/artsource/creatures/.config" \
+ /home/brewerm/Downloads/blender-5.2.2-linux-x64/blender \
+ --background --factory-startup -t 2 --python-exit-code 1 \
+ --python artsource/creatures/preview_animation.py -- --only giant_spider \
+ --attack-only --attack-view gameplay --size 360 --samples 12 \
+ --output "$PWD/artsource/creatures/output/w5-20b"
+```
+
+Run `audit_animation.py -- --output /absolute/after.json --baseline
+/absolute/before.json` for source/export/re-import validation, and
+`audit_attack_readability.py -- --output /absolute/readability.json` for motion
+measurements. Both accept `--only` for bounded jobs and `--source` for the
+baseline source extracted from the declared base revision. Temporary GLBs
+are deleted after auditing. The attempt's `library/` retains the JSONs,
+final sheets and SHA-256 evidence manifest; no renders, GLBs or textures are
+committed. No downloads, installation or system changes were performed.
+
+Remaining visual limits: the humanoid shoulder masses still move with a
+single rigid spine segment, rat limbs have reduced articulation, and wing
+membranes retain their existing reduced joints. The two-frame commitment
+into contact is deliberately fast and may still look abrupt in playback.
+Static sheets establish distinct poses, not full-speed naturalism. No new
+idle polish, continuous/subframe clearance, terrain foot locking, blend
+transitions or crowded-room clearance is claimed.
+
+Not run: Unreal re-import/compression, editor/build/cook/package/play or
+in-game attack/target playback. Those require a separate integration task
+with `Content/` and runtime-output ownership, which this Blender-only task
+does not have; engine absence is not asserted. Windows remains deferred.
+Next: coordinator reviews the 22 final sheets and wider attack envelopes,
+then the import owner regenerates the affected actions and measures actual
+compressed bytes and the hard **25 MB imported-creature cap**. Preserve game
+capsules, rest scale, sockets and authority-owned hit timing.

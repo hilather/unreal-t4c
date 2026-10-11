@@ -24,22 +24,21 @@ RULERS = {
     'undead_bat': (.3, .3, .55, 1.65, 1.65),
 }
 
-# W5-20: presentation-only attack clearance, measured at all 43 integer
-# frames. The long weapons rotate out of their former narrow forward boxes;
-# tail/wing snaps and the spider's raised forelegs also need a little space.
-# Rest sizes, locomotion, corpses, gameplay capsules and damage reach are NOT
-# derived from this table. Exact sampled bounds are in the W5-20 handoff.
+# W5-20b presentation-only attack clearance; all other rulers are unchanged.
+# These larger boxes cover authored lunges/rearing and weapon sweeps. They do
+# not set capsule dimensions, locomotion limits or gameplay damage reach.
+# Exact integer-frame measured bounds are in the W5-20b implementation handoff.
 # rear, front, half width, animated ceiling (metres)
 ATTACK_RULERS = {
-    'rat': (.675, .225, .22, .35),
-    'bat': (.25, .225, .4, 1.45),
-    'dungeon_bat': (.28, .275, .5, 1.55),
-    'giant_bat': (.425, .425, .85, 1.94),
-    'undead_bat': (.315, .3, .55, 1.65),
-    'goblin': (.45, 1.50, .465, 2),
-    'goblin_warrior': (.5, 1.65, .525, 2.19),
-    'giant_spider': (.65, .86, .85, .92),
-    'atrocity': (.65, 1.43, 1.09, 2.1),
+    'rat': (.70, .45, .35, .50),
+    'bat': (.40, .40, .40, 1.55),
+    'dungeon_bat': (.45, .45, .50, 1.75),
+    'giant_bat': (.65, .60, .85, 2.20),
+    'undead_bat': (.47, .45, .55, 1.85),
+    'goblin': (.55, 1.80, .70, 2.0),
+    'goblin_warrior': (.80, 1.90, .70, 2.30),
+    'giant_spider': (.75, 1.10, 1.05, 1.20),
+    'atrocity': (1.0, 1.80, 1.40, 2.20),
     'balork': (2.21, 2.28, 2.2, 3.1),
 }
 

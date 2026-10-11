@@ -1,4 +1,4 @@
-"""W5-20 animation craft, sampled at 30 fps on the unchanged production rigs.
+"""W5-20 animation craft with W5-20b attack dispatch, sampled at 30 fps on the unchanged production rigs.
 
 Prototype presentation tuning, LH_Prototype_v1, 2026-10-11, source_url null.
 Root, rest geometry, socket hierarchy, clip spans and the f30 impact stay fixed.
@@ -92,85 +92,22 @@ def weapon_pose(b, location, angles, big=False):
 
 
 def attack(kind,b,f):
+    import animation_attack_second
+    if animation_attack_second.attack(kind,b,f):
+        return
+    if kind in ('goblin', 'goblin_warrior', 'atrocity'):
+        import animation_humanoids_second
+        animation_humanoids_second.attack(kind,b,f)
+        return
     wind=curve(f,[(0,0),(8,.22),(20,.85),(25,1),(28,1),(30,0),(42,0)])
     hit=curve(f,[(0,0),(28,0),(30,1),(32,1),(35,.72),(42,0)])
     lag=curve(f,[(0,0),(12,.15),(26,1),(30,.1),(33,-.65),(37,-.28),(42,0)])
-    if kind=='rat':
-        move(b['body'],(-.012*wind+.018*hit,0,-.018*wind+.009*hit))
-        rot(b['body'],(0,-.08*wind+.07*hit,.025*wind-.025*hit))
-        rot(b['head'],(0,-.18*wind+.17*hit,-.045*lag))
-        rot(b['jaw'],(0,curve(f,[(0,0),(18,.18),(28,.55),(30,.035),(32,.035),(36,.12),(42,0)]),0))
-        for i,name in enumerate(('tail','tail_mid','tail_tip')):
-            delayed=curve(f-i,[(0,0),(22,.13),(28,.17),(31,-.21),(34,-.18),(39,0)])
-            rot(b[name],(0,-.035*wind,delayed))
-        offsets={}
-        for side in (-1,1):
-            for prefix in ('front','rear'):
-                name=prefix+str(side)
-                offsets[name]=((.018*hit if prefix=='front' else -.013*hit),0,.02*wind if prefix=='front' else 0)
-                rot(b[name],(0,(.15 if prefix=='front' else -.18)*hit,0))
-        planted(b,offsets,offsets)
-    elif kind in BATS:
-        size={'bat':1,'dungeon_bat':1.12,'giant_bat':1.5,'undead_bat':1.18}[kind]
-        rise=curve(f,[(0,0),(20,.032),(27,.04),(30,-.07),(32,-.085),(36,-.025),(42,0)])*size
-        move(b['body'],(-.012*wind+.028*hit,0,rise))
-        rot(b['body'],(.07*lag,-.20*wind+.30*hit,.045*lag))
-        rot(b['head'],(0,.08*wind-.13*hit,-.04*lag))
-        rot(b['jaw'],(0,curve(f,[(0,0),(22,.20),(28,.48),(30,.02),(32,.02),(37,.10),(42,0)]),0))
-        for s in (-1,1):
-            flap=curve(f,[(0,0),(15,.24),(26,.40),(28,.38),(30,-.55),(32,-.57),(36,.14),(42,0)])
-            rot(b['wing'+str(s)],(s*flap,0,s*.035*lag))
-            tip=curve(f,[(0,0),(19,.12),(28,.34),(30,-.05),(33,-.40),(37,.13),(42,0)])
-            rot(b['wingtip'+str(s)],(s*tip,0,-s*.08*lag))
-    elif kind=='slime':
+    if kind=='slime':
         sx=curve(f,[(0,1),(18,1.06),(25,.77),(28,.73),(30,1.10),(32,1.10),(35,.91),(38,1.025),(42,1)])
         sz=curve(f,[(0,1),(12,.78),(25,1.43),(28,1.50),(30,.48),(32,.45),(35,1.15),(38,.91),(42,1)])
         b['body'].scale=(sx,1-.13*wind,sz)
         move(b['body'],(-.024*wind+.014*hit,0,0))
         rot(b['body'],(0,-.08*wind+.10*hit,.035*lag))
-    elif kind=='giant_spider':
-        move(b['body'],(-.04*wind+.015*hit,0,.075*wind))
-        rot(b['body'],(0,-.24*wind+.08*hit,.035*lag))
-        rot(b['abdomen'],(0,.16*wind-.06*hit,-.06*lag))
-        move(b['head'],(.04*hit,0,0));rot(b['head'],(0,-.08*wind+.15*hit,0))
-        offsets={}
-        for s in (-1,1):
-            for i in range(4):
-                name='leg%d_%s_upper'%(i,s)
-                lift=(.14 if i==0 else .08 if i==1 else 0)*wind
-                offsets[name]=((.028*hit if i<2 else 0),0,lift)
-                rot(b[name],(s*.07*lag if i<2 else 0,-.18*wind if i==0 else 0,0))
-                if i<2:rot(b['leg%d_%s_lower'%(i,s)],(0,.40*wind-.10*hit,0))
-            rot(b['fang'+str(s)],(0,.30*wind-.32*hit,s*.08*wind))
-        planted(b,offsets,offsets)
-    elif kind in ('goblin','goblin_warrior'):
-        warrior=kind=='goblin_warrior'
-        move(b['body'],(-.07*wind+.05*hit,.016*lag,-.06*wind-.018*hit))
-        rot(b['body'],(0,-.10*wind+.17*hit,-.16*wind+.18*hit))
-        rot(b['head'],(0,.06*wind-.09*hit,.10*wind-.08*hit))
-        for s,side in ((1,'L'),(-1,'R')):
-            rot(b['ear_'+side],(s*.13*lag,0,s*.08*lag))
-            rot(b['thigh_'+side],(0,-.15*wind+.14*s*hit,0))
-            rot(b['shin_'+side],(0,.22*wind-.12*s*hit,0))
-        planted(b,['thigh_L','thigh_R'],{'thigh_L':(.085*hit,0,.025*wind),'thigh_R':(-.035*wind,0,0)})
-        if warrior:
-            pitch=curve(f,[(0,0),(16,-.28),(26,-.56),(28,-.50),(30,1.04),(32,1.15),(35,.85),(42,0)])
-            location=(.391-.18*wind+.03*hit,-.30+.10*wind,.758+.19*wind-.045*hit)
-        else:
-            pitch=curve(f,[(0,0),(12,.32),(24,1.00),(28,1.00),(30,1.23),(32,1.23),(35,1.08),(42,0)])
-            location=(.391-.19*wind+.075*hit,-.30+.10*wind,.758+.045*wind-.03*hit)
-        weapon_pose(b,location,(0,pitch,-.08*wind+.06*hit))
-    elif kind=='atrocity':
-        move(b['body'],(-.045*wind+.045*hit,0,-.075*wind))
-        rot(b['body'],(0,-.10*wind+.14*hit,-.24*wind+.24*hit))
-        rot(b['head'],(0,.07*wind-.12*hit,.16*wind-.14*hit))
-        for s,side in ((1,'L'),(-1,'R')):
-            rake=curve(f,[(0,0),(25,0),(28,0),(30,1),(32,1),(35,.65),(42,0)])
-            rot(b['upper_'+side],(-s*.22*wind,-.75*wind+.12*rake,s*.10*wind-s*.18*rake))
-            rot(b['fore_'+side],(0,-.25*wind+.22*rake,-s*.14*rake))
-            rot(b['hand_'+side],(0,.12*wind-.23*rake,s*.10*lag))
-            for j in range(4):rot(b[f'claw_{side}_{j}'],(0,-.14*wind+.28*rake+.025*j*lag,0))
-        planted(b,['thigh_L','thigh_R'],{'thigh_L':(.045*hit,0,0),'thigh_R':(-.035*wind,0,0)})
     elif kind=='balork':
         turn=curve(f,[(0,0),(14,.22),(25,.70),(28,.70),(30,-.48),(32,-.68),(34,-.68),(38,-.24),(42,0)])
         move(b['body'],(-.06*wind+.065*hit,.025*lag,-.10*wind-.04*hit))
