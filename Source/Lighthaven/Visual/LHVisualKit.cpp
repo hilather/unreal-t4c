@@ -1,6 +1,7 @@
 #include "Visual/LHVisualKit.h"
 #include "Visual/LHEnvArtBinding.h"
 #include "Visual/LHB1Lighting.h"
+#include "Visual/LHFloorLighting.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "StaticMeshResources.h"
@@ -359,6 +360,8 @@ void ALHVisualPiece::PostLoad()
     if(!BuiltRecipe.Geometry.IsEmpty()) { const FLHVisualRecipe Copy=BuiltRecipe; Build(Copy); }
     if(const auto* Light=FindComponentByClass<ULHB1TorchLightComponent>())
         Light->LogRuntimeState(TEXT("PostLoad"));
+    if(const auto* Light=FindComponentByClass<ULHFloorFixtureLightComponent>())
+        Light->LogRuntimeState(TEXT("PostLoad"));
 }
 void ALHVisualPiece::OnConstruction(const FTransform& Transform)
 {
@@ -371,6 +374,8 @@ void ALHVisualPiece::BeginPlay()
     // Regenerate dynamic materials and simple collision from serialized source at runtime.
     if(!BuiltRecipe.Geometry.IsEmpty()) { const FLHVisualRecipe Copy=BuiltRecipe; Build(Copy); }
     if(const auto* Light=FindComponentByClass<ULHB1TorchLightComponent>())
+        Light->LogRuntimeState(TEXT("BeginPlay"));
+    if(const auto* Light=FindComponentByClass<ULHFloorFixtureLightComponent>())
         Light->LogRuntimeState(TEXT("BeginPlay"));
 }
 bool ALHVisualPiece::Build(const FLHVisualRecipe& R)
@@ -476,7 +481,7 @@ bool ALHVisualPiece::Build(const FLHVisualRecipe& R)
             ImportedMesh->SetVisibility(true); Mesh->SetVisibility(false);
         }
     }
-    BuiltRecipe=R; UpdateArtClip(); UpdateArtSupport(R); ULHB1TorchLightComponent::Configure(this); return true;
+    BuiltRecipe=R; UpdateArtClip(); UpdateArtSupport(R); ULHB1TorchLightComponent::Configure(this); ULHFloorFixtureLightComponent::Configure(this); return true;
 }
 ALHVisualPiece* LHVisual::SpawnProp(UWorld* World,FName Id,const FTransform& T,ELHVisualStyle Style,bool bDescending)
 {

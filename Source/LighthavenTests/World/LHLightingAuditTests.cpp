@@ -1,8 +1,10 @@
 #include "Misc/AutomationTest.h"
 #include "Visual/LHB1Lighting.h"
+#include "Visual/LHFloorLighting.h"
 #include "Visual/LHVisualKit.h"
 #include "Components/ExponentialHeightFogComponent.h"
 #include "World/LHAreaRegistry.h"
+#include "World/LHWorldMarkers.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Engine/PostProcessVolume.h"
@@ -28,13 +30,15 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHLightingAuditTest,"Lighthaven.World.Lighting
 bool FLHLightingAuditTest::RunTest(const FString& Parameters)
 {
     int32 Index=0;
-    const int32 LandmarkLocal[]={20,12,17,17,13}; // Existing landmark inventory remains intact.
+    const ELHVisualStyle Styles[]={ELHVisualStyle::Church,ELHVisualStyle::B1Cellar,ELHVisualStyle::B2Damp,ELHVisualStyle::B3Crypt,ELHVisualStyle::B4Ritual};
     for(const auto& Area:LHWorld::Registry())
     {
         UPackage* Package=LoadPackage(nullptr,*Area.Map.GetLongPackageName(),LOAD_None);
         UWorld* World=Package?UWorld::FindWorldInPackage(Package):nullptr;
         if(!TestNotNull(*Area.Map.ToString(),World)) { ++Index; continue; }
         int32 Local=0,Sun=0,Sky=0,Exposure=0,Coverage=0,Atmosphere=0,Fixtures=0;
+        const auto* Profile=LHFloorLighting::FindProfile(Styles[Index]);
+        int32 FloorAtmospheres=0, FloorFixtures=0;
         TArray<FVector> CoveragePositions;
         for(TActorIterator<AActor> It(World);It;++It)
         {
@@ -46,6 +50,17 @@ bool FLHLightingAuditTest::RunTest(const FString& Parameters)
                 TestEqual(TEXT("B1 haze bounded opacity"),A->Haze->FogMaxOpacity,.12f);
                 TestEqual(TEXT("B1 warm haze radiance"),A->Haze->FogInscatteringLuminance,FLinearColor(.18f,.125f,.075f));
             }
+            if(auto* A=Cast<ALHFloorAtmosphere>(*It))
+            {
+                ++FloorAtmospheres;
+                TestEqual(TEXT("Floor atmosphere style"),A->Style,Styles[Index]);
+                if(Profile)
+                {
+                    TestEqual(TEXT("Floor haze tint"),A->Haze->FogInscatteringLuminance,Profile->HazeColor);
+                    TestEqual(TEXT("Floor haze opacity"),A->Haze->FogMaxOpacity,Profile->HazeOpacity);
+                    TestFalse(TEXT("No volumetric fog"),A->Haze->bEnableVolumetricFog);
+                }
+            }
             if(auto* Piece=Cast<ALHVisualPiece>(*It))
             {
                 const auto& R=Piece->GetRecipe(); const FString Id=R.Id.ToString();
@@ -54,6 +69,11 @@ bool FLHLightingAuditTest::RunTest(const FString& Parameters)
                 TArray<ULHB1TorchLightComponent*> TorchLights; Piece->GetComponents(TorchLights);
                 TestEqual(TEXT("Exactly one light per B1 fixture, zero elsewhere"),TorchLights.Num(),Eligible?1:0);
                 if(Eligible) ++Fixtures;
+                TArray<ULHFloorFixtureLightComponent*> FloorLights; Piece->GetComponents(FloorLights);
+                const bool FloorEligible=Profile && (Id.EndsWith(TEXT(".Torch")) || Id.EndsWith(TEXT(".Sconce")) ||
+                    (Id.EndsWith(TEXT(".Altar")) && (Index==0 || Index==4)));
+                TestEqual(TEXT("One floor fixture light per eligible recipe"),FloorLights.Num(),FloorEligible?1:0);
+                FloorFixtures+=FloorLights.Num();
             }
             TArray<ULightComponent*> Lights; It->GetComponents(Lights);
             for(auto* C:Lights)
@@ -62,10 +82,15 @@ bool FLHLightingAuditTest::RunTest(const FString& Parameters)
                 if(auto* P=Cast<UPointLightComponent>(C))
                 {
                     ++Local;
-                    const bool bCoverage=It->GetName().StartsWith(TEXT("Coverage_")) || (It->GetName().StartsWith(TEXT("A04_T1")) && It->GetName().Len()==9);
+                    const bool bCoverage=It->Tags.Contains(TEXT("LH.Lighting.RoomFill")) || It->Tags.Contains(TEXT("LH.Lighting.ExteriorFill"));
                     if(bCoverage) { ++Coverage; CoveragePositions.Add(It->GetActorLocation()); }
-                    TArray<UPrimitiveComponent*> Primitives; It->GetComponents(Primitives);
-                    for(auto* Primitive:Primitives) TestEqual(TEXT("Light has no blocking collision"),Primitive->GetCollisionEnabled(),ECollisionEnabled::NoCollision);
+                    // Fixture lights attach to existing visual props. In particular,
+                    // altar collision belongs to the room geometry and must survive.
+                    if(!Cast<ALHVisualPiece>(*It))
+                    {
+                        TArray<UPrimitiveComponent*> Primitives; It->GetComponents(Primitives);
+                        for(auto* Primitive:Primitives) TestEqual(TEXT("Light actor has no blocking collision"),Primitive->GetCollisionEnabled(),ECollisionEnabled::NoCollision);
+                    }
                     TestEqual(TEXT("Local units lumens"),P->IntensityUnits,ELightUnits::Lumens);
                     if(Index==1)
                     {
@@ -75,16 +100,26 @@ bool FLHLightingAuditTest::RunTest(const FString& Parameters)
                         TestTrue(TEXT("B1 bounded pool or room-fill radius"),P->AttenuationRadius<=(Bounce?3000.f:750.f));
                         TestTrue(TEXT("B1 pool or room-fill intensity"),Bounce?P->Intensity==14000.f:(P->Intensity>=450.f && P->Intensity<=1908.f));
                     }
-                    else TestTrue(TEXT("Local intensity Prototype 600..4000 lm"),P->Intensity>=600 && P->Intensity<=4000);
-                    if(Index>1) TestTrue(TEXT("Interior local radius at least 1400cm"),P->AttenuationRadius>=1400);
+                    else if(Profile)
+                    {
+                        TestFalse(TEXT("Floor point lights have no shadows"),P->CastShadows);
+                        TestFalse(TEXT("Lighting cannot affect navigation"),P->CanEverAffectNavigation());
+                        TestTrue(TEXT("Floor local light positive intensity"),P->Intensity>0);
+                        if(bCoverage)
+                        {
+                            TestEqual(TEXT("Room fill height"),float(P->GetComponentLocation().Z),Profile->FillHeight);
+                            TestEqual(TEXT("Room fill specular disabled"),P->SpecularScale,0.f);
+                            TestEqual(TEXT("Room fill radius"),P->AttenuationRadius,Profile->FillRadius);
+                        }
+                    }
                 }
-                else if(Cast<UDirectionalLightComponent>(C)) { ++Sun; TestEqual(TEXT("Sun 3000 lux"),C->Intensity,3000.f); }
+                else if(Cast<UDirectionalLightComponent>(C)) { ++Sun; TestEqual(TEXT("Church subdued daylight lux"),C->Intensity,12.f); }
             }
             TArray<USkyLightComponent*> Skies; It->GetComponents(Skies);
             for(auto* C:Skies)
             {
                 ++Sky; TestEqual(TEXT("Sky movable"),C->Mobility,EComponentMobility::Movable);
-                TestEqual(TEXT("Prototype neutral sky intensity"),C->Intensity,Index==0?.7f:(Index==1?.12f:.8f));
+                TestEqual(TEXT("Prototype neutral sky intensity"),C->Intensity,Profile?Profile->SkyIntensity:.12f);
                 TestFalse(TEXT("Fill casts no shadows"),C->CastShadows);
                 if(Index>0) TestFalse(TEXT("Interior lower hemisphere fill"),C->bLowerHemisphereIsBlack);
                 TestEqual(TEXT("Specified sky cube"),C->SourceType,SLS_SpecifiedCubemap);
@@ -101,10 +136,16 @@ bool FLHLightingAuditTest::RunTest(const FString& Parameters)
                     TestTrue(TEXT("B1 flame bloom"),S.bOverride_BloomIntensity && S.BloomIntensity==.25f);
                     TestTrue(TEXT("B1 vignette"),S.bOverride_VignetteIntensity && S.VignetteIntensity==.2f);
                 }
+                if(Profile)
+                {
+                    TestTrue(TEXT("Floor AO active"),S.bOverride_AmbientOcclusionIntensity && S.AmbientOcclusionIntensity>=.5f);
+                    TestTrue(TEXT("Floor disables Lumen GI"),S.bOverride_DynamicGlobalIlluminationMethod && S.DynamicGlobalIlluminationMethod==EDynamicGlobalIlluminationMethod::None);
+                    TestTrue(TEXT("Floor disables Lumen reflections"),S.bOverride_ReflectionMethod && S.ReflectionMethod==EReflectionMethod::None);
+                }
                 TestTrue(TEXT("Unbound exposure"),PP->bUnbound);
                 TestTrue(TEXT("Manual override"),S.bOverride_AutoExposureMethod && S.AutoExposureMethod==AEM_Manual);
                 TestTrue(TEXT("Physical override"),S.bOverride_AutoExposureApplyPhysicalCameraExposure && S.AutoExposureApplyPhysicalCameraExposure);
-                const float EV=Index==0?10.f:(Index>=3?4.f:2.5f);
+                const float EV=Profile?Profile->EV100:2.5f;
                 TestTrue(TEXT("Physical camera EV"),S.bOverride_CameraISO && S.bOverride_CameraShutterSpeed && S.bOverride_DepthOfFieldFstop && FMath::IsNearlyEqual(FMath::Log2(FMath::Square(S.DepthOfFieldFstop)*S.CameraShutterSpeed*100/S.CameraISO),EV));
                 TestTrue(TEXT("Fixed bounds"),S.bOverride_AutoExposureMinBrightness && S.bOverride_AutoExposureMaxBrightness && S.AutoExposureMinBrightness==EV && S.AutoExposureMaxBrightness==EV);
                 TestTrue(TEXT("Zero bias"),S.bOverride_AutoExposureBias && S.AutoExposureBias==0);
@@ -121,7 +162,10 @@ bool FLHLightingAuditTest::RunTest(const FString& Parameters)
         else
         {
             TestEqual(TEXT("No B1 atmosphere on other floors"),Atmosphere,0);
-            TestEqual(TEXT("Landmark light inventory retained"),Local-Coverage,LandmarkLocal[Index]);
+            TestEqual(TEXT("One floor atmosphere"),FloorAtmospheres,1);
+            TestTrue(TEXT("Fixture pools present"),FloorFixtures>0);
+            TestTrue(TEXT("Static room fills present"),Coverage>0);
+            TestEqual(TEXT("Only fixture, room and player point lights"),Local,FloorFixtures+Coverage+1);
         }
         if(Index>1)
         {
@@ -129,10 +173,10 @@ bool FLHLightingAuditTest::RunTest(const FString& Parameters)
             // Every canonical encounter and entrance needs nearby fill, independently of inventory.
             for(const auto& Spawn:Area.Spawns)
                 TestTrue(*FString::Printf(TEXT("Fill reaches encounter %s"),*Spawn.Alias.ToString()),
-                    CoveragePositions.ContainsByPredicate([&](const FVector& P){return FVector::DistSquared2D(P,Spawn.Anchor.GetLocation())<=FMath::Square(1400.); }));
+                    CoveragePositions.ContainsByPredicate([&](const FVector& P){return FVector::DistSquared2D(P,Spawn.Anchor.GetLocation())<=FMath::Square(double(Profile->FillRadius)); }));
             for(const auto& Entry:Area.Entrances)
                 TestTrue(*FString::Printf(TEXT("Fill reaches entrance %s"),*Entry.Id.LocalId.ToString()),
-                    CoveragePositions.ContainsByPredicate([&](const FVector& P){return FVector::DistSquared2D(P,Entry.SafeTransform.GetLocation())<=FMath::Square(1400.); }));
+                    CoveragePositions.ContainsByPredicate([&](const FVector& P){return FVector::DistSquared2D(P,Entry.SafeTransform.GetLocation())<=FMath::Square(double(Profile->FillRadius)); }));
         }
         TestEqual(TEXT("Directional inventory"),Sun,Index==0?1:0);
         TestEqual(TEXT("One sky"),Sky,1); TestEqual(TEXT("One exposure"),Exposure,1);
@@ -527,5 +571,186 @@ bool FLHB1LoadedGameLightingTest::RunTest(const FString& Parameters)
     World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
     Package->ClearFlags(RF_Standalone);
     TestTrue(TEXT("Isolated game-world context removed"),GEngine->GetWorldContextFromWorld(World)==nullptr);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHFloorLoadedLightingAuditTest,"Lighthaven.World.FloorLoadedGameLightingAudit",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FLHFloorLoadedLightingAuditTest::RunTest(const FString& Parameters)
+{
+    using namespace LHB1LoadedLightingAuditPrivate;
+    const ELHVisualStyle Styles[]={ELHVisualStyle::Church,ELHVisualStyle::B1Cellar,ELHVisualStyle::B2Damp,ELHVisualStyle::B3Crypt,ELHVisualStyle::B4Ritual};
+    // Fixed authored room interiors, independent of fixture inventory. Downward
+    // traces reject obstacles and require the actual walkable receiver at Z=0.
+    struct FGrid {int32 Area,X0,X1,Y0,Y1;};
+    const FGrid Grids[]={
+        {0,100,1500,600,2200},
+        {2,100,1900,-6300,-4700},{2,100,2100,100,1900},{2,-2900,-900,100,1900},{2,4900,6900,4900,6700},
+        {3,1100,2300,-1100,-700},{3,-4300,-2900,2500,3500},{3,-700,900,2500,3500},{3,4300,5700,2500,3500},
+        {4,100,1100,100,1100},{4,-2700,-900,2500,2900},{4,100,2100,3500,4100},{4,100,4100,5500,6700}};
+    int32 Audited=0;
+    for(int32 Index=0;Index<5;++Index)
+    {
+        if(Index==1) continue;
+        const auto& Area=LHWorld::Registry()[Index];
+        const auto* Profile=LHFloorLighting::FindProfile(Styles[Index]);
+        const FString Map=Area.Map.GetLongPackageName();
+        const FString Instance=TEXT("/Temp/FloorLoadedLighting_")+FGuid::NewGuid().ToString(EGuidFormats::Digits);
+        FLinkerInstancingContext Instancing;
+        Instancing.AddPackageMapping(FName(*Map),FName(*Instance));
+        UWorld::WorldTypePreLoadMap.Add(FName(*Instance),EWorldType::Game);
+        UPackage* Package=LoadPackage(CreatePackage(*Instance),*Map,LOAD_None,nullptr,&Instancing);
+        UWorld::WorldTypePreLoadMap.Remove(FName(*Instance));
+        UWorld* World=Package?UWorld::FindWorldInPackage(Package):nullptr;
+        if(!TestNotNull(*FString::Printf(TEXT("%s fresh game map"),*Map),World)) continue;
+        TestEqual(TEXT("Loaded game world"),World->WorldType,EWorldType::Game);
+        TestFalse(TEXT("Fresh game world uninitialized"),World->IsInitialized());
+        int32 PreInit=0;
+        if(World->PersistentLevel)
+            for(AActor* Actor:World->PersistentLevel->Actors)
+            {
+                auto* Piece=Cast<ALHVisualPiece>(Actor); if(!Piece) continue;
+                TArray<ULHFloorFixtureLightComponent*> Lights; Piece->GetComponents(Lights);
+                for(auto* Light:Lights)
+                {
+                    ++PreInit;
+                    TestFalse(TEXT("Fixture never registered before game scene"),Light->IsRegistered());
+                }
+            }
+        TestTrue(TEXT("Serialized fixture recipes actually rebuilt"),PreInit>0);
+        GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(World);
+        World->InitWorld(UWorld::InitializationValues().AllowAudioPlayback(false).CreatePhysicsScene(true)
+            .CreateNavigation(false).CreateAISystem(false).ShouldSimulatePhysics(false));
+        World->UpdateWorldComponents(true,false);
+        World->InitializeActorsForPlay(FURL());
+        for(TActorIterator<AActor> It(World);It;++It) if(!It->HasActorBegunPlay()) It->DispatchBeginPlay();
+        TArray<UPointLightComponent*> Fixtures,Fills;
+        int32 Atmospheres=0;
+        for(TActorIterator<AActor> It(World);It;++It)
+        {
+            if(auto* A=Cast<ALHFloorAtmosphere>(*It))
+            {
+                ++Atmospheres;
+                TestEqual(TEXT("Loaded atmosphere retains floor style"),A->Style,Styles[Index]);
+                TestFalse(TEXT("No pawn hides readability light"),A->ReadabilityFill->IsVisible());
+            }
+            TArray<UPointLightComponent*> Lights; It->GetComponents(Lights);
+            for(auto* Light:Lights)
+            {
+                if(Cast<ULHFloorFixtureLightComponent>(Light)) Fixtures.Add(Light);
+                else if(It->Tags.Contains(TEXT("LH.Lighting.RoomFill")) || It->Tags.Contains(TEXT("LH.Lighting.ExteriorFill"))) Fills.Add(Light);
+                else continue;
+                TestTrue(TEXT("Lighting registered after game initialization"),Light->IsRegistered() && Light->GetWorld()==World && World->Scene!=nullptr);
+                if(FApp::CanEverRender()) TestTrue(TEXT("Lighting render state"),Light->IsRenderStateCreated());
+                TestTrue(TEXT("Visible fixture or fill affects world"),Light->IsVisible() && Light->bAffectsWorld && !Light->GetOwner()->IsHidden());
+                TestFalse(TEXT("No fixture or fill shadow"),Light->CastShadows);
+            }
+        }
+        TestEqual(TEXT("One loaded atmosphere"),Atmospheres,1);
+        TestEqual(TEXT("No fixtures lost across initialization"),Fixtures.Num(),PreInit);
+        TestTrue(TEXT("Actual room fills audited"),Fills.Num()>0);
+        auto Lux=[&](const TArray<UPointLightComponent*>& Lights,FVector Surface,FVector Normal)
+        {
+            double Result=0.;
+            for(const auto* Light:Lights)
+            {
+                const FLinearColor Color(Light->LightColor);
+                const double Weight=.2126*Color.R+.7152*Color.G+.0722*Color.B;
+                Result+=DirectLux(Light->GetComponentLocation(),Surface,Normal,Light->Intensity,Light->AttenuationRadius)*Weight;
+            }
+            return Result;
+        };
+        if(Index==0)
+        {
+            // Every authored NPC face is sampled, independently of light placement.
+            int32 NpcFaces=0;
+            for(TActorIterator<ALHInteractableMarker> It(World);It;++It)
+            {
+                if(!It->DefinitionId.Value.ToString().StartsWith(TEXT("NPC."))) continue;
+                ++NpcFaces;
+                const FVector Face=It->GetActorLocation()+FVector(0,0,150);
+                const FVector Normal=It->GetActorForwardVector();
+                const double FaceLux=Lux(Fixtures,Face,Normal)+Lux(Fills,Face,Normal);
+                TestTrue(*FString::Printf(TEXT("Church NPC %s face receives direct lighting"),*It->DefinitionId.Value.ToString()),FaceLux>.25);
+                AddInfo(FString::Printf(TEXT("Church NPC %s face probe %s normal %s: %.4f direct lux"),*It->DefinitionId.Value.ToString(),*Face.ToString(),*Normal.ToString(),FaceLux));
+            }
+            TestEqual(TEXT("All thirteen authored hub NPC faces audited"),NpcFaces,13);
+            const FVector Wall(800,2390,300),Inward(0,-1,0);
+            const double WallLux=Lux(Fixtures,Wall,Inward)+Lux(Fills,Wall,Inward);
+            TestTrue(TEXT("Church tall north wall receives direct fill"),WallLux>.25);
+            AddInfo(FString::Printf(TEXT("Church fixed tall wall receiver %s: %.4f direct lux"),*Wall.ToString(),WallLux));
+        }
+        if(Index==4)
+        {
+            const FVector AltarTop(1600,7800,120);
+            const double AltarLux=Lux(Fixtures,AltarTop,FVector::UpVector)+Lux(Fills,AltarTop,FVector::UpVector);
+            double NearbyLux=0.;
+            for(const FVector Offset:{FVector(0,-400,0),FVector(-400,0,0),FVector(400,0,0)})
+            {
+                const FVector Floor=FVector(1600,7800,0)+Offset;
+                NearbyLux+=Lux(Fixtures,Floor,FVector::UpVector)+Lux(Fills,Floor,FVector::UpVector);
+            }
+            TestTrue(TEXT("Ritual altar top receives key lighting"),AltarLux>1.);
+            TestTrue(TEXT("Ritual floor around altar receives lighting"),NearbyLux/3.>.25);
+            AddInfo(FString::Printf(TEXT("B4 fixed altar top %.4f direct lux; nearby ritual floor mean %.4f direct lux (does not measure emissive sigil pixels)"),AltarLux,NearbyLux/3.));
+        }
+        int32 PoolReceivers=0,WallReceivers=0;
+        double PoolTotal=0.,WallTotal=0.;
+        for(const auto* Light:Fixtures)
+        {
+            FHitResult Hit;
+            const FVector Flame=Light->GetComponentLocation();
+            if(World->LineTraceSingleByChannel(Hit,Flame-FVector(0,0,20),Flame-FVector(0,0,700),ECC_Visibility)
+                && !Hit.bStartPenetrating && Hit.ImpactNormal.Z>.7 && Hit.ImpactPoint.Z<25.)
+            {
+                ++PoolReceivers;
+                const double Pool=Lux(Fixtures,Hit.ImpactPoint,Hit.ImpactNormal);
+                PoolTotal+=Pool;
+                TestTrue(*FString::Printf(TEXT("%s floor fixture pool >1 direct lux"),*Light->GetOwner()->GetName()),Pool>1.);
+            }
+            auto* Piece=Cast<ALHVisualPiece>(Light->GetOwner());
+            if(Piece && Piece->GetRecipe().Id.ToString().EndsWith(TEXT(".Sconce")))
+            {
+                const FVector Inward=Piece->GetActorQuat().RotateVector(FVector::RightVector);
+                const double Wall=Lux(Fixtures,Flame-Inward*25.5,Inward);
+                ++WallReceivers; WallTotal+=Wall;
+                TestTrue(TEXT("Sconce lights vertical receiver >5 direct lux"),Wall>5.);
+            }
+        }
+        TestTrue(TEXT("Real fixture floor receivers sampled"),PoolReceivers>0);
+        TestTrue(TEXT("Vertical wall receivers sampled"),WallReceivers>0);
+        int32 Candidates=0,Samples=0,Gaps=0,Pools=0;
+        double Total=0.,GapTotal=0.,PoolMean=0.,Minimum=DBL_MAX;
+        for(const auto& Grid:Grids)
+        {
+            if(Grid.Area!=Index) continue;
+            int32 RoomSamples=0; double RoomTotal=0.;
+            for(int32 X=Grid.X0;X<=Grid.X1;X+=100) for(int32 Y=Grid.Y0;Y<=Grid.Y1;Y+=100)
+            {
+                ++Candidates;
+                FHitResult Hit;
+                if(!World->LineTraceSingleByChannel(Hit,FVector(X,Y,80),FVector(X,Y,-100),ECC_Visibility)
+                    || Hit.bStartPenetrating || Hit.ImpactNormal.Z<.7 || FMath::Abs(Hit.ImpactPoint.Z)>5.) continue;
+                const double Warm=Lux(Fixtures,Hit.ImpactPoint,Hit.ImpactNormal);
+                const double Ambient=Lux(Fills,Hit.ImpactPoint,Hit.ImpactNormal);
+                const double Combined=Warm+Ambient;
+                ++Samples; ++RoomSamples; Total+=Combined; RoomTotal+=Combined;
+                Minimum=FMath::Min(Minimum,Combined);
+                if(Warm<.25) {++Gaps; GapTotal+=Combined;}
+                if(Warm>=1.) {++Pools; PoolMean+=Combined;}
+            }
+            TestTrue(TEXT("Fixed authored room yields walkable samples"),RoomSamples>0);
+            AddInfo(FString::Printf(TEXT("%s fixed room [%d,%d]x[%d,%d]: walkable=%d predicted direct colored floor mean=%.4f lux"),*Map,Grid.X0,Grid.X1,Grid.Y0,Grid.Y1,RoomSamples,RoomTotal/FMath::Max(1,RoomSamples)));
+        }
+        TestTrue(TEXT("Substantial independent geometry sampling"),Samples>=Candidates*.7);
+        TestTrue(TEXT("Sparse warm lighting retains gaps"),Gaps>Samples*.05);
+        TestTrue(TEXT("Room fill keeps sampled unoccupied gaps readable"),Gaps>0 && GapTotal/Gaps>=.25);
+        TestTrue(TEXT("Fixed room grid detects warm pools"),Pools>0);
+        AddInfo(FString::Printf(TEXT("%s actual registered fixtures=%d fills=%d candidates=%d walkable=%d fixture floor pool=%.4f vertical wall key=%.4f lux; fixed grid mean=%.4f minimum=%.4f gap mean=%.4f pool mean=%.4f warm gaps=%.3f warm pools=%.3f; EV100=%.2f"),*Map,Fixtures.Num(),Fills.Num(),Candidates,Samples,PoolTotal/FMath::Max(1,PoolReceivers),WallTotal/FMath::Max(1,WallReceivers),Total/FMath::Max(1,Samples),Minimum,GapTotal/FMath::Max(1,Gaps),PoolMean/FMath::Max(1,Pools),double(Gaps)/FMath::Max(1,Samples),double(Pools)/FMath::Max(1,Samples),Profile->EV100));
+        AddInfo(TEXT("Unoccluded direct-lux estimate excludes temperature, finite-source integration, materials, sky, fog, exposure and tone mapping; does not verify rendered pixel means or near-black share."));
+        World->DestroyWorld(false); GEngine->DestroyWorldContext(World); Package->ClearFlags(RF_Standalone);
+        TestTrue(TEXT("Isolated floor world context released"),GEngine->GetWorldContextFromWorld(World)==nullptr);
+        ++Audited;
+    }
+    TestEqual(TEXT("Four fresh non-B1 floors audited"),Audited,4);
     return true;
 }
