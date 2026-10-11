@@ -1,0 +1,375 @@
+{
+  "signature": "c59aadee78510b242c5ee4b2c7df245b72afe365bb0a308db0f4bc1c26d02b77",
+  "assets": {
+    "M_Player.uasset": {
+      "bytes": 8099,
+      "sha256": "40b1304524051b1397179f629e1046b6bb63025c0899ee9dcf9143a80c91b6aa"
+    },
+    "player_a/Cropped/player_a-Cropped/SkeletalMeshes/SK_Cropped.uasset": {
+      "bytes": 176451,
+      "sha256": "990af6137625b2eca9292d12384c1cf0371e0e0e4f7032af6ca2cb5ade0ddf82"
+    },
+    "player_a/Cropped/player_a-Cropped/SkeletalMeshes/SK_Cropped_PhysicsAsset.uasset": {
+      "bytes": 3312,
+      "sha256": "de71a1f6da35abb51bda50763ae21d6eacbaf0c7c7c9a5277018038f4dc63b78"
+    },
+    "player_a/Cropped/player_a-Cropped/SkeletalMeshes/SK_Cropped_Skeleton.uasset": {
+      "bytes": 6723,
+      "sha256": "5fd6624396a828fa6f198e71ccb6b7c39b70a73882f851c2b5387fbcc084a192"
+    },
+    "player_a/MI_Clothing.uasset": {
+      "bytes": 4679,
+      "sha256": "e021b2de03fcf8457b2008de42dcac843eac681b34c2611656734a66815268ed"
+    },
+    "player_a/MI_DeepWarm.uasset": {
+      "bytes": 4679,
+      "sha256": "87f2c5264a43be63df100e0146706e96181c6fe43e46f20ed2fe5600f4cfb714"
+    },
+    "player_a/MI_LightWarm.uasset": {
+      "bytes": 4684,
+      "sha256": "e99d4c734c4bc5285673d30c415ba765906267984e53168849ce377d75b22899"
+    },
+    "player_a/MI_MediumWarm.uasset": {
+      "bytes": 4689,
+      "sha256": "4dfc6e4d678597c89d6967f562f49c89e1a0fda8db7012f584dd1630cce3fba4"
+    },
+    "player_a/T_base.uasset": {
+      "bytes": 321731,
+      "sha256": "75ea1eff6910500ce50b559c5d6fb5298bf032da199a6c96c91acae90ba7dec8"
+    },
+    "player_a/T_normal.uasset": {
+      "bytes": 240962,
+      "sha256": "11696ac1d8c386979635435867dac71fe5805050a56980b66e5415c2c943cb09"
+    },
+    "player_a/T_orm.uasset": {
+      "bytes": 285147,
+      "sha256": "a4c4a9522ed2b9e45f6927f85d8d282eaf41880ba938aac90990eb0b3ceb982f"
+    },
+    "player_a/Tied/player_a-Tied/SkeletalMeshes/SK_Tied.uasset": {
+      "bytes": 211901,
+      "sha256": "41af74c7fae77a690fed83d13cc1351659d45de9ef6743229c1d53a8f5fb7f1b"
+    },
+    "player_a/Tied/player_a-Tied/SkeletalMeshes/SK_Tied_PhysicsAsset.uasset": {
+      "bytes": 3264,
+      "sha256": "ef6c54c0a2504e29db00f4193367083a06ab782d2f2bcbd6cfcb548dbc169b0b"
+    },
+    "player_a/Tied/player_a-Tied/SkeletalMeshes/SK_Tied_Skeleton.uasset": {
+      "bytes": 6675,
+      "sha256": "f49cf427068cc4b4c648996109a710c3cbd8f0f26e1305aeee11df4ced8c0619"
+    },
+    "player_a/body/player_a-body/SkeletalMeshes/SK_body.uasset": {
+      "bytes": 1109428,
+      "sha256": "2f4853ce48ce8dcccfd4b439f5b69eab1850c9be9b8d9aca9644382e029d2aa7"
+    },
+    "player_a/body/player_a-body/SkeletalMeshes/SK_body_PhysicsAsset.uasset": {
+      "bytes": 18122,
+      "sha256": "1c73a9223cfa2c30a52fa7daf33515a415cacd6f47d76b91fade0a9fbdbb56a9"
+    },
+    "player_a/body/player_a-body/SkeletalMeshes/SK_body_Skeleton.uasset": {
+      "bytes": 6675,
+      "sha256": "0924eba6ae940c3de4f3d3fcf765cce5362c26023f598006a83b06145462aac6"
+    },
+    "player_a/body/player_a-body/SkeletalMeshes/SK_bodybow.uasset": {
+      "bytes": 169921,
+      "sha256": "37e92808225f9ecaa87369af2e3c22c4797e69f66790126ae93bd40ab33c945b"
+    },
+    "player_a/body/player_a-body/SkeletalMeshes/SK_bodycast.uasset": {
+      "bytes": 163981,
+      "sha256": "1a6a8494947b6b0af90ec98921c6700af3f434a4dc90559ba098b104e38b8c52"
+    },
+    "player_a/body/player_a-body/SkeletalMeshes/SK_bodydeath.uasset": {
+      "bytes": 163001,
+      "sha256": "aa03310ace7bffa4b966068ee4f9c65b118258e74768fb4505a91a804b7f4384"
+    },
+    "player_a/body/player_a-body/SkeletalMeshes/SK_bodyhit.uasset": {
+      "bytes": 147902,
+      "sha256": "bd9a6f80094d30884c4ef7a8183ae351d29ede54bcec9681c387b35eff7a3b10"
+    },
+    "player_a/body/player_a-body/SkeletalMeshes/SK_bodyidle.uasset": {
+      "bytes": 151981,
+      "sha256": "f9d47df308239c7979b050b8d1f63e4bea26ed35d1059bf38ce6760cbcbce681"
+    },
+    "player_a/body/player_a-body/SkeletalMeshes/SK_bodymelee.uasset": {
+      "bytes": 154937,
+      "sha256": "a0a7076d0753464c90f4670de2c4ff0b79fc53c8c872e4e6720a8561b35dfd7f"
+    },
+    "player_a/body/player_a-body/SkeletalMeshes/SK_bodymove.uasset": {
+      "bytes": 166957,
+      "sha256": "f90bddd78e3127e4db692ae831dadd27914ad58330d08cf2df911590a3d34d16"
+    },
+    "player_a/body/player_a-body/SkeletalMeshes/SK_bodyrun.uasset": {
+      "bytes": 162913,
+      "sha256": "1dfad252bd6a5ef53c14f4ad75a98a218dbc897b4be0fe797a2cb5da4dee885e"
+    },
+    "player_b/Cropped/player_b-Cropped/SkeletalMeshes/SK_Cropped.uasset": {
+      "bytes": 178381,
+      "sha256": "624ad2dbc57e623b91843721f20b86d7d666cca2f0abf6711264af494583fc2b"
+    },
+    "player_b/Cropped/player_b-Cropped/SkeletalMeshes/SK_Cropped_PhysicsAsset.uasset": {
+      "bytes": 3312,
+      "sha256": "5f47136b9fc652758b80a04c5910067f9f4e692ac076bd4499c480c6db6db04f"
+    },
+    "player_b/Cropped/player_b-Cropped/SkeletalMeshes/SK_Cropped_Skeleton.uasset": {
+      "bytes": 6723,
+      "sha256": "76f0fa326088a15626e3a68d204cd91a9eef1ed3fb1e65ed850b64300c5fda1f"
+    },
+    "player_b/MI_Clothing.uasset": {
+      "bytes": 4679,
+      "sha256": "95b9b87e6bfa05ab22251591a0309a09ad8e67865320726952f1db6994566853"
+    },
+    "player_b/MI_DeepWarm.uasset": {
+      "bytes": 4679,
+      "sha256": "2b525139f5a595ff290056a6b668742015d39c58295d9da2874872231b6ab33b"
+    },
+    "player_b/MI_LightWarm.uasset": {
+      "bytes": 4684,
+      "sha256": "e1dbac61bd715e38bd5c4d02822825e44003ba13c75efc5d999e3ce58834e4c0"
+    },
+    "player_b/MI_MediumWarm.uasset": {
+      "bytes": 4689,
+      "sha256": "5e138c1098f539de09a439121253c222fc5ff7611f269985922ac64ec770f7a5"
+    },
+    "player_b/T_base.uasset": {
+      "bytes": 325839,
+      "sha256": "aaddb7a5cc2a90f50ae9ae919aa5bcf7a305797d089a1368a97b9dfe46a83a6e"
+    },
+    "player_b/T_normal.uasset": {
+      "bytes": 249618,
+      "sha256": "a2fa579da36fe7ea51920203e5f9ea39b784ab05ebf83561e99c4c4073aafe58"
+    },
+    "player_b/T_orm.uasset": {
+      "bytes": 288720,
+      "sha256": "f77615999b6b12d2f1fa8f660b8460b80b0f6f3e9316b8efc49f2974afa9487a"
+    },
+    "player_b/Tied/player_b-Tied/SkeletalMeshes/SK_Tied.uasset": {
+      "bytes": 213553,
+      "sha256": "15462b39fb291cdf5376df6b2bca6dc5aaa04360e0913684c3f4160fdefd621c"
+    },
+    "player_b/Tied/player_b-Tied/SkeletalMeshes/SK_Tied_PhysicsAsset.uasset": {
+      "bytes": 3264,
+      "sha256": "f0d94ca45a7c958c344676e4dd5a9a39b864deaf4e16260816a6beab7f90e7ed"
+    },
+    "player_b/Tied/player_b-Tied/SkeletalMeshes/SK_Tied_Skeleton.uasset": {
+      "bytes": 6675,
+      "sha256": "ce9ec64ef55e29bc2d880d204a244af246630cd2c13ed3fef6808a57f40e5450"
+    },
+    "player_b/body/player_b-body/SkeletalMeshes/SK_body.uasset": {
+      "bytes": 1114276,
+      "sha256": "6dd15e9a796169dbe69e507085ef122b2559c7c706addc1babf9f66376e4c4f3"
+    },
+    "player_b/body/player_b-body/SkeletalMeshes/SK_body_PhysicsAsset.uasset": {
+      "bytes": 18122,
+      "sha256": "923ee1e4f815d74530abd18126fadcb6b705e2a536d876cf74f935fd1a918fad"
+    },
+    "player_b/body/player_b-body/SkeletalMeshes/SK_body_Skeleton.uasset": {
+      "bytes": 6675,
+      "sha256": "6194425626d6b2a62aeca4d0b4c6cc8afbfc9dd67648284a2796a4e3665f2282"
+    },
+    "player_b/body/player_b-body/SkeletalMeshes/SK_bodybow.uasset": {
+      "bytes": 169921,
+      "sha256": "d5fe4489607cff12774e9e35ae4b7147885b8346afc9835aad4bbb77019272c1"
+    },
+    "player_b/body/player_b-body/SkeletalMeshes/SK_bodycast.uasset": {
+      "bytes": 163981,
+      "sha256": "a58192838619f4e337d72fa654e77d8cb145e874fe2fec13ddd7e4870acaec35"
+    },
+    "player_b/body/player_b-body/SkeletalMeshes/SK_bodydeath.uasset": {
+      "bytes": 163001,
+      "sha256": "8b2f0893dd4c3009b3eb0cc18c59ab2811161830418ba788a26800c40282ade6"
+    },
+    "player_b/body/player_b-body/SkeletalMeshes/SK_bodyhit.uasset": {
+      "bytes": 147902,
+      "sha256": "97708ceb1543ce5b03df5771273187d890cbf39b4cc39f9bb747c899f5a8b303"
+    },
+    "player_b/body/player_b-body/SkeletalMeshes/SK_bodyidle.uasset": {
+      "bytes": 151981,
+      "sha256": "e2dde48ba16798d7f43cd694113de830d460ecfd3749e65c509a30cbfbf0ffe2"
+    },
+    "player_b/body/player_b-body/SkeletalMeshes/SK_bodymelee.uasset": {
+      "bytes": 154937,
+      "sha256": "4bab16cf22f3c40dd625d84aa5566ec28e2c2cd32dc946e91fe8f87a5c25b163"
+    },
+    "player_b/body/player_b-body/SkeletalMeshes/SK_bodymove.uasset": {
+      "bytes": 166957,
+      "sha256": "f62bd3d6a17b54618d58f1186c3fa053a54e94b3a24dafa25e46b03680094d62"
+    },
+    "player_b/body/player_b-body/SkeletalMeshes/SK_bodyrun.uasset": {
+      "bytes": 162913,
+      "sha256": "07e03145523e5ac02cbae308540d1955a08edcb859bc4422b82a1d0b699d5ed5"
+    }
+  },
+  "total_bytes": 7414296,
+  "by_type": {
+    "Material": 8099,
+    "SkeletalMesh": 3003990,
+    "PhysicsAsset": 49396,
+    "Skeleton": 40146,
+    "MaterialInstanceConstant": 37462,
+    "Texture2D": 1712017,
+    "AnimSequence": 2563186
+  },
+  "bounds": {
+    "player_a/body": {
+      "actual_cm": [
+        [
+          -14.220296859741211,
+          -37.70000076293945,
+          0.79990553855896
+        ],
+        [
+          21.799999237060547,
+          37.70000076293945,
+          174.4255828857422
+        ]
+      ],
+      "source_cm": [
+        [
+          -14.22029733657837,
+          -37.700000405311584,
+          0.7999055087566376
+        ],
+        [
+          21.799999475479126,
+          37.700000405311584,
+          174.4255781173706
+        ]
+      ],
+      "max_error_cm": 4.76837158203125e-06
+    },
+    "player_a/Cropped": {
+      "actual_cm": [
+        [
+          -12.436752319335938,
+          -9.879385948181152,
+          161.66026306152344
+        ],
+        [
+          10.947199821472168,
+          10.024808883666992,
+          178.73861694335938
+        ]
+      ],
+      "source_cm": [
+        [
+          -12.436752021312714,
+          -9.87938567996025,
+          161.6602659225464
+        ],
+        [
+          10.947199910879135,
+          10.024809092283249,
+          178.7386178970337
+        ]
+      ],
+      "max_error_cm": 2.86102294921875e-06
+    },
+    "player_a/Tied": {
+      "actual_cm": [
+        [
+          -12.600000381469727,
+          -9.879386901855469,
+          160.8926239013672
+        ],
+        [
+          10.947199821472168,
+          10.024809837341309,
+          180.3581085205078
+        ]
+      ],
+      "source_cm": [
+        [
+          -12.600000202655792,
+          -9.87938642501831,
+          160.89261770248413
+        ],
+        [
+          10.947199910879135,
+          10.024809837341309,
+          180.35811185836792
+        ]
+      ],
+      "max_error_cm": 6.198883056640625e-06
+    },
+    "player_b/body": {
+      "actual_cm": [
+        [
+          -13.505273818969727,
+          -35.81500244140625,
+          0.7639107704162598
+        ],
+        [
+          20.709999084472656,
+          35.81500244140625,
+          166.57667541503906
+        ]
+      ],
+      "source_cm": [
+        [
+          -13.505274057388306,
+          -35.81500053405762,
+          0.7639107760041952
+        ],
+        [
+          20.709998905658722,
+          35.81500053405762,
+          166.5766716003418
+        ]
+      ],
+      "max_error_cm": 3.814697265625e-06
+    },
+    "player_b/Cropped": {
+      "actual_cm": [
+        [
+          -11.814913749694824,
+          -9.385416984558105,
+          154.38555908203125
+        ],
+        [
+          10.399840354919434,
+          9.52357006072998,
+          170.695556640625
+        ]
+      ],
+      "source_cm": [
+        [
+          -11.814913898706436,
+          -9.385417401790619,
+          154.38555479049683
+        ],
+        [
+          10.399840027093887,
+          9.523569792509079,
+          170.69555521011353
+        ]
+      ],
+      "max_error_cm": 4.291534423828125e-06
+    },
+    "player_b/Tied": {
+      "actual_cm": [
+        [
+          -11.970000267028809,
+          -9.385418891906738,
+          153.65249633789062
+        ],
+        [
+          10.399840354919434,
+          9.523571014404297,
+          172.24200439453125
+        ]
+      ],
+      "source_cm": [
+        [
+          -11.969999969005585,
+          -9.385418891906738,
+          153.6525011062622
+        ],
+        [
+          10.399840027093887,
+          9.523570537567139,
+          172.24199771881104
+        ]
+      ],
+      "max_error_cm": 6.67572021484375e-06
+    }
+  }
+}
