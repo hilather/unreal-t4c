@@ -57,3 +57,144 @@ Initial Automation/editor runs were interrupted by sandbox rejection of engine t
 ## W5-06 lean serialization
 
 Visual pieces retain fitted recipes and placement in saved maps. The procedural mesh is a transient default subobject attached to a persistent scene root; mesh sections and dynamic materials are rebuilt in PostLoad (editor load), OnConstruction (authoring), and BeginPlay (PIE/game). Generator-side Dress still performs label-based fitting and hides the same original surfaces. BasicShapeMaterial remains a hard UPROPERTY reference loaded by the constructor, so cooking can follow its dependency. Geometry coverage now has a headless 16×9/FOV65/60m capture audit. See [W5-06 evidence](map-dressing-w5-06.md) for sizes, load timing, camera changes, test results and remaining limits.
+
+## W5-17 full-height far walls and church dressing (evidence candidate)
+
+Base `ffc2ba7de210f6eabe9cbd87438237f854f5aeee`. Presentation tuning is
+Prototype, `LH_Prototype_v1`, 2026-10-11; no mechanics values introduced.
+
+Axis-aligned wall segments receive a 300 cm fitted Wall400 recipe only when a
+continuous conservative projection of the proposed wall onto **every** authored
+floor envelope is clear. The camera direction comes from pitch -55/yaw45,
+arm1200, capsule center90/head180; northeast is behind the player. Testing all
+floor slabs includes opposite sides of interior partitions, neighboring rooms,
+and ramp elevation bounds. The retained solid wall footprint is excluded from
+walkable centers. Any ambiguity retains a cutaway capped at 120 cm; rotated district
+edges also retain cutaways. B3/B4 originally author visible 500 cm walls, so
+unsafe segments are explicitly reduced to 120 cm presentation. All fitted
+room walls start at ground level, rather than including the collider's
+100 cm underground skirt. This rule is deliberately conservative rather than
+promising two tall sides on every irregular room. Original actors, colliders,
+nav contributions and gameplay transforms are untouched. Imported wall tiling
+retains its upper section rather than stretching a low masonry rim.
+
+The nave RedAisle is now a Church.Carpet recipe at `(800,1050,.1)` with its
+existing 400 x 2100 cm extent. The imported carpet has its own ground-centered
+pivot. Two imported 400 cm supports sit outside the north nave face at
+`(200,2440,0)` and `(1400,2440,0)`, checked against all floor shadows. Entry leaves
+use the existing 160 cm hinge-pivot asset, fold outward from `(640,-15,0)` and
+`(960,-15,0)` at yaw 180 / 0, flat against their respective exterior jambs, and are clipped to 60 cm as foreground cutaways.
+They do not close the 320 cm passage. Cropping preserves the original plank
+scale. Full-height foreground leaves would occlude the aisle and are not used.
+These support and open-leaf placements are prototype interpretations of the
+nave/entry layout, requiring host visual review.
+
+Non-B1 visual sconces within 375 cm of a raised wall mount on its inward face
+at 180 cm. B1 sconces retain their original height/transform because their
+transient torch-light components emit real light. No authored light, exposure,
+post-process or lighting recipe changes. Generator logs identify each raised
+wall reached by a point light's existing attenuation sphere and whether that
+wall intersects a ray from that light to a room-side center probe. This is a
+geometric light inventory, not rendered shadow or luminance evidence.
+
+Capture cameras retain their original transforms unless the target ray crosses
+a new raised wall; a blocked capture moves to a pitch -55/yaw45/1200 cm offset
+from its original target and logs both positions. Generation rejects a still
+blocked replacement. The existing fifteen-camera framing audits remain active.
+
+Five GameplaySight cases independently use cropped imported envelopes as a broad phase, then intersect actual
+LOD0 mesh triangles (or procedural oriented boxes), sampling authored flat and sloped floor planes on a
+50 cm lattice. Centers overlapping authored obstacles expanded by 36 cm are
+excluded; each remaining center receives camera-to-feet and camera-to-head
+rays. This checks geometric walkable centers rather than actual nav projection;
+arrival safety retains the separate physics/nav tests. The audit includes
+existing props, fixtures, cutaways and arches as well as newly tall walls; it
+fails rather than silently filtering inherited occlusion. Procedural fallback intersections remain conservative. The audit does not
+model transparency, shader displacement, transient support meshes or gameplay
+boom retraction, and does not claim rendered pixel visibility. Floor/stair
+surfaces and the ground carpet are excluded from occluders. Exact observed
+results and remaining limitations follow after local checks.
+
+### W5-17 observed checks and unresolved acceptance
+
+Final non-adaptive unity Linux UE 5.8.3 editor/game builds succeeded (exit0;
+editor20.30s after the final leaf placement, game41.43s for unchanged runtime
+sources). UID1000. `build/build-art.sh` exited0; all five environment imports
+and creature import reported unchanged packages. The wrapper also rebuilt player
+art locally; tracked player art was restored from the cached base LFS objects
+before automation, matching the W5-15c test setup. No downloads or system changes.
+All three final generators exited0, producing all five playable maps.
+
+| Map | Pieces | Triangles | Base sections | Dressing blockers | Tagged tall walls |
+|---|---:|---:|---:|---:|---:|
+| Hub | 363 | 1,454,432 | 904 | 0 | 11 |
+| B1 | 269 | 634,048 | 488 | 0 | 35 |
+| B2 | 833 | 1,824,516 | 1,472 | 0 | 126 |
+| B3 | 427 | 1,470,128 | 650 | 0 | 26 |
+| B4 | 221 | 1,006,288 | 440 | 0 | 12 |
+
+Final full automation exported **232 tests: 227 Success (with warnings), 5 Fail,
+0 not run**, exit255, test duration282.854s. The five failures are exactly
+`Lighthaven.World.Dressing.GameplaySight.Area.` followed by
+`LighthavenTempleDistrict`, `TempleB1`, `TempleB2`, `TempleB3`, `TempleB4`.
+Every new-wall/support/leaf ray assertion passed; the stricter assertion against
+**all** dressing failed. The kit catalog, auxiliary Carpet binding, all five map
+budgets/inventories, both framing families (fifteen cameras each), LightingAudit,
+and ArrivalSafety succeeded. No capture target ray crossed a raised wall; all
+fifteen capture positions stayed at the earlier table's coordinates.
+
+| Map | Grid centers | Ray endpoints | Base blocked | Candidate blocked | New walls/supports/leaves blocked |
+|---|---:|---:|---:|---:|---:|
+| Hub | 13,318 | 26,636 | 349 | 348 | 0 |
+| B1 | 6,382 | 12,764 | 113 | 113 | 0 |
+| B2 | 14,498 | 28,996 | 145 | 105 | 0 |
+| B3 | 8,243 | 16,486 | 3,287 | 581 | 0 |
+| B4 | 10,334 | 20,668 | 2,393 | 325 | 0 |
+
+The base comparison loads the exact cached committed playable maps with the same
+triangle audit. Its new-piece inventory assertions intentionally fail because
+base maps contain no new walls/carpet/supports/leaves; the blocked endpoint
+counts above are observations, not a claim that the base passed. Remaining hits
+include existing full arches, barrels/crates/benches/tables/debris, altar and
+fixtures. B1 clutter and floor braziers occupy collision-free walkable space;
+removing or relocating emitting B1 fixtures would also change lighting, which
+this task forbids. Non-B1 fixture mounting reduces some inherited occlusion but
+does not clear the global requirement. Detailed per-piece hit counts are in the
+attempt's `library/sight-comparison.json`. **W5-17 is not acceptance-complete:
+the full suite and all-dressing no-occlusion criterion remain failed.**
+
+A separate read-only PythonScript commandlet inspected point-light-derived
+components (including spotlights and transient B1 torch components) against the
+actual tagged wall envelopes derived from retained source dimensions. It exited0.
+`library/all-light-wall-links.json` identifies the light actor/component, source
+position, wall label/bounds, sphere reach and center-probe intersection for every
+matched pair. Hub/B1/B2/B3/B4 have 9/102/1,041/368/146 matched pairs and
+1/8/89/76/21 intersected center probes. All matched lights have `CastShadows=false`:
+these walls can potentially catch their illumination, but the component settings do not produce
+shadow blocking from those local lights. Sphere/probe tests are conservative;
+spot cones, ambient skylights, runtime movement/flicker, and rendered luminance
+are not measured. No lighting, exposure or post-process settings were edited.
+
+Final arrival evidence has nine PASS IDs/transform hashes matching the unchanged
+ReviewedArrivals bytes exactly. Final `LHValidateWorld` exited0 and logged five-map
+validation passed, **0 errors**,18 warnings,2.44s commandlet time. These are local
+checks, not integration or gate approval. Rendered capture exited1 at preflight:
+no X11/Wayland display. No screenshots, rendered light/shadow review, play,
+package or cook results are claimed. Windows remains deferred. Tracked Content
+and map files are restored to their exact base pointer/blob bytes before submit;
+generated binaries and packages are not part of this candidate.
+
+Initial iterations included an obsolete catalog-count failure (fixed by treating
+Carpet as an auxiliary Church recipe), a triangle-audit variable-shadow compiler
+error (fixed), and two occluded endpoints from outward entry leaves (fixed by
+folding flat against jambs). The final table supersedes those earlier placements.
+The first local orchestration script was interrupted after successful generation
+by an edit while running; checks were rerun with stable commands. A diagnostic
+Python attempt could not read a private recipe property; the completed helper
+uses retained source dimensions instead. All final failures are retained openly.
+
+Next: coordinator review of this partial candidate, scoped cleanup of inherited
+arch/prop/fixture occlusion and a real nav-projected grid, then regeneration,
+full automation/arrival validation and host review of fifteen rendered captures.
+Do not interpret the passing new-piece assertions as completion of the broader
+no-occlusion requirement or visual acceptance.

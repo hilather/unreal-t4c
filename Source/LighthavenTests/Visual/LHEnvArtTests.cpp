@@ -24,8 +24,8 @@ bool FLHEnvArtFitTest::RunTest(const FString&)
         TestFalse(TEXT("Cook folder is explicit"),LHEnvArt::Folder(Style).IsEmpty());
         for(const auto& Name:LHEnvArt::AssetNames(Style))
         {
-            if(Name==TEXT("Carpet") || Name==TEXT("Stair600x120Descending")) continue;
-            const FString Prefix=Name==TEXT("Pillar") || Name==TEXT("DoorLeafPreview")?TEXT("Presentation.Environment.Church."):
+            if(Name==TEXT("Stair600x120Descending")) continue;
+            const FString Prefix=Name==TEXT("Carpet") || Name==TEXT("Pillar") || Name==TEXT("DoorLeafPreview")?TEXT("Presentation.Environment.Church."):
                 Name==TEXT("ArchBoss500")?TEXT("Presentation.Environment.Basement."):TEXT("Presentation.Environment.Shared.");
             FLHVisualRecipe R; LHEnvArt::FFit Fit;
             TestTrue(*Name,LHVisual::MakeRecipe(FName(*(Prefix+Name)),Style,R));
