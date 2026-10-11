@@ -198,3 +198,158 @@ arch/prop/fixture occlusion and a real nav-projected grid, then regeneration,
 full automation/arrival validation and host review of fifteen rendered captures.
 Do not interpret the passing new-piece assertions as completion of the broader
 no-occlusion requirement or visual acceptance.
+
+## W5-17c gameplay sight rule (evidence candidate)
+
+Base `17ae743bbf4a70806c491a30760718a3276381c5`, contract revision 1.
+Presentation dimensions remain Prototype `LH_Prototype_v1`, 2026-10-11,
+source URL null. No game-mechanics numbers or lighting settings change.
+
+The gameplay audit now rejects a point only when **both** independently traced
+head and feet endpoints are blocked, including by different dressing pieces.
+Partial foot hiding remains allowed. The original independent zero-block rule
+for tagged tall walls, supports and door leaves remains unchanged. The 50 cm
+lattice, ramp plane elevations, 36 cm obstacle exclusion, camera offset,
+triangle intersections and clipping semantics are retained, so endpoint shares
+are directly comparable with W5-17. Integer cross multiplication compares the
+per-map blocked share without rounded percentages. The ceiling is tightened to
+the observed post-fix counts, rather than allowing regression back to W5-17.
+
+The unmodified-source/regenerated-map diagnostic reproduced every supplied
+W5-17 blocked count. Fully hidden points were Hub32, B1 5, B2 1, B3 114, B4 48.
+Every such point included an arch. One B3 sconce and one B4 crate contributed in
+combination with arches; no fixture-only full hiding was observed. There was
+also an accidental second Wall400 visual over each automatically dressed
+lintel: the arch branch fell through to the wall branch. Those 29 duplicate
+visuals are omitted; their original hidden structural actors, colliders and nav
+remain intact. No actor/marker gameplay transform or light-carrying fixture is
+moved. The tall-wall count and fixture placement inputs remain unchanged.
+
+Arches whose conservative continuous camera shadow overlaps an authored floor
+become 120 cm foreground cutaways; clear-shadow arches retain their height.
+This reuses W5-17's conservative floor-shadow test and includes the hub arches
+authored before Dress. The cut removes the crown and clips each jamb without
+squashing stone detail. Saved procedural boxes and imported material clipping
+agree. B1 backing is cropped too, and each surviving jamb receives its own cap,
+so no cap spans the opening. Map tests check these invariants after map load.
+This is a geometric presentation fix; rendered appearance still needs host
+review. The audit retains W5-17's documented limits: authored geometric walkable
+centers rather than actual nav projections, no pixel visibility, transparency,
+shader displacement, boom retraction, or general transient support audit.
+Cropped arch support vertices are now checked explicitly for height/aperture.
+
+### Every changed piece
+
+All positions below are cm; cropped arch actor Z stays 0. Every arch listed is
+cropped from 400 cm to 120 cm because its conservative foreground shadow crosses
+floor envelopes and its original arch participated in fully hidden points.
+"Duplicate removed" means the additional `Dressing.<source>` Wall400 visual
+above that aperture is no longer spawned; the retained source collider stays.
+For those entries its old Z was 350 (ordinary lintel); boss lintels (40 cm tall) never had that duplicate.
+No furniture, debris, altars, fixtures, tall walls, supports or leaves change.
+
+| Map | Arch / source label | XY | Yaw | Duplicate removed |
+|---|---|---|---:|---|
+| Hub | `LHVisualPiece0` | (-10,500) | 90 | No |
+| Hub | `LHVisualPiece1` | (800,-10) | 0 | No |
+| Hub | `LHVisualPiece2` | (-2200,790) | 0 | No |
+| Hub | `LHVisualPiece3` | (-1400,-1190) | 0 | No |
+| Hub | `LHVisualPiece4` | (1200,-2190) | 0 | No |
+| Hub | `LHVisualPiece5` | (1200,-5190) | 0 | No |
+| Hub | `LHVisualPiece6` | (-3300,5990) | 0 | No |
+| Hub | `LHVisualPiece7` | (-3300,6610) | 0 | No |
+| Hub | `LHVisualPiece8` | (-3610,7200) | 90 | No |
+| Hub | `LHVisualPiece9` | (-2990,7700) | 90 | No |
+| B1 | `Dressing.Arch.Geometry_0286` | (4500,990) | 0 | Yes |
+| B1 | `LHVisualPiece284` | (900,-1000) | 0 | No |
+| B2 | `LHVisualPiece832` | (1000,-4600) | 0 | No |
+| B3 | `Dressing.Arch.C01Door0Arch` | (2800,0) | 90 | Yes |
+| B3 | `Dressing.Arch.C01Door1Arch` | (2400,0) | 90 | Yes |
+| B3 | `Dressing.Arch.C02Door0Arch` | (1000,-200) | 90 | Yes |
+| B3 | `Dressing.Arch.C02Door1Arch` | (600,-200) | 90 | Yes |
+| B3 | `Dressing.Arch.C03Door0Arch` | (0,1200) | 0 | Yes |
+| B3 | `Dressing.Arch.C03Door1Arch` | (0,2200) | 0 | Yes |
+| B3 | `Dressing.Arch.C04Door0Arch` | (1000,3400) | 90 | Yes |
+| B3 | `Dressing.Arch.C04Door1Arch` | (2600,3200) | 0 | Yes |
+| B3 | `Dressing.Arch.C05Door0Arch` | (3600,3800) | 90 | Yes |
+| B3 | `Dressing.Arch.C05Door1Arch` | (4200,3800) | 90 | Yes |
+| B3 | `Dressing.Arch.C06Door0Arch` | (5000,2400) | 0 | Yes |
+| B3 | `Dressing.Arch.C06Door1Arch` | (4200,600) | 90 | Yes |
+| B3 | `Dressing.Arch.C07Door0Arch` | (4700,4200) | 0 | Yes |
+| B3 | `Dressing.Arch.C07Door1Arch` | (4700,5400) | 0 | Yes |
+| B3 | `Dressing.Arch.C08Door0Arch` | (-800,3000) | 90 | Yes |
+| B3 | `Dressing.Arch.C08Door1Arch` | (-1200,3000) | 90 | Yes |
+| B3 | `Dressing.Arch.C09Door0Arch` | (-2400,3000) | 90 | Yes |
+| B3 | `Dressing.Arch.C09Door1Arch` | (-2800,3000) | 90 | Yes |
+| B3 | `Dressing.Arch.C10Door0Arch` | (600,800) | 90 | Yes |
+| B3 | `Dressing.Arch.C10Door1Arch` | (1300,1200) | 0 | Yes |
+| B3 | `Dressing.Arch.CellWestArch` | (1390,-350) | 90 | Yes |
+| B3 | `Dressing.Arch.EastRecessWestArch` | (2690,3900) | 90 | Yes |
+| B4 | `Dressing.Arch.C01Door0Arch` | (900,1200) | 0 | Yes |
+| B4 | `Dressing.Arch.C01Door1Arch` | (300,2200) | 0 | Yes |
+| B4 | `Dressing.Arch.C02Door0Arch` | (0,3300) | 90 | Yes |
+| B4 | `Dressing.Arch.C02Door1Arch` | (-800,3300) | 90 | Yes |
+| B4 | `Dressing.Arch.C03Door0Arch` | (2200,3200) | 90 | Yes |
+| B4 | `Dressing.Arch.C03Door1Arch` | (3400,3200) | 90 | Yes |
+| B4 | `Dressing.Arch.C04Door0Arch` | (1100,4200) | 0 | No |
+| B4 | `Dressing.Arch.C04Door1Arch` | (1100,5400) | 0 | No |
+| B4 | `Dressing.Arch.ArenaPartitionLowArch` | (2810,6100) | 90 | No |
+| B4 | `Dressing.Arch.ArenaPartitionHighArch` | (2810,7600) | 90 | No |
+| B4 | `Dressing.Arch.ReliquaryPartitionArch` | (3500,6810) | 0 | No |
+
+### W5-17c observed local checks
+
+Final non-adaptive unity editor/game builds succeeded (exit 0; UBT timed
+49.85s / 107.57s). UID1000, Linux UE5.8.3, pinned Blender5.2.2. Farm XML,
+checkout-local XDG/UBA roots, `-DisableAdaptiveUnity`,
+`-UBASharedMemoryTempFile=true -NoUBA` were used; HOME was kept unchanged.
+`LH_ART_REIMPORT=1 build/build-art.sh` exited0. All five environment imports
+and creature import reported unchanged packages; the wrapper also rebuilt
+player art. Cached base player packages were restored/hydrated before testing,
+matching W5-17's isolated-checkout setup. No downloads or system changes.
+Final three generators exited0. Automated arrival review exited0 with9/9 PASS,
+and its reviewed-list bytes/hashes remain identical to the base. Maps were
+regenerated afterward. `LHValidateWorld` exited0, passed all five maps with
+**0 errors**,18 warnings; commandlet time5.18s.
+
+Final full suite exported **232 expected/232 Success states**, all232 succeeded
+with warnings, **0 failures,0 notRun**, process exit0, automation duration
+511.826s. Failure names: none. All five GameplaySight/Maps cases, both capture
+framing families, kit/binding budgets, LightingAudit and ArrivalSafety passed.
+These are observed local checks and evidence for review, not integration or G5
+visual acceptance.
+
+| Map | Grid centers | Endpoints | W5-17 blocked | Final blocked / new ceiling | Fully hidden | Tall walls/supports/leaves blocked |
+|---|---:|---:|---:|---:|---:|---:|
+| Hub | 13,318 | 26,636 | 348 | 78 | 0 | 0 |
+| B1 | 6,382 | 12,764 | 113 | 81 | 0 | 0 |
+| B2 | 14,498 | 28,996 | 105 | 93 | 0 | 0 |
+| B3 | 8,243 | 16,486 | 581 | 55 | 0 | 0 |
+| B4 | 10,334 | 20,668 | 325 | 99 | 0 | 0 |
+
+| Map | Pieces | Triangles | Base sections | Dressing blockers |
+|---|---:|---:|---:|---:|
+| Hub | 363 | 1,454,432 | 904 | 0 |
+| B1 | 268 | 631,436 | 481 | 0 |
+| B2 | 833 | 1,824,516 | 1,472 | 0 |
+| B3 | 405 | 1,421,816 | 628 | 0 |
+| B4 | 215 | 996,928 | 434 | 0 |
+
+The first completed full run was229/232 (exit255,412.182s), with failures named
+`Lighthaven.Integration.G4.DeathAndChurchRespawn`,
+`Lighthaven.Integration.G4.DoorClearance`, and
+`Lighthaven.World.Dressing.Maps.Area.TempleB1`.
+Decorative labels containing “Lintel” doubled an existing structural probe
+count; decorative labels now use “Arch” while structural labels stay intact.
+A runtime edit overlapped compilation, and subsequent builds only relinked;
+a forced fresh compile preceded passing B1 backing/cap assertions. The initial
+session-descent rejection did not recur in the final run; no gameplay fix was
+applied and its cause is not established. The generator's “unreviewed entrances”
+log wording is hardcoded; review evidence is unchanged and final validation
+passes. Initial failures and final reports are retained in the attempt library.
+
+No rendered visual review or play check: this worker has neither DISPLAY nor
+WAYLAND_DISPLAY. No cook/package result claimed; Windows remains deferred.
+Tracked Content/maps are restored to exact base pointer/blob bytes, with no
+binary deliverable. Next: coordinator review, regenerate/import locally, repeat
+checks and judge the foreground arch cutaways in rendered play/captures.

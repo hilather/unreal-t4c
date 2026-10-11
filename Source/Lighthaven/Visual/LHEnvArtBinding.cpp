@@ -27,9 +27,9 @@ const TArray<FString>& LHEnvArt::AssetNames(ELHVisualStyle Style)
     if(Style==ELHVisualStyle::B4Ritual) return Ritual;
     return LHB1Art::AssetNames();
 }
-bool LHEnvArt::Resolve(const FLHVisualRecipe& R, FFit& Out)
+static bool ResolveUnclipped(const FLHVisualRecipe& R, LHEnvArt::FFit& Out)
 {
-    if(Folder(R.Style).IsEmpty() || R.Geometry.IsEmpty()) return false;
+    if(LHEnvArt::Folder(R.Style).IsEmpty() || R.Geometry.IsEmpty()) return false;
     if(R.Style==ELHVisualStyle::B1Cellar) return LHB1Art::Resolve(R,Out);
     auto Canonical=R; Canonical.Style=ELHVisualStyle::B1Cellar;
     if(LHB1Art::Resolve(Canonical,Out)) return true;
@@ -37,8 +37,8 @@ bool LHEnvArt::Resolve(const FLHVisualRecipe& R, FFit& Out)
     bool Allowed=Name.RemoveFromStart(TEXT("Presentation.Environment.Shared."));
     if(!Allowed && R.Style==ELHVisualStyle::Church) Allowed=Name.RemoveFromStart(TEXT("Presentation.Environment.Church."));
     if(!Allowed && R.Style==ELHVisualStyle::B4Ritual) Allowed=Name.RemoveFromStart(TEXT("Presentation.Environment.Basement."));
-    if(!Allowed || !AssetNames(R.Style).Contains(Name) || LHB1Art::AssetNames().Contains(Name)) return false;
-    FFit Fit; Fit.AssetName=Name;
+    if(!Allowed || !LHEnvArt::AssetNames(R.Style).Contains(Name) || LHB1Art::AssetNames().Contains(Name)) return false;
+    LHEnvArt::FFit Fit; Fit.AssetName=Name;
     if(Name==TEXT("DoorLeafPreview"))
     {
         // Use the first saved solid as the fit authority. Crop the imported
@@ -51,9 +51,21 @@ bool LHEnvArt::Resolve(const FLHVisualRecipe& R, FFit& Out)
     Fit.Instances.Add(FTransform::Identity); Out=MoveTemp(Fit); return true;
 }
 
+bool LHEnvArt::Resolve(const FLHVisualRecipe& R, FFit& Out)
+{
+    if(!ResolveUnclipped(R,Out)) return false;
+    if(R.Id.ToString().Contains(TEXT(".Arch")))
+    {
+        double Top=-DBL_MAX;
+        for(const auto& B:R.Geometry) Top=FMath::Max(Top,B.Center.Z+B.Size.Z/2);
+        // Saved cropped jambs are the fit authority; preserve stone scale.
+        Out.ClipBounds.Max.Z=FMath::Min(Out.ClipBounds.Max.Z,Top);
+    }
+    return true;
+}
+
 TArray<FLHVisualBox> LHEnvArt::SolidBacking(const FLHVisualRecipe& R, const FFit& Fit)
 {
-    if(R.Style==ELHVisualStyle::B1Cellar) return LHB1Art::SolidBacking(R,Fit);
     auto Canonical=R; Canonical.Style=ELHVisualStyle::B1Cellar;
     auto Boxes=LHB1Art::SolidBacking(Canonical,Fit);
     if(R.Style==ELHVisualStyle::B3Crypt || R.Style==ELHVisualStyle::B4Ritual)
@@ -64,10 +76,30 @@ TArray<FLHVisualBox> LHEnvArt::SolidBacking(const FLHVisualRecipe& R, const FFit
             const double Rear=B.Center.Y-B.Size.Y/2;
             B.Size.Y=1.; B.Center.Y=Rear+.5;
         }
+    for(int32 I=Boxes.Num()-1;I>=0;--I)
+    {
+        auto& B=Boxes[I];
+        const double Bottom=B.Center.Z-B.Size.Z/2;
+        const double Top=FMath::Min(Fit.ClipBounds.Max.Z,B.Center.Z+B.Size.Z/2);
+        if(Top<=Bottom) { Boxes.RemoveAt(I); continue; }
+        B.Center.Z=(Bottom+Top)/2; B.Size.Z=Top-Bottom;
+    }
     return Boxes;
 }
 TArray<FLHVisualBox> LHEnvArt::MasonryCaps(const FLHVisualRecipe& R, const FFit& Fit)
 {
     auto Canonical=R; Canonical.Style=ELHVisualStyle::B1Cellar;
+    if(R.Id.ToString().Contains(TEXT(".Arch")) && Fit.ClipBounds.Max.Z<399.)
+    {
+        TArray<FLHVisualBox> Caps;
+        // Cap each surviving jamb separately, never bridge the clear aperture.
+        for(const auto& B:R.Geometry)
+        {
+            FFit JambFit; JambFit.AssetName=TEXT("Wall400");
+            JambFit.ClipBounds=FBox(B.Center-B.Size/2,B.Center+B.Size/2);
+            Caps.Append(LHB1Art::MasonryCaps(Canonical,JambFit));
+        }
+        return Caps;
+    }
     return LHB1Art::MasonryCaps(Canonical,Fit);
 }

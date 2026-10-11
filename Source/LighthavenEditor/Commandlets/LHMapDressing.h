@@ -133,8 +133,13 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
             const FName Id = Width >= 500 ? TEXT("Presentation.Environment.Basement.ArchBoss500") : TEXT("Presentation.Environment.Shared.Arch240");
             auto* Arch = Piece(World,Id,Style,FVector(A->GetActorLocation().X,A->GetActorLocation().Y,0),FRotator(0,Size.Y>Size.X?90:0,0));
             if (!Arch) return false;
+            // Structural lintel tests identify the retained actors by label.
+            Arch->SetActorLabel(TEXT("Dressing.Arch.")+Label.Replace(TEXT("Lintel"),TEXT("Arch")));
             Pieces.Add(Arch);
             C->SetVisibility(false); C->SetCastShadow(false);
+            A->Tags.Add(TEXT("LH.Dressing.RetainedCollider"));
+            if(Wall) UE_LOG(LogTemp,Display,TEXT("Dressing sight: omit duplicate lintel wall %s at %s"),*Label,*A->GetActorLocation().ToString());
+            continue; // An aperture gets one visual, never a second elevated wall slab.
         }
         if (!Floor && !Wall) continue; // NPC assemblies, signs and route proxies retain their owner.
         if(Style==ELHVisualStyle::B1Cellar && Wall && A->GetActorRotation().IsNearlyZero()
@@ -451,6 +456,32 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
         auto* Altar = Piece(World,TEXT("Presentation.Environment.Shared.Altar"),Style,FVector(1600,7800,0),FRotator::ZeroRotator);
         if (!Altar) return false;
         Pieces.Add(Altar);
+    }
+    // Full arches on a foreground boundary can hide both pawn endpoints.
+    // Retain full-height arches only when their complete floor shadow is clear;
+    // otherwise crop the visual to the same 120cm cutaway as adjacent walls.
+    // This also covers the hub arches authored through Piece before Dress.
+    for(TActorIterator<ALHVisualPiece> It(World);It;++It)
+    {
+        const auto& Original=It->GetRecipe();
+        if(!Original.Id.ToString().Contains(TEXT(".Arch"))) continue;
+        FBox Envelope(ForceInit);
+        for(const auto& B:Original.Geometry)
+            Envelope+=FBox(-B.Size/2,B.Size/2).TransformBy(FTransform(B.Rotation,B.Center)*It->GetActorTransform());
+        if(CanRaise(Envelope,WalkableFloors)) continue;
+        auto Cutaway=Original;
+        for(int32 I=Cutaway.Geometry.Num()-1;I>=0;--I)
+        {
+            auto& B=Cutaway.Geometry[I];
+            const double Bottom=B.Center.Z-B.Size.Z/2;
+            const double Top=FMath::Min(120.,B.Center.Z+B.Size.Z/2);
+            if(Top<=Bottom) { Cutaway.Geometry.RemoveAt(I); continue; }
+            B.Center.Z=(Bottom+Top)/2; B.Size.Z=Top-Bottom;
+        }
+        if(!It->Build(Cutaway)) return false;
+        It->Tags.Add(TEXT("LH.Dressing.ArchCutaway"));
+        UE_LOG(LogTemp,Display,TEXT("Dressing sight: crop foreground arch %s id=%s at %s yaw=%.0f to120cm (floor shadow overlap)"),
+            *It->GetActorLabel(),*Original.Id.ToString(),*It->GetActorLocation().ToString(),It->GetActorRotation().Yaw);
     }
     for(auto* Light:Lights)
     {
