@@ -4,6 +4,7 @@
 #include "Components/BoxComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/World.h"
+#include "Engine/Texture.h"
 #include "Engine/Engine.h"
 #include "Serialization/MemoryWriter.h"
 #include "Serialization/MemoryReader.h"
@@ -53,14 +54,36 @@ bool FLHVisualCatalogTest::RunTest(const FString&)
             const auto* Section=P->GetMesh()->GetProcMeshSection(I); if(!Section || Section->ProcIndexBuffer.IsEmpty()) continue;
             auto* M=Cast<UMaterialInstanceDynamic>(P->GetMesh()->GetMaterial(I));
             if(!TestNotNull(TEXT("Dynamic engine material"),M)) continue;
-            TArray<FMaterialParameterInfo> Parameters; TArray<FGuid> ParameterIds;
-            M->Parent->GetAllScalarParameterInfo(Parameters,ParameterIds);
-            TestTrue(TEXT("Roughness exists in engine parent"),Parameters.ContainsByPredicate([](const FMaterialParameterInfo& Info){ return Info.Name==TEXT("Roughness"); }));
-            FLinearColor Color; float Roughness=-1;
-            TestTrue(TEXT("Engine Color is exposed"),M->GetVectorParameterValue(FMaterialParameterInfo(TEXT("Color")),Color));
+            FLinearColor Color;
+            TestTrue(TEXT("Color is exposed"),M->GetVectorParameterValue(FMaterialParameterInfo(TEXT("Color")),Color));
             TestTrue(TEXT("Color parameter matches recipe"),Color.Equals(R.Colors[I]));
-            TestTrue(TEXT("Engine Roughness is exposed"),M->GetScalarParameterValue(FMaterialParameterInfo(TEXT("Roughness")),Roughness));
-            TestEqual(TEXT("Roughness matches recipe"),Roughness,R.Roughness[I]);
+            const bool ImportedFlame=R.Style==ELHVisualStyle::B1Cellar &&
+                Id==LHVisualTestsPrivate::Id(TEXT("Shared.Torch")) && I==1;
+            if(ImportedFlame)
+            {
+                TestEqual(TEXT("B1 flame uses imported emissive parent"),M->Parent->GetPathName(),
+                    FString(TEXT("/Game/Lighthaven/Art/Env/B1/MI_B1_flame.MI_B1_flame")));
+                float Emission=0;
+                TestTrue(TEXT("Imported flame exposes emission"),M->Parent->GetScalarParameterValue(FMaterialParameterInfo(TEXT("Flame")),Emission));
+                TestTrue(TEXT("Imported flame is emissive"),Emission>0);
+                // Imported master uses ORM G for roughness, not the MID's unused scalar override.
+                UTexture* ORM=nullptr;
+                TestTrue(TEXT("Imported parent exposes ORM"),M->Parent->GetTextureParameterValue(FMaterialParameterInfo(TEXT("ORM")),ORM));
+                if(TestNotNull(TEXT("Imported roughness texture is bound"),ORM))
+                {
+                    TestFalse(TEXT("ORM is linear"),bool(ORM->SRGB));
+                    TestEqual(TEXT("ORM uses mask compression"),ORM->CompressionSettings.GetValue(),TC_Masks);
+                }
+            }
+            else
+            {
+                TArray<FMaterialParameterInfo> Parameters; TArray<FGuid> ParameterIds;
+                M->Parent->GetAllScalarParameterInfo(Parameters,ParameterIds);
+                TestTrue(TEXT("Roughness exists in engine parent"),Parameters.ContainsByPredicate([](const FMaterialParameterInfo& Info){ return Info.Name==TEXT("Roughness"); }));
+                float Roughness=-1;
+                TestTrue(TEXT("Engine Roughness is exposed"),M->GetScalarParameterValue(FMaterialParameterInfo(TEXT("Roughness")),Roughness));
+                TestEqual(TEXT("Roughness matches recipe"),Roughness,R.Roughness[I]);
+            }
         }
     }
     const auto Totals=LHVisual::ValidatePlacedSet(All);

@@ -15,6 +15,8 @@ bool FLHB1TorchLightingTest::RunTest(const FString& Parameters)
     if(!TestNotNull(TEXT("Transient world"),World)) return false;
     ALHVisualPiece* Piece=World->SpawnActor<ALHVisualPiece>();
     FLHVisualRecipe Recipe;
+    // Production constructor defaults own the prototype fixture tuning.
+    const auto* Defaults=GetDefault<ULHB1TorchLightComponent>();
     for(const FName Id:{FName(TEXT("Presentation.Environment.Shared.Sconce")),FName(TEXT("Presentation.Environment.Shared.Torch"))})
     {
         LHVisual::MakeRecipe(Id,ELHVisualStyle::B1Cellar,Recipe);
@@ -28,7 +30,11 @@ bool FLHB1TorchLightingTest::RunTest(const FString& Parameters)
         {
             TestEqual(TEXT("Rebuild reuses light"),Piece->FindComponentByClass<ULHB1TorchLightComponent>(),Light);
             TestFalse(TEXT("No shadow cost"),Light->CastShadows);
-            TestEqual(TEXT("Warm flame kelvin"),Light->Temperature,2000.f);
+            TestEqual(TEXT("Warm flame kelvin"),Light->Temperature,Defaults->Temperature);
+            TestEqual(TEXT("Flame intensity"),Light->Intensity,Defaults->Intensity);
+            TestEqual(TEXT("Flame intensity units"),Light->IntensityUnits,Defaults->IntensityUnits);
+            TestEqual(TEXT("Flame pool radius"),Light->AttenuationRadius,Defaults->AttenuationRadius);
+            TestEqual(TEXT("Temperature enabled"),Light->bUseTemperature,Defaults->bUseTemperature);
             TestEqual(TEXT("Flame location"),Light->GetRelativeLocation(),FVector(0,25,14));
         }
     }

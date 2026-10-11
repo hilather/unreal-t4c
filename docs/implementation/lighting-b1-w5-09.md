@@ -561,3 +561,36 @@ network downloads. `git diff --check` passes. The delivered delta contains
 only five owned source/test files and this appended document; no `.umap`,
 `.uasset` or arrival-review changes. Evidence output is below 1 MiB, under the
 40 MiB limit.
+
+### W5-09d — test expectations for the B1 lighting (2026-10-10)
+
+Base `f8dd05bf1dc4dccfe1174c5e4602dbe31020c9db`. Tests only: B1 fixture
+expectations read `GetDefault<ULHB1TorchLightComponent>()`, the production
+constructor's current 2900 K / 1000 lm / 375 cm profile, including units and
+temperature enablement. The catalog test distinguishes the B1 brazier flame's
+imported emissive parent and bound linear ORM roughness texture from engine
+scalar-roughness materials. Engine scalar checks and all collision/budget
+assertions remain; no production code changed.
+
+UE 5.8.3 Linux Development editor and game targets both built with exit 0,
+unity enabled and adaptive unity disabled (`-DisableAdaptiveUnity`, `-NoUBA`,
+`-UBASharedMemoryTempFile=true`). Both edited tests are included in the generated
+unity translation unit. All five map generators returned exit 0 (zero errors;
+nonfatal warnings). The full NullRHI `Automation RunTests Lighthaven` run
+returned exit 0: **213/213 Success**, **205 clean successes + 8 successes with
+warnings**, **0 failed / 0 not-run / 0 in-process**, **220.950897 s** reported test
+duration. Failure names: **none**. Both updated tests passed without warnings;
+the catalog receipt was 130 pieces, 35,466 triangles, 235 base sections and
+225 collision boxes. The intermittent inventory rollback test passed in this
+run, without any claim to fix it.
+
+All 34 hydrated/generated files (8 maps and 26 art packages) were restored to
+the exact original LFS pointer bytes. Reviewed arrivals stayed byte-identical.
+`git diff --check` passes. Assumptions: existing local LFS assets are the intended
+W5-09c material bindings; imported master roughness uses ORM G as defined by
+`build/build-art.sh`. This run checks material parameters/bindings, not shader
+pixels. No cook/package, rendered review, GPU timing or Windows check was run;
+those remain outside this test-only task (Windows deferred). Evidence candidate
+and reproduction wrappers: canonical W5-09d worker-output `report.md` and
+`library/`; no binaries are submitted. Next: coordinator review/integration,
+then the previously requested render-capable B1 acceptance pass.
