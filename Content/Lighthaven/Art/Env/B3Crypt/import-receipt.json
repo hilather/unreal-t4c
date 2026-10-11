@@ -1,0 +1,132 @@
+{
+  "signature": "808644018581363d1ca5f34966b1d416ebd11f5c7fe0141c1de66310ca5ff896",
+  "assets": {
+    "MI_B3Crypt_flame.uasset": {
+      "bytes": 5196,
+      "sha256": "a28fc9da3e26fbd51abecd48186b83ddf3fbae6d51adf05251e33a01775b103a"
+    },
+    "MI_B3Crypt_iron.uasset": {
+      "bytes": 5191,
+      "sha256": "976ff3b8156319d598e1d89a9497cf4acc59d77cbd2892056da0ae0e50834ac2"
+    },
+    "MI_B3Crypt_oxide.uasset": {
+      "bytes": 5196,
+      "sha256": "98af0dfdb66ad9dccdedb1e01588ec992aac3ade4ac5197a35c43d1ef4c1aa92"
+    },
+    "MI_B3Crypt_stone.uasset": {
+      "bytes": 5196,
+      "sha256": "f84033984c63f73c1ece4a4895c8a9035471399246b976d0978afe57839a0399"
+    },
+    "MI_B3Crypt_timber.uasset": {
+      "bytes": 5201,
+      "sha256": "fbd455a6cc83281192e38a24b519680b1f0a1ae431d2edb72f73e64e0d2950dd"
+    },
+    "MI_B3Crypt_wet.uasset": {
+      "bytes": 5186,
+      "sha256": "bb3d2c9ceb761f4d4c67e2c9d594b9e12ef8534a4df69735010e0dab957a2c8b"
+    },
+    "SM_Arch240.uasset": {
+      "bytes": 121757,
+      "sha256": "47a35147eb332160454839203fcfda21f623e212460afd1a78faf607cca4bcd7"
+    },
+    "SM_Arch320.uasset": {
+      "bytes": 114640,
+      "sha256": "9193da1bdd3bec53475247d7e9f57a6e029e3c0c6973ac665dc55d2c9763ff12"
+    },
+    "SM_Debris.uasset": {
+      "bytes": 116040,
+      "sha256": "5afbb417489cc00069de4588496248e5ff673a36429c0bbebeb8426c9071f95c"
+    },
+    "SM_Floor400.uasset": {
+      "bytes": 129085,
+      "sha256": "5483259395f81df412c7743397920e9c07ce4cab1061021c777ade19ae68dd54"
+    },
+    "SM_Stair600x120.uasset": {
+      "bytes": 167747,
+      "sha256": "ce82a88e61e58869a17d0d5e203e457f7a77fb2a0dba3f4159f462ba7f82b2b7"
+    },
+    "SM_Stair600x120Descending.uasset": {
+      "bytes": 168290,
+      "sha256": "acbfd9570771525da0b0ff251b936729da7546dcb9881bfef8c977d9701fab02"
+    },
+    "SM_Wall400.uasset": {
+      "bytes": 142998,
+      "sha256": "0d8a4d0db37d549371ed4f869f321d941f57f8c4c6b2a0924626b2712bd1b74a"
+    }
+  },
+  "total_bytes": 991723,
+  "shared_assets": {
+    "Textures/T_00b131c6b0344a50957a5e63.uasset": {
+      "bytes": 10941,
+      "sha256": "08499018fbe569e35d72a58ac2f6060b780057914a845270a76e38bfaf09ab6c"
+    },
+    "Textures/T_1974eb44021ef1c82054bd18.uasset": {
+      "bytes": 93593,
+      "sha256": "d8785c30f234e53a9121ac0f9c127db19220c9593919efd1d003870af1a5c11b"
+    },
+    "Textures/T_1cc067200e9451bf09d1a009.uasset": {
+      "bytes": 229956,
+      "sha256": "b91775357b5272572b2041b59d5e8eee1da29c98641f95d20c057400d23eae43"
+    },
+    "Textures/T_4b457673b4b5065eaf3cb83d.uasset": {
+      "bytes": 208468,
+      "sha256": "b80888f4694707995dc91f5d1fb01d44ca30752417c18422daff6b2dcf4725bc"
+    },
+    "Textures/T_569def3b0c740851cce7345c.uasset": {
+      "bytes": 149427,
+      "sha256": "25966f1558485e80447afaff95096f953e0316e20f6a7db680b9a0529379a348"
+    },
+    "Textures/T_5ab7084e5debd31c9f0b3291.uasset": {
+      "bytes": 10941,
+      "sha256": "f5ab27f3f8b63984d349a22b8659473a6da4cc930fb949020cf741422bf4977b"
+    },
+    "Textures/T_62475d4c86f75f8d4615eccd.uasset": {
+      "bytes": 10767,
+      "sha256": "863d8a2507aee3d3ea94930f3c19a80f24c162cc5ebe89d2accdabde27a98326"
+    },
+    "Textures/T_674b344ebe0bb421416cb417.uasset": {
+      "bytes": 161878,
+      "sha256": "40aae8886a0263c3caf1b8cf45907c513d546ac75ad21393aa8696a1cd734e3c"
+    },
+    "Textures/T_6a37d9aecb6947e191f0b219.uasset": {
+      "bytes": 164584,
+      "sha256": "c45b34a68a05a21793db3ea9516fb24ae5c914bd0299c4abb313bc71a1086f7e"
+    },
+    "Textures/T_7134aeddd6bb7fa40d83ab77.uasset": {
+      "bytes": 11089,
+      "sha256": "55759f9276cbe30a210786db02b988bd9c7cd048a08e5ce7dbc85082f4d0ff18"
+    },
+    "Textures/T_9dc54f46a6d44b1bc24d202c.uasset": {
+      "bytes": 495534,
+      "sha256": "418704c9d94b3e8ae55d0b3fc6f986f9d1bc45fee6670a7ab2bcc55db93db03a"
+    },
+    "Textures/T_b39de5435be8194fe5fba94e.uasset": {
+      "bytes": 186711,
+      "sha256": "331ef91de524a1e2f23dc8c0274bde2cc48485af4b4ba6287df931418cdf9c67"
+    },
+    "Textures/T_b460652603e7ad7c0b6e6584.uasset": {
+      "bytes": 169504,
+      "sha256": "d2ad841fd317ea9e1c77df984e862d4b10d5234ee617f89118ac57f3cc7dc53e"
+    },
+    "Textures/T_bd2c0f0f32fce68ca173cf83.uasset": {
+      "bytes": 143703,
+      "sha256": "8473fe1dbe300253948884e0c008c2d177989aafdb2f33b6b8ea4cbc7d5df3c3"
+    },
+    "Textures/T_befc6e85471c44191d474f02.uasset": {
+      "bytes": 13316,
+      "sha256": "093cd8a079a6bbce36501a287a79d554b10062074086b66525a14f79e73d9001"
+    },
+    "Textures/T_c80ef67bb39bc7075cb3559b.uasset": {
+      "bytes": 30536,
+      "sha256": "41fdda19e9418418c18b08f6d9f30ff9d75fc8524271f178841ad5b11fd1aaed"
+    },
+    "Textures/T_d5a909e9b5a9fd8c34dfe59a.uasset": {
+      "bytes": 32297,
+      "sha256": "77542cbe3899a31acdc37cd5dcfa26f5673a00b2d7def02ff5ddcfbf8431f574"
+    },
+    "Textures/T_d98eb501ed828d342b739e06.uasset": {
+      "bytes": 12689,
+      "sha256": "dc3022ff06d9485e6b3105f36cab85b338831bbd81822f0ba8637fc6ec79198e"
+    }
+  }
+}

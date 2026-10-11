@@ -1,0 +1,144 @@
+{
+  "signature": "17ab3bc302049e0ae45482be68b69b1ec9db24449a69a1764a139cb1e9032bfe",
+  "assets": {
+    "MI_B4Ritual_flame.uasset": {
+      "bytes": 5203,
+      "sha256": "0febb0750515ea969ca8da8dec66c090342115feec6bfdca9cf492d4e845b250"
+    },
+    "MI_B4Ritual_iron.uasset": {
+      "bytes": 5198,
+      "sha256": "302142f636132ffc40bba411e71b996c2eb793907ad3fa824deed4d0eb624648"
+    },
+    "MI_B4Ritual_oxide.uasset": {
+      "bytes": 5203,
+      "sha256": "7597cbaf7f440d74fb114153b00d00903c7d6e4f9dd981906935b0a853c56959"
+    },
+    "MI_B4Ritual_stone.uasset": {
+      "bytes": 5203,
+      "sha256": "b326410e063808b7265ac5475744eeecda1a72a309216045ff06a62cadb854c3"
+    },
+    "MI_B4Ritual_timber.uasset": {
+      "bytes": 5208,
+      "sha256": "6111db721f2ff4597f0882d17cc6e8360b6ae2b0c2ba7c226e8af146440a6da5"
+    },
+    "MI_B4Ritual_wet.uasset": {
+      "bytes": 5193,
+      "sha256": "c73c440b29f79bd1d89ed2d1e8ff2882300f3d5095f72551ee0a53ba3a64a415"
+    },
+    "SM_Altar.uasset": {
+      "bytes": 117110,
+      "sha256": "22c457071f13603d6952080415b995488e5551b61961483a0007507991b8e3cd"
+    },
+    "SM_Arch240.uasset": {
+      "bytes": 121788,
+      "sha256": "ca08db61d141ab4f98ab1b38c9a60aa864fc7972e2b4a73daaac2f1126fc2160"
+    },
+    "SM_Arch320.uasset": {
+      "bytes": 114666,
+      "sha256": "eed57ade4b0ee79468fe7c4ffbd31623dfc2f747750c4a1f3ecac06fd0b4009a"
+    },
+    "SM_ArchBoss500.uasset": {
+      "bytes": 145283,
+      "sha256": "e2f46cee1c3b80520396cb1930549fa8e885b7eabd74351c3a198ed1704a9ef9"
+    },
+    "SM_Debris.uasset": {
+      "bytes": 116066,
+      "sha256": "5968d91f8174a1c2eddd0be0f226727f2d4015645fa134b97399a033d72c3eae"
+    },
+    "SM_Floor400.uasset": {
+      "bytes": 142210,
+      "sha256": "5cf37b533aea79af2f57e170e0e42f104d5b70cb81c833a881303f69c8890168"
+    },
+    "SM_Stair600x120.uasset": {
+      "bytes": 167773,
+      "sha256": "1609a2b3439be63a5762b593c9c3fadc192598f104e47db9c5db21fc169886f9"
+    },
+    "SM_Stair600x120Descending.uasset": {
+      "bytes": 168345,
+      "sha256": "81461effb1c79030aa22b4d08035a244aacfd5ed982eb6f1126c5847e51c605c"
+    },
+    "SM_Wall400.uasset": {
+      "bytes": 129961,
+      "sha256": "d90601cf6155267712946a6b58c3880b5277ab8f1b10c5fe8fd9124319f61959"
+    }
+  },
+  "total_bytes": 1254410,
+  "shared_assets": {
+    "Textures/T_00b131c6b0344a50957a5e63.uasset": {
+      "bytes": 10941,
+      "sha256": "08499018fbe569e35d72a58ac2f6060b780057914a845270a76e38bfaf09ab6c"
+    },
+    "Textures/T_1974eb44021ef1c82054bd18.uasset": {
+      "bytes": 93593,
+      "sha256": "d8785c30f234e53a9121ac0f9c127db19220c9593919efd1d003870af1a5c11b"
+    },
+    "Textures/T_1cc067200e9451bf09d1a009.uasset": {
+      "bytes": 229956,
+      "sha256": "b91775357b5272572b2041b59d5e8eee1da29c98641f95d20c057400d23eae43"
+    },
+    "Textures/T_4b457673b4b5065eaf3cb83d.uasset": {
+      "bytes": 208468,
+      "sha256": "b80888f4694707995dc91f5d1fb01d44ca30752417c18422daff6b2dcf4725bc"
+    },
+    "Textures/T_569def3b0c740851cce7345c.uasset": {
+      "bytes": 149427,
+      "sha256": "25966f1558485e80447afaff95096f953e0316e20f6a7db680b9a0529379a348"
+    },
+    "Textures/T_5ab7084e5debd31c9f0b3291.uasset": {
+      "bytes": 10941,
+      "sha256": "f5ab27f3f8b63984d349a22b8659473a6da4cc930fb949020cf741422bf4977b"
+    },
+    "Textures/T_62475d4c86f75f8d4615eccd.uasset": {
+      "bytes": 10767,
+      "sha256": "863d8a2507aee3d3ea94930f3c19a80f24c162cc5ebe89d2accdabde27a98326"
+    },
+    "Textures/T_674b344ebe0bb421416cb417.uasset": {
+      "bytes": 161878,
+      "sha256": "40aae8886a0263c3caf1b8cf45907c513d546ac75ad21393aa8696a1cd734e3c"
+    },
+    "Textures/T_6a37d9aecb6947e191f0b219.uasset": {
+      "bytes": 164584,
+      "sha256": "c45b34a68a05a21793db3ea9516fb24ae5c914bd0299c4abb313bc71a1086f7e"
+    },
+    "Textures/T_7134aeddd6bb7fa40d83ab77.uasset": {
+      "bytes": 11089,
+      "sha256": "55759f9276cbe30a210786db02b988bd9c7cd048a08e5ce7dbc85082f4d0ff18"
+    },
+    "Textures/T_80c76a2f471d001f51ea7cba.uasset": {
+      "bytes": 131695,
+      "sha256": "955da425e639b8f602495474eac44c7c30febad6e13caf38b4fba1ab2272ae39"
+    },
+    "Textures/T_9dc54f46a6d44b1bc24d202c.uasset": {
+      "bytes": 495534,
+      "sha256": "418704c9d94b3e8ae55d0b3fc6f986f9d1bc45fee6670a7ab2bcc55db93db03a"
+    },
+    "Textures/T_b39de5435be8194fe5fba94e.uasset": {
+      "bytes": 186711,
+      "sha256": "331ef91de524a1e2f23dc8c0274bde2cc48485af4b4ba6287df931418cdf9c67"
+    },
+    "Textures/T_b460652603e7ad7c0b6e6584.uasset": {
+      "bytes": 169504,
+      "sha256": "d2ad841fd317ea9e1c77df984e862d4b10d5234ee617f89118ac57f3cc7dc53e"
+    },
+    "Textures/T_bd2c0f0f32fce68ca173cf83.uasset": {
+      "bytes": 143703,
+      "sha256": "8473fe1dbe300253948884e0c008c2d177989aafdb2f33b6b8ea4cbc7d5df3c3"
+    },
+    "Textures/T_befc6e85471c44191d474f02.uasset": {
+      "bytes": 13316,
+      "sha256": "093cd8a079a6bbce36501a287a79d554b10062074086b66525a14f79e73d9001"
+    },
+    "Textures/T_c80ef67bb39bc7075cb3559b.uasset": {
+      "bytes": 30536,
+      "sha256": "41fdda19e9418418c18b08f6d9f30ff9d75fc8524271f178841ad5b11fd1aaed"
+    },
+    "Textures/T_d5a909e9b5a9fd8c34dfe59a.uasset": {
+      "bytes": 32297,
+      "sha256": "77542cbe3899a31acdc37cd5dcfa26f5673a00b2d7def02ff5ddcfbf8431f574"
+    },
+    "Textures/T_d98eb501ed828d342b739e06.uasset": {
+      "bytes": 12689,
+      "sha256": "dc3022ff06d9485e6b3105f36cab85b338831bbd81822f0ba8637fc6ec79198e"
+    }
+  }
+}
