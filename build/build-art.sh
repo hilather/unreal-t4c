@@ -788,7 +788,20 @@ receipt['outputs']={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for kind i
 Path('Saved/ArtExport/player-export-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
 PYPLAYER
 fi
+# The player importer is owned by another lane. Stage its unchanged import
+# behavior locally, replacing only its receipt input list. Never hash the
+# compiled module: unrelated gameplay changes must not invalidate art packages.
+python3 - <<'PYPLAYER_SIGNATURE'
+from pathlib import Path
+source = Path('Source/Lighthaven/Visual/Player/import_player.py')
+text = source.read_text()
+old = "root/'Binaries/Linux/libUnrealEditor-Lighthaven.so'"
+new = "root/'Source/Lighthaven/Visual/Player/LHPlayerVisual.h'"
+if text.count(old) != 1:
+    raise RuntimeError('Player receipt input layout changed; review signature adapter')
+Path('Saved/ArtExport/import_player.py').write_text(text.replace(old, new))
+PYPLAYER_SIGNATURE
 "$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$LH_PROJECT" \
-  -run=pythonscript "-Script=$PWD/Source/Lighthaven/Visual/Player/import_player.py" -EnablePlugins=PythonScriptPlugin \
+  -run=pythonscript "-Script=$PWD/Saved/ArtExport/import_player.py" -EnablePlugins=PythonScriptPlugin \
   -stdout -FullStdOutLogOutput -nullrhi -unattended -nosound -nop4 '-DDC=(Local)' "-LocalDataCachePath=$PWD/Saved/DerivedDataCache" \
   '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0'
