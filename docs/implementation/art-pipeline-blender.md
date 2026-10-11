@@ -1,5 +1,9 @@
 # W5-07b — reproducible B1 cellar art candidate
 
+The B1 sections below are historical evidence. **For the current five-style
+command, output layout, budgets and W5-14 handoff, see the W5-14 section at the
+end.** The original flat B1 export remains available with `--legacy-root`.
+
 Task ID: W5-07b. Base revision: `e0f98f3fedabe05e9dbdf7f412d6ebd3b6e63332`. Result revision: the submission commit containing this document, recorded in the submission receipt. Contract revision: 1.
 
 Owned paths: `artsource/blender/` and this document. No binary assets committed. No Unreal code, maps, collision, navigation, gameplay data, project settings or installed software changed. This replaces W5-07's blocked source-path handoff; lowercase `artsource/blender/` is explicitly authorized by W5-07b.
@@ -172,3 +176,288 @@ Arch240 1,392; Arch320 1,152), 1,701,596 GLB bytes plus 2,655,012 texture bytes,
 21 asset hashes byte-for-byte. Imported B1 packages total **4,316,432 bytes**
 across 26 packages, below the task's 8,000,000-byte limit. The source-only
 submission excludes these generated files.
+
+## W5-14 — Church, B2Damp, B3Crypt and B4Ritual
+
+Task W5-14, contract revision 1, base
+`a62e13084bb92a236343c28f25659bebec439723`. Result revision is the commit containing
+this section, recorded in the attempt report/submission receipt. Owned paths are
+`artsource/blender/` and this document. This is a **Blender art candidate** for the
+later import/binding/lighting task; no Unreal assets or code are changed here.
+
+All new dimensions not inherited from the kit, colors, wear, carvings, lights,
+material compression and mock placements are **Prototype presentation tuning**,
+W5-14, 2026-10-11, source URL null. No gameplay mechanics, historical authenticity
+or reconstructed lettering is claimed. The concept was viewed only, never read
+by a generation script, sampled, traced, copied or baked. No asset downloads,
+image generation service, third-party textures or new installed packages were
+used. Church takes the modest, warm masonry/timber direction from §2 of
+`docs/plan/docs/04-art-pipeline.md` and the **left half** of the package's
+`assets/concepts/temple-and-basement-concept.png`. Host W5-09g captures informed
+the gap between the existing flat presentation and the requested material detail.
+
+### Current rebuild and review
+
+From the checkout root:
+
+```sh
+mkdir -p artsource/blender/.config
+export XDG_CONFIG_HOME="$PWD/artsource/blender/.config"
+BLENDER_ROOT=/home/brewerm/Downloads/blender-5.2.2-linux-x64
+"$BLENDER_ROOT/blender" --background --factory-startup --python-exit-code 1 \
+  --python artsource/blender/build_env.py -- --output Saved/ArtExport/env \
+  --skip-renders
+python3 artsource/blender/validate_styles.py Saved/ArtExport/env
+"$BLENDER_ROOT/blender" --background --factory-startup --python-exit-code 1 \
+  --python artsource/blender/style_review.py -- --source Saved/ArtExport/env \
+  --styles Church B2Damp B3Crypt B4Ritual --samples 24 --tag final
+```
+
+One builder invocation defaults to **all five** style folders. Each contains its
+own `manifest.json`, GLBs and `textures/`. GLB images are **external references**,
+not embedded; move the entire style folder. `--styles Church B2Damp` (or comma
+separated names) limits rebuilding. Omitting `--skip-renders` also renders all B1
+pieces and its room, and a room/detail study for each new style: **21 PNG views
+in a fresh export**. `--room-only`, `--render-piece NAME`, `--samples` and
+`--render-tag` support narrower iterations. Tags retain prior renders; prune your
+own old review images rather than accumulating unbounded iterations.
+
+The standalone review imports the **actual exported GLBs and their shared PNGs**,
+so final evidence exercises the export, including quantization and material
+conversion. It supports `--room-only` and `--details-only`. These are 1280×720
+Cycles **CPU**, low-sample, fixed-seed, denoised AgX art studies. They are neither
+the authoritative map layouts nor Unreal screenshots. No render-only replacement
+materials or reference images are used. Light powers/color grading are review
+tuning, not Unreal settings or a measured in-game brightness promise.
+
+**Existing B1 consumer compatibility:** `build/build-art.sh` and the existing
+importer read the former flat `Saved/ArtExport/env/manifest.json`. They are outside
+this task's write paths. Until the integration task updates them, generate the
+legacy layout explicitly with `build_env.py -- --legacy-root --output
+Saved/ArtExport/env --skip-renders`, or point their reader at `env/B1Cellar`.
+Do not mistake a stale flat-root manifest for a new multi-style build. B1's
+original generation, export, texture and manifest implementation is retained;
+`geometry.py`, `materials.py` and `validate_env.py` are unchanged.
+
+### Coverage, fitting and reuse
+
+Read contracts: `LHVisualKit.h/.cpp`, `LHMapDressing.h`, all three map generators,
+`LHB1ArtBinding.cpp`, and `docs/implementation/map-dressing.md`. Every placed
+piece ID for the four requested styles is covered. Standard IDs use
+`Presentation.Environment.Shared.`:
+
+| Style | Pieces actually used by current maps, beyond the common set |
+|---|---|
+| Church | Arch320, Altar; descending stairs |
+| B2Damp | Arch320; descending stairs |
+| B3Crypt | Arch240; both signed stair variants |
+| B4Ritual | Arch240, `Presentation.Environment.Basement.ArchBoss500`, Altar; ascending stairs |
+
+The common set is Wall400, Floor400, Stair600x120, Sconce, Barrel, Crate, Table,
+Bench and Debris. All four exports also include both ordinary arches and both
+signed stair variants as reusable extras. Church adds its requested
+`Presentation.Environment.Church.Pillar` and `.DoorLeafPreview`; these are
+existing catalog IDs but are **not currently placed** by the generators.
+Altar is **Shared.Altar**, not Church.Altar.
+
+Existing B1 common envelopes/pivots remain as documented above. New frozen
+canonical bounds in centimeters:
+
+| File | Minimum XYZ | Maximum XYZ | Pivot / status |
+|---|---|---|---|
+| Altar.glb | −100,−80,0 | 100,80,120 | ground center; Shared.Altar |
+| Pillar.glb | −30,−30,0 | 30,30,400 | ground center; Church.Pillar |
+| DoorLeafPreview.glb | 0,−5,0 | 160,5,300 | hinge edge; Church.DoorLeafPreview |
+| ArchBoss500.glb | −300,−20,0 | 300,0,400 | opening base center; Basement.ArchBoss500 |
+| Carpet.glb | −200,−1050,0 | 200,1050,1 | auxiliary, base center; **no presentation ID** |
+
+The carpet matches the generator's 400×2100×1 cm `Temple.RedAisle` visual extent.
+Its manifest explicitly says `piece_id: null`, `binding_status:
+auxiliary_unbound`. That primitive is skipped by Dress; the later task must
+explicitly bind it, with base Z=0 at the aisle's XY center. This does not propose
+a new shared catalog/schema ID. The ordinary arches keep 240/320×300 cm clear
+rectangles; the boss arch keeps **500×360 cm**, within its 600×20×400 cm envelope.
+
+Every mesh has identity object transforms and pivot zero. Authoring meters are
+kit centimeters/100; glTF uses `(X,Z,-Y)`. Normals use tangent +Y/OpenGL. Keep
+NoCollision and no navigation contribution, and retain the existing smooth ramp
+colliders. Shared stairs, ordinary arches and props call the original B1 geometry
+builders with their original seeds. Different stone families recolor those
+shapes without remodelling them. The six timber/iron PNGs and common stone-normal
+PNG are identical across the new folders and can be deduplicated at import;
+per-style budgets nevertheless count **every copied byte**, without assumed
+deduplication savings. Matching prop GLBs and matching geometry can also be
+deduplicated by the integrator where material binding permits it.
+
+**Fitting is still an integration responsibility.** The existing B1 binder now
+tiles/crops around fitted recipe bounds rather than uniformly stretching full
+walls and floors; the old W5-07b fitting description predates that change.
+Church's current wall caps are **80 cm high**, below the plaster beginning at
+155 cm. Simply applying B1's crop will show only masonry. Upper plaster/framing
+needs an explicit art/occlusion placement decision; the tall mock walls do not
+prove that the current hub will look like the mock. B2 has 120 cm caps, which
+retain the low moss treatment. B3/B4 boundary boxes span **Z −100…400 cm**; a
+tile fitted from −100 shifts the first niche down by 100 cm. A B1-style 120 cm
+cutaway would remove the niche heads. B1 solid backing must not be copied behind
+crypt recesses unaltered: its 10 cm core would partially fill the 3.4 cm niche
+screen. Review the actual map heights, backing and visibility before binding.
+
+### Church
+
+Warm sandstone courses support aged ivory plaster, pegged rough timber and small
+irregular exposed masonry patches. Square timber pillars with stone shoes and
+caps, simple plank benches, an iron-strapped door leaf, a modest slab altar with
+a narrow runner, and a muted red aisle make a small starter temple. Upright
+pillar/door UV grain runs vertically. No cathedral towers, gothic tracery,
+stained-glass spectacle or roof extension is introduced. The mock is an interior;
+it does not claim to reproduce the concept's shoreline, roofs, vegetation or
+larger district composition.
+
+### B2Damp
+
+Cool dark slate with olive mineral/moss mottling and a darker green bottom course
+uses the existing wall shape. Its signature Floor400 adds two shallow irregular
+pooled stains inside the canonical bounds. Shared albedo/normal images support a
+low-roughness wet material with reduced normal strength; no water simulation,
+transparency or gameplay water is added. Amber fixtures contrast with restrained
+cool fill. Timber storage props retain the common B1 geometry.
+
+### B3Crypt
+
+Pale neutral limestone, dry roughness and dusty fragments contrast immediately
+with B2. Wall400 contains two genuinely shallow arched memorial recesses, with
+blank inset tablets and a central backing screen. The thin 20 cm wall contract
+limits their depth; they are not walk-in alcoves. No skeletons, new creature
+population or invented inscriptions are added. Geometry for paving, stairs,
+arches and timber furniture remains shared.
+
+### B4Ritual
+
+Charcoal basalt, restrained red-brown mineral inlay, a divided shallow floor
+medallion with recessed radial gaps, and a marked slab altar distinguish the
+ritual floor. Carvings have actual separated stone sectors, rather than an
+emissive decal. Inlay is nonemissive oxide, deliberately subdued after the first
+render showed overly orange lines. The wide boss frame preserves the original
+500×360 cm opening. Sigils are original abstract presentation, not source-backed
+writing or a new ritual mechanic.
+
+### Materials, budget and validation evidence
+
+New style materials are real 512px Cycles CPU EMIT/NORMAL bakes from original
+periodic node recipes. Church adds baked plaster mottling and crossed cloth
+warp/weft albedos, sharing existing normal/ORM images. To fit the 4 MB ceiling,
+new baked RGB samples are quantized to **5 bits per channel**, ORM to **4 bits**,
+then saved as ordinary 8-bit PNG with lossless level-9 compression. Resolution
+stays 512×512. This is lossy color/normal precision, not a claim of lossless bake
+compression. B1 is exempt from this change and retains its exact original PNGs.
+ORM R is neutral occlusion, G roughness, B metallic; shared textures do not encode
+per-object AO. Wet and oxide have deliberate constant PBR factors; flame remains
+a simplified static emissive shape with no exported light.
+
+The new manifests record per-piece seeds (legacy base 7507 or signature base
+7514, plus index×101), IDs/variants, bounds, dimensions, triangle counts, material
+slots, hashes, bytes and external dependencies. `validate_styles.py` independently
+freezes required inventories and canonical bounds, calls the original GLB/PNG
+validator, and adds positive signed-volume checks for custom walls, floors,
+altars, pillars, door, carpet and boss arch. This caught two inward puddle side
+shells; the original bad export fails the new check and the corrected export
+passes. All actual GLBs also go through Blender re-import checks for triangle
+counts, bounds, origin/scale and loaded 512px images.
+
+The pre-existing B1 export is **4,369,302 bytes** including manifest. Applying a
+new 4 MB limit to it would contradict byte preservation. W5-14 therefore applies
+the **4,000,000-byte complete-export cap to each of the four new styles**, and
+reports B1 unchanged as an explicit pre-existing exception. Renders are evidence
+and excluded from runtime payload. Complete observed final measurements and
+repeat-export results are recorded below and in this attempt's report.
+
+| Style | GLBs | 512px textures | Unique exported triangles | GLB bytes | Texture bytes | Manifest bytes | Complete bytes |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| B1Cellar, unchanged | 12 | 9 | 20,696 | 1,701,596 | 2,655,012 | 12,694 | **4,369,302** |
+| Church | 16 | 11 | 26,044 | 2,149,164 | 1,224,813 | 18,806 | **3,392,783** |
+| B2Damp | 12 | 9 | 20,688 | 1,699,184 | 1,011,392 | 14,096 | **2,724,672** |
+| B3Crypt | 12 | 9 | 21,332 | 1,754,056 | 1,022,794 | 14,097 | **2,790,947** |
+| B4Ritual | 14 | 9 | 24,960 | 2,053,140 | 987,102 | 15,873 | **3,056,115** |
+
+These are measured **asset-export** totals from the final `--skip-renders` build,
+including the auxiliary carpet and reusable extras. They are not packaged Unreal
+sizes, scene triangle counts or draw-call measurements. The new four together
+are 11,964,517 bytes before import deduplication. Exporting with render metadata
+adds a small amount to each manifest, still comfortably inside each new limit.
+
+### Feedback loop and observed checks
+
+First reviews used 12 samples; final room and key-piece studies use **24 samples**.
+Church's first detail cropped the pillar and exposed horizontal grain on upright
+wood; framing and UVs were corrected, plaster losses made irregular, and cloth
+given a woven albedo. B2's first pools looked like flat, rough stone stickers;
+the revised irregular outlines, subtle normal strength and low roughness read as
+pooled stains. A reflection-light experiment produced distracting white glare,
+so its power was reduced before the retained final view. B3/B2 mock exits were
+initially backed by wall tiles; those tiles were removed. B4's first inlay looked
+too bright orange and was darkened to oxide red-brown. The independent winding
+defect was corrected in the actual exported geometry, not hidden by lighting.
+
+Visual assessment after inspecting the final views: the four kits are clearly
+distinct at room distance. Church has good correspondence to the requested
+**small temple material vocabulary**, but only moderate correspondence to the
+painted exterior concept's richness. B2 gives a useful damp, mossy read, with
+noticeably repeated puddle silhouettes. B3 reads as pale, dry memorial stone;
+its thin niches remain shallow and orderly. B4's dark paving, inset lines and
+altar make the ritual identity readable without emission. These are deliberately
+small stylized modular kits, not close reproductions of painted environment
+detail. Repeated blocks, sigils and wear, sparse clutter, simplified static
+flames, inherited cross-grain on some common furniture legs, shallow recesses
+and absent vegetation/volumetric atmosphere remain visible limitations. Final
+in-engine lighting, occlusion, palette and owner acceptance remain open.
+
+Checks actually run:
+
+- The final single all-style `--skip-renders` invocation completed with **exit 0**,
+  generating all 66 GLBs and performing 66 Blender importer round-trips. All five
+  manifests passed `validate_styles.py`, including PNG checks, frozen geometry
+  bounds, IDs/variants, external dependencies, outward shell volumes and budgets.
+- B1 was exported before changing the entry point. All **22 files**, including
+  the manifest, match the final B1Cellar folder byte for byte with the same
+  `--skip-renders` flags. No cross-version determinism claim is made.
+- Fresh independent per-style Blender processes returned **exit 0** and produced
+  **96/96 identical files** for the four new styles: Church 28, B2 22, B3 22,
+  B4 24. The comparison includes every GLB, PNG and manifest, followed by
+  independent artifact validation. Repeat directories were removed after checks.
+- POSITION/index buffer hashes for ten common shapes match across B1 and all
+  four new styles. Five whole prop GLBs (Sconce, Barrel, Crate, Table, Bench) and
+  seven PNGs are identical across the new styles. No size saving is subtracted
+  from the reported per-style totals. Independent arch inspection found no
+  vertices inside the required ordinary or boss aperture rectangles.
+- The old B2 puddle GLB is rejected as a winding negative control; final B2 passes.
+  The exported wet material records normal scale approximately .04 and roughness
+  approximately .10, confirming the glTF conversion retains those settings.
+- Final exported-asset room/detail reviews completed through Cycles CPU. Nineteen
+  retained first/intermediate/final PNGs provide the feedback sequence; all are
+  1280×720. Python syntax compilation and `git diff --check` passed.
+
+An early combined iteration was terminated with exit 143 during B4 re-import;
+the log did not identify a cause. A subsequent complete all-style run and all
+fresh per-style repeats exited 0. An initial wet-material export also exposed
+an ORM filename collision: overriding only roughness caused the glTF exporter
+to repack a shared image under its old name. Wet now shares albedo/normal only
+and uses constant roughness/metallic factors without that AO/ORM export path.
+The final export has no unresolved Python exception. Existing Blender sampler
+warnings and Blender-6 deprecation warnings remain, as in the B1 pipeline.
+
+Evidence is under this attempt's worker-output `library/`: the 19 PNGs, five
+export manifests, `export-metrics.json`, `b1-byte-identity.json`,
+`repeat-checks.json`, `reuse-checks.json`, and compact validation/render logs.
+Generated GLBs, textures and renders are not committed. No memory projection,
+shared header, schema, generated map or file outside the owned source paths is
+changed.
+
+**Checks not run / concrete prerequisite:** Unreal import/material conversion,
+native binding, actual map regeneration, arrival/nav/collision checks, build,
+cook/package/play, in-game screenshots and performance. These require the later
+codex-sol integration task; they are outside this Blender-only ownership, not
+claimed as passed. Windows remains deferred. G5 and verified task acceptance
+belong to the integrator. Next task: import/deduplicate these manifest-backed
+assets, extend style-aware fitting/materials with the Church/B3 notes above,
+explicitly bind the carpet and catalog extras as appropriate, and judge all four
+real maps under their actual lighting and gameplay camera.

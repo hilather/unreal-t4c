@@ -248,7 +248,7 @@ def render_room(pieces, directory, revision):
     return len(placed)
 
 
-def main():
+def legacy_main():
     args=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else []
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path,default=Path('Saved/ArtExport/env'))
@@ -334,5 +334,132 @@ def main():
     assert manifest['payload_bytes']+(output/'manifest.json').stat().st_size<=15_000_000
     print('B1_EXPORT_SUMMARY '+json.dumps({'pieces':len(pieces),'texture_bytes':manifest['texture_bytes'],'glb_bytes':manifest['glb_bytes'],'payload_bytes':manifest['payload_bytes']}))
 
+
+
+
+STYLES=('B1Cellar','Church','B2Damp','B3Crypt','B4Ritual')
+
+def build_new_style(style,output,opt):
+    from style_geometry import STYLE_PIECES,build_style_piece,canonical_style_bounds
+    from style_materials import bake_style_materials
+    bpy.ops.wm.read_factory_settings(use_empty=False)
+    bpy.ops.object.select_all(action='SELECT')
+    bpy.ops.object.delete(use_global=False)
+    configure_render(opt.samples)
+    output.mkdir(parents=True,exist_ok=True)
+    materials=bake_style_materials(style,output,512)
+    materials['flame']=flame_material()
+    # Extra surface families reuse the genuine baked stone maps.
+    materials['wet']=materials['stone'].copy(); materials['wet'].name='wet'
+    sh=materials['wet'].node_tree.nodes.get('Principled BSDF')
+    for link in list(sh.inputs['Roughness'].links): materials['wet'].node_tree.links.remove(link)
+    sh.inputs['Roughness'].default_value=.10
+    for node in materials['wet'].node_tree.nodes:
+        if node.type=='NORMAL_MAP': node.inputs['Strength'].default_value=.04
+    for link in list(sh.inputs['Metallic'].links): materials['wet'].node_tree.links.remove(link)
+    sh.inputs['Metallic'].default_value=0
+    for node in list(materials['wet'].node_tree.nodes):
+        if node.type=='GROUP': materials['wet'].node_tree.nodes.remove(node)
+    materials['inlay']=materials['oxide']
+    pieces={}; manifest={'revision':'W5-14-v1','style':style,'seed':7507,'blender_version':bpy.app.version_string,
+        'units':'glTF meters; canonical dimensions below in Unreal centimeters',
+        'axes':'Authoring X,Y,Z = canonical local X,Y,Z. glTF positions = (X,Z,-Y).',
+        'collision':'None; retain existing Unreal colliders and navigation.',
+        'normal_convention':'OpenGL tangent +Y; verify importer converts for Unreal.',
+        'geometry_seeds':{'shared':7507,'signature':7514,'offset_per_piece':101},
+        'bake':{'engine':'Cycles','device':'CPU','resolution':[512,512],'source':'Original procedural nodes; no external images',
+                'compression':'512px RGB quantized to 5 bits/channel; ORM to 4 bits/channel; PNG zlib level 9'},'pieces':{}}
+    for name in STYLE_PIECES[style]:
+        obj=build_style_piece(style,name,materials); before=bounds(obj); target=canonical_style_bounds(style,name)
+        for v in obj.data.vertices:
+            for a in range(3):
+                assert before[1][a]>before[0][a],name
+                v.co[a]=target[0][a]+(v.co[a]-before[0][a])/(before[1][a]-before[0][a])*(target[1][a]-target[0][a])
+        obj.data.update(); obj.data.calc_loop_triangles(); pieces[name]=obj
+        assert obj.location.length<1e-6 and tuple(obj.scale)==(1,1,1)
+        path=export_piece(obj,output/(name+'.glb')); raw=path.read_bytes(); gltf=json.loads(raw[20:20+struct.unpack_from('<I',raw,12)[0]])
+        triangles=sum(gltf['accessors'][p['indices']]['count']//3 for m in gltf['meshes'] for p in m['primitives'])
+        assert triangles==len(obj.data.loop_triangles),name
+        prefix='Presentation.Environment.Church.' if name in ('Pillar','DoorLeafPreview') else 'Presentation.Environment.Basement.' if name=='ArchBoss500' else PREFIX
+        pid=prefix+name.replace('Descending','') if name!='Carpet' else None
+        entry={'piece_id':pid,'variant':'descending' if name.endswith('Descending') else 'default','file':path.name,
+          'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'bounds_cm':[[round(v*100,6) for v in xyz] for xyz in bounds(obj)],
+          'dimensions_cm':[round((target[1][a]-target[0][a])*100,6) for a in range(3)],'pivot_cm':[0,0,0],
+          'triangles':triangles,'material_slots':len(gltf.get('materials',[])),'texture_files':sorted(i['uri'] for i in gltf.get('images',[]))}
+        signature_names={'Church':{'Wall400','Pillar','DoorLeafPreview','Carpet','Altar'},
+                         'B2Damp':{'Floor400'},'B3Crypt':{'Wall400'},
+                         'B4Ritual':{'Floor400','Altar','ArchBoss500'}}
+        custom=name in signature_names[style]
+        entry['geometry_builder']='signature' if custom else 'shared'
+        entry['geometry_index']=STYLE_PIECES[style].index(name) if custom else PIECES.index(name)
+        entry['geometry_seed']=(7514 if custom else 7507)+entry['geometry_index']*101
+        if name=='Carpet': entry['binding_status']='auxiliary_unbound'
+        if name.startswith('Stair'): entry['run_width_signed_rise_cm']=[600,300,-120 if name.endswith('Descending') else 120]
+        manifest['pieces'][(pid+(':descending' if name.endswith('Descending') else '')) if pid else 'auxiliary:Carpet']=entry
+        obj.hide_render=True
+    # Only count and retain textures referenced by exported meshes.
+    referenced={f for e in manifest['pieces'].values() for f in e['texture_files']}
+    for path in (output/'textures').glob('*.png'):
+        if str(path.relative_to(output)) not in referenced: path.unlink()
+    manifest['textures']={f:{'bytes':(output/f).stat().st_size,'sha256':hashlib.sha256((output/f).read_bytes()).hexdigest(),'resolution':[512,512]} for f in sorted(referenced)}
+    manifest['texture_bytes']=sum(e['bytes'] for e in manifest['textures'].values())
+    manifest['glb_bytes']=sum(e['bytes'] for e in manifest['pieces'].values())
+    manifest['payload_bytes']=manifest['texture_bytes']+manifest['glb_bytes']
+    for name,original in pieces.items():
+        previous=set(bpy.data.objects); bpy.ops.import_scene.gltf(filepath=str(output/(name+'.glb')))
+        imported=set(bpy.data.objects)-previous; meshes=[o for o in imported if o.type=='MESH']; assert len(meshes)==1,name
+        restored=meshes[0]; restored.data.calc_loop_triangles()
+        assert len(restored.data.loop_triangles)==len(original.data.loop_triangles),name
+        assert restored.location.length<1e-6 and (restored.scale-Vector((1,1,1))).length<1e-6,name
+        assert all(abs(a-b)<2e-5 for xyz,expected in zip(bounds(restored),bounds(original)) for a,b in zip(xyz,expected)),name
+        for mat in restored.data.materials:
+            for node in mat.node_tree.nodes:
+                if node.type=='TEX_IMAGE': assert node.image and node.image.size[:]==(512,512),name
+        for obj in imported: bpy.data.objects.remove(obj,do_unlink=True)
+    manifest['blender_roundtrip_checked']=len(pieces)
+    if not opt.skip_renders:
+        from style_review import render_style,room
+        directory=output/'renders'; directory.mkdir(exist_ok=True)
+        if opt.render_piece:
+            if opt.render_piece not in pieces: raise ValueError('Unknown piece for '+style+': '+opt.render_piece)
+            render_individuals({opt.render_piece:pieces[opt.render_piece]},directory)
+            extra={}
+        elif opt.room_only: extra=room(style,pieces,directory,opt.render_tag)
+        else: extra=render_style(style,pieces,directory,opt.render_tag)
+        if isinstance(extra,dict): manifest.update(extra)
+        else: manifest['mock_room_instances']=extra
+        manifest['render_settings']={'engine':'Cycles','device':'CPU','samples':opt.samples,'denoise':True,'width':1280,'height':720}
+        manifest['renders']=sorted(p.name for p in directory.glob('*.png'))
+    path=output/'manifest.json'; path.write_text(json.dumps(manifest,indent=2)+'\n')
+    total=manifest['payload_bytes']+path.stat().st_size
+    assert total<=4_000_000,(style,total)
+    print('STYLE_EXPORT_SUMMARY '+json.dumps({'style':style,'pieces':len(pieces),'total_bytes':total}))
+
+def main():
+    args=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else []
+    if '--legacy-root' in args:
+        sys.argv.remove('--legacy-root'); return legacy_main()
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output',type=Path,default=Path('Saved/ArtExport/env'))
+    parser.add_argument('--styles',nargs='+',default=list(STYLES),help='Style names, space or comma separated; default all five')
+    parser.add_argument('--samples',type=int,default=24)
+    parser.add_argument('--skip-renders',action='store_true')
+    parser.add_argument('--room-only',action='store_true')
+    parser.add_argument('--render-piece')
+    parser.add_argument('--render-tag',default='final')
+    opt=parser.parse_args(args); selected=[s for group in opt.styles for s in group.split(',')]
+    if any(s not in STYLES for s in selected): parser.error('Unknown style; choices: '+', '.join(STYLES))
+    for style in dict.fromkeys(selected):
+        output=opt.output.resolve()/style
+        if style=='B1Cellar':
+            bpy.ops.wm.read_factory_settings(use_empty=False)
+            old=sys.argv[:]; forwarded=['--output',str(output),'--samples',str(opt.samples),'--render-tag',opt.render_tag]
+            if opt.skip_renders: forwarded+=['--skip-renders']
+            if opt.room_only: forwarded+=['--room-only']
+            if opt.render_piece: forwarded+=['--render-piece',opt.render_piece]
+            sys.argv=[old[0],'--']+forwarded
+            try: legacy_main()
+            finally: sys.argv=old
+        else: build_new_style(style,output,opt)
 
 if __name__=='__main__': main()
