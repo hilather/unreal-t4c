@@ -536,3 +536,38 @@ no missing paths. New styles plus shared pool, including cooked sidecars, total
 their generated receipts after test/cook execution. This is cook inclusion, not
 a packaged launch or visual approval. Content packages, generated receipts and
 local map changes are restored to exact base Git blobs before submission.
+
+## W5-15c: per-style map tests and authored creature bounds
+
+Updated only `LHMapDressingTests.cpp` and `LHCreatureArtTests.cpp`; no additional
+failing test files or production code required changes. Map cases now check the
+resolved mesh and requested style palette, require imported instances when those
+assets load, and require procedural rendering otherwise. Existing collision,
+nav, inventory, recipe, triangle/section and camera thresholds remain intact;
+the existing framing test now uses the generalized style resolver.
+Creature exact rest bounds come from each generated
+`artsource/creatures/output/<kind>-validation.json`, matching the importer's
+source. Missing/malformed evidence fails the test. The 0.5 cm tolerance, combined
+socket-weapon bounds, ruler limits and all other asset checks remain unchanged.
+Run `build/build-art.sh` before these imported-asset tests to generate evidence.
+
+Linux validation on 2026-10-11: final non-adaptive unity editor/game builds
+Succeeded (194.29 s / 2.51 s); five style validators passed; local art wrapper with
+`LH_ART_REIMPORT=1` exited 0 (creature inventory 23,239,842 bytes). All five map
+generator commandlets exited 0 after local cached LFS art hydration. Full
+headless report: **225/225 passed with warnings, 0 failed, 0 not run**, exit 0,
+327.49 s reported test duration. Failures by name: none. The formerly failing
+CreatureImportedAssets and Church/B2/B3/B4 Dressing.Maps cases passed.
+ArrivalSafety passed; reviewed arrivals remain **9/9**, with unchanged file bytes
+and transform hashes. Tracked Content (including `.umap` pointers) was restored
+to base Git blobs and generated Content removed before submission.
+
+The first editor link failed with a JSON object serializer dependency; the final
+test uses the header-only JSON token reader, avoiding an unowned Build.cs edit.
+An initial automation run was terminated by the sandbox's blocked Epic analytics
+request before report export; the completed rerun used the documented analytics
+and crash-report privacy flags plus `-NoAnalytics`. Early generators returned 1
+for unhydrated art/map pointers; their final reruns all returned 0. Player import
+outputs were restored to baseline cached packages before the completed suite,
+matching W5-15b's setup. Evidence is a worker candidate, not gate approval;
+no cook, package, rendered review or hands-on play was performed for this task.

@@ -1,6 +1,7 @@
 #include "Misc/AutomationTest.h"
 #include "Visual/LHVisualKit.h"
-#include "Visual/LHB1ArtBinding.h"
+#include "Visual/LHEnvArtBinding.h"
+#include "Materials/MaterialInterface.h"
 #include "Visual/LHB1Lighting.h"
 #include "World/LHAreaRegistry.h"
 #include "World/LHWorldMarkers.h"
@@ -58,9 +59,33 @@ bool FLHMapDressingTest::RunTest(const FString& Parameters)
         {
             TestTrue(TEXT("Mesh excluded from package serialization"),P->GetMesh()->HasAnyFlags(RF_Transient));
             TestTrue(TEXT("Geometry present immediately after load"),P->GetMesh()->GetNumSections()>0);
+            LHEnvArt::FFit Fit;
+            UStaticMesh* ExpectedMesh=nullptr;
+            if(LHEnvArt::Resolve(P->GetRecipe(),Fit))
+            {
+                const auto Style=P->GetRecipe().Style;
+                const FString Folder=LHEnvArt::MeshFolder(Style,Fit.AssetName);
+                const FString Path=TEXT("/Game/Lighthaven/Art/Env/")+Folder+TEXT("/SM_")+Fit.AssetName+TEXT(".SM_")+Fit.AssetName;
+                ExpectedMesh=LoadObject<UStaticMesh>(nullptr,*Path,nullptr,LOAD_NoWarn|LOAD_Quiet);
+                if(ExpectedMesh && Style!=ELHVisualStyle::B1Cellar)
+                {
+                    const FString Prefix=TEXT("MI_")+LHEnvArt::Folder(Style)+TEXT("_");
+                    for(const auto& Slot:ExpectedMesh->GetStaticMaterials())
+                    {
+                        FString Name=Slot.MaterialInterface?Slot.MaterialInterface->GetName():FString();
+                        if(Name.RemoveFromStart(TEXT("MI_B1_"))) Name=Prefix+Name;
+                        const FString MaterialPath=TEXT("/Game/Lighthaven/Art/Env/")+LHEnvArt::Folder(Style)+TEXT("/")+Name+TEXT(".")+Name;
+                        if(!Name.StartsWith(Prefix) || !LoadObject<UMaterialInterface>(nullptr,*MaterialPath,nullptr,LOAD_NoWarn|LOAD_Quiet))
+                        { ExpectedMesh=nullptr; break; }
+                    }
+                }
+            }
+            TestEqual(TEXT("Each style imports its available used pieces"),P->GetImportedMesh()->IsVisible(),ExpectedMesh!=nullptr);
+            TestEqual(TEXT("Unavailable imported art retains procedural renderer"),P->GetMesh()->IsVisible(),ExpectedMesh==nullptr);
             if(P->GetImportedMesh()->IsVisible())
             {
-                TestEqual(TEXT("Only B1 uses imported art"),P->GetRecipe().Style,ELHVisualStyle::B1Cellar);
+                TestTrue(TEXT("Imported mesh matches requested style binding"),P->GetImportedMesh()->GetStaticMesh()==ExpectedMesh);
+                TestEqual(TEXT("Imported instance count matches fitted recipe"),P->GetImportedMesh()->GetInstanceCount(),Fit.Instances.Num());
                 TestEqual(TEXT("Imported dressing collision disabled"),P->GetImportedMesh()->GetCollisionEnabled(),ECollisionEnabled::NoCollision);
                 TestFalse(TEXT("Imported dressing nav disabled"),P->GetImportedMesh()->CanEverAffectNavigation());
                 TestTrue(TEXT("Imported instances present"),P->GetImportedMesh()->GetInstanceCount()>0);
@@ -158,8 +183,8 @@ bool FLHCaptureFramingTest::RunTest(const FString& Parameters)
         if(auto* P=Cast<ALHVisualPiece>(*It))
         {
             auto* Imported=P->GetImportedMesh();
-            LHB1Art::FFit Fit;
-            if(Imported->IsVisible() && Imported->GetStaticMesh() && LHB1Art::Resolve(P->GetRecipe(),Fit))
+            LHEnvArt::FFit Fit;
+            if(Imported->IsVisible() && Imported->GetStaticMesh() && LHEnvArt::Resolve(P->GetRecipe(),Fit))
             {
                 for(const auto& Instance:Fit.Instances)
                 {
