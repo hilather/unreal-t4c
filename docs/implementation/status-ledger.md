@@ -311,3 +311,14 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
   - **Remaining gap:** the hub (church) still has the old flat look and blocky NPCs.
 - **W5-15 stopped at a wording checkpoint** ("committed receipts", and a wildcard write path). → **W5-15b (sol) running:** art-build repair plus import and binding of the Church/B2/B3/B4 kits.
 - **W5-16 (astra) launched:** 15 hub NPCs in Blender, reusing the player rig.
+- **W5-15/15b/15c integrated (4cc2d8b; assets ffc2ba7, 14 MB LFS).**
+  - **Kits:** Church, B2, B3 and B4 imported with a shared pool (0.85 / 0.30 / 0.99 / 1.25 MB) and bound per style. The art build is repaired. Creatures re-imported after W5-08f (23.2 MB).
+  - **Host:** 227/227; arrivals 9/9 unchanged; validator 0; package OK; 15/15 session room captures and 22/22 lineup shots (`scratch/captures/w5-15c/`).
+  - **Look:** B3 is a pale crypt with tall walls; B4 is dark ritual stone with sigils; the church has a stone floor and carpet. Lighting on those floors is still the old flat setup (B3 means .33–.43, B4 .04–.08), the church walls are low rims and its NPCs are blocky.
+  - **Player packages:** the host art build re-imported them needlessly (their receipt hashes the compiled editor module). Not committed; W5-18 fixes the receipt.
+- **W5-16 merged (465e498, sources).** 15 hub NPCs on the player rig; they look good in Blender (`scratch/captures/w5-16-blender/`).
+- **Launched:**
+  - **W5-17 (sol):** rule-based full-height back walls on every floor, and the church carpet, pillars and doors. The maps need regenerating.
+  - **W5-18 (sol):** NPC import and runtime binding to the markers, plus the player-receipt fix.
+  - **Then:** a lighting pass for the church and B2–B4 (astra), followed by the full capture set to judge for Matt.
+- **Launch budget:** W5-17 needed five trims (to 2.4 KB) to fit the 32 KB limit with 13 literal write paths. Briefs for tasks with many paths can no longer carry much detail.
