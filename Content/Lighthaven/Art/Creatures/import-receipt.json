@@ -1,18 +1,18 @@
 {
-  "signature": "40ef9f79b6502b19dff1a75d9325d90b4c081ad35d61d080a517023823197485",
+  "signature": "10cd9345dfb540c1edaced6ea721cf727ac28e8e8c61542d62df89536db88560",
   "importer_version": "W5-15b-selective-v1",
   "inputs": {
-    "rat": "c0ab7a25e4d58e5f4ba28bd89cbf948e2e998f44106ca9118b4520d3f0e581e3",
-    "bat": "9e114c5eb8e71a1cdcaa53ae588f4aa6cc2484ba5a7adfff98244f8183eef6cf",
-    "slime": "3d8f49831690ad92361eb18bd5636004f5cdadd1ce9b6cc2ef6b9b527508bb97",
-    "goblin": "ac06f561185077526563473a663b65e12f2c28df87dfefacf6ce33479cc7a90a",
-    "giant_spider": "2a4eac85cd294354e33df2eb56c7b0886aa1142ef877394365b448e16841da70",
-    "balork": "bd1aff54b450a8ce2769164be37b244ee3f751d9e782ddcf34c10eee2f82ecbf",
-    "goblin_warrior": "5c39ef8dce0a716ebfa6adf6dcd7e0d93aa5425cec908552b9393a4498659290",
-    "atrocity": "133614a0bd72c9b8790eff989e3f1e1e9e0726da51c0070b12f6b279d6ec5a7d",
-    "dungeon_bat": "0964ccd97c7015b3a94b9cc6fe8e38ba7456f355b60f9b33e819f01f9cdd90ea",
-    "giant_bat": "0b96c04a900b6fd2a9862ad5912c8bae52fae4e3b252d82c3a6f6dfe30fcbf92",
-    "undead_bat": "42781df254bcf343e88fcaf2eefe3fc248291b1e2f9bc2860fd5846617519566"
+    "rat": "e37e385e1a8c92fa39ee627aca10fddad7d1ba81e3374d6ee0db767fd1d4b267",
+    "bat": "22a2dcbe990dfddb314615a95af96bc207d22c5236ba98f75f3c3c601422675a",
+    "slime": "6d75a7b2de89706da207f037679cc7cafa5f10799967038c7765c22ccd96b7ea",
+    "goblin": "1ce5d0efd790002d616ff3f4d5f6ab86dfcbd43a9c26f1cdfa3b28bba45d5c16",
+    "giant_spider": "e4f842fde4736a4ca664778afce0c874e71d68b33759cd3169a9e73f6be3074d",
+    "balork": "f41b55e48db7f1a1744d987cff5cee0825cc5bc1b146a0f14992b7ea700f9835",
+    "goblin_warrior": "899b90733f3037390fec46f6b5b0bc4191f78c9e07abaacbaf94b2903cd7a9a2",
+    "atrocity": "1cb37df5081583e5e8e8f94bc15b81813281d55a753c244ae29ff1f2fe83ffc5",
+    "dungeon_bat": "1f35bd057ccc387df89d28e80ca05e3e4b2d8ff9c327c9cac362c503405e5c4a",
+    "giant_bat": "00b27377240373211349ac140db95c0d2ca64ad3c3415220934944e954fe0ee6",
+    "undead_bat": "5513870eb6870f7709b4c8a562d100bc5f4de2143911703f8aabcb532ff26060"
   },
   "assets": {
     "M_Creature.uasset": {
@@ -20,545 +20,545 @@
       "sha256": "d17a1e5bb15a43b6b06ef4109a9aa2e054a5839d76040e0e9158c159961a493d"
     },
     "atrocity/A_attack.uasset": {
-      "bytes": 154584,
-      "sha256": "14911fde63948b74de83e3edee409efc85a54046489b379705b0bf54ac36b174"
+      "bytes": 237144,
+      "sha256": "b14512da10e96b2bdd9af969b3c80ebbd266dc68ebf9e4b4bff5fb53720bfd33"
     },
     "atrocity/A_death.uasset": {
-      "bytes": 225900,
-      "sha256": "07e59c1b3e5992d3acd64a9d1ffcb4143ac7c3f54c87187efba5b5ee7b7877b4"
+      "bytes": 272748,
+      "sha256": "c20a30392df8085d224b3c9f5886defce60b6853e3e3423a0c3904c3ca05eb3d"
     },
     "atrocity/A_hit.uasset": {
-      "bytes": 141684,
-      "sha256": "a1efeb73e7c22a8d2f48c327fb40d5ba9816f96c58a85cf8c4b75da035cc7e26"
+      "bytes": 143508,
+      "sha256": "1c342a86411aa2adb040a9bb02da35aff013fe9d474fc0bf3f3f55f5d5e5ecb0"
     },
     "atrocity/A_idle.uasset": {
-      "bytes": 196608,
-      "sha256": "4c39c0e740d811c8e227738a2afc991fbf151781971163c216d384290e60dc67"
+      "bytes": 223936,
+      "sha256": "028409bb5dedcb5c96859cab9a3cc35835de2b3d3569eee5e8e307fc8797bbcd"
     },
     "atrocity/A_move.uasset": {
       "bytes": 160448,
-      "sha256": "411ed3709a7247800e9fcf932219e612925ef964daa19510a3fb8f61ec077fc5"
+      "sha256": "66c05938f01970102ab47008fdee28c486d06c4fa91963450a9a9b70d4998048"
     },
     "atrocity/MI_Creature.uasset": {
       "bytes": 4237,
-      "sha256": "4e6aa54f7eccfa5f3cd9b42c22e0a512847cf9dd1268d486e037a8381413d841"
+      "sha256": "ac4537ad908ddaea737f242f989c283c816b5f967b1bb738c1b74bec619b36b5"
     },
     "atrocity/SK_atrocity.uasset": {
       "bytes": 776130,
-      "sha256": "a91038a76973f85c9adcae9705e3db1ffc8af4f167f134689038cfaa8ca41453"
+      "sha256": "c341b7b4077e8c9b3c036a063d1058b95b5891399393ff028347afc8c69ccdc5"
     },
     "atrocity/T_base.uasset": {
-      "bytes": 289038,
-      "sha256": "fba77860e6c0ad5656c547dcb2ab8bd647df6427b0e0cc00dcd2ed4b7ef057e9"
+      "bytes": 288576,
+      "sha256": "c71ca2cc134ba4f4dcc73f79c63605758357df6c2c31efadd47905288851fe75"
     },
     "atrocity/T_normal.uasset": {
-      "bytes": 243426,
-      "sha256": "455a71a1b1f85c85f9bfb8c6b40e629cdffd16f41c349a1728a6f87b32df5a63"
+      "bytes": 242964,
+      "sha256": "63cda590dfcf04d800b29655fe25cc784debcbe9ea94186d74a5f567d186ee39"
     },
     "atrocity/T_orm.uasset": {
-      "bytes": 233307,
-      "sha256": "3e4458655997f5f104788785d3e3cb4f2be1801aab505ca76fba4bbe4745f2d1"
+      "bytes": 232845,
+      "sha256": "227d8aa91433059dd746643b5bf364e98d54e5ee698c31b993dce60f227ae3ae"
     },
     "atrocity/atrocity/SkeletalMeshes/SK_atrocity_PhysicsAsset.uasset": {
       "bytes": 25873,
-      "sha256": "62288e5967a190378d7bf1cd5bfb9c7f879e46475afbeecfcf2361803edfb589"
+      "sha256": "fc57b5562b2fdf248f3e66dd759634cde3e67d761645842757026cfdab9c7e8c"
     },
     "atrocity/atrocity/SkeletalMeshes/SK_atrocity_Skeleton.uasset": {
       "bytes": 7157,
-      "sha256": "03b2208874d167da75b95d387a2953df89a0ef3d170740d8341a1f55e6044ad6"
+      "sha256": "8cf12649f9f94ec181668fa1fa71d28345c67fbabdda0a019505b549e0b69dde"
     },
     "balork/A_attack.uasset": {
-      "bytes": 162444,
-      "sha256": "252b573d50e820777792487d67e37f4048b60831de2bb2bfbfebf0454a923b7d"
+      "bytes": 243628,
+      "sha256": "a8d78887dc5a896ed3fb92b65353060576f26643a06d910596f66d2a1b307aa2"
     },
     "balork/A_death.uasset": {
-      "bytes": 226752,
-      "sha256": "9ff96131611afc93579895246982fb5da453a50ab96752a2648eff51f3f64a32"
+      "bytes": 232608,
+      "sha256": "e960bf42924f4839b74c9eea740afaa4f68077f5b151e3c453575bd7fb933715"
     },
     "balork/A_hit.uasset": {
-      "bytes": 152296,
-      "sha256": "8c2cfe9014a603405886cd649c8916b1d96fbff1a40e2226759b1ba0002869e6"
+      "bytes": 159592,
+      "sha256": "acc60c50a1bee3ef7d7b1d693afc6ab73a350ebfdcb00ceaabb9104c3ece6631"
     },
     "balork/A_idle.uasset": {
-      "bytes": 179892,
-      "sha256": "63d2cb70effe1356ff45d954347c5f3ab99f156cd646fc0c138a0555e688b525"
+      "bytes": 213076,
+      "sha256": "5260ab0da715aeb00320a8425f7e1bd8ef94cf26c1930092d2c8b2fccbd0dd86"
     },
     "balork/A_move.uasset": {
       "bytes": 174260,
-      "sha256": "476d3127064985c2c5d407906f16ac04b0b0f42062b8cd092e0315e90a541377"
+      "sha256": "24c09e1e798ffaff86087e280731237b1e3f636a714d822e45ad4cce51ec86af"
     },
     "balork/MI_Creature.uasset": {
       "bytes": 4227,
-      "sha256": "22d362f6699eb32bf83ee3dbc5e1c1a931a901a3d08eccc50927a2075e9d9145"
+      "sha256": "0d74550a470f15aec14ab20d486b2c3cd5def69dcd69cf102463a1f4c957f796"
     },
     "balork/SK_balork.uasset": {
       "bytes": 1097193,
-      "sha256": "dad04f7d3200cf3830c6684b64eddb377e2590f4ca5f2d33dde4ad90caf2737d"
+      "sha256": "74132f31418441aeb3e065fc94cbe1cbe4ce5ac721d31c751b3ba280a39790a9"
     },
     "balork/SM_Weapon.uasset": {
       "bytes": 105309,
-      "sha256": "da50f2ce6d030d8127a66c7855fd55971d04e8c5aa04b6168f98ade4d07109bd"
+      "sha256": "d9038dc15eabb49035dae1d029311581cf3cdcf102b666990f6ce32cb249a267"
     },
     "balork/T_base.uasset": {
-      "bytes": 296506,
-      "sha256": "b41510b3bff302eae5e7bf6187aedf0fab83dcc71c08c837e3bff3525f0ee8f5"
+      "bytes": 296044,
+      "sha256": "4d936d8b6b9ac0cedb109e6067627df4038ef20485ae8f4d0211bf730afcac30"
     },
     "balork/T_normal.uasset": {
-      "bytes": 242076,
-      "sha256": "68386a43cafe5627a10ab6269cc39e2b8c427b8047a765aa1173d5029aecf534"
+      "bytes": 241614,
+      "sha256": "5a895de5369ddf95b60720e269d16f7ae50fba35c5e8e017219761616d70513a"
     },
     "balork/T_orm.uasset": {
-      "bytes": 232485,
-      "sha256": "c95e69b6cbb7c43425f58090d7551b7d094b26d4f5fa8907c74c427c7d9726c2"
+      "bytes": 232023,
+      "sha256": "a4de7da392d35778a26fb540719bf8c90f790427cad5b147f233adf53e63007b"
     },
     "balork/balork-body/SkeletalMeshes/SK_balork_PhysicsAsset.uasset": {
       "bytes": 34971,
-      "sha256": "d2e815388a05fdc5d09bee5601dadbb3a1e90b6ce1cb93758eefa83756d52edf"
+      "sha256": "30c2548f2669594416e33a0ddea3cc441c0b822b7a6a81d4fa83e115f093ac2d"
     },
     "balork/balork-body/SkeletalMeshes/SK_balork_Skeleton.uasset": {
       "bytes": 8022,
-      "sha256": "501ca3313efc65a69036c93499dcc9af538ffbdbff3e1a63a3d38cbcb7999c46"
+      "sha256": "9bd2a94e644dc6c40538d38cb3fadd6dd3eba0d18ffb5b976747712705fdebda"
     },
     "bat/A_attack.uasset": {
-      "bytes": 112323,
-      "sha256": "1463bfad33a527078b47f1250940eb78a2243d1d5f81509bc338411075aeb854"
+      "bytes": 127470,
+      "sha256": "c04edf0082f9a0acdb600040dfd6ab4a4f22e3f5296dec83f4bba4f3aa270727"
     },
     "bat/A_death.uasset": {
-      "bytes": 101655,
-      "sha256": "3a1c41f24fbaca2ebcc9bdf67b63ee34839b6462a3238999780abcce6b75b2a2"
+      "bytes": 134850,
+      "sha256": "d9f99686cb65e64b33acddf046ac7118dd99629cc66212ca355775750221a302"
     },
     "bat/A_hit.uasset": {
-      "bytes": 96383,
-      "sha256": "c8f3ec0155722949e3d4ed3d8d5ab73bde15b94cee8dd654242ecea1196b5438"
+      "bytes": 107946,
+      "sha256": "458a71b36e5580e39381494f45cad20271ac258b306e1bd14e5b29ca7629ffc4"
     },
     "bat/A_idle.uasset": {
-      "bytes": 121163,
-      "sha256": "4d02cb86a8427006b5c6c4eeec063b311bb600277877bcabd74348651c163f59"
+      "bytes": 138742,
+      "sha256": "66b724ecaf11077035b2953ce8355bf3e5d0e20ffcaf002f025392bc608117a7"
     },
     "bat/A_move.uasset": {
-      "bytes": 106187,
-      "sha256": "190b38cd6f93e070c945716a299287dc597981134aa15a5b837cb07864366b03"
+      "bytes": 106198,
+      "sha256": "097ecd7b3c49c71f0291a6a9a4c30412cd9beeaeb5f878ff21f716b211f98be6"
     },
     "bat/MI_Creature.uasset": {
       "bytes": 4212,
-      "sha256": "69d232c1248742191179c8c5a0a6ea482ae3c1d3b1dfedb559a638d2600bb021"
+      "sha256": "3c9b49eed25dae913f2538ffff79d16c4f5c7d2264b945f218731870aa1bbc5f"
     },
     "bat/SK_bat.uasset": {
-      "bytes": 635798,
-      "sha256": "9e99ce421159af0c172c803d878f0dc73a52e44b04490d5fbb1f74402e5c00ed"
+      "bytes": 635809,
+      "sha256": "420d7a8fc7d61e54ebd102301c8c449bd1cf75844745069ac4c14c1edaedcf95"
     },
     "bat/T_base.uasset": {
-      "bytes": 271924,
-      "sha256": "8b4400ee55928d75a654d23482b7007413a04721f7ef08375bab824caf57a707"
+      "bytes": 271946,
+      "sha256": "c2a2820798da36a8ce162acbdc42db00e7c8352bcade1cf2f349cb423044426b"
     },
     "bat/T_normal.uasset": {
-      "bytes": 244353,
-      "sha256": "d03b3c5b72ff026b9eb0866c929e0791cb4b34ed2a16875e0b04b0c36210a846"
+      "bytes": 244375,
+      "sha256": "c17c2521a5520c0e11617f7b135de3372e4d597925273bb6263d537827feda68"
     },
     "bat/T_orm.uasset": {
-      "bytes": 195197,
-      "sha256": "9fc385fbca894b734bdf80372ec6fd814020dd0e4d18db64ea85d673e7d08eb7"
+      "bytes": 195218,
+      "sha256": "aaf28f14b90a4a210ebb70cc555c87017de9cbbb5a54135f2298f5553665bb1c"
     },
     "bat/bat/SkeletalMeshes/SK_bat_PhysicsAsset.uasset": {
       "bytes": 6977,
-      "sha256": "15cdcbac10c7a4e187af7f6964760d8cb26206396d122ecb27663d22a957238f"
+      "sha256": "c2bca9711343e7ef47dd86a2f0cf23f2fd72e53a692df7a09057797c439f611a"
     },
     "bat/bat/SkeletalMeshes/SK_bat_Skeleton.uasset": {
       "bytes": 3426,
-      "sha256": "d3bf1c3e595b1a45c63b8686de7531f1b1ce2a835bcc2ceec3525879732ec46c"
+      "sha256": "8fe2a74bf5a866724cd4b45cfbae60d347a823be53dc24c221d38be55c7c5012"
     },
     "dungeon_bat/A_attack.uasset": {
-      "bytes": 125422,
-      "sha256": "f4fc3d8f707b9e24ae2f5af29d38fa7d2bead6dedf9b604c7582e71e2fdd5857"
+      "bytes": 141943,
+      "sha256": "21eb64a487375ae1a7a43daa413169bbff7429cc2ab16660c6aea006cc13907d"
     },
     "dungeon_bat/A_death.uasset": {
-      "bytes": 141506,
-      "sha256": "c80753aa8883e818505c2e4558f9b25070550599da8df88898d207ba563e89ff"
+      "bytes": 149323,
+      "sha256": "d6f8666f66fc06bec0567bc0e9d706a4d7c851a6b03a70fece290fe32b4faa25"
     },
     "dungeon_bat/A_hit.uasset": {
-      "bytes": 115114,
-      "sha256": "a5e9ba606ecc4caf36a3057eb0e5ccedffc3078b00221c253a2ee71868539381"
+      "bytes": 122419,
+      "sha256": "647027cfe243c8dc58e9a3d47ff6ff7e259e2d29c8bb52fb3895a082f94989e9"
     },
     "dungeon_bat/A_idle.uasset": {
-      "bytes": 135638,
-      "sha256": "692ab5f89e9314fb0bdc1cdfbeded7c569ef3aca7ca22523ffe0e2df3f75804d"
+      "bytes": 153215,
+      "sha256": "d6e5a34827735a95727863eaf3eef7643b746c7a640fb20d5bf079fce8e97226"
     },
     "dungeon_bat/A_move.uasset": {
-      "bytes": 121462,
-      "sha256": "6c06304249e76e3e6e0edb4649230a595ab31483226f59fb5399f77f944e9cfc"
+      "bytes": 121471,
+      "sha256": "004c4d858053592e8a6a8cea808be3a8cda86d1ec540191aba6172d71a3296b4"
     },
     "dungeon_bat/MI_Creature.uasset": {
       "bytes": 4252,
-      "sha256": "268d718132da50be70c8cf7bee6918610c66f81720cc7ca0350330130cfd55b3"
+      "sha256": "ffb4526778778bacb5057321dd407d371dcfb17e08ab84001ab2448cb3020704"
     },
     "dungeon_bat/SK_dungeon_bat.uasset": {
-      "bytes": 640596,
-      "sha256": "fcf66decf5c6d8354b70300fedcf5e77bd3a782b2572536535e7866a771414f9"
+      "bytes": 640605,
+      "sha256": "ee87bc830c0bff81b46feab8b206d778c0a67513c58fb5863066be09d296c456"
     },
     "dungeon_bat/T_base.uasset": {
-      "bytes": 209149,
-      "sha256": "3024ee66ae96aa644061a6883f1d5118e5cd07b7f3ca1cd8b98ce47f2b6efc0e"
+      "bytes": 209171,
+      "sha256": "8bd23f13d1ed1d4c2ba9d944509f374c740dda75ec56e265edf6dda5c3c9933b"
     },
     "dungeon_bat/T_normal.uasset": {
-      "bytes": 217835,
-      "sha256": "8c458a1bc1ede166bafcc0b3c7598dcf7f1e7848e27ee77060e34fa0e548c6d6"
+      "bytes": 217857,
+      "sha256": "c244a9edbfc149a23d995505c73047c6e490341fca6b1e4fabfa3261be94f65d"
     },
     "dungeon_bat/T_orm.uasset": {
-      "bytes": 181587,
-      "sha256": "e3849184bb20c9e3b0cfebfc6bb22f56e97e837bcef87f5babf664a9484f4e1b"
+      "bytes": 181609,
+      "sha256": "29de953986254d0ed44c3b0f1ade7beb9626efacca4f7dc502e3bc6a7ef1ad15"
     },
     "dungeon_bat/dungeon_bat/SkeletalMeshes/SK_dungeon_bat_PhysicsAsset.uasset": {
       "bytes": 12081,
-      "sha256": "4f66f86c9833a6788d6f4e2e786fd3f5d05dff3bbebfb8edaa44376c0e208ca6"
+      "sha256": "7f728a1c2090d586b9d412a4b43ad0f5ba79703ae4b7c1917882ac40d345a071"
     },
     "dungeon_bat/dungeon_bat/SkeletalMeshes/SK_dungeon_bat_Skeleton.uasset": {
       "bytes": 4537,
-      "sha256": "119496118048d84396c78d28d631716b1ab19ff264d8d58b82c9c828a155d2b8"
+      "sha256": "217852e24b4c80c9f9b31a479479c034413bdcd6bd19b98e3b3265cfa146c625"
     },
     "giant_bat/A_attack.uasset": {
-      "bytes": 124088,
-      "sha256": "7a316e3e409a5d2263d91bb39c8918f8b8548fdeb96c9bf94dfb86e15f8e5319"
+      "bytes": 140609,
+      "sha256": "00b78cff8c4dec07c91024c4e569243e08ecc4edb421b32d0f67823a3a1089d4"
     },
     "giant_bat/A_death.uasset": {
-      "bytes": 140172,
-      "sha256": "806bffc206780944b038ed4da35f78d61b5407c394c72e650268dfb4ac8088b0"
+      "bytes": 147989,
+      "sha256": "eb2da3d6607139ac9373508a844b1846854bd2d59a10d3d13c8085e2a849c027"
     },
     "giant_bat/A_hit.uasset": {
-      "bytes": 113780,
-      "sha256": "46b50ba0a02307edd49485898d67ffa8c80750f9dc47113c428d9f85652cb890"
+      "bytes": 121085,
+      "sha256": "101968c6a9e7944ff2925ab121f32108550a8d51595aaf9c2089f14225084d36"
     },
     "giant_bat/A_idle.uasset": {
-      "bytes": 134304,
-      "sha256": "7ad8d1f39ece31902ca50baa705d2c1845912692a742429de7369662cc501c95"
+      "bytes": 151881,
+      "sha256": "0388bec2686ee5cf7b12f64370fc1d56c6edeb4a820b3692fd961681c8608d0f"
     },
     "giant_bat/A_move.uasset": {
-      "bytes": 120128,
-      "sha256": "9f649b3bb18ff41febc122f355b4d033f0765ae09faf59b9818050900ff12951"
+      "bytes": 120137,
+      "sha256": "2e22b3fd20b47faa88b66496400cf6964324c3b68df90b6447f88407f80e2ed4"
     },
     "giant_bat/MI_Creature.uasset": {
       "bytes": 4242,
-      "sha256": "2b672e2b46000fbac0dc345939c79dd5a2bf19d387fe22d6e79f6fe65216ce3a"
+      "sha256": "6231f6a6811b9b5d95eddd0d3e128f293e911617abab5310d23d966bd9ef8716"
     },
     "giant_bat/SK_giant_bat.uasset": {
-      "bytes": 642552,
-      "sha256": "1356e2af8da57e7f81ead289d93d083ecffdf3156ab85d489311e397043cc2cc"
+      "bytes": 642561,
+      "sha256": "bb1e0fe50ce5f45bc5e0c73956a7c0814945a95bc0caa63ae6828c71a9d380ad"
     },
     "giant_bat/T_base.uasset": {
-      "bytes": 158557,
-      "sha256": "ecd51ebe7a5ed3a2bad24203052ff87644f33dda52a8a3572d9660bb9961dca9"
+      "bytes": 158579,
+      "sha256": "a74e346716046aa17eabd7d9d96fbbc627b6899a26be3869e3c3fa9ad1cd9d24"
     },
     "giant_bat/T_normal.uasset": {
-      "bytes": 164171,
-      "sha256": "cd7adb0069731cb59508f50938a3efb109ce36e3e902b22aa5d0ef642bf44a44"
+      "bytes": 164193,
+      "sha256": "6545062ed6dc86b7140b4d5f59dc19824bf9f0c33abaed81538e20b6c923ba40"
     },
     "giant_bat/T_orm.uasset": {
-      "bytes": 146769,
-      "sha256": "7fb47444b7b1c8cdbb8a095e866801696580591d1efe3d4ecf840ec979ca93fa"
+      "bytes": 146791,
+      "sha256": "a76d5c028aec09ba3dfe43dd70af53a3ff623f4b601004cdd4558cb1dae60bbd"
     },
     "giant_bat/giant_bat/SkeletalMeshes/SK_giant_bat_PhysicsAsset.uasset": {
       "bytes": 12053,
-      "sha256": "b8538d25cb86db6331c6202e5aa986cdafad8a9a24ae45908fb7ba8ec523f23a"
+      "sha256": "5540321a20573769282152c3f5319d20fd5b04ff61d25afaad88e0d5bf733b6a"
     },
     "giant_bat/giant_bat/SkeletalMeshes/SK_giant_bat_Skeleton.uasset": {
       "bytes": 4509,
-      "sha256": "4b3604486ddf251a4fc9e4f2292730d7b0cd90a9f1ca678fedacc8ebd64663d4"
+      "sha256": "0aa2a6937e90c97696411a2dc7f303b4930d8025c9e4705ddeb41bac17d3777f"
     },
     "giant_spider/A_attack.uasset": {
-      "bytes": 167028,
-      "sha256": "75249c7ecb0d7bed750aa04654a84bbc3a5011bf097fb6c6566c4e1517a5db98"
+      "bytes": 274356,
+      "sha256": "ae6bb76ea27f36f3915accb7f1c640699ce3f4b0a63184a1e41a4c16cb0d2137"
     },
     "giant_spider/A_death.uasset": {
-      "bytes": 301608,
-      "sha256": "c0d519b5dd3c7719930a8ba7bc47972abc8ef9493349cf8673e813e1d3573075"
+      "bytes": 321128,
+      "sha256": "5c7c75774de8018a65d40b56b9f869d949f7486b4f4b2247e886dee48f3cd569"
     },
     "giant_spider/A_hit.uasset": {
-      "bytes": 164784,
-      "sha256": "cf6a4e6fc682a1c4bc3f2b5a2b4989ffb431b9dc760aa5bbd8e4853eb418c866"
+      "bytes": 158704,
+      "sha256": "f6f799c313fcf6c9b7bb8e88e195d12cb853a448b948c1a4bf9ec8660998730a"
     },
     "giant_spider/A_idle.uasset": {
-      "bytes": 174716,
-      "sha256": "bb5b39c350f2fa81dead3bfde8eafb39c61fc01265dbad48216bb3ef3e150d5c"
+      "bytes": 194236,
+      "sha256": "1ca3789bd82259ce3ce6094c72319e7cca4f7ba75d1bea1425b5e40e68dccdca"
     },
     "giant_spider/A_move.uasset": {
       "bytes": 169244,
-      "sha256": "d50c6735657d4ed154c1327250c96badf61443b918831d34924683ec38553d03"
+      "sha256": "df8af5ae5c73ef24abf19d743520b50efb7bb956ac6dce93e54d3ba94b7910a7"
     },
     "giant_spider/MI_Creature.uasset": {
       "bytes": 4257,
-      "sha256": "e252a8d0617cc1f3b99481420d4259b6e7da01af3706e9400d817e15485c2375"
+      "sha256": "c7780ed1b874d0a78a11e84c76e7328d162bd6afde65fb71fe5dda6721ea0837"
     },
     "giant_spider/SK_giant_spider.uasset": {
       "bytes": 970065,
-      "sha256": "a9774acd1e0c127243d52c332d2e466d56169b2328a97f0e905f9192089b3498"
+      "sha256": "43f4d99224c4b764915ad82eae9d97b528a219ecb3ebc82e24c6fde9470071e4"
     },
     "giant_spider/T_base.uasset": {
-      "bytes": 262780,
-      "sha256": "aeb3574e2ae4f6592cd956120e46de59515bdf40394019188015c6ab43087850"
+      "bytes": 262318,
+      "sha256": "f15f7e7dc59bad42e96ec23c4988f62ec0ed5b5239273e01713e22ec936560b6"
     },
     "giant_spider/T_normal.uasset": {
-      "bytes": 285857,
-      "sha256": "cafa92872e20e7a65010baae7f1d6382d646d2c01da307710e392cd370628440"
+      "bytes": 285395,
+      "sha256": "89eb7ad2edc0904172f2ed16c43323bc8802dcf6c41829b690ce011e0e6f1317"
     },
     "giant_spider/T_orm.uasset": {
-      "bytes": 230413,
-      "sha256": "9d38f388e66b1a9357ad2c837c9e1cd74de3deea5387149f3327455f6458bf7c"
+      "bytes": 229951,
+      "sha256": "0622790aaa3b48d324f0d6c8911f5b31b05e1ba28cf3cdb5b3dad3fe0bcd223d"
     },
     "giant_spider/giant_spider/SkeletalMeshes/SK_giant_spider_PhysicsAsset.uasset": {
       "bytes": 35065,
-      "sha256": "98dd4f66c545a5354300348ef3ad6472d099d29bc049813c683a10d4fe800fe9"
+      "sha256": "cd02be40bcbb398654d61cb8708195ae62fdd6c717e3ebec50069d82f413afb8"
     },
     "giant_spider/giant_spider/SkeletalMeshes/SK_giant_spider_Skeleton.uasset": {
       "bytes": 8717,
-      "sha256": "9e8187255209a120f33e2d611d2edff4ecb8f6d92eaca5275ec65945fcc43135"
+      "sha256": "eedd8330f8fe0ded0b84db770048813faac72ce8baae4d92938fb94cfa10ceb0"
     },
     "goblin/A_attack.uasset": {
-      "bytes": 148688,
-      "sha256": "0cbd9aa73fcc6834a47f54c053fb9ae03c9f77365106f8b9e35f59acefc7a797"
+      "bytes": 206480,
+      "sha256": "359bf98a2935cd0b734ec16ed4fb1bb64d8060a70ff8de3f20e346956b2b55ed"
     },
     "goblin/A_death.uasset": {
-      "bytes": 214148,
-      "sha256": "134d214c647a1904254c41837fa0f90de4a4ab1a9b82024f9997b3f6cbaab2b7"
+      "bytes": 225860,
+      "sha256": "cd510283baf1da425644b1a3c864cef63c0ff79f3c647d69de855d5fb7ec201d"
     },
     "goblin/A_hit.uasset": {
-      "bytes": 135788,
-      "sha256": "6167dd82e024fc5484c712d026a4122f0b2ff7d04fa21e035c92dc02de669020"
+      "bytes": 137004,
+      "sha256": "5c4fe97779f012b75168c25997c2ea5ab14a749e3353f3b7ca0ddaada40f1a6a"
     },
     "goblin/A_idle.uasset": {
-      "bytes": 143864,
-      "sha256": "26f562d504ba024b341cfaa943c4072aa57933634e7d68d4bee2a0cb4d86e79f"
+      "bytes": 171192,
+      "sha256": "83b2f3b0df07286e2d43dd45f28ad2a7da373ee4de2f07fd9cc29f45be51d512"
     },
     "goblin/A_move.uasset": {
       "bytes": 149752,
-      "sha256": "8d57286e3a50dc77de0086cc1da0bb8f08e44ab0d4d3eb8721f9a51d81a89e1c"
+      "sha256": "dc92e240b1af9ee9aad9f4556383ad51e84b971508d67beddae003f585ac2294"
     },
     "goblin/MI_Creature.uasset": {
       "bytes": 4227,
-      "sha256": "8fc6a441b75f20c4dfe283f64fea53e9730da8d46add5fddbf57fb3bfd17c46b"
+      "sha256": "03d92285529597700b7d0c2e35efc3a5bc4da252c2306f9ccda4e5c33ae48069"
     },
     "goblin/SK_goblin.uasset": {
       "bytes": 665590,
-      "sha256": "d97d3682feae473cf985c07c04e734cc8880ef297bee6d154dd6b72b5651661e"
+      "sha256": "82c1c0a58fbf9fb99f07c5e8ab335a5311dd4e2b8df290b054ef0007303362d6"
     },
     "goblin/SM_Weapon.uasset": {
       "bytes": 107433,
-      "sha256": "a69e110afafe71a7cc8be86ccb506de275f4c465ecc0b6a7b2dc6eb185063205"
+      "sha256": "5bf638c522e3990cf12b85defb5b4896f2df0075275ae4faf9b87ab79aa39670"
     },
     "goblin/T_base.uasset": {
-      "bytes": 226942,
-      "sha256": "94e5fe4f0719463e6f638d1a834b4a2be709281cec9b604299ad3bf337069d69"
+      "bytes": 226480,
+      "sha256": "47b2846db6a30bc7467253496a3023f13e4429f78487159125b1e710d49846a9"
     },
     "goblin/T_normal.uasset": {
-      "bytes": 199781,
-      "sha256": "9b4ff90ad82c0ada1bd588ac323da80622b7556c2f0f9854cb8d54d0fd60a2ec"
+      "bytes": 199319,
+      "sha256": "0093d6f22ec27e80377ad1d09346151b56ceb0f06052e7aa0390ace6aeaeb6b5"
     },
     "goblin/T_orm.uasset": {
-      "bytes": 173537,
-      "sha256": "b87fcd3df51a9c8c0281c222f8da246ee3fb22ea54bf4b8a361d7ffb14f36ce4"
+      "bytes": 173075,
+      "sha256": "82eaca75c3640dcba36ba8721205c3c8d38e41492d22786825dd46c00d69c3f9"
     },
     "goblin/goblin-body/SkeletalMeshes/SK_goblin_PhysicsAsset.uasset": {
       "bytes": 22323,
-      "sha256": "0588b8ff9b512b64a9315e00f4835b3d954a1137ec2ee329cc5871ede556295a"
+      "sha256": "9c80545ccf099151196b110a14d975cfde5ec81a085e3079907c5e41e5cbc309"
     },
     "goblin/goblin-body/SkeletalMeshes/SK_goblin_Skeleton.uasset": {
       "bytes": 6457,
-      "sha256": "17ce887efef9efede6f6f31d7d1baa143406f5e8e1270cfca5a7a6cc627f13b8"
+      "sha256": "c480d2475d119dc1e6a7b1893df98ca4b5383d6ef7e585a770a4755d91f48f89"
     },
     "goblin_warrior/A_attack.uasset": {
-      "bytes": 157448,
-      "sha256": "0f563fe1d528a0dc58546259d2a948140bd1e1180b47905ccbd1dc157444b4b7"
+      "bytes": 215240,
+      "sha256": "a13e243c4fee174b38e38ce9f953ebdd3cdbfab2efc6fdda4200798ed0bd8468"
     },
     "goblin_warrior/A_death.uasset": {
-      "bytes": 222908,
-      "sha256": "eea3bbbbdd3139883d1f62e8ceeda333687fc6a7a275a11f1bdfa8be0ff564b5"
+      "bytes": 234620,
+      "sha256": "de8d566c31a0ffd9b1235a1679f4046443fa8fb29c483dae625e681f59a4fbfc"
     },
     "goblin_warrior/A_hit.uasset": {
-      "bytes": 144548,
-      "sha256": "f3f1453a8702d83bcaf21e98820b0b424e710fbd99d49e5fc4a475125e0e6f51"
+      "bytes": 145764,
+      "sha256": "c61afd3da3b62a81881007c123b64587c71778e36036556112ad0ed1d2716149"
     },
     "goblin_warrior/A_idle.uasset": {
-      "bytes": 152624,
-      "sha256": "f5631537526b34d6e22c6b6d1b36b8a1f86646fc171f6aa80ea4defbcbe63df0"
+      "bytes": 179952,
+      "sha256": "6bdd086c92f0d129ebfb3c9ba36b9647a3d53c1224a33da6e091286310688670"
     },
     "goblin_warrior/A_move.uasset": {
       "bytes": 158512,
-      "sha256": "1cde42beddf1edd6d2ca658d9fe7e4d083df2c608d9b3c89690e1de0bac9fbbe"
+      "sha256": "5f0f0969fd1b6ffe6eb11f8b94e086235bc621c623e406947088d721a576e606"
     },
     "goblin_warrior/MI_Creature.uasset": {
       "bytes": 4267,
-      "sha256": "d31e6d41da72a3ff169af6e6a591e42d5a91a4459ccd977425faf688cff2ba05"
+      "sha256": "1d2dfa6e05f7dff559744802450b22187a79d0c951908696dc0a867b4dffc7a9"
     },
     "goblin_warrior/SK_goblin_warrior.uasset": {
       "bytes": 718253,
-      "sha256": "7c6fdd078938e3c87996dd8743b2a69c246adb4fa138eb479e637a9b771f366a"
+      "sha256": "4f907309bd1cd7e0a0ab9e2fd24be6b92b7df373e4357dec74880907f8a07aa3"
     },
     "goblin_warrior/SM_Weapon.uasset": {
       "bytes": 109368,
-      "sha256": "4a0cd100df89c2ae704c568c5e9d982affc9dd95d9fa82dafd57dd57e293c080"
+      "sha256": "de23f03e1b9e3de986d0ec009e90f63a9c300b290cbc0d037aa11ee00f0f5595"
     },
     "goblin_warrior/T_base.uasset": {
-      "bytes": 245187,
-      "sha256": "c57553425b5bf4023ab4f6838e949c5e66fa4c73a4e832349d1b77e03dd690b2"
+      "bytes": 244725,
+      "sha256": "c22adff914b3342ecc667e06e0c5f66a3bb715e9c7f447d56287d6a8f15749ae"
     },
     "goblin_warrior/T_normal.uasset": {
-      "bytes": 171263,
-      "sha256": "18873d3351ebb2a8786eeebb1728cf65a5760ea319fa6f364afe3e9669b19e5b"
+      "bytes": 170801,
+      "sha256": "c0f1a826035f80c4f9c701388a3082e3475cf6b942fb62f6b4b5d6db088c66c4"
     },
     "goblin_warrior/T_orm.uasset": {
-      "bytes": 188491,
-      "sha256": "1d46d85f0c2108a530c2380f6185ffd2f4865becdbd3a2e84c1046c5bf52e54a"
+      "bytes": 188029,
+      "sha256": "8eee847748451f44708ce5b69949534cc1b8e39787d206644ad4bc27bf71d59a"
     },
     "goblin_warrior/goblin_warrior-body/SkeletalMeshes/SK_goblin_warrior_PhysicsAsset.uasset": {
       "bytes": 22435,
-      "sha256": "4b9bc91ba17d36ee34f83ca541cfb7778d5434d331b938dc6cc829d29f8f3266"
+      "sha256": "ed87027fad8626e8d7000aa78e08b338acbabd68494e2c009f0e8999dd4a06d9"
     },
     "goblin_warrior/goblin_warrior-body/SkeletalMeshes/SK_goblin_warrior_Skeleton.uasset": {
       "bytes": 6569,
-      "sha256": "00711069af53eb773f1a50ee781cd464e8da55571c283979eebea5585d33b2d5"
+      "sha256": "3b8b94c60cc26389ede8ee1c274b738927feec1ef43e8e1aa79cbdde7a313fd6"
     },
     "rat/A_attack.uasset": {
-      "bytes": 110775,
-      "sha256": "91ac604b109269e04169210612aca5e26c5125c06a77ce56bf3205d8ed2b6f93"
+      "bytes": 132791,
+      "sha256": "3f2f1422ec35a97d44350d0183295cb7165df2de62fb0e54f1657f54d8764531"
     },
     "rat/A_death.uasset": {
-      "bytes": 108939,
-      "sha256": "cac4da117603ecaeef39476022c1d06d5f4995e064ef696b5fbd13bc287e09f1"
+      "bytes": 157739,
+      "sha256": "6aca97d3ea40f677a29c97f36b5af309ba970d0ea076cf260eba912047572910"
     },
     "rat/A_hit.uasset": {
-      "bytes": 101715,
-      "sha256": "1b5b1fa2f118d314e871e489937d09c8b5ad76a68683443e81456bc187bab475"
+      "bytes": 112051,
+      "sha256": "a1210a9f8f04d586696649d4d65f1590d31b23a05f0245e60ff48e02acc72c06"
     },
     "rat/A_idle.uasset": {
-      "bytes": 122591,
-      "sha256": "36db8e91a7f26815cbe9613cdaf57c11ac194c20a4c696ea136e890258d3d028"
+      "bytes": 151871,
+      "sha256": "766628783979cd232fa31132628d9223b318e627262cae2201b024c230b86395"
     },
     "rat/A_move.uasset": {
       "bytes": 116319,
-      "sha256": "640dac3972ec8a594e3b3513b697be660e7f4fe30b81d293ceba9aac9dd59878"
+      "sha256": "1a69fa7f9bc164a9e0e2af19d020ebe1ae96f4d61f91f79f5eedb7b57bc7e0e7"
     },
     "rat/MI_Creature.uasset": {
       "bytes": 4212,
-      "sha256": "1c2aaca4c9a354b29b3ad78c052425fc7c0e1d70dbef9ee3b057964963037e3b"
+      "sha256": "a1c7f4cb97ae5daa34fdf174f11eb6b905a3a311e22a2da1cf3f1593189251d4"
     },
     "rat/SK_rat.uasset": {
       "bytes": 932649,
-      "sha256": "5134e74494cf4b4642e24e07fa7e574826a4edd9e2a33fefb19ca74ff18f1f49"
+      "sha256": "3046706d8683f00fdd7335d3ddcd7091efa8e04aad90c1cdd2bf26e7fde1058e"
     },
     "rat/T_base.uasset": {
-      "bytes": 256364,
-      "sha256": "1655e5e91893a1100139fc4edddb543aa1de44bbde3f1e89775b8c05724d368b"
+      "bytes": 255902,
+      "sha256": "e05ab1327ed3e9c0665041c4a53c43238ba4299273de8631dc30bd430149b57d"
     },
     "rat/T_normal.uasset": {
-      "bytes": 275986,
-      "sha256": "c3f4da287136c4b20a9cde0e6337e3a78a72940c1c8fb3e78d9618000a0c1709"
+      "bytes": 275524,
+      "sha256": "b670b861dc8e3f9b0a36bf4b1b32e4108f5d5a63f38c63e4280b69fd751bcff4"
     },
     "rat/T_orm.uasset": {
-      "bytes": 184935,
-      "sha256": "cb8df55dad700e60673d5b91040671613af1b49d0b572f66d7380c874dcb39ba"
+      "bytes": 184473,
+      "sha256": "d3cbb1fe322551a46bb60c987a9eb81ebc0c8ccdf9f22d0c2436229fce21a4ab"
     },
     "rat/rat/SkeletalMeshes/SK_rat_PhysicsAsset.uasset": {
       "bytes": 5337,
-      "sha256": "1c477054f7c0c00274bd2b59e9c077779e860422a030d1be084e72dd2e0a4dd3"
+      "sha256": "d2c64c5cd2215f99b8cc6484d0134056428a31528ba9f0614682e98838a2dfd5"
     },
     "rat/rat/SkeletalMeshes/SK_rat_Skeleton.uasset": {
       "bytes": 4007,
-      "sha256": "38261caf83caad5c8fea93560c0d084b4848626ddc46cc2f6bd01c1d868544ff"
+      "sha256": "6c1195f429a5df59b67a925a886a3df9a47a7d2a1ab27829eb621698a8543fe6"
     },
     "slime/A_attack.uasset": {
-      "bytes": 90193,
-      "sha256": "03dc5b643579ee804c69a84756ad08a533ba35d02af11d12437755899c2f2206"
+      "bytes": 94321,
+      "sha256": "44455cb70031f6cb1772177cba9a9803f02b706fe38e75ed5c7b1ce250cd013c"
     },
     "slime/A_death.uasset": {
-      "bytes": 88005,
-      "sha256": "c4d1579867da4e054041bef60f0125ff24c17ab711173b8c045b8730193439ce"
+      "bytes": 95813,
+      "sha256": "ed53d0fadf4506fbd31998d723d3b854134022d0eae0538f4711a20ec9ca1a6d"
     },
     "slime/A_hit.uasset": {
-      "bytes": 86637,
-      "sha256": "98f33a582b155c91c966eb9ce2a084330651d297a8618d78188e246e8d28fd09"
+      "bytes": 89677,
+      "sha256": "c98472c6c214d2461b9144cf06cfafcc82bad7a8fa043770e4f6b984c13342fa"
     },
     "slime/A_idle.uasset": {
-      "bytes": 91897,
-      "sha256": "1a29d887e7b7bb62967481b3e74e6b6390a6aa49ab746a6ee5706a17046daaba"
+      "bytes": 95801,
+      "sha256": "5f21ed9cb74cb250a0343e165e13db18828c9d34b2bb4d2624254bf8285506b2"
     },
     "slime/A_move.uasset": {
       "bytes": 88441,
-      "sha256": "7cac5fecfece8af3cdc8b799194a6526bc209d3f22eeb12e688a469db61d82df"
+      "sha256": "427ce05dddcb4bac2dc5d61078f61bec3a6cc4d0616e3520450ca5e1033b8853"
     },
     "slime/MI_Creature.uasset": {
       "bytes": 4222,
-      "sha256": "c07e902ad829c75c2b7beb27fe701696524132164b8a514aaa48b4c1d09ecbd6"
+      "sha256": "e7dce283263206ea9e438c7dd4d9a461e5a43ab290d2afca5606dd022c6dbece"
     },
     "slime/SK_slime.uasset": {
       "bytes": 335351,
-      "sha256": "40f70990c90dc2368e540486587e695e965779a8a51fe03a15a517c0a723c49c"
+      "sha256": "ade0b6e82e46a01fa0e91d58a23083fe4c6c35a9574a65f78b412c1d4e23b710"
     },
     "slime/T_base.uasset": {
-      "bytes": 114480,
-      "sha256": "64f325daa12880aa0c38633902ce701ee481819b38f7cc12eef66e0f9be37749"
+      "bytes": 114501,
+      "sha256": "9bfb43a74159f4611e97c41d31fa8742f1ffa1b30c657867e128047d213e3109"
     },
     "slime/T_normal.uasset": {
-      "bytes": 16738,
-      "sha256": "c1e00048eb17267312275e6281a6fc7d8f4d6dc223020e99963a42d235067015"
+      "bytes": 16759,
+      "sha256": "66c82fe65c069d0d47aa43922569314b925e44bef42a4943c189fba2eaf89f5a"
     },
     "slime/T_orm.uasset": {
-      "bytes": 65720,
-      "sha256": "a9740956e45fc192d8df27c49ab0f438da0ea3fa690055b860a4943689f223eb"
+      "bytes": 65741,
+      "sha256": "1d5c8fa9c8ad750117a22530af79e26aaa2fde109043ada21f3708026d34ccbd"
     },
     "slime/slime/SkeletalMeshes/SK_slime_PhysicsAsset.uasset": {
       "bytes": 5189,
-      "sha256": "8969f3d7cdcc6570fa366df04405864019cf1249093c5bc61dafde04b452b937"
+      "sha256": "486198f17d9dcc7bd50b231c4be26ff88d8d382c5198dcd843dfcceec2892722"
     },
     "slime/slime/SkeletalMeshes/SK_slime_Skeleton.uasset": {
       "bytes": 2286,
-      "sha256": "8b374a76596e64180c4e2a98dd41898eff17f35b6035f92c5dc4c494b24b46d6"
+      "sha256": "ff49b31e50998d7298acab88f42c4f9bf03a920badbd82a5708c14f872dca548"
     },
     "undead_bat/A_attack.uasset": {
-      "bytes": 138791,
-      "sha256": "64c29e7831a9044b190aed8aad3d4a7ca38ab4d49865cf3cfd3291bcd8be2d37"
+      "bytes": 155312,
+      "sha256": "a131d54bfa879383c0e28ef58c968a0247c6a4f8c18adf011713143ee9fce9cd"
     },
     "undead_bat/A_death.uasset": {
-      "bytes": 154875,
-      "sha256": "c3523ae9b1b5506bbb925e9dd9a211effec7c33f0bc40871dfc111235ae135fc"
+      "bytes": 162692,
+      "sha256": "f73b65a1ad4fe138dc6ffbb00fe882c99e9d78b92f2b404262f64070a7ba196f"
     },
     "undead_bat/A_hit.uasset": {
-      "bytes": 128483,
-      "sha256": "4c4297dcf24c549590e079bfdff4d4f004c195454451ce1ef38892b68dea7486"
+      "bytes": 135788,
+      "sha256": "00c8097597e96a7c941694dd64be0bfbd6f39dce745cfd07c7b96602683d64d3"
     },
     "undead_bat/A_idle.uasset": {
-      "bytes": 149007,
-      "sha256": "7fc9c5681cf62852d2d2a86e8f62ce5f5a26dd3e3c6dd3aacd3b33b9ab4a0676"
+      "bytes": 166584,
+      "sha256": "7010cafbaa2991ff476aed838e2e1ff3096348a49ac0b5eaf7e2a64e1d711a31"
     },
     "undead_bat/A_move.uasset": {
-      "bytes": 134831,
-      "sha256": "b79a184b2ac212294a71be959c6aa3c143fb393d8bc1c0776c49e07553e22c7e"
+      "bytes": 134840,
+      "sha256": "b9ea282351f6a6a3bf33056287bb50cdc90a819a5f347be3c5be52dc1142f17e"
     },
     "undead_bat/MI_Creature.uasset": {
       "bytes": 4247,
-      "sha256": "ccb12ec59c109cc2b20d7714d52a51b427b0c1f9311a4293e92b81e31c229c2c"
+      "sha256": "5a907e3e352d46c175448e683ad95216dec955e65c925933e17e0c2cf9ea2bd9"
     },
     "undead_bat/SK_undead_bat.uasset": {
-      "bytes": 569240,
-      "sha256": "f3fd6ae01d118e706be9bfb0e5ca7afa82646aa4b49d193838d4b47255d86745"
+      "bytes": 569249,
+      "sha256": "6c89c8dac2b6c9813a6b3c27e3e997e64b2d16a3ab27751fbd99770c61412214"
     },
     "undead_bat/T_base.uasset": {
-      "bytes": 167887,
-      "sha256": "124b6160e5b5a219ad06d29867f94038690079579e2608ca8991c91946fe3eee"
+      "bytes": 167909,
+      "sha256": "1e22f0ddd2ee5dca37641d9bdfd23ea453db391a27d54451c49ab54ded7a405c"
     },
     "undead_bat/T_normal.uasset": {
-      "bytes": 162276,
-      "sha256": "f398c84b41e3c980de2becad6fe6c4c3308925327e15d6c87cc8d4f635c36010"
+      "bytes": 162298,
+      "sha256": "96f6b91b31d6daf47818f1262fd6dceff49ff86b3b4e729a3c977d97337576ce"
     },
     "undead_bat/T_orm.uasset": {
-      "bytes": 160670,
-      "sha256": "0c7b67b2d101e0c377d275bccea31da99c47b1dded1ae11d19ac7792d3b2fed1"
+      "bytes": 160692,
+      "sha256": "74ee04b7b0f50037e32e91dd94a2931263cea38f3b39c77b15f2c91d671aa3b2"
     },
     "undead_bat/undead_bat/SkeletalMeshes/SK_undead_bat_PhysicsAsset.uasset": {
       "bytes": 12067,
-      "sha256": "e8d58ea6f9282d2cb6a219f31e9ab4e0b8b15404444886be14e454c251050870"
+      "sha256": "fd743dccc6a6799a1ebfc159a8eb2535822b50490a477113e9b85bfaaa4f99b6"
     },
     "undead_bat/undead_bat/SkeletalMeshes/SK_undead_bat_Skeleton.uasset": {
       "bytes": 4523,
-      "sha256": "358399bddbf6013c9ad4f0ace3fa7d4d038d5e6af61057f0ae3f914f4237a6fb"
+      "sha256": "8c8aa341b50e1532fca6e0e2304331ee21f81516ebdfa27665ded004141a65ab"
     }
   },
-  "total_bytes": 23230812
+  "total_bytes": 24199818
 }

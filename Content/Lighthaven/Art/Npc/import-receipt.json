@@ -1,624 +1,624 @@
 {
-  "signature": "1180683bf6affa1bbbad4c960732556595471fe8e04e94842802504a47655ad5",
+  "signature": "376312e03099b817ee6fe8cc6e9ab1504a2790a588bef62a26c2951b5d959866",
   "assets": {
     "DA_BrotherKiran.uasset": {
       "bytes": 6601,
-      "sha256": "997a3d0781969c4982eee5515bcd52167dae8248c0c1cceaaaa15b0194a86a03"
+      "sha256": "d903ca3f354b5ea85cbca4ac74334c834a8f39967b7a8d283d6c84944eafb47b"
     },
     "DA_Fali.uasset": {
       "bytes": 6394,
-      "sha256": "f20775bff14d0d577b6bcfabcae0ddec9ec26d3ba5d0257fec4c86f5d5bb2eb0"
+      "sha256": "c1b21af27640f969e7583328d69b7995553855d5a3391245c6e28c0454969540"
     },
     "DA_Iraltok.uasset": {
       "bytes": 6350,
-      "sha256": "d400160c96b552aca0f33a750138925398ae98d7fb988ab1e3ad1546c03bdef8"
+      "sha256": "b8081719a8a79e1a50f1631f69d9c758071dab5bc645ec1d313ca95e2bfcecdf"
     },
     "DA_JagarKar.uasset": {
       "bytes": 6188,
-      "sha256": "ba73577e0e59d9dae08ddf4ea454d97fe5abde0ad50dbb8a3dd1311799fc8de6"
+      "sha256": "a1c4fdc6443563a676f67340e13a0fb70b2b236cde51d10165e950f35e699ee5"
     },
     "DA_Kalastor.uasset": {
       "bytes": 6738,
-      "sha256": "58015d077b7c817c8d2dfbaf10585dd2633ece663742662a715cea8ea4e1b346"
+      "sha256": "aeaa72175570b45005fe7ebd7962eacc10cfae63226a503520ff8477ae22bb19"
     },
     "DA_Kilhiam.uasset": {
       "bytes": 5951,
-      "sha256": "da41befc511fc5e25a2fde789d8e01998aea25d5b666ba472d04cf637365c798"
+      "sha256": "18c038073eece4e0608fc9a9b407c7c63e674ec2115d32451dc7c37f30cc5a2a"
     },
     "DA_Moonrock.uasset": {
       "bytes": 6412,
-      "sha256": "837c23f8250bd2559226ee2f9e7dd5f40be471b688bda1575326d7379fef7323"
+      "sha256": "380c9c2eb5e41aba0366dc9970501344244f1f6aec94ce977dce499b36bf5b30"
     },
     "DA_Murmuntag.uasset": {
       "bytes": 6350,
-      "sha256": "57c18ce2bfd8b33dd72c21c495aa15cbb387ec513b61ab931406e819d7007cd0"
+      "sha256": "8f3f8b0d0bf9b06b75f64210478c9f89b92af03a0f5174e1d36c5953ec0fd87a"
     },
     "DA_Nevanis.uasset": {
       "bytes": 6423,
-      "sha256": "52224ae5573c2d867817ef0b985a154555d9ae69270fbb3eccf86bdcd6d173cc"
+      "sha256": "ba86c00a1f0def3d17e7d95a14a12a236385103574df080b66f09370370a42e2"
     },
     "DA_Ortanalas.uasset": {
       "bytes": 6513,
-      "sha256": "74a67bbfcc68496708d9bdceff5aac120da3253daecc3f6bdc2336d1f1f9d215"
+      "sha256": "90fbf833ec590e068683752937d7621fbdfb417d9c06abbb62efe0f9e0c92d52"
     },
     "DA_Rolph.uasset": {
       "bytes": 6536,
-      "sha256": "6fddf0a9c055e220f48cf9d71455482ccbb53acd6ee0845af4f28f155c972fa4"
+      "sha256": "b05d172987f00f60187d9b0f4a5a02a1014b16ae7bf253bab013363ab82be345"
     },
     "DA_Samaritan.uasset": {
       "bytes": 6048,
-      "sha256": "c1e937cf1b05f96f111e00fdd49b5777d60b001c41ed9f4090635092652c1eff"
+      "sha256": "f0315f8cad1175bbd0d7b01d73364bbab82d9f5edc1dc30d677aebbf5f1525d2"
     },
     "DA_Shovanis.uasset": {
       "bytes": 6194,
-      "sha256": "b31982b9dd1eb47ee65fc3ff14ea105a00d14ede8a5006f3625f5efa721a9a9f"
+      "sha256": "0cf6353ef0eee25f8a96be34839b842b9bb5832b1867896b3ca8f8af3be0b859"
     },
     "DA_Sigfried.uasset": {
       "bytes": 6883,
-      "sha256": "9685545206f8d5c2292f98c466e3728128d3a0c400db4871f555d8b16aeca8fd"
+      "sha256": "3af453ceb705a2f8f4ffa9d1fe483bca66fb9f9b7b9b5e527552591e6c3776bf"
     },
     "DA_Uranos.uasset": {
       "bytes": 6575,
-      "sha256": "52ba91d54e59a70731f5b01b0998760fa0a68643a45678f9ac501aa8f90bb57c"
+      "sha256": "348850535e1f07f55ffac80b5f4655f1ea0f5cdde71b23abd1089acf4bc20419"
     },
     "M_Solid.uasset": {
       "bytes": 5859,
-      "sha256": "3d17de946d66a078ce7c9b0e0dcebdee15389fd02e97b1e118748f81e97d6477"
+      "sha256": "15fb01cb70bef9804e5a1783939ed93f6043610db2ff3338ef0e24db7354de91"
     },
     "M_Textile.uasset": {
       "bytes": 7980,
-      "sha256": "23cbf7c5c9b95f7d7df71ea7135e7afcab74428d1e48aef3f8551c736395e55d"
+      "sha256": "bb925e68ab2050e4a224a03d65b4789614cb94ef79785535394bb82f1c626735"
     },
     "Materials/MI_120F0D_Pupil.uasset": {
       "bytes": 4405,
-      "sha256": "40bfbbe96d82551a50e86eea746e2e38964489998a3650817c1df8c11946097f"
+      "sha256": "8cd5d212284f48caecb782dcea8f6290bbf9889d8f10231b7fff9e5f1f558071"
     },
     "Materials/MI_211C18_Hair.uasset": {
       "bytes": 4400,
-      "sha256": "fac5a63776f847cd0678d0b265af3db78f296032ab932feae6ce4ce88d1c7e3f"
+      "sha256": "88fa5b893207f72cd8b09337c5df3682976fabbd9ba1d075136347595fadf4aa"
     },
     "Materials/MI_26211A_Hair.uasset": {
       "bytes": 4400,
-      "sha256": "62276e84ac63f592b885f4815d7c9247f56ed2a126eccce5a6af0eb5fba18b3b"
+      "sha256": "44687871c404af4922bd604e4f9b42059ced10bca967bf6122f8d349dbc20df6"
     },
     "Materials/MI_29211B_Hair.uasset": {
       "bytes": 4400,
-      "sha256": "add77d56ee58aeab6961903ac8b5cb789af23138fb348f7022555d5a3101b9a6"
+      "sha256": "e4fc2b949758fa158b115ef8dab2f645af97068801a33506c88577b44d074f1f"
     },
     "Materials/MI_31231B_Hair.uasset": {
       "bytes": 4400,
-      "sha256": "5918e889db58fbdbdfdbc21fc2aaa1db82046b19cc6b25cdf285e25fa4d32659"
+      "sha256": "be50a3c989065e49db831c5e847abe7cbd657bc1c4a1cca53bf181b3eac704f0"
     },
     "Materials/MI_312B23_Hair.uasset": {
       "bytes": 4400,
-      "sha256": "81c7abc47a52a2d6b395beda8d8958f005035ba737dfbc84b7fd2a9097b7ea2f"
+      "sha256": "5fd1304c06337a5edd79d4b0d052f432dcc0f29b407b55399ef2cdd686ff6aa1"
     },
     "Materials/MI_32291F_Hair.uasset": {
       "bytes": 4400,
-      "sha256": "d8f3431db8602ae2206821020d5d173807240e7ca4e796f70eb90ae40c1d6bf5"
+      "sha256": "0fcd63a67a2003dfb729d89a55d3fa3bd0d516cd19d57ccb273adb0a4f99cb3e"
     },
     "Materials/MI_36251E_Crease.uasset": {
       "bytes": 4410,
-      "sha256": "aba69ff837bb4fd0c5e9d177ae2f59219993101bb1e16dacee12d6c453b7e236"
+      "sha256": "3799bea411467a74bdcc761f6f48c928892c2dfa72d6f05b1b77556c641e19dc"
     },
     "Materials/MI_3B2C20_Hair.uasset": {
       "bytes": 4400,
-      "sha256": "e074f13b8b0cf36def604726607abbdebae159fe009868696a95d7486b8de7d1"
+      "sha256": "8659b9af6d07b4b921d50419723904461f28a75348e7618912cefc512311199e"
     },
     "Materials/MI_465F5B_Cloth.uasset": {
       "bytes": 4413,
-      "sha256": "88c387f81b988544813a21a1e57d2921737d7236c007b12ba39eef76415a2f03"
+      "sha256": "f1755fba953c15ee2cc121da6b9232d5f9ae42c643504457f713822e8fd1758a"
     },
     "Materials/MI_48563C_Accent.uasset": {
       "bytes": 4418,
-      "sha256": "e3c79cbf9a2ec99e745d75f3de9dd10137dab88ec93e0d3e63480fcd6de70ce8"
+      "sha256": "e2f4168660d7b3ff0f45bcf728d37f69022420e97d298df1aeccb8c96e46b208"
     },
     "Materials/MI_4B3326_Hair.uasset": {
       "bytes": 4400,
-      "sha256": "318a3b98b031a12ec0ff0b639408156d3f5b5f1b76b3e177e51d76f331bc76ec"
+      "sha256": "d7f4cfd6da42aea177f21ddf6a5ed6961c0de152706e19ba01c93ac8c3723dcf"
     },
     "Materials/MI_4D3020_Leather.uasset": {
       "bytes": 4415,
-      "sha256": "f419861c63df568dc25fa834432c2542d382aaf0cbd1a96f0586c733d4cb61a4"
+      "sha256": "b4a260af1eae80d8af780694ada145b305c3fa3539c9fb3ba1593c563b9aaad1"
     },
     "Materials/MI_4E4836_Pants.uasset": {
       "bytes": 4413,
-      "sha256": "95daa872ee9bc7af664c142c202931b4445da06c996ec67bc51b5890b17f129e"
+      "sha256": "bcea13b7cde59c5b0f41ec201c9b225ea6ddb57dbce1d618ba1054fd3b1bfde3"
     },
     "Materials/MI_4F5B56_Accent.uasset": {
       "bytes": 4418,
-      "sha256": "c42de3ffc7edab9658b304723286da588f048123c7783577d2a2aa39f96e40ab"
+      "sha256": "3f5c2601c22d18beadb485965e404492b3b6df525ed24007f22b1d4026f48d57"
     },
     "Materials/MI_504031_Iris.uasset": {
       "bytes": 4400,
-      "sha256": "cbb115c1e61d8e53ea6aaa6db34998051b98fc869be729f9591a556723251104"
+      "sha256": "77889a8c080a57f190d665cc8e215338df9d25e3073f8bb25f07211fee9af207"
     },
     "Materials/MI_51322D_Lip.uasset": {
       "bytes": 4395,
-      "sha256": "1ac327e2f506a80664d796a9b379253a6ba26b3a7014c64e6997087c9c44e637"
+      "sha256": "d3ee30a02fafd436eb826466abf5c27cf6c757885e6642befdb53bce31165d90"
     },
     "Materials/MI_51362C_Skin.uasset": {
       "bytes": 4400,
-      "sha256": "a8230f5f4601d58b3f37238a975fd559970cf8d09f996fa161b93745a5ac675e"
+      "sha256": "0ed87c45bdbd905e282f37b6432bfcb223167fd638a13fff351173bb4b5a3832"
     },
     "Materials/MI_52382F_Lip.uasset": {
       "bytes": 4395,
-      "sha256": "3f53f11e0b38846d98f951433b9f57ee058128cd72db17ec26820ec5051c6f96"
+      "sha256": "232f0c47066df1e9d9cd48f635d4e360822fc4c95e108c31a51c3f1e4294279f"
     },
     "Materials/MI_543830_Lip.uasset": {
       "bytes": 4395,
-      "sha256": "cd4e4065ae72071f8279cd42feafe5951c9ef2b4067b9d34a8898e478e4d8048"
+      "sha256": "46cc6a65d2ec9a0110d1bb5da0764d2d2b75f490cfe28e9804ed3c37d5c7e677"
     },
     "Materials/MI_566054_Accent.uasset": {
       "bytes": 4418,
-      "sha256": "498201b4a44b0284390d84927d2ccb29fae410fc27bed7f49ac2f450e588933a"
+      "sha256": "064cb96c485a42cb86bbefcd038d1cecb8b79a616ad3dc286b4349635fbc23e2"
     },
     "Materials/MI_5B4631_Hair.uasset": {
       "bytes": 4400,
-      "sha256": "d950dc4d60f25f9721213a83dd55a69220b2bb7bdfdcb2c112341035940ce515"
+      "sha256": "17cdd163aedc253bcbfa841facfe4a8152afdd77e77228b19f825c13134b9179"
     },
     "Materials/MI_5C4430_Hair.uasset": {
       "bytes": 4400,
-      "sha256": "2cf360d846e0275943a7ac8b1e35fc8f86b3794be1a99e809dfba0716da8248b"
+      "sha256": "4482d7abfa0a0ee75efa8f01219e7b94fdf9bf34ff2bfff90b2c93a43fe3414b"
     },
     "Materials/MI_5C6952_Cloth.uasset": {
       "bytes": 4413,
-      "sha256": "fc5a32944846e54c10699475c850ba06c78d0a2c6e15cc2d37f49f40afe492d4"
+      "sha256": "6bcd4aa4196c57b021ecebd3365e0dfcda7871bd2a65739bae7b5b827e9ddf27"
     },
     "Materials/MI_606447_Accent.uasset": {
       "bytes": 4418,
-      "sha256": "a04a90e9d2c0614e1e511070c5bc6c0577564f98c627e30d40cad0b0cb1cc652"
+      "sha256": "5e5b2aec1cccc6cffd783e934b48570ada073a980af6cbb3c2d87c44440d73fb"
     },
     "Materials/MI_646C6C_Iron.uasset": {
       "bytes": 4400,
-      "sha256": "f1fe45eea8d6890b3b46bb70b9bac960264fdb8e39ed39f8882a94590255a292"
+      "sha256": "bd04cd1341f39e88c7cfc52c28dd26f53cb6f2704847213af0cb077efd41f2c6"
     },
     "Materials/MI_65614B_Cloth.uasset": {
       "bytes": 4413,
-      "sha256": "9edbbb930e642fa8c4197367a7983c70069ab207834b84272e74e3f094d94a33"
+      "sha256": "e56323cd7410299836e172c2f98a3937b2a19804277f9c7c6f03a219fea1aef1"
     },
     "Materials/MI_667C7D_Cloth.uasset": {
       "bytes": 4413,
-      "sha256": "4db13fbb45cf189da5dd2e765850e776349f1242590933fdae1cae229bc01d93"
+      "sha256": "dc53ffe1a88972972c311cee497c755ce1ac983fee9c1bbade55c93cf4e423be"
     },
     "Materials/MI_67452E_Wood.uasset": {
       "bytes": 4400,
-      "sha256": "72f6542fdba54e6801cc499497da0f4ded6e4fbddbd1866473e8c808f37a0878"
+      "sha256": "0c3ee4d411f10b4e7f5863cb0eb785333b69ec7b21aecfc129212479c551c9b9"
     },
     "Materials/MI_675D40_Trim.uasset": {
       "bytes": 4408,
-      "sha256": "468c96f05a91dd375b026719e7ad3c7e561771d08b62d726ffa701e213244b02"
+      "sha256": "37664447cb1b42330fd72d89e9f2a6ed80caca1a0961d30d9de871174ff6736a"
     },
     "Materials/MI_6B4229_Hair.uasset": {
       "bytes": 4400,
-      "sha256": "6b2395d51abd27141576aae590619d486481e2bea41e8451bb1090378cdf2a30"
+      "sha256": "03e0b1d451bf976afa0e78c6d1c16c63521b33d51a6222c31dac706c7d70af89"
     },
     "Materials/MI_6D5362_Cloth.uasset": {
       "bytes": 4413,
-      "sha256": "b312ebcba6e563648830a6619360cac86776c62863fd700c7df60a76bb843bf2"
+      "sha256": "8cc28295a910bb0a4fa4af05e98c7274b2f2b3658e87f00b795391b107d7ada3"
     },
     "Materials/MI_6D6C55_Cloth.uasset": {
       "bytes": 4413,
-      "sha256": "f51c2ceb34929eec54a597f4bdc92397980360e7102c4e08f68c94f5e1cd1fd1"
+      "sha256": "f73c73ec27ebe6bd5a611bacf41e74ca33c0ee2014c90030af3992e5f7380f8e"
     },
     "Materials/MI_70372E_Accent.uasset": {
       "bytes": 4418,
-      "sha256": "c1b04f92371e9b68aab4e3cf5baac3013db90d3ed012d41467ceb8ca67163283"
+      "sha256": "839742a34053b98637f124cc6c6b985df0f63edd8b499ffb76033a9a0daa8369"
     },
     "Materials/MI_72453B_Lip.uasset": {
       "bytes": 4395,
-      "sha256": "313030c30521078b51821d85e42fdad2944bd675495dde96e52c080029fec5b6"
+      "sha256": "919725b4af53050a0c1346c08bb1d32cf60c7035f6181c847bdab5b48ce945af"
     },
     "Materials/MI_72473C_Lip.uasset": {
       "bytes": 4395,
-      "sha256": "b13fc6c4542e84c053a4f905e16fe8e8124b8190bf5816b01e7b764afe372e75"
+      "sha256": "85834cab8102901a77ab8796ee94bc66a37750e068360aab7d3a99909528e3d9"
     },
     "Materials/MI_737957_Cloth.uasset": {
       "bytes": 4413,
-      "sha256": "7036a6adb398b2bb34cb674b3101a57a877d1cba51632f56c86c2cf7701d8ee3"
+      "sha256": "2aa14358739a26fa6cb35f9d3fe200cf484e5e34bf0192d79be024f796192bb2"
     },
     "Materials/MI_753D32_Accent.uasset": {
       "bytes": 4418,
-      "sha256": "93852d2d61bece9dad880d9face4ad5363cc6599e51350669ceeb43bfcc9d3d9"
+      "sha256": "57d445b1f32862cda71f46e62a25ca75f76a3f25fe5905bdd24a8dd5f926179c"
     },
     "Materials/MI_775042_Lip.uasset": {
       "bytes": 4395,
-      "sha256": "ded9b799c84bac6c6dd3aa1c3e23bceb29e848c7b66637c6a0ec521d623ad824"
+      "sha256": "bfc59a1c143a213be6cb57cbb9034494b0d19b8c2c960ada68b7a91da9ade32d"
     },
     "Materials/MI_775046_Lip.uasset": {
       "bytes": 4395,
-      "sha256": "9ad11dd0c37d44aa3558259021d036b8d5c8dacfc01a7e4916adf6e5c82aaecd"
+      "sha256": "c138f21e7bf99935539bf9f49e5c0186b73bd4511f0d9c602d7a573bf6924fc5"
     },
     "Materials/MI_785039_Accent.uasset": {
       "bytes": 4418,
-      "sha256": "bb4d7629a66e58ef17ed4db963beca9fbe4385cc24133f55538ca88e0e4eddf6"
+      "sha256": "1327ca3981978122d2a46d7320282a85e4b8ffd2a54d40684385bf3622d6a84f"
     },
     "Materials/MI_785245_Lip.uasset": {
       "bytes": 4395,
-      "sha256": "e9675bfcddedc006f9d77465f8150060ee0772b2fbb7b9eee487e7395737fbe5"
+      "sha256": "8c482e4751206954aa33bfe0cb2b1c2a1e51d28b6a1df4dec190c26ded025a73"
     },
     "Materials/MI_785333_Edge.uasset": {
       "bytes": 4400,
-      "sha256": "61a76e71fbe31d0a908dd32fecfcebf98fecd34ac81c2501f1db8723353edff5"
+      "sha256": "f31fd42345ac159ecdeaacc3846e9d69b0a69926746d2c60a68372d01cb3d0b3"
     },
     "Materials/MI_79735C_Cloth.uasset": {
       "bytes": 4413,
-      "sha256": "ca8c5005ec6ee21e598e679527d64280b090b2321bdb495439db4a8b15effb6f"
+      "sha256": "7e9d0c8e68b2f84a16aa26a21633b78f5cc2c9f7cd0d5fd5826ce5c29e55f623"
     },
     "Materials/MI_807052_Accent.uasset": {
       "bytes": 4418,
-      "sha256": "27105503dadcb3b46b17b1faf7877f88419dbea10f1b2b1c5a51c146812e135a"
+      "sha256": "e52b625160aa24deaa87fc07f87cad38eeb0da897886144e50e9980636743a41"
     },
     "Materials/MI_80747A_Accent.uasset": {
       "bytes": 4418,
-      "sha256": "fa5f1289cf9bad53f3a92aa33396864f8f71922a65c410848faa1dba3c40afed"
+      "sha256": "e648fe6036dbf60ef30cd141a5a9eb08df11e0d2e84ee11cdcf5be13a9fe05ff"
     },
     "Materials/MI_855239_Cloth.uasset": {
       "bytes": 4413,
-      "sha256": "a227f5f8853de145b200d6a3e0d6bb875eb3f1114b53bdc0dc4b440e0a108ff1"
+      "sha256": "7f0e37128a3ab0b246c2c6af451a796d3a22006489886ee2adc8cb5d16b33659"
     },
     "Materials/MI_898777_Hair.uasset": {
       "bytes": 4400,
-      "sha256": "50eb85c972ea5d0cbae2f4195a1431f03e580cf5fec919c539768a91ebe4eb27"
+      "sha256": "10a297bb2898a5ea68fcc2a6b1be6ba2075d9fd0f9411efedb7307f16400ffb7"
     },
     "Materials/MI_8B5A40_Skin.uasset": {
       "bytes": 4400,
-      "sha256": "a78357b52468c40b76e68e5610cbbacf32a9ff4099f715f8f43443b58f5fbf5c"
+      "sha256": "b503522e3d4e2da6dc7098b3c66d73239a1ecbad234c59743af614c6686835b1"
     },
     "Materials/MI_8D4734_Cloth.uasset": {
       "bytes": 4413,
-      "sha256": "d6e6f23ba099b0d8c1131d57b2bb2bdc7afa3ead5197649dd1df1d29674883f2"
+      "sha256": "4ad2619e6efd338e18510d2d4047c147b460b91ee6774846a70f4deec64e335c"
     },
     "Materials/MI_926052_Lip.uasset": {
       "bytes": 4395,
-      "sha256": "8d877f31302b14394841efbf636a4b805334c0f8834d277e833b334551d89f31"
+      "sha256": "a4577de52abd7f5ac9a27b37bd0400ac1f1f9cbbe2b9c708d9f9cac166ca73c5"
     },
     "Materials/MI_926252_Lip.uasset": {
       "bytes": 4395,
-      "sha256": "77ae956467ca006c6c988624b5e5c85890abed870c75e7f7ab37fb82b3907a2d"
+      "sha256": "757f7881ec190befb0cdca6088b5534fe2385f2b3b33bcb40a634296721b9bc2"
     },
     "Materials/MI_92734A_Metal.uasset": {
       "bytes": 4405,
-      "sha256": "5559afceb77e83fb78330e0002753853b50116c727dda39bee937eb35b66f137"
+      "sha256": "bee12260cfbbbe3061ce061b54c953ac428ce3f672f7651bb2992c773e1e6d67"
     },
     "Materials/MI_946459_Lip.uasset": {
       "bytes": 4395,
-      "sha256": "27e5f04817e5c5a7785b29bbb911cb636854adae33854077702c327da90d17fb"
+      "sha256": "6058bd0d592a28371a73ceb09e7495f75e11968c88efac5c59fa335e64e57e11"
     },
     "Materials/MI_956357_Lip.uasset": {
       "bytes": 4395,
-      "sha256": "da51490677ec6f718baa99f11fca184a07ef22b9a54f4c74ae71119a13c1561c"
+      "sha256": "9312d44399e585dfe03ca903e5c8ef16ab74540474f80fcd6c46aa0603d75d22"
     },
     "Materials/MI_98655A_Lip.uasset": {
       "bytes": 4395,
-      "sha256": "42ce500398283e0501fd4d68a7945acdee2cccb3cda760e206ff2c97bd4d959b"
+      "sha256": "466d726ad98f142d9701a4b8273188d6f5f94973331d47754e300165d68092c2"
     },
     "Materials/MI_98675A_Lip.uasset": {
       "bytes": 4395,
-      "sha256": "7f9c0dd3eb4d4b4989cef3d88232e00697dadba1801dd43212959169b81fd404"
+      "sha256": "224058dc12cb5cad5c90304b91b7bd4762d2a6864ab5ede73b5c6a8d78dc7095"
     },
     "Materials/MI_98675B_Lip.uasset": {
       "bytes": 4395,
-      "sha256": "0fa504bfa37aaf00110a645f25c65a3b41182b4e68fcaa483e28fe69e9f2a7c9"
+      "sha256": "eeea5c85d49f516232844f071a4f71d1f8d422a52860b31c9ca56d854f13e6b5"
     },
     "Materials/MI_9D895C_Accent.uasset": {
       "bytes": 4418,
-      "sha256": "b306dcece95546f17e28d25c21b506e81800fcb848ac0798a94dd9718d48169c"
+      "sha256": "51c32d8cb7a33cf32a5e2ac91239a281d1c9ad6912eab41b4b41858370cbb7d2"
     },
     "Materials/MI_A18C65_Cloth.uasset": {
       "bytes": 4413,
-      "sha256": "8aa16c76c042eeb1d91cc0804e25cfa32bb1da0584ea9d48917ff92e85258661"
+      "sha256": "0b89834fc8ca0ef589d56663c4f8aa20f11b539d192586bc0b6664881ae1f802"
     },
     "Materials/MI_A3693E_Accent.uasset": {
       "bytes": 4418,
-      "sha256": "ac0a594db2c08032370606355cb151fe03891c2498b1551cad96e829f18d6913"
+      "sha256": "f1ea0c8ef7ca4cfed22d840ed218e9999bb135060813db10b35209f4c003e455"
     },
     "Materials/MI_A48A62_Cloth.uasset": {
       "bytes": 4413,
-      "sha256": "c4c50f3f3aef7caa513811385f28b097f8238ebad69b84a595d5d79a514fcc6f"
+      "sha256": "bab1f315e4dc52a2dd1c8e811c7e904d787d00b48766af3be4f44400ac2bf049"
     },
     "Materials/MI_A68C61_Stitch.uasset": {
       "bytes": 4410,
-      "sha256": "fa0b429749cde9e074c4747c26405f817ccdf8c8524095a9b1a94ccd095e96e1"
+      "sha256": "e088e56df9e0305467a6e65a693f8dedbddc39446cbb4322c05c5d46fa9d5384"
     },
     "Materials/MI_A89D78_Trim.uasset": {
       "bytes": 4408,
-      "sha256": "edb7eb2c339f8296f2cd94c790676c5c045085ff51525298095642e03e4f6453"
+      "sha256": "abc95c74a723c592ceb41072148d5f28a63fb36dc205de58f9955d09e55cab43"
     },
     "Materials/MI_AD9465_Cloth.uasset": {
       "bytes": 4413,
-      "sha256": "0212870a0a92894fe7801cd7497c9624a5fb6b1cd75a51455b57b40e1a457431"
+      "sha256": "02e40ec6d03e41a5d009c6404af0cfbff599fcae4b8a84a889a4cc90e35b4c89"
     },
     "Materials/MI_AF7942_Accent.uasset": {
       "bytes": 4418,
-      "sha256": "0625b56e18a6c2bd93762fad6ed73587af86a49d0babd8ca29b7a36fd5a93aa6"
+      "sha256": "33c86702b02a325e185100bad7781eb5e73defb1407ba3a508e4d2596fa5cd07"
     },
     "Materials/MI_B0A08A_Eye.uasset": {
       "bytes": 4395,
-      "sha256": "d71c5676f1c8b114cf71642c08ef367e93afc7169d70e5e43d353aae3d1dee7d"
+      "sha256": "8443b187e5d1dabb33c356655c6d378868a9669ee031f51ba4a89046b8e60f7b"
     },
     "Materials/MI_B18D50_Accent.uasset": {
       "bytes": 4418,
-      "sha256": "527a426227362bd7043eb0eef9177be5a97ea590291b44d3b42163dc5795138f"
+      "sha256": "d4e9809b2b99c861446949c48d80dd9a145408a2a94c2129f48d3a5856c6f36c"
     },
     "Materials/MI_B39866_Trim.uasset": {
       "bytes": 4408,
-      "sha256": "91f6078ad95f0a7f65451547f0f5a2eb2065ad276c763995a89ddbee91f15141"
+      "sha256": "1074467950a90a2f7a684f9bd958dce630cf8fd55db316298e86b91f620ac9bb"
     },
     "Materials/MI_B49B61_Trim.uasset": {
       "bytes": 4408,
-      "sha256": "97b832b614949f53d277288256c6933e30247dc99c0d5ec2ce8f3e8541d84616"
+      "sha256": "888d49a0c0057038d0e33294253712d26f9fca1138ced9d2e1bc4a6a2cdabcb2"
     },
     "Materials/MI_B4AB95_Hair.uasset": {
       "bytes": 4400,
-      "sha256": "4a669ac775b0d563d73a4275c6f55dd951af51979bb99169ba056c12017b1f10"
+      "sha256": "0cdb7673c8a726b585345fd8370de66d408e8b0412e5f6acbc85b286d7fb77af"
     },
     "Materials/MI_B68E70_Skin.uasset": {
       "bytes": 4400,
-      "sha256": "d17f316328211812d89bd48605a75ac0286ad058e282619aab70162dd582aac2"
+      "sha256": "cd2724fd198d57f967a50c1bd6f6e412e87500fe64b92283453d13c3378d73e2"
     },
     "Materials/MI_B9A673_Trim.uasset": {
       "bytes": 4408,
-      "sha256": "54ad08a61f2921386dc821d4757bb049afeb2c24082b02727ebd71d698e42165"
+      "sha256": "b33aca88cd13e463c05babd80d38c6fa1b4cba9aba1ef8c60ae8c88e971eebd5"
     },
     "Materials/MI_B9AC8B_Trim.uasset": {
       "bytes": 4408,
-      "sha256": "560e40942e7e612ac8c36b43988196d6d6239b9cb3d30f79275fbbb0ee8f0633"
+      "sha256": "2e4a77902a2daeb122ea55d59ec85228bf3dfaa97318dea4e0012b44bb6f8013"
     },
     "Materials/MI_B9B09C_Hair.uasset": {
       "bytes": 4400,
-      "sha256": "092cf16023b321befcb4ae4f5dd4d27ad38289b7d2c7cf44e3a01a009ba0aec9"
+      "sha256": "5b9e3bda225144ce2a1e7c316a74aa343d786f342a838822313a1ae0b8e689a6"
     },
     "Materials/MI_BCA467_Trim.uasset": {
       "bytes": 4408,
-      "sha256": "05b333b0f6682ea6ff8fdd34b162971435f8274a024a289debebe0f9b0209310"
+      "sha256": "59136681894c19eb757f9b87aec6e9ea92ffe4098d6fe9f145e93dc7089f52b4"
     },
     "Materials/MI_BCAD86_Cloth.uasset": {
       "bytes": 4413,
-      "sha256": "347b620a0ea9e4aa86d093c95ce87e4c5d424b0deb916ac347423719dc7e5088"
+      "sha256": "84aed00cbea50dee524560c97909c0e27fea3b06fa4e31d6b9a24f0530d12209"
     },
     "Materials/MI_BD8E72_Skin.uasset": {
       "bytes": 4400,
-      "sha256": "1798b606a120d02318f3c8dad3e2b483f6844e47975930018d99ec1d5e661e45"
+      "sha256": "92dedf6ec377208868f09a96db6c8b642728965363da705932ca4c29128608ff"
     },
     "Materials/MI_BD9A66_Trim.uasset": {
       "bytes": 4408,
-      "sha256": "1a70f90ed5b1ea2216d58f08d7f011d50b892971ca908da6b7d747902b3f1686"
+      "sha256": "cea9410884cc877f50f7ea8bbc14ebab232e6247de5fc7774a7caa4f954f0954"
     },
     "Materials/MI_C1A46F_Trim.uasset": {
       "bytes": 4408,
-      "sha256": "c90f7c81607209f6f248fa3b0ecb1c46aeb146e1edee362f5d75c00182734339"
+      "sha256": "da2f05b69cb64da5e34050216d06bf0d5d337e6d0f133aabca6209c670d0c38d"
     },
     "Materials/MI_C1B8A3_Hair.uasset": {
       "bytes": 4400,
-      "sha256": "ff412e7059e03c08d64f00bbc881b499e96679e7b94f1f548a5867503a64e36b"
+      "sha256": "80cc041e665b0baffab4a0b7a9dcb7672c9cc88e766dc0f920e1a4c2ede3da53"
     },
     "Materials/MI_C2B498_Trim.uasset": {
       "bytes": 4408,
-      "sha256": "d3bc4bc9a34b72191ce2bba2c3094d00bcb456b070fc05f635b8499198c1427f"
+      "sha256": "1fe4514048926853d520622b181a4d2708ab5334ee7a9c133f4bf6149aefcf68"
     },
     "Materials/MI_C6BA99_Trim.uasset": {
       "bytes": 4408,
-      "sha256": "c5de16ed6e247626378218774cfd5beae7925d0a331e38c733129787a7068bd3"
+      "sha256": "108159003afd31b63a2bdd5344ea12fb0bcf4d66fdda6cc2f56cb0cac1a12630"
     },
     "Materials/MI_C8AF78_Trim.uasset": {
       "bytes": 4408,
-      "sha256": "ccfb5f7f9071fca59390cfbc98555cdedfb236ff4a326e766b0748aa482e1496"
+      "sha256": "9967faa19b1cfae9bd20726679d7b1939a449a498e058fef74084b0e8b5ddded"
     },
     "Materials/MI_CCC09A_Trim.uasset": {
       "bytes": 4408,
-      "sha256": "ab6b474de18a1cde8f09a4ffa0ac01ed9e5ec52adb419dcec9ad9622a214149c"
+      "sha256": "7ef54a3244290120fd06f4c1cc273a57fdb09f4de4bfffdbd368e22d5fbb5182"
     },
     "Materials/MI_CEC39F_Trim.uasset": {
       "bytes": 4408,
-      "sha256": "6711296c313b24936628a105aa7db368b55ecc4429fa918745e88ed495ee13e8"
+      "sha256": "d9dde146681cc89460af2168e1280a726729de091cb2ba3f65aff081c5d19fde"
     },
     "Materials/MI_D0C5A5_Accent.uasset": {
       "bytes": 4418,
-      "sha256": "36b58dd6adae14f2357637467cdb332259ada47a85be89ebcd616e6ade0bb583"
+      "sha256": "fe96c411c213a7439b2c21770faafc7ddf836da97ca06d907272b9af7c28e831"
     },
     "Materials/MI_D1C4A1_Trim.uasset": {
       "bytes": 4408,
-      "sha256": "9905546f94f2ff913c2ebdea922f69a4f4a60c4a410d71f5153a9a28aec923fa"
+      "sha256": "e8f9c60f103384cc34a99db5c092bec888e4a7255b575f858749a4f50c7b90e2"
     },
     "Materials/MI_D2C4A2_Cloth.uasset": {
       "bytes": 4413,
-      "sha256": "eab0cceb42706f70407798aef6831930a2560ab5444a19672952803a422a5ce5"
+      "sha256": "4ee54b00a675086a9cf0ae4166e5f318bb2581ecfb9272ea272ac20869275014"
     },
     "Materials/MI_D5CAAF_Accent.uasset": {
       "bytes": 4418,
-      "sha256": "2a03246e8b0dca6e0bdda87d4da9ac2e719a35c0e757b0ebe1fb5e9e725bf33c"
+      "sha256": "374bc912bdba35677fe0e898f79c757169180d0de6e8c7e6a4de0adaf0f9098a"
     },
     "Materials/MI_D6C69B_Paper.uasset": {
       "bytes": 4405,
-      "sha256": "e05e331933a6b12252e279f4a4d8c153aeec95abdf5940a7d8eff5e40c610788"
+      "sha256": "3a7ba4133d1b89ce90bad04c46a0d290f55a856f3c53d7976248d48eca01da1d"
     },
     "Modules/A_Body/npc_A_Body/SkeletalMeshes/SK_A_Body.uasset": {
       "bytes": 406591,
-      "sha256": "dfda42a2abec5c81e906a1955f8751c49abd73734e66ce606504e7355656b5af"
+      "sha256": "2b672673ba2e3d68b7d181089f4b8a5d49b952270fe50960688f536cb964772e"
     },
     "Modules/A_Body/npc_A_Body/SkeletalMeshes/SK_A_Bodyidle.uasset": {
       "bytes": 146006,
-      "sha256": "ec7b490438f8a923ee6b087b4e0472f0e18886e1ff7eda69e6f59e91a892a18c"
+      "sha256": "ac5a2ea49b100da4941fbe7918efdba0834186a1bffd760688c2b636b5b184c7"
     },
     "Modules/A_Body/npc_A_Body/SkeletalMeshes/SK_A_Bodytalk.uasset": {
       "bytes": 159670,
-      "sha256": "cebf3e4dd4efb3e6994080ea46c63c71d59fc8392b39f4eb202e61f964a6966e"
+      "sha256": "0476af3f44493962236ac638b3b1f77c8e99be7c4beb6beeaa303b58c67c0f93"
     },
     "Modules/A_Hair_Cropped/npc_A_Hair_Cropped/SkeletalMeshes/SK_A_Hair_Cropped.uasset": {
       "bytes": 86669,
-      "sha256": "cbce699e36564edd2966658a85aa2131151684e956972b8624894214adbcd144"
+      "sha256": "434531334ebff6f2f5da42eb780aaa6309ad9907abc1dcd48385819fa8f9feee"
     },
     "Modules/A_Head/npc_A_Head/SkeletalMeshes/SK_A_Head.uasset": {
       "bytes": 178466,
-      "sha256": "49362bbdf70b7705b2ab766fdfb28acde3cc4b09dfbef7e9976698ec04c95a08"
+      "sha256": "3850be3aa9306d11a30aec426a57192db01b07d78c8844c230ee9c5cfa27a984"
     },
     "Modules/A_Legs/npc_A_Legs/SkeletalMeshes/SK_A_Legs.uasset": {
       "bytes": 172658,
-      "sha256": "96e2ca246ee757c529c23d80065551a8833eb581eff15b3163e8fe2f340e0641"
+      "sha256": "dd6de44bd6d3b4136bf9918d64d9e72e799b4543794aed8aa61f9713442fa072"
     },
     "Modules/A_Outfit_apron/npc_A_Outfit_apron/SkeletalMeshes/SK_A_Outfit_apron.uasset": {
       "bytes": 75214,
-      "sha256": "ec1c783c739267299df8d70038625a171e4f8825706533e85c68b3f1246ad1be"
+      "sha256": "49da8f0fcdd6234a9e8af01a1cacfb1584a1c75e1f432cfdc514ebd8353029d3"
     },
     "Modules/A_Outfit_coat/npc_A_Outfit_coat/SkeletalMeshes/SK_A_Outfit_coat.uasset": {
       "bytes": 96870,
-      "sha256": "cb4bb7ed75de1a8af1fd8c56ce8acf5c3d1b66cf1b0af45b74e34e4e02d3c86f"
+      "sha256": "79c5445726343a896dbb9c044e0c870dfec6ce37761eec6d10faac96a1d2d186"
     },
     "Modules/A_Outfit_priest/npc_A_Outfit_priest/SkeletalMeshes/SK_A_Outfit_priest.uasset": {
       "bytes": 205037,
-      "sha256": "c2858cdaab5e150509a8cc28d72dc1386e2c7de95f937b93e7c92e576fa6ac3b"
+      "sha256": "1d6940cbea25e5da1d3e167176c80e59c2cd2d07d123968a143a8318d3fb3862"
     },
     "Modules/A_Outfit_ranger/npc_A_Outfit_ranger/SkeletalMeshes/SK_A_Outfit_ranger.uasset": {
       "bytes": 61995,
-      "sha256": "16111dec4d975337060552b064f95d1332df0207ae61accf2c86a3935a819214"
+      "sha256": "9796fc11005779a3fc585cc086cf83b05e6b1bfc82e5a36b04af24381b75c296"
     },
     "Modules/A_Outfit_scholar/npc_A_Outfit_scholar/SkeletalMeshes/SK_A_Outfit_scholar.uasset": {
       "bytes": 220219,
-      "sha256": "573b8fb04d575c3adea1c0e87b851ca8a9c4468bb4aa375b5b6fdbb3bcc30d4a"
+      "sha256": "80558dbc591d5b79f662bed2512752132975f21ca4428f855a0fa9d70c0087a3"
     },
     "Modules/A_Outfit_tabard/npc_A_Outfit_tabard/SkeletalMeshes/SK_A_Outfit_tabard.uasset": {
       "bytes": 105977,
-      "sha256": "fe00f3ffa75748d0311228356ea4106c247477f889b2abc32067382004f737d9"
+      "sha256": "b2575b292278a2d1b51788db342ae3ad6ee9e170f5b3b31e2e110b10dcdc9cc1"
     },
     "Modules/A_Prop_beard/npc_A_Prop_beard/SkeletalMeshes/SK_A_Prop_beard.uasset": {
       "bytes": 32351,
-      "sha256": "629078de0b372fa58e30a87863ca559c3470de81edeee958b7c67b425f298606"
+      "sha256": "2082f89467b6dc443da8e0fc717a10ff290e93b1922e93c3f84ca1630c7f9c51"
     },
     "Modules/A_Prop_book/npc_A_Prop_book/SkeletalMeshes/SK_A_Prop_book.uasset": {
       "bytes": 20324,
-      "sha256": "7dd178902cab302d72887bd27c864544643b4e8271fa8e530cb32d4f20ba6e69"
+      "sha256": "c114dba63b2718cb9a5d403c1a2a1ad366fc5720557af39d3a6a7a35c0081ba2"
     },
     "Modules/A_Prop_bow/npc_A_Prop_bow/SkeletalMeshes/SK_A_Prop_bow.uasset": {
       "bytes": 49219,
-      "sha256": "b8ef0e6a291ca71b46e216d44b9567e10039e95a6243c5c1d69fcf6e96e23f96"
+      "sha256": "cf9d2f17844e09f14782666160a6ee41639de3343e9045cc313c0e66f015bf59"
     },
     "Modules/A_Prop_cap/npc_A_Prop_cap/SkeletalMeshes/SK_A_Prop_cap.uasset": {
       "bytes": 59642,
-      "sha256": "382168bc394acc576c00afaa8291ce0d0a74199fc70e730820d0700ca38b093d"
+      "sha256": "c7eccbb98e6cb719e90c2752535b7c6df980f938d7b6e7591285f52fa7a1eda9"
     },
     "Modules/A_Prop_hammer/npc_A_Prop_hammer/SkeletalMeshes/SK_A_Prop_hammer.uasset": {
       "bytes": 17098,
-      "sha256": "6943d0b6f9a6359cafabd7069e82329436717169778dcc2168020050cfa83db9"
+      "sha256": "48ad700b423a5fe5f79ce0b2439ea81bbd17a83e5f3c19dac0ec45a38e5b7899"
     },
     "Modules/A_Prop_hood/npc_A_Prop_hood/SkeletalMeshes/SK_A_Prop_hood.uasset": {
       "bytes": 85756,
-      "sha256": "99e5bb182ce30cd22c4aee9e4605f9bbed4cf841e984694b9600fbac19d045f6"
+      "sha256": "5d421413d5e943d47e1863cad52776c04ce107a937af2715789cf36c21e412c6"
     },
     "Modules/A_Prop_longbeard/npc_A_Prop_longbeard/SkeletalMeshes/SK_A_Prop_longbeard.uasset": {
       "bytes": 32647,
-      "sha256": "e74db54483bdeade1d6b35ba7fc8d9d9161ef738e329e7b930a32240090677f4"
+      "sha256": "ea0d5da48e69cbf39a879f74f00299aaae4c5da653ac46fc7642af988a0f8a7a"
     },
     "Modules/A_Prop_medallion/npc_A_Prop_medallion/SkeletalMeshes/SK_A_Prop_medallion.uasset": {
       "bytes": 44207,
-      "sha256": "73819cc0cba7ea40b6fb4ea48a8fcf271a9f6a3aa958815bb94e079c471bf650"
+      "sha256": "f55224eecf0eaa5f6b865381522911a7f27ee710ea3a46ecb756bbb6a17f4605"
     },
     "Modules/A_Prop_satchel/npc_A_Prop_satchel/SkeletalMeshes/SK_A_Prop_satchel.uasset": {
       "bytes": 54580,
-      "sha256": "1f08804fb1ed40afb9e2a3b12222050ecfd451d101c52f0fcd6446bfd2951c0f"
+      "sha256": "abdc90275f44d211e907b9cf59f110fab01c7465f1b80e316df64e55085faa48"
     },
     "Modules/A_Prop_spear/npc_A_Prop_spear/SkeletalMeshes/SK_A_Prop_spear.uasset": {
       "bytes": 19683,
-      "sha256": "ed3cea15dc4f864d312de5a627996a875f9e00f247602c28d86c54814dd82073"
+      "sha256": "0d4a12f90e33f889fc2fc8a1cace5b97400f081c48fe212d1cbcac2398685d00"
     },
     "Modules/A_Prop_staff/npc_A_Prop_staff/SkeletalMeshes/SK_A_Prop_staff.uasset": {
       "bytes": 80192,
-      "sha256": "4efaec4565571d300338d35d36bcc7feace909974467cc049a232f01c9e20c11"
+      "sha256": "917df21b677f996bde4a163fc6ead7db882087b7fea15ebc8c5422a9b748c9ed"
     },
     "Modules/A_Prop_stole/npc_A_Prop_stole/SkeletalMeshes/SK_A_Prop_stole.uasset": {
       "bytes": 69471,
-      "sha256": "48a1d37284948d9c436b8b537d7628462322759deff7542ef882f944e702bc48"
+      "sha256": "da00deefaf862b644d45e9169676d00cfb6f13ad5f0f281c365b36449a972601"
     },
     "Modules/A_Prop_sword/npc_A_Prop_sword/SkeletalMeshes/SK_A_Prop_sword.uasset": {
       "bytes": 29061,
-      "sha256": "ff72723e9b90e61b9d869ddf6b9fa9c92fce48dc01d7f3805eef2efabf9689d8"
+      "sha256": "6b384658b3dd24e11ca37a6a4287eb40e06d0b4fe1593a09f3b2570baf11f7e3"
     },
     "Modules/B_Body/npc_B_Body/SkeletalMeshes/SK_B_Body.uasset": {
       "bytes": 411059,
-      "sha256": "e6d97186682745898753d4501f98f2b02898722654a7ec16ca462faccdbd3bfd"
+      "sha256": "9a980b155b66b7e83498de0b191bfcbd2298fb6fb74c2a28b863a915696e0d06"
     },
     "Modules/B_Body/npc_B_Body/SkeletalMeshes/SK_B_Bodyidle.uasset": {
       "bytes": 146015,
-      "sha256": "bad6ea55d61b004c40ac4083f68b9baf6fbdc78821f15d2a537fb374f57813f9"
+      "sha256": "6efb8a7c7816b4bc859677f19d15edfaf25eb6d2233b85022f1c517ce8205050"
     },
     "Modules/B_Body/npc_B_Body/SkeletalMeshes/SK_B_Bodytalk.uasset": {
       "bytes": 159679,
-      "sha256": "6807e988951a4db419d11e56bca2ba9182a8b5127506d2174d781f8dcbd92518"
+      "sha256": "0678d903229122ea2e52ca1790bd2281d79f211700221b42617251431301c73f"
     },
     "Modules/B_Hair_Cropped/npc_B_Hair_Cropped/SkeletalMeshes/SK_B_Hair_Cropped.uasset": {
       "bytes": 86701,
-      "sha256": "05d12170b2b8d09781295a6d592bdd64ce055dff0a97d1d2cfebff07f0c39b25"
+      "sha256": "3a96832ee9594c61c2a7dcceb8e7b3062df8f71e3e4b53b6a0db74712e7bf153"
     },
     "Modules/B_Hair_Tied/npc_B_Hair_Tied/SkeletalMeshes/SK_B_Hair_Tied.uasset": {
       "bytes": 119273,
-      "sha256": "2c12ecd2ee904e48a73dac2b1c7964c57025e05c1d406b61667e5f222289bb3d"
+      "sha256": "ad131d2e3aaf08df63a1782a751de75d1ee76c0d0823b7f9e8fdada11b4b9e59"
     },
     "Modules/B_Head/npc_B_Head/SkeletalMeshes/SK_B_Head.uasset": {
       "bytes": 184710,
-      "sha256": "2cf6ccf5c9625bf20f4b3bcaf28c50a4819013bfb4fd3c6d44f69d2371117c42"
+      "sha256": "20ed747f591c61b4ae7cc507339bcbde3652f420014a96bdce01d7fd334aecba"
     },
     "Modules/B_Legs/npc_B_Legs/SkeletalMeshes/SK_B_Legs.uasset": {
       "bytes": 173514,
-      "sha256": "b49da74d0c21e6a443b56a43ecb9450d775be0b4f5f848660fcc241c1751733d"
+      "sha256": "4688ce8f0dda46f09dfa8504858cdfaeb52adda6453da5cd312b6e5830f04806"
     },
     "Modules/B_Outfit_coat/npc_B_Outfit_coat/SkeletalMeshes/SK_B_Outfit_coat.uasset": {
       "bytes": 102813,
-      "sha256": "2be3a28ba08d561d1f43376c5398c3a57d4c627a600a5d6e288544baf9409c5a"
+      "sha256": "de986911020c37621b10c55e8e449fb5757a561ee3f20259a7a2ec4c2c1a27df"
     },
     "Modules/B_Outfit_priest/npc_B_Outfit_priest/SkeletalMeshes/SK_B_Outfit_priest.uasset": {
       "bytes": 206601,
-      "sha256": "ab357b6ee4172d12e0279eecfa280ed90c4ef6deec739d24c1cbd4c084dd71be"
+      "sha256": "47805104e19b7d2061293a87bdffcfd4cd642c0a2ed1384083e2fd8d85c8fffb"
     },
     "Modules/B_Outfit_ranger/npc_B_Outfit_ranger/SkeletalMeshes/SK_B_Outfit_ranger.uasset": {
       "bytes": 62704,
-      "sha256": "fbbfec96c3d3339b816c4f37072edfc1452677c5e41c5e41312ea35aa0a14ffc"
+      "sha256": "43cba0ccb3cab40c211b523bd49e8548ea5766e990744087df0e39ade3dc7ccd"
     },
     "Modules/B_Outfit_traveller/npc_B_Outfit_traveller/SkeletalMeshes/SK_B_Outfit_traveller.uasset": {
       "bytes": 51413,
-      "sha256": "e9005a3ef8e8655388995aa4897a9d5b32897651d76d3907ef3aea5e4ed3698a"
+      "sha256": "e63b8c54897500beebfe198719e89d29ab13435f7272f6edff373601ab09f551"
     },
     "Modules/B_Prop_book/npc_B_Prop_book/SkeletalMeshes/SK_B_Prop_book.uasset": {
       "bytes": 21122,
-      "sha256": "3022e864661d0431ce4982836cb5b2132bbb8b8281b76f29505ab175e6ddbe75"
+      "sha256": "2a6ba936172728ad091ca2fb2629640e42738aec4292e325831e7a83b38a87cb"
     },
     "Modules/B_Prop_bottles/npc_B_Prop_bottles/SkeletalMeshes/SK_B_Prop_bottles.uasset": {
       "bytes": 45861,
-      "sha256": "e7b85e9769d232a406fb3e0a37dd8d5589eb34f7b8aca0882fee3737221b3363"
+      "sha256": "c2c6bfb5d0bb5b35ebe420f6efda3167cc59e80cf025412af7c7459120d349e5"
     },
     "Modules/B_Prop_bow/npc_B_Prop_bow/SkeletalMeshes/SK_B_Prop_bow.uasset": {
       "bytes": 50438,
-      "sha256": "07711ec1f7909d552d477a5ec4bf6f4485bbda1846fbcf98728496e94e8612f3"
+      "sha256": "9884749287e08b9cd6e3a3eb9b5ddc0c4c7c32e4906aa430ef959c235ddde63f"
     },
     "Modules/B_Prop_coif/npc_B_Prop_coif/SkeletalMeshes/SK_B_Prop_coif.uasset": {
       "bytes": 38806,
-      "sha256": "c7be269a45e146cc254d5d6c9a068a6a11e0bbc2b484eb6096165319dac42830"
+      "sha256": "d5dc8153f8a5da85d8ea372e00c19def145ad099f5ae9ff1fca6df1143705cc4"
     },
     "Modules/B_Prop_hood/npc_B_Prop_hood/SkeletalMeshes/SK_B_Prop_hood.uasset": {
       "bytes": 86584,
-      "sha256": "b83a4d837304b72ff531236ea756c31c45996fd7d4f91685f8856cccfadb07b5"
+      "sha256": "91f0927fd17004a11cc5e5a703ad8e8232cbe4b37ef237abcff7a8d38be71e4e"
     },
     "Modules/B_Prop_medallion/npc_B_Prop_medallion/SkeletalMeshes/SK_B_Prop_medallion.uasset": {
       "bytes": 45297,
-      "sha256": "590966da13eccb1a6545ce31d5a09bb971ee2abb5088fc202e5b0e1e35893d01"
+      "sha256": "0da1b82aca9737e43d7ce0ef0f03e2fdb87ba2218f416a1f6c379cb3f2ccfe3b"
     },
     "Modules/B_Prop_satchel/npc_B_Prop_satchel/SkeletalMeshes/SK_B_Prop_satchel.uasset": {
       "bytes": 54484,
-      "sha256": "2e80ff2634869303a6fd0b0ec217f74216f2dd1fe3fea05d83537cff664f3e75"
+      "sha256": "59c27d92ae6216236ad226216bfb4dba51b499f18ecd32261a6a6147abe8213e"
     },
     "Modules/B_Prop_stole/npc_B_Prop_stole/SkeletalMeshes/SK_B_Prop_stole.uasset": {
       "bytes": 72771,
-      "sha256": "bce3671989e13be352e483ac32d7f0711fb09818aaf561b08e13e569d246ddfe"
+      "sha256": "09c7d4f32e2c43d56c5c9d924bb455bc74c6fa3fee5d8931685bff6ecc05884d"
     },
     "T_base.uasset": {
-      "bytes": 151918,
-      "sha256": "74d580f961a4cad2594be0e78111866a0b7fc08371bc0cba4083619b35023695"
+      "bytes": 151911,
+      "sha256": "4041d6dbef82bb9a0af8f44beb4a23302216de7a00a8040623d0e6864aaa0ad9"
     },
     "T_normal.uasset": {
-      "bytes": 114871,
-      "sha256": "db5f4210d81382f485a35e205a728c78eb59d5fba75f32c9af614210adc62b5d"
+      "bytes": 114864,
+      "sha256": "1176fcfe7be6ca8de907c8b24d4ebc47f9c26ff026d8c67737713edd013f2295"
     }
   },
-  "total_bytes": 5407200,
+  "total_bytes": 5407186,
   "bounds": {
     "A.Body": {
       "source_cm": [
