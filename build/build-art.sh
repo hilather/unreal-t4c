@@ -498,6 +498,10 @@ for kind in kinds:
         tools.import_asset_tasks([texture_task])
         tex=next(o for o in texture_task.get_objects() if isinstance(o,u.Texture2D))
         tex.set_editor_property('srgb',channel=='base')
+        tex.set_editor_property('compression_no_alpha',True)
+        tex.set_editor_property('mip_gen_settings',u.TextureMipGenSettings.TMGS_FROM_TEXTURE_GROUP)
+        tex.set_editor_property('lod_group',u.TextureGroup.TEXTUREGROUP_CHARACTER_NORMAL_MAP if channel=='normal' else
+                                u.TextureGroup.TEXTUREGROUP_CHARACTER_SPECULAR if channel=='orm' else u.TextureGroup.TEXTUREGROUP_CHARACTER)
         tex.set_editor_property('compression_settings',u.TextureCompressionSettings.TC_NORMALMAP if channel=='normal' else u.TextureCompressionSettings.TC_MASKS if channel=='orm' else u.TextureCompressionSettings.TC_DEFAULT)
         if channel=='normal': tex.set_editor_property('flip_green_channel',True)
         textures[channel]=tex
@@ -550,6 +554,25 @@ for kind in kinds:
     assets.save_loaded_asset(master)
     if not assets.save_directory(folder,only_if_is_dirty=True,recursive=True):
         raise RuntimeError('Saving creature failed '+kind)
+    # Last save of this body: material cleanup must finish before omitting the
+    # redundant DDC-restorable vertex arrays. Retain all MeshDescription data.
+    if not u.LHMonsterVisual.compact_creature_storage(mesh):
+        raise RuntimeError('Cannot compact rebuildable creature cache '+kind)
+    if not assets.save_loaded_asset(mesh,only_if_is_dirty=False):
+        raise RuntimeError('Cannot persist compact creature '+kind)
+files=inventory()
+# Report actual Unreal classes rather than inferring types from filenames.
+by_type={}
+by_creature={}
+for path,info in files.items():
+    obj=assets.load_asset(dest+'/'+path[:-7])
+    asset_type=obj.get_class().get_name()
+    by_type[asset_type]=by_type.get(asset_type,0)+info['bytes']
+    creature=path.split('/')[0] if '/' in path else 'shared'
+    by_creature[creature]=by_creature.get(creature,0)+info['bytes']
+(root/'Saved/ArtExport/creature-size-summary.json').write_text(json.dumps(
+    dict(by_type=by_type,by_creature=by_creature,packages=len(files)),indent=2)+'\n')
+u.log('CREATURE_BYTES_BY_TYPE '+json.dumps(by_type,sort_keys=True))
 files=inventory()
 total=sum(v['bytes'] for v in files.values())
 for kind in kinds:

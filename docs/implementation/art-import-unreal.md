@@ -268,3 +268,57 @@ Results and evidence paths: canonical attempt `attempt-68e9fec778df3140d81065dea
 Cleanup: all 34 tracked B1 asset/map files were restored byte-for-byte from HEAD (26 B1 assets and eight maps); generated creature packages and B1 receipt are absent from Content. ReviewedArrivals.tsv remains byte-identical. The final diff contains only the five edited code/script paths and this owned document; shell syntax, both embedded Python ASTs and `git diff --check` passed. No `.umap`, `.uasset`, texture, arrival-registry or binary result is committed. Worker-output contains only small text/JSON evidence, below 40 MiB.
 
 Next task and integration notes: the coordinator/art owner needs a scoped budget-reduction follow-up before importing these packages under LFS; the integrator should review the rollback failure; the host visuals lane must capture and review the lineup. Compile/import/binding evidence is a candidate for review, not task-success or G5 acceptance.
+
+
+## W5-10c creature storage reduction candidate
+
+Base: `5f34ac80183b1da2a128639ad9bef8838619ae90`. Owned changes are the two art/capture shell scripts, creature export resolution parameters, monster presentation import helpers/tests, and this document. No creature binary is submitted.
+
+The local rebuilt baseline is 55,232,837 bytes across 136 packages; W5-10b reported 55,231,963 bytes. Deltas below use the measured local baseline, rather than assuming package byte equality across fresh imports.
+
+| Asset class | Baseline | 512 textures, Balork base 1024 | Omit cached LOD vertices | Balork base 512 | Final clean recipe |
+|---|---:|---:|---:|---:|---:|
+| Material | 7,063 | 7,063 | 7,063 | 7,063 | 7,063 |
+| AnimSequence | 7,825,838 | 7,825,838 | 7,825,838 | 7,825,838 | 7,825,838 |
+| MaterialInstanceConstant | 46,602 | 46,602 | 46,602 | 46,602 | 46,602 |
+| SkeletalMesh | 24,538,368 | 24,538,368 | 9,038,446 | 9,038,446 | 9,038,448 |
+| Texture2D | 22,246,610 | 7,963,961 | 7,963,961 | 7,382,217 | 7,379,156 |
+| PhysicsAsset | 186,036 | 186,036 | 186,036 | 186,036 | 186,036 |
+| Skeleton | 60,210 | 60,210 | 60,210 | 60,210 | 60,210 |
+| StaticMesh | 322,110 | 322,110 | 322,110 | 322,110 | 322,110 |
+| **Total bytes** | **55,232,837** | **40,950,188** | **25,450,266** | **24,868,522** | **24,865,463** |
+
+| Creature / shared package | Baseline | First texture reduction | Cached vertices omitted | Balork base 512 | Final clean recipe |
+|---|---:|---:|---:|---:|---:|
+| shared | 7,063 | 7,063 | 7,063 | 7,063 | 7,063 |
+| atrocity | 5,081,538 | 3,604,962 | 2,459,026 | 2,459,026 | 2,458,749 |
+| balork | 6,141,296 | 5,269,667 | 3,498,811 | 2,917,067 | 2,916,790 |
+| bat | 5,353,735 | 3,784,046 | 2,176,525 | 2,176,525 | 2,176,244 |
+| dungeon_bat | 5,430,484 | 3,870,550 | 2,273,909 | 2,273,909 | 2,273,634 |
+| giant_bat | 5,221,551 | 3,779,026 | 2,199,794 | 2,199,794 | 2,199,518 |
+| giant_spider | 6,310,874 | 4,625,994 | 2,775,170 | 2,775,170 | 2,774,891 |
+| goblin | 4,318,027 | 3,142,054 | 2,199,166 | 2,199,166 | 2,198,887 |
+| goblin_warrior | 4,466,986 | 3,353,517 | 2,302,509 | 2,302,509 | 2,302,230 |
+| rat | 5,729,545 | 4,158,930 | 2,224,466 | 2,224,466 | 2,224,186 |
+| slime | 1,904,765 | 1,510,904 | 1,089,984 | 1,089,984 | 1,089,704 |
+| undead_bat | 5,266,973 | 3,843,475 | 2,243,843 | 2,243,843 | 2,243,567 |
+
+Reduction 1 saves 14,282,649 bytes, changing only the 33 texture packages. `artsource/creatures/build.py` first changed ordinary base/normal/ORM and Balork normal/ORM from 1024 to 512 pixels; reduction 3 also changes Balork base from 1024 to 512, saving another 581,744 bytes. Final exports use 512 for all 33 atlases. Pixel buffer allocation and resolution metadata follow the selected size. Shapes, pigments, UV authoring, bake shader settings and animation authoring are unchanged. The importer explicitly requests no-alpha compression, character texture groups and group-generated mipmaps; opaque base/ORM use TC_Default/TC_Masks, normals TC_Normalmap with the existing green-channel flip. UE 5.8.3 `FTextureSource::Compress` applies its UE-delta/Kraken source-storage path on texture save; source pixels are retained for rebuilds, rather than discarded.
+
+Reduction 2 saves 15,499,922 bytes from the eleven skeletal meshes. The import audit finds one LOD, one UV channel, zero morph targets, vertex colors, and 3,095–14,224 cached skin vertices per body. These seam-split vertices exceed the triangle-based intuition for package size. The native `CompactCreatureStorage` hook omits `FSkelMeshSection::SoftVertices` from the last body save, while preserving vertex counts, indices, section/bone maps, vertex colors and the full source MeshDescription. UE's section API explicitly permits empty cached arrays; `FSkeletalMeshRenderData::Cache` restores sections from the skeletal DDC or calls `BuildLODModel` from retained source on a miss. Deleting source MeshDescriptions was rejected because UE's skeletal builder requires them. Precision settings, geometry, LODs, physics assets and sockets remain intact. Compaction runs after material cleanup and directory saving so those operations cannot reintroduce the duplicate arrays into the final package.
+
+No bat skeletons or sequences are shared: all eleven distinct meshes, materials and skeletons, 55 compatible clips and three removable weapons remain. No animation key reduction or compression tolerance is introduced; engine import compression remains unchanged, preserving contact and impact sampling. All 55 animation packages, skeletons, physics assets, weapons and material packages were byte-identical through the staged reductions. Fresh imports regenerate package identities and are not claimed byte-identical. An accessor/node comparison of the original and final GLBs finds identical mesh, rig and animation streams for all eleven creatures; embedded texture data is excluded from that comparison.
+
+`capture-creature-lineup.sh` now uses `lh_capture_common.launch` and `retry_view`: up to three bounded attempts per view, stale-image isolation, per-attempt JSONL records and diagnostics for a child surviving SIGKILL. It attempts subsequent views after an exhausted view and exits nonzero if any view fails. The shared helper self-test passes through this script. No real rendered lineup is claimed.
+
+Validation observed so far: staged scoped suites are 6 observed / 5 Success / 1 Fail at baseline, first texture reduction and cached-vertex reduction; the sole failure each time is `CreatureImportedAssets`' explicit package budget assertion. After Balork base reaches 512: 6/6 Success, zero failed/unfinished, exit 0. The cached-vertex suite used a fresh filesystem DDC and logged all eleven skeletal meshes rebuilding from retained source, so it exercises a real cold-cache rebuild. Final clean-content full suite: **215 observed / 215 Success with warnings / zero Fail / zero unfinished**, exit 0, test duration 172.016 s; every monster test and `SessionInventoryRollback` passed. The former variable rollback failure was not reproduced here and is not claimed fixed.
+
+All eight maps were generated locally; final hub and both basement generators exited 0 against the real imported assets. The full suite writes 9/9 PASS arrival rows, and `Config/Lighthaven/ReviewedArrivals.tsv` remains byte-identical (SHA-256 `e56cc528fcbdee98194c878edf84347d5a71f49eb6c23cf927e47634a724e5fc`). Final native target confirmations using the W5-10b XML (including both UBA false aliases), non-adaptive unity and checkout-local HOME/XDG/UBA_ROOT: editor exit 0 / `Result: Succeeded` / 6.70 s; game exit 0 / `Result: Succeeded` / 14.06 s. The preceding final-code builds also succeeded (editor 68.98 s; game 61.14 s). Blender 5.2.2 exports and both independent GLB validators completed in the full `build/build-art.sh` run, which exited 0 and wrote the 24,865,463-byte creature receipt.
+
+One early scoped editor launch was interrupted by the sandbox's blocked request to `www.google.com`, with no completed report. The retry with HomeScreen disabled completed; subsequent checks use the existing privacy/home-screen command arguments. The first environment import encountered baseline LFS pointer packages during replacement; a fresh local environment import succeeded, and final map regeneration returned 0. An initial texture reduction used the wrong Python texture-group enum spelling; it was corrected to `TEXTUREGROUP_CHARACTER_NORMAL_MAP` before the measured successful reduction. These partial/interrupted runs are not counted as completed passing checks.
+
+Linux B1 cook exited 0 using `-run=Cook -TargetPlatform=Linux -Map=L_TempleB1 -SkipZenStore`, Local filesystem DDC, isolated asset-registry cache and the privacy/home-screen arguments. It cooked 665 packages with none remaining, zero errors and one netlink-socket warning; commandlet duration 1,400.56 s (23m20s), dominated by cold Vulkan shader compilation. Every one of the **136 creature editor package paths** has its cooked `.uasset`; none missing. The 305 creature files including sidecars total **13,200,618 bytes**. All 136 editor package hashes remain unchanged after map generation, full-suite execution and cook, still **24,865,463 bytes**. This is cook inclusion, not a packaged executable launch.
+
+Submission preparation restores all eight `.umap` pointers and the 26 original B1 environment package pointers, removes generated Content receipts/packages from the submitted tree, and leaves ReviewedArrivals.tsv byte-identical. Only the seven owned source/tool/document files are submitted. Supporting evidence is trimmed under the canonical attempt output `library/` (no full logs/indexes/binaries). `bash -n` for both scripts, embedded importer Python syntax and `git diff --check` pass.
+
+Assumptions/remaining uncertainty: 512 atlases are taken as adequate at the brief's gameplay distance; no rendered visual acceptance is claimed because this worker has no DISPLAY/WAYLAND_DISPLAY. Windows packaging/launch is deferred under Linux-first evidence, and no packaged Development launch is performed. The final editor package margin is only 134,537 bytes. An editor save after a mesh edit/rebuild can persist the restored cache again; rerun native compaction at the final save and remeasure generated packages. Forced reimport into existing skeleton packages remains unvalidated; this evidence uses fresh creature packages and preserves the prior receipt skip. No gate status, integration, push or capacity release is declared. Next: coordinator independently reviews this candidate and the binary-generating recipe; a renderer-enabled visual worker checks gameplay-distance texture quality.

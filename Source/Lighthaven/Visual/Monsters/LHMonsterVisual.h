@@ -30,6 +30,9 @@ public:
     void CancelAttack();
     UFUNCTION(BlueprintCallable, Category="Lighthaven|Art Import")
     static bool ConfigureCreatureMaterial(USkeletalMesh* Mesh, UMaterialInterface* Material);
+    // Keep rebuildable MeshDescription; omit duplicate cached LOD vertex arrays on save.
+    UFUNCTION(BlueprintCallable, Category="Lighthaven|Art Import")
+    static bool CompactCreatureStorage(USkeletalMesh* Mesh);
     void Strike();
     void Hit();
     void Die();

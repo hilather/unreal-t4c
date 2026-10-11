@@ -24,6 +24,9 @@ bool FLHCreatureArtCatalog::RunTest(const FString&)
 #include "Materials/MaterialInterface.h"
 #include "StaticMeshResources.h"
 #include "Animation/AnimSequence.h"
+#include "Engine/Texture2D.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
 #include "Misc/PackageName.h"
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCreatureImportedAssets,"Lighthaven.Visual.Monsters.CreatureImportedAssets",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FLHCreatureImportedAssets::RunTest(const FString&)
@@ -40,6 +43,21 @@ bool FLHCreatureImportedAssets::RunTest(const FString&)
         if(!FPackageName::DoesPackageExist(Path)) { AddError(TEXT("Missing imported creature: ")+Path); continue; }
         auto* Mesh=LoadObject<USkeletalMesh>(nullptr,*Path);
         if(!TestNotNull(TEXT("Skeletal mesh"),Mesh)) continue;
+        TestEqual(TEXT("One authored LOD"),Mesh->GetLODNum(),1);
+        TestTrue(TEXT("Retained source for cold-cache rebuild"),Mesh->HasMeshDescription(0));
+        for(const TCHAR* Channel:{TEXT("base"),TEXT("normal"),TEXT("orm")})
+        {
+            auto* Texture=LoadObject<UTexture2D>(nullptr,*(Root+TEXT("T_")+Channel));
+            if(TestNotNull(TEXT("Creature texture"),Texture))
+            {
+                const int32 Limit=I==5 && FString(Channel)==TEXT("base")?1024:512;
+                TestTrue(TEXT("Gameplay-distance texture budget"),Texture->Source.GetSizeX()<=Limit && Texture->Source.GetSizeY()<=Limit);
+                TestTrue(TEXT("Atlas has no alpha compression overhead"),Texture->CompressionNoAlpha);
+                TestEqual(TEXT("Texture color space"),Texture->SRGB,FString(Channel)==TEXT("base"));
+                TestEqual(TEXT("Texture compression"),Texture->CompressionSettings,
+                    FString(Channel)==TEXT("normal")?TC_Normalmap:FString(Channel)==TEXT("orm")?TC_Masks:TC_Default);
+            }
+        }
         TestTrue(TEXT("Body has material slots"),Mesh->GetMaterials().Num()>0);
         for(const auto& Slot:Mesh->GetMaterials())
             TestTrue(TEXT("Persisted creature material binding"),Slot.MaterialInterface &&
@@ -75,5 +93,10 @@ bool FLHCreatureImportedAssets::RunTest(const FString&)
             if(TestNotNull(*ClipPath,Clip)) TestTrue(TEXT("Compatible skeleton"),Clip->GetSkeleton()==Mesh->GetSkeleton());
         }
     }
+    TArray<FString> Packages;
+    IFileManager::Get().FindFilesRecursive(Packages,*(FPaths::ProjectContentDir()/TEXT("Lighthaven/Art/Creatures")),TEXT("*.uasset"),true,false);
+    int64 Bytes=0;
+    for(const FString& Package:Packages) Bytes+=IFileManager::Get().FileSize(*Package);
+    TestTrue(TEXT("Imported creature packages fit 25,000,000 bytes"),Bytes>0 && Bytes<=25000000);
     return true;
 }

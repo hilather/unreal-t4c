@@ -4,6 +4,10 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/SkeletalMeshSocket.h"
+#if WITH_EDITOR
+#include "Rendering/SkeletalMeshModel.h"
+#include "Rendering/SkeletalMeshLODModel.h"
+#endif
 #include "Animation/AnimSequence.h"
 #include "Misc/PackageName.h"
 #include "ProceduralMeshComponent.h"
@@ -51,6 +55,27 @@ bool ULHMonsterVisual::ConfigureCreatureMaterial(USkeletalMesh* Mesh,UMaterialIn
     auto Slots=Mesh->GetMaterials();
     for(auto& Slot:Slots) Slot.MaterialInterface=Material;
     Mesh->SetMaterials(Slots);
+    Mesh->MarkPackageDirty();
+    return true;
+#else
+    return false;
+#endif
+}
+bool ULHMonsterVisual::CompactCreatureStorage(USkeletalMesh* Mesh)
+{
+#if WITH_EDITOR
+    if(!Mesh || Mesh->GetLODNum()!=1 || !Mesh->HasMeshDescription(0) || !Mesh->GetMorphTargets().IsEmpty()) return false;
+    auto* Model=Mesh->GetImportedModel();
+    if(!Model || Model->LODModels.Num()!=1) return false;
+    auto& LOD=Model->LODModels[0];
+    UE_LOG(LogTemp,Display,TEXT("CREATURE_MESH_STORAGE %s vertices=%u uv=%u lods=%d morphs=%d colors=%d source_triangles=%d"),
+        *Mesh->GetName(),LOD.NumVertices,LOD.NumTexCoords,Mesh->GetLODNum(),Mesh->GetMorphTargets().Num(),
+        Mesh->GetHasVertexColors(),Mesh->GetSourceModel(0).GetTriangleCountFast());
+    // UE restores these cache arrays from the skeletal DDC on load, or rebuilds
+    // them from the retained MeshDescription on a miss. Keep counts, indices,
+    // section/bone maps, sockets and all authoring data. Do not clear source bulk.
+    Mesh->Modify();
+    for(auto& Section:LOD.Sections) Section.SoftVertices.Empty();
     Mesh->MarkPackageDirty();
     return true;
 #else
