@@ -1,5 +1,6 @@
 #include "LHGenerateHubMapCommandlet.h"
 #include "LHMapDressing.h"
+#include "LHFloorLightingAuthoring.h"
 #include "Editor.h"
 #include "Framework/LHArrivalReview.h"
 #include "FileHelpers.h"
@@ -484,6 +485,7 @@ int32 ULHGenerateHubMapCommandlet::Main(const FString& Params)
     Hub.bOK &= LHMapDressing::Dress(Hub.World,ELHVisualStyle::Church,
         {{1450,100,1100},{-1100,100,700},{-3700,6800,900}},
         {{700,1200,100},{-600,500,0},{-3300,7400,100}});
+    Hub.bOK &= LHFloorLightingAuthoring::Apply(Hub.World,ELHVisualStyle::Church);
     TArray<FString> Manifest;
     TSet<FGuid> Ids;
     for(TActorIterator<AActor> It(Hub.World);It;++It)
@@ -504,6 +506,6 @@ int32 ULHGenerateHubMapCommandlet::Main(const FString& Params)
     Manifest.Sort();
     if(!FFileHelper::SaveStringToFile(FString::Join(Manifest,TEXT("\n"))+TEXT("\n"),*(FPaths::ProjectSavedDir()/TEXT("HubLayout.tsv")))) return 1;
     if(!Hub.bOK || !IFileManager::Get().MakeDirectory(*FPaths::GetPath(Filename),true) || !FEditorFileUtils::SaveMap(Hub.World,Filename)) return 1;
-    UE_LOG(LogTemp,Display,TEXT("Generated %s: 13 NPCs, 2 unreviewed entrances, 1 registry portal, 20 local lights, %d boundary segments, %d wall segments"),*Package,Hub.BoundaryCount,Hub.WallCount);
+    UE_LOG(LogTemp,Display,TEXT("Generated %s: 13 NPCs, 2 unreviewed entrances, 1 registry portal, W5-19 chapel lighting, %d boundary segments, %d wall segments"),*Package,Hub.BoundaryCount,Hub.WallCount);
     return 0;
 }

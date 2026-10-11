@@ -1,5 +1,30 @@
 # Lighting and native capture camera
 
+## W5-19 current chapel / B2 / B3 / B4 profiles (2026-10-11)
+
+The four non-B1 floors now use `Visual/LHFloorLighting.*` and the generator-only
+`LHFloorLightingAuthoring.h` pass after dressing. It attaches short warm fixture
+pools, replaces old landmark lights with diffuse high room fills, adds pawn-area
+readability and nonvolumetric haze, and assigns per-floor AO/grade. Church is warm
+with cool exterior light (EV4), B2 green-grey (EV2.5), B3 dim cold stone (EV4), B4
+red-amber basalt (EV1.5). B1's existing implementation and tuning are unchanged.
+All fixture/fill lights are shadowless; Lumen is explicitly disabled. The existing
+church directional sun retains its shadow policy at a reduced 12 lux.
+
+This supersedes the historical non-B1 lighting/exposure values below. New map
+generation is required to install atmosphere and replace legacy lights. Runtime
+fixture reconstruction by itself is not the complete pass. See
+[W5-19 profiles, baseline measurements, predicted means and check evidence](lighting-floors-w5-19.md).
+The means are predictions until new host captures exist; direct-lux and NullRHI
+checks do not establish pixel brightness, near-black share or visual acceptance.
+
+W5-19 worker checks: both targets built; five maps generated; lighting tests passed;
+arrivals 9/9 and LHValidateWorld 0 errors. Full suite: 237/238 passed;
+`CreatureImportedAssets` failed on eleven missing local creature-validation JSON
+files. Full-suite green and rendered acceptance remain unclaimed. Generated
+assets were restored before submission.
+
+
 ## W5-09b runtime registration correction (2026-10-10)
 
 The W5-09 host captures supersede its predicted means: B1 actually measured

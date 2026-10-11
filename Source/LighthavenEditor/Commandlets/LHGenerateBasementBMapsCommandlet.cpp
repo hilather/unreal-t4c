@@ -1,5 +1,6 @@
 #include "LHGenerateBasementBMapsCommandlet.h"
 #include "LHMapDressing.h"
+#include "LHFloorLightingAuthoring.h"
 #include "Editor.h"
 #include "Framework/LHArrivalReview.h"
 #include "FileHelpers.h"
@@ -731,6 +732,7 @@ int32 ULHGenerateBasementBMapsCommandlet::Main(const FString& Params)
         B.bOK &= LHMapDressing::Dress(World,bB3?ELHVisualStyle::B3Crypt:ELHVisualStyle::B4Ritual,
             bB3?TArray<FVector>{{3900,-200,1000},{-600,1600,1000},{5000,5600,900}}:TArray<FVector>{{1100,100,900},{1700,2500,1100},{3100,7200,1000}},
             bB3?TArray<FVector>{{2900,700,0},{400,2500,0},{4600,6100,0}}:TArray<FVector>{{600,900,0},{1000,3700,0},{2400,7500,0}});
+        B.bOK &= LHFloorLightingAuthoring::Apply(World,bB3?ELHVisualStyle::B3Crypt:ELHVisualStyle::B4Ritual);
         const FString Package=bB3 ? TEXT("/Game/Lighthaven/Maps/L_TempleB3") : TEXT("/Game/Lighthaven/Maps/L_TempleB4");
         const FString Filename=FPackageName::LongPackageNameToFilename(Package,FPackageName::GetMapPackageExtension());
         if (!B.bOK || !IFileManager::Get().MakeDirectory(*FPaths::GetPath(Filename),true) || !FEditorFileUtils::SaveMap(World,Filename)

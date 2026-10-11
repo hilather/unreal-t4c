@@ -1,5 +1,6 @@
 #include "LHGenerateBasementAMapsCommandlet.h"
 #include "LHMapDressing.h"
+#include "LHFloorLightingAuthoring.h"
 #include "Visual/LHB1Lighting.h"
 #include "Editor.h"
 #include "Framework/LHArrivalReview.h"
@@ -591,6 +592,7 @@ int32 ULHGenerateBasementAMapsCommandlet::Main(const FString& Params)
             for(AActor* Light:LegacyLights) World->DestroyActor(Light);
             Builder.Actor<ALHB1Atmosphere>(TEXT("B1Atmosphere"),FVector::ZeroVector);
         }
+        else Builder.bOK &= LHFloorLightingAuthoring::Apply(World,ELHVisualStyle::B2Damp);
         if(!Builder.bOK) return 1;
         FString Semantic, ReceiptPath;
         if(!B1)
