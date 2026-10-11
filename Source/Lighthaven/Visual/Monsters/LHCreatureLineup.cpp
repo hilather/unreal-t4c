@@ -1,3 +1,4 @@
+#include "Visual/Monsters/LHCreatureLineup.h"
 #include "Visual/Monsters/LHMonsterVisual.h"
 #if !UE_BUILD_SHIPPING
 #include "HAL/IConsoleManager.h"
@@ -8,6 +9,9 @@
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 #include "TimerManager.h"
+#include "Animation/AnimSequence.h"
+#include "Animation/AnimSingleNodeInstance.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "EngineUtils.h"
 #include "Engine/PointLight.h"
 #include "Components/PointLightComponent.h"
@@ -49,6 +53,30 @@ bool ReviewSpot(UWorld* World,FVector& Spot)
         { Best=TorchDistance; Spot=Floor.ImpactPoint; }
     }
     return Best<TNumericLimits<double>::Max();
+}
+// Freeze a real imported clip at an absolute presentation time. No gameplay clocks.
+// This review-only change also exercises receipts across an unrelated C++ rebuild.
+bool Sample(ULHMonsterVisual* Visual, FName Definition, const FString& Action, double Normalized)
+{
+    if(!Visual || (Action!=TEXT("attack") && Action!=TEXT("idle")) ||
+       !FMath::IsFinite(Normalized) || Normalized<0 || Normalized>1) return false;
+    const FString Path=TEXT("/Game/Lighthaven/Art/Creatures/")+ULHMonsterVisual::ArtId(Definition)+TEXT("/A_")+Action;
+    auto* Clip=LoadObject<UAnimSequence>(nullptr,*Path);
+    if(!Clip) return false;
+    TArray<USkeletalMeshComponent*> Meshes;
+    Visual->GetOwner()->GetComponents(Meshes);
+    if(Meshes.IsEmpty()) return false;
+    Visual->SetComponentTickEnabled(false);
+    for(auto* Mesh:Meshes) {
+        Mesh->SetComponentTickEnabled(false);
+        Mesh->PlayAnimation(Clip,false); Mesh->SetPlayRate(0);
+        Mesh->SetPosition(Normalized*Clip->GetPlayLength(),false);
+        Mesh->TickAnimation(0,false); Mesh->RefreshBoneTransforms();
+        Mesh->UpdateComponentToWorld(); Mesh->MarkRenderDynamicDataDirty();
+    }
+    UE_LOG(LogTemp,Display,TEXT("LH_CREATURE_SAMPLE action=%s normalized=%.6f seconds=%.6f"),
+        *Action,Normalized,Normalized*Clip->GetPlayLength());
+    return true;
 }
 void Show(const TArray<FString>& Args,UWorld* World)
 {
@@ -96,6 +124,7 @@ void Show(const TArray<FString>& Args,UWorld* World)
         Actor->SetActorLocation(Origin+FVector(Focus>=0?0:(I%4)*350,Focus>=0?0:(I/4)*500,100));
         Visual->Build(FName(*(FString(TEXT("Enemy."))+Ids[I])),30,100);
         Actor->SetLifeSpan(60);
+        if(Args.Num()>3) continue; // Absolute samples never schedule attack timers.
         TWeakObjectPtr<ULHMonsterVisual> Weak=Visual;
         FTimerHandle Timer;
         World->GetTimerManager().SetTimer(Timer,[Weak,World](){
@@ -146,6 +175,16 @@ void Show(const TArray<FString>& Args,UWorld* World)
     Camera->GetCameraComponent()->SetAspectRatio(16.f/9.f);
     Camera->GetCameraComponent()->SetConstraintAspectRatio(true);
     Camera->SetLifeSpan(60);
+    // Frame from the initial idle bounds for a stable camera across all samples.
+    if(Args.Num()>3) {
+        double Normalized=0;
+        if(!LexTryParseString(Normalized,*Args[3]) ||
+           !Sample(Subject->FindComponentByClass<ULHMonsterVisual>(),
+               FName(*(FString(TEXT("Enemy."))+Ids[Focus])),Args[2],Normalized)) {
+            UE_LOG(LogTemp,Error,TEXT("LH_CREATURE_SAMPLE failed"));
+        }
+    }
+
     // Use the pawn's actual gameplay camera/boom, preserving its collision probe.
     TWeakObjectPtr<USpringArmComponent> GameplayBoom;
     TWeakObjectPtr<UCameraComponent> GameplayCamera;
@@ -174,7 +213,7 @@ void Show(const TArray<FString>& Args,UWorld* World)
         Focus,Close,*Origin.ToString(),Pawn->IsHidden(),Close?3:0,*Bounds.ToString());
 }
 FAutoConsoleCommandWithWorldAndArgs Command(TEXT("lh.CreatureLineup"),
-    TEXT("Presentation-only review actors at current B1 room. Optional roster index 0..10 and close."),
+    TEXT("Presentation-only review actors at current B1 room. Optional roster index 0..10 and close [attack|idle normalized-time]."),
     FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&Show));
 }
 #endif
@@ -218,13 +257,25 @@ public:
         for(auto* Actor:Attached) Test->TestFalse(TEXT("Player attachment restored"),Actor->IsHidden());
         if(Stage==3)
         {
-            LHCreatureLineupPrivate::Show({TEXT("5"),TEXT("close")},World);
+            LHCreatureLineupPrivate::Show({TEXT("5"),TEXT("close"),TEXT("attack"),TEXT("0.5")},World);
             int32 Subjects=0,Lights=0;
             FVector Spot; LHCreatureLineupPrivate::ReviewSpot(World,Spot);
             for(TActorIterator<AActor> It(World);It;++It)
             {
                 if(It->FindComponentByClass<ULHMonsterVisual>()) {
                     ++Subjects; Test->TestTrue(TEXT("Close subject on chosen spot"),It->GetActorLocation().Equals(Spot+FVector(0,0,100),.01));
+                    auto* Mesh=It->FindComponentByClass<USkeletalMeshComponent>();
+                    auto* Node=Mesh?Mesh->GetSingleNodeInstance():nullptr;
+                    Test->TestNotNull(TEXT("Command selected animation"),Node);
+                    if(Node) {
+                        auto* Clip=Cast<UAnimSequence>(Node->GetCurrentAsset());
+                        Test->TestNotNull(TEXT("Command selected attack clip"),Clip);
+                        if(Clip) {
+                            Test->TestEqual(TEXT("Command attack action"),Clip->GetName(),FString(TEXT("A_attack")));
+                            Test->TestTrue(TEXT("Command normalized time"),FMath::IsNearlyEqual(Node->GetCurrentTime(),Clip->GetPlayLength()*.5f,.0001f));
+                        }
+                        Test->TestFalse(TEXT("Command freezes mesh"),Mesh->IsComponentTickEnabled());
+                    }
                 }
                 if(auto* Light=Cast<APointLight>(*It)) {
                     ++Lights;

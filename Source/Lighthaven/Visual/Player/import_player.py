@@ -1,5 +1,5 @@
 """Headless player import. Invoked by build/build-art.sh; writes only local art."""
-import hashlib, json, os, struct, copy
+import hashlib, json, os, struct, copy, sys
 from pathlib import Path
 import unreal as u
 root=Path(u.Paths.project_dir()).resolve()
@@ -10,19 +10,21 @@ tools=u.AssetToolsHelpers.get_asset_tools()
 assets=u.EditorAssetLibrary
 editor=u.MaterialEditingLibrary
 kinds=('player_a','player_b')
-signature=hashlib.sha256(Path(__file__).read_bytes()+u.SystemLibrary.get_engine_version().encode())
-for path in [root/'artsource/player/appearances.json',root/'Source/Lighthaven/Visual/Player/LHPlayerVisual.cpp',root/'Binaries/Linux/libUnrealEditor-Lighthaven.so']+[source/(kind+suffix) for kind in kinds for suffix in ('.glb','_base.png','_normal.png','_orm.png')]:
-    signature.update(path.name.encode()); signature.update(path.read_bytes())
-signature=signature.hexdigest()
+sys.dont_write_bytecode=True
+sys.path.insert(0,str(root/'Source/Lighthaven/Visual/Player'))
+from player_receipt import signature as input_signature
+signature=input_signature(root,u.SystemLibrary.get_engine_version())
 stamp=content/'import-receipt.json'
 def inventory():
     return {str(p.relative_to(content)):dict(bytes=p.stat().st_size,sha256=hashlib.sha256(p.read_bytes()).hexdigest()) for p in sorted(content.rglob('*.uasset'))}
 if stamp.exists():
     old=json.loads(stamp.read_text())
-    if old['signature']==signature and old['assets']==inventory():
+    if old['signature']==signature and old['assets'] and old['assets']==inventory():
         u.log('PLAYER_IMPORT_UNCHANGED'); raise SystemExit(0)
 locked=[p for p in content.rglob('*.uasset') if not p.stat().st_mode & 0o200]
 if locked and os.environ.get('LH_ART_REIMPORT')!='1': raise RuntimeError('Changed player inputs require LH_ART_REIMPORT=1')
+# A failed partial import cannot retain a success receipt.
+if stamp.exists(): stamp.unlink()
 for p in locked: p.chmod(p.stat().st_mode | 0o200)
 def import_one(path,name,folder):
     task=u.AssetImportTask()

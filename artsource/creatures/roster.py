@@ -24,8 +24,28 @@ RULERS = {
     'undead_bat': (.3, .3, .55, 1.65, 1.65),
 }
 
+# W5-20b presentation-only attack clearance; all other rulers are unchanged.
+# These larger boxes cover authored lunges/rearing and weapon sweeps. They do
+# not set capsule dimensions, locomotion limits or gameplay damage reach.
+# Exact integer-frame measured bounds are in the W5-20b implementation handoff.
+# rear, front, half width, animated ceiling (metres)
+ATTACK_RULERS = {
+    'rat': (.70, .45, .35, .50),
+    'bat': (.40, .40, .40, 1.55),
+    'dungeon_bat': (.45, .45, .50, 1.75),
+    'giant_bat': (.65, .60, .85, 2.20),
+    'undead_bat': (.47, .45, .55, 1.85),
+    'goblin': (.55, 1.80, .70, 2.0),
+    'goblin_warrior': (.80, 1.90, .70, 2.30),
+    'giant_spider': (.75, 1.10, 1.05, 1.20),
+    'atrocity': (1.0, 1.80, 1.40, 2.20),
+    'balork': (2.21, 2.28, 2.2, 3.1),
+}
+
 def limits(kind, clip=None):
     rear, front, half, rest, live = RULERS[kind]
+    if clip == 'attack' and kind in ATTACK_RULERS:
+        rear, front, half, live = ATTACK_RULERS[kind]
     if clip == 'death' and kind in ('goblin', 'goblin_warrior'):
         rear = front = .95 if kind == 'goblin' else 1.05
         half = .5 if kind == 'goblin' else .55
