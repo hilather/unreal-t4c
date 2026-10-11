@@ -9,6 +9,7 @@ from array import array
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 import models
 import roster
+import animation_life
 OUT=Path(__file__).resolve().parent/'output'; OUT.mkdir(exist_ok=True)
 RESULT=[]
 # W5-10c: 1024 -> 512 for every atlas, including Balork base pigment.
@@ -200,13 +201,16 @@ def build(kind, bake_assets=True):
     for clip,end in [('idle',60),('move',24),('attack',42),('hit',18),('death',60)]:
         rig.animation_data_create();rig.animation_data.action=bpy.data.actions.new(kind+'_'+clip);actions[clip]=rig.animation_data.action
         frames=[0,end//4,end//2,3*end//4,end] if clip not in ['attack','death'] else ([0,20,29,30,42] if clip=='attack' else list(range(31))+[45,60])
-        if kind in roster.BATCH2:frames=list(range(end+1))
+        if kind in roster.BATCH2 or clip != 'move':frames=list(range(end+1))
         death_hold=None
         for f in frames:
             scene.frame_set(f)
             for b in rig.pose.bones:b.rotation_mode='XYZ';b.rotation_euler=(0,0,0);b.location=(0,0,0);b.scale=(1,1,1)
             body=rig.pose.bones['body'];phase=math.sin(math.tau*f/end)
-            if kind in roster.BATCH2:
+            lively = animation_life.pose(kind,rig,clip,f,end)
+            if lively:
+                pass
+            elif kind in roster.BATCH2:
                 roster.module(kind).pose(kind,rig,clip,f,end)
             elif clip in ['idle','move']:
                 body.scale=(1,1,1+(.025 if clip=='idle' else .07)*phase)
@@ -240,12 +244,19 @@ def build(kind, bake_assets=True):
                 else:
                     t=min(1,f/18);roll=t*t*(3-2*t)
                     body.rotation_euler.x=math.pi/2*roll;body.scale=(1,1-.4*roll,1-.3*roll)
-            for b in ([] if kind in roster.BATCH2 else rig.pose.bones):
+            for b in ([] if lively or kind in roster.BATCH2 else rig.pose.bones):
                 if b.name.startswith('tail') and clip in ['idle','move']:
                     rotate_world(b,(0,0,1),.025*phase)
                 if b.name=='jaw' and clip=='attack':rotate_world(b,(0,1,0),.32 if f==30 else 0)
                 if b.name.startswith('wingtip') and clip in ['idle','move']:
                     rotate_world(b,(1,0,0),.06*phase*(-1 if '-1' in b.name else 1))
+            if lively and clip != 'death':
+                # A body-driven recoil must never push a sole through the floor.
+                bpy.context.view_layer.update()
+                ev=mesh.evaluated_get(bpy.context.evaluated_depsgraph_get())
+                minimum=min((ev.matrix_world@v.co).z for v in ev.data.vertices)
+                if minimum < .001:
+                    body.location+=body.bone.matrix_local.to_3x3().inverted()@Vector((0,0,.001-minimum))
             if clip=='death' and death_hold is not None and f>=45:
                 for b in rig.pose.bones:
                     b.location,b.rotation_euler,b.scale=[value.copy() for value in death_hold[b.name]]
@@ -255,10 +266,10 @@ def build(kind, bake_assets=True):
                 bpy.context.view_layer.update()
                 ev=mesh.evaluated_get(bpy.context.evaluated_depsgraph_get())
                 minimum=min((ev.matrix_world@v.co).z for v in ev.data.vertices)
-                if kind=='rat' or kind in roster.BATCH2 or minimum<.001 or f==30:
+                if minimum<.001 or f>=30 or (kind not in ('bat','dungeon_bat','giant_bat','undead_bat')):
                     delta=body.bone.matrix_local.to_3x3().inverted()@Vector((0,0,.001-minimum))
                     body.location+=delta
-            if clip=='death' and f==30:
+            if clip=='death' and f==45:
                 death_hold={b.name:(b.location.copy(),b.rotation_euler.copy(),b.scale.copy()) for b in rig.pose.bones}
             for b in rig.pose.bones:
                 for prop in ['location','rotation_euler','scale']:b.keyframe_insert(data_path=prop,frame=f,group=b.name)

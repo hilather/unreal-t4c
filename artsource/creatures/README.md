@@ -125,3 +125,61 @@ post-processed. This elevated overview camera is a separate comparison condition
 not the fixed gameplay camera. Hero/gameplay frames retain the original local
 lamps, while action sheets use uniform directional studio lights so large rows
 remain inspectable at both ends.
+
+## W5-20 — authored attacks, idles and reactions
+
+`animation_life.py` overrides idle, attack, hit and death on the existing rigs.
+The established move callbacks remain unchanged. It authors eased pose arcs and
+breakdowns at every integer frame before the existing 30 fps glTF bake. Attack
+contact remains f30 / 1.0 s, recovery f42 / 1.4 s; idle remains 60f, move 24f,
+hit 18f and death 60f. The old f29 anticipation hold is now a commitment/travel
+frame between the f28 coil and f30 contact. Death settles through f45, then holds
+exactly through f60. No notifies, sockets, gameplay reach or root motion are added.
+Two-handed weapon poses use an analytic arm solve baked into existing bones;
+no IK constraints or new rig bones are exported.
+
+`roster.ATTACK_RULERS` records explicit presentation-only clearance extensions
+for the tail/wing/foreleg and weapon swings. All other rulers and rest geometry
+remain unchanged. The implementation document records measured bounds, byte
+counts and remaining visual limitations. These are Prototype presentation
+values: W5-20 / LH_Prototype_v1 / 2026-10-11 / source_url null.
+
+Quick source/export/re-import audit (no textures baked; temporary GLBs removed):
+
+```sh
+XDG_CONFIG_HOME="$PWD/artsource/creatures/.config" \
+  /home/brewerm/Downloads/blender-5.2.2-linux-x64/blender \
+  --background --factory-startup -noaudio --threads 2 --python-exit-code 1 \
+  --python artsource/creatures/audit_animation.py -- \
+  --output "$PWD/artsource/creatures/output/animation-after.json"
+```
+
+The default checks all eleven. Use `--only rat` for one, or `--no-export` for
+source-only iteration. `--source /absolute/baseline/artsource/creatures` audits
+a saved source revision; pass its JSON to `--baseline /absolute/before.json`
+on the candidate run to compare rigs, rest bounds and actual glTF animation
+payloads. The default aggregate payload growth limit is 1,000,000 bytes. This
+is **not** a measurement of Unreal compressed animation assets or the 25 MB
+imported-creature cap; measure those after the separate Unreal re-import.
+Use matching thread counts for baseline comparisons: joined geometry can vary
+slightly numerically with different remesh thread counts. Exact geometry hashes
+remain diagnostic and are not silently treated as identical.
+
+Render one creature at a time for bounded Cycles CPU jobs:
+
+```sh
+XDG_CONFIG_HOME="$PWD/artsource/creatures/.config" \
+  /home/brewerm/Downloads/blender-5.2.2-linux-x64/blender \
+  --background --factory-startup -noaudio --threads 3 --python-exit-code 1 \
+  --python artsource/creatures/preview_animation.py -- --only rat \
+  --output "$PWD/artsource/creatures/output/w5-20" --samples 8 --size 280
+```
+
+Each creature emits an attack sheet (ten frames, two angles) and five-frame idle
+strip: 22 PNGs for the full roster. Add `--reactions` to emit only a ten-panel
+hit/death sheet instead. Attack samples are f0,12,22,26,28,30,32,35,38,42; idle
+samples f0,12,27,43,60. These are actual evaluated **source** meshes with source
+procedural materials, not baked-export or Unreal captures. The gameplay-angle
+panels are orthographic crops at 55° elevation / 45° yaw; the other angle uses
+25° / 45°. No fixed-distance gameplay readability is certified by these crops.
+No external images enter the renderer. All generated images/GLBs stay ignored.
