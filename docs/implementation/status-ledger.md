@@ -275,3 +275,9 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
   - → **W5-09e (astra):** readable gaps, iron-bowl braziers, and B2 left byte-stable.
 - **W5-10b (fd3d254):** the creature import works (rig basis, weapon sockets, persisted materials, full cook inclusion), but it is **55.2 MB against the 25 MB gate**. → **W5-10c (sol, base `integration/w5-10c-base` 5f34ac8 = main + W5-10b):** reduce size; the lineup capture adopts the retry helper.
 - **W5-11b (acf3043):** map captures retry and survive hung launches (host self-test passed).
+- **Creatures integrated (ccb8c7c + assets 39a41a9, 29 MB LFS).** All 11 Blender creatures are imported as skeletal meshes and bound to the monster presentation (weapon sockets, persisted materials, procedural fallback). 136 packages, 24.88 MB; B1 kit re-imported with committed import receipts.
+  - **Host:** 215/215; arrivals 9/9 unchanged; validator 0; package OK; 22/22 lineup shots on the first attempt.
+  - **Lineup not judgeable yet:** creatures spawn on the player and in a dark gap. → **W5-10d (sol):** a clear lit spot, hidden pawn, close-up framing, contact sheet.
+- **W5-09e (6f233fb) submitted.** Four cool room fills, 42 wall sconces and 5 iron braziers, B2 skip-save. Suite 212/213: the material check still fails for the brazier, and the B2 receipt sits in ignored `Saved/`. → **W5-09f (sol):** fix the test and move the B2 receipt to a tracked file. The host check of W5-09e+f follows.
+- **W5-12 (astra) launched:** player characters in Blender (backlog item 2).
+- **Farm:** a brief automatic pause after W5-09e's worker ended (epoch 710 → 711) cleared on the ticker's own pass; nothing forced.
