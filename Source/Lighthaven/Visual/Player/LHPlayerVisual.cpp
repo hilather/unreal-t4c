@@ -2,6 +2,16 @@
 #include "Data/Items/LHItemCatalog.h"
 #include "Engine/World.h"
 #include "Misc/Crc.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
+#include "Engine/SkeletalMeshSocket.h"
+#include "Animation/AnimSequence.h"
+#include "Misc/PackageName.h"
+#include "Materials/MaterialInterface.h"
+#if WITH_EDITOR
+#include "Rendering/SkeletalMeshModel.h"
+#include "Rendering/SkeletalMeshLODModel.h"
+#endif
 
 namespace LHPlayerVisualPrivate
 {
@@ -61,7 +71,164 @@ uint32 LHPlayerVisual::Fingerprint(const TArray<FLHPlayerPart>& Parts)
     for(const auto& P:Parts) { Hash=HashCombine(Hash,P.Recipe.Fingerprint()); Hash=HashCombine(Hash,FCrc::StrCrc32(*P.Parent.ToString())); Hash=HashCombine(Hash,GetTypeHash(P.Transform.GetLocation())); }
     return Hash;
 }
-ULHPlayerVisualComponent::ULHPlayerVisualComponent() { SetRelativeLocation({0,0,-90}); SetCanEverAffectNavigation(false); }
+bool LHPlayerVisual::ResolveAppearance(const FLHCharacterRecord& C,int32& Body,int32& Hair,int32& Skin)
+{
+    using namespace LHPlayerVisualPrivate;
+    Body=Has(C,TEXT("Presentation.Player.Body.B"))?1:0;
+    Hair=Has(C,TEXT("Presentation.Player.Hair.Tied"))?1:0;
+    Skin=Has(C,TEXT("Presentation.Player.Skin.DeepWarm"))?2:Has(C,TEXT("Presentation.Player.Skin.MediumWarm"))?1:0;
+    TSet<FName> Seen; int32 Bodies=0,Hairs=0,Skins=0,Faces=0,Outfits=0;
+    for(const auto& Id:C.AppearanceIds)
+    {
+        if(Seen.Contains(Id.Value)) return false; Seen.Add(Id.Value);
+        const FString V=Id.Value.ToString();
+        if(V==TEXT("Presentation.Player.Body.A") || V==TEXT("Presentation.Player.Body.B")) ++Bodies;
+        else if(V==TEXT("Presentation.Player.Hair.Cropped") || V==TEXT("Presentation.Player.Hair.Tied")) ++Hairs;
+        else if(V==TEXT("Presentation.Player.Skin.LightWarm") || V==TEXT("Presentation.Player.Skin.MediumWarm") || V==TEXT("Presentation.Player.Skin.DeepWarm")) ++Skins;
+        else if(V==TEXT("Presentation.Player.Outfit.StarterLinen")) ++Outfits;
+        else if(V==TEXT("Presentation.Player.Face.A") || V==TEXT("Presentation.Player.Face.B"))
+        { ++Faces; if(V!=(Body?TEXT("Presentation.Player.Face.B"):TEXT("Presentation.Player.Face.A"))) return false; }
+        else return false;
+    }
+    return Bodies==1 && Hairs==1 && Skins==1 && Outfits==1 && Faces<=1;
+}
+FString LHPlayerVisual::AssetRoot(const FLHCharacterRecord& C)
+{ return FString(TEXT("/Game/Lighthaven/Art/Player/"))+(LHPlayerVisualPrivate::Has(C,TEXT("Presentation.Player.Body.B"))?TEXT("player_b/"):TEXT("player_a/")); }
+FName LHPlayerVisual::Action(ELHPlayerPose P)
+{
+    static const FName Names[]={TEXT("idle"),TEXT("move"),TEXT("run"),TEXT("melee"),TEXT("bow"),TEXT("cast"),TEXT("hit"),TEXT("death")};
+    return Names[static_cast<uint8>(P)];
+}
+FString LHPlayerVisual::MeshAssetPath(const FLHCharacterRecord& C,FName Part)
+{
+    const FString Kind=LHPlayerVisualPrivate::Has(C,TEXT("Presentation.Player.Body.B"))?TEXT("player_b"):TEXT("player_a");
+    const FString Label=Part.ToString();
+    return AssetRoot(C)+Label+TEXT("/")+Kind+TEXT("-")+Label+TEXT("/SkeletalMeshes/SK_")+Label;
+}
+FString LHPlayerVisual::ActionAssetPath(const FLHCharacterRecord& C,ELHPlayerPose Pose)
+{ return MeshAssetPath(C,TEXT("body"))+Action(Pose).ToString(); }
+ULHPlayerVisualComponent::ULHPlayerVisualComponent()
+{
+    SetRelativeLocation({0,0,-90}); SetCanEverAffectNavigation(false);
+    // CDO references keep all appearances/actions reachable by the cooker.
+    for(int32 B=0;B<2;++B)
+    {
+        FLHCharacterRecord C; if(B) { FLHContentId Id; Id.Value=TEXT("Presentation.Player.Body.B"); C.AppearanceIds.Add(Id); }
+        const FString Root=LHPlayerVisual::AssetRoot(C);
+        auto Mesh=[&](FName Part) { const FString Path=LHPlayerVisual::MeshAssetPath(C,Part); return FPackageName::DoesPackageExist(Path)?LoadObject<USkeletalMesh>(nullptr,*Path):nullptr; };
+        BodyAssets.Add(Mesh(TEXT("body")));
+        for(const TCHAR* Hair:{TEXT("Cropped"),TEXT("Tied")}) HairAssets.Add(Mesh(Hair));
+        for(int32 A=0;A<8;++A) { const FString Path=LHPlayerVisual::ActionAssetPath(C,static_cast<ELHPlayerPose>(A)); ActionAssets.Add(FPackageName::DoesPackageExist(Path)?LoadObject<UAnimSequence>(nullptr,*Path):nullptr); }
+        for(const TCHAR* Skin:{TEXT("LightWarm"),TEXT("MediumWarm"),TEXT("DeepWarm")}) { const FString Path=Root+TEXT("MI_")+Skin; SkinAssets.Add(FPackageName::DoesPackageExist(Path)?LoadObject<UMaterialInterface>(nullptr,*Path):nullptr); }
+    }
+}
+bool ULHPlayerVisualComponent::ConfigureImportedMesh(USkeletalMesh* Mesh,UMaterialInterface* Clothing,UMaterialInterface* Skin)
+{
+#if WITH_EDITOR
+    if(!Mesh || !Clothing || !Skin || Mesh->GetMaterials().IsEmpty()) return false;
+    Mesh->Modify(); auto Slots=Mesh->GetMaterials();
+    for(auto& Slot:Slots)
+    {
+        const bool bSkin=Slot.ImportedMaterialSlotName.ToString().Contains(TEXT("SkinTint"));
+        Slot.MaterialInterface=bSkin?Skin:Clothing;
+        Slot.MaterialSlotName=bSkin?FName(TEXT("SkinTint")):FName(TEXT("ClothingAtlas"));
+    }
+    Mesh->SetMaterials(Slots);
+    for(const FName Name:{FName(TEXT("Socket.Weapon.R")),FName(TEXT("Socket.Bow.L")),FName(TEXT("Socket.Arrow")),FName(TEXT("Socket.Quiver.Back"))})
+    {
+        FName Bone=Name;
+        if(Mesh->GetRefSkeleton().FindBoneIndex(Bone)==INDEX_NONE) Bone=FName(Name.ToString().Replace(TEXT("."),TEXT("_")));
+        if(Mesh->GetRefSkeleton().FindBoneIndex(Bone)==INDEX_NONE)
+        {
+            for(const auto& Info:Mesh->GetRefSkeleton().GetRawRefBoneInfo()) UE_LOG(LogTemp,Display,TEXT("PLAYER_IMPORT_BONE %s"),*Info.Name.ToString());
+            UE_LOG(LogTemp,Display,TEXT("PLAYER_IMPORT_MISSING_BONE %s"),*Name.ToString()); return false;
+        }
+        auto* Socket=Mesh->FindSocket(Name);
+        if(!Socket) { Socket=NewObject<USkeletalMeshSocket>(Mesh); Socket->SocketName=Name; Mesh->AddSocket(Socket); }
+        Socket->BoneName=Bone; Socket->RelativeLocation=FVector::ZeroVector;
+        // Blender bone +Y becomes native glTF/Unreal local +Z. Legacy blades
+        // and arrows extend on local +X; bow/quiver already extend on +Z.
+        Socket->RelativeRotation=(Name==TEXT("Socket.Weapon.R") || Name==TEXT("Socket.Arrow"))?FRotator(90,0,0):FRotator::ZeroRotator;
+        Socket->RelativeScale=FVector::OneVector; Socket->bForceAlwaysAnimated=true;
+    }
+    Mesh->MarkPackageDirty(); return true;
+#else
+    return false;
+#endif
+}
+bool ULHPlayerVisualComponent::CompactImportedMesh(USkeletalMesh* Mesh)
+{
+#if WITH_EDITOR
+    if(!Mesh || Mesh->GetLODNum()!=1 || !Mesh->HasMeshDescription(0) || !Mesh->GetMorphTargets().IsEmpty()) return false;
+    auto* Model=Mesh->GetImportedModel(); if(!Model || Model->LODModels.Num()!=1) return false;
+    Mesh->Modify(); for(auto& Section:Model->LODModels[0].Sections) Section.SoftVertices.Empty(); Mesh->MarkPackageDirty(); return true;
+#else
+    return false;
+#endif
+}
+void ULHPlayerVisualComponent::ClearImported()
+{
+    if(ImportedHair) ImportedHair->DestroyComponent(); ImportedHair=nullptr;
+    if(ImportedBody) ImportedBody->DestroyComponent(); ImportedBody=nullptr;
+}
+void ULHPlayerVisualComponent::RebuildImported(const FLHCharacterRecord& C)
+{
+    ClearImported();
+    using namespace LHPlayerVisualPrivate;
+    int32 HairChoice=0,SkinChoice=0;
+    if(!LHPlayerVisual::ResolveAppearance(C,ImportedIndex,HairChoice,SkinChoice)) return;
+    const int32 Hair=ImportedIndex*2+HairChoice, Skin=ImportedIndex*3+SkinChoice;
+    if(!BodyAssets[ImportedIndex] || !HairAssets[Hair] || !SkinAssets[Skin]) return;
+    for(int32 A=0;A<8;++A) if(!ActionAssets[ImportedIndex*8+A]) return;
+    auto Create=[&](USkeletalMesh* Mesh)
+    {
+        auto* Part=NewObject<USkeletalMeshComponent>(GetOwner());
+        Part->SetMobility(EComponentMobility::Movable); Part->SetupAttachment(this);
+        Part->SetCollisionEnabled(ECollisionEnabled::NoCollision); Part->SetGenerateOverlapEvents(false); Part->SetCanEverAffectNavigation(false);
+        Part->SetSkeletalMesh(Mesh); Part->RegisterComponent(); Part->SetVisibility(bEnabled); return Part;
+    };
+    ImportedBody=Create(BodyAssets[ImportedIndex]); ImportedHair=Create(HairAssets[Hair]);
+    ImportedHair->SetLeaderPoseComponent(ImportedBody);
+    const auto& Slots=BodyAssets[ImportedIndex]->GetMaterials();
+    for(int32 I=0;I<Slots.Num();++I) if(Slots[I].MaterialSlotName.ToString().Contains(TEXT("SkinTint"))) ImportedBody->SetMaterial(I,SkinAssets[Skin]);
+    // Keep only equipment visible; procedural anchors remain available for fallback/tests.
+    for(const auto& Piece:RenderPieces) if(Piece)
+    {
+        const FString Id=Piece->GetRecipe().Id.ToString();
+        const bool Equipment=Id.EndsWith(TEXT("Weapon")) || Id.EndsWith(TEXT("Quiver")) || Id.EndsWith(TEXT("BowArrow")) || Id.Contains(TEXT("BowString"));
+        if(!Equipment) Piece->SetActorHiddenInGame(true);
+        else if(Id.EndsWith(TEXT("Weapon")))
+        {
+            const FName Grip=Socket(TEXT("Weapon"))->GetAttachParent()==Socket(TEXT("Socket.Bow.L"))?FName(TEXT("Socket.Bow.L")):FName(TEXT("Socket.Weapon.R"));
+            Piece->AttachToComponent(ImportedBody,FAttachmentTransformRules::SnapToTargetNotIncludingScale,Grip);
+        }
+        else if(Id.EndsWith(TEXT("Quiver"))) Piece->AttachToComponent(ImportedBody,FAttachmentTransformRules::SnapToTargetNotIncludingScale,TEXT("Socket.Quiver.Back"));
+        else if(Id.EndsWith(TEXT("BowArrow"))) Piece->AttachToComponent(ImportedBody,FAttachmentTransformRules::SnapToTargetNotIncludingScale,TEXT("Socket.Arrow"));
+    }
+}
+void ULHPlayerVisualComponent::SampleImported()
+{
+    if(!ImportedBody) return;
+    auto* Clip=ActionAssets[ImportedIndex*8+static_cast<uint8>(CurrentPose)].Get();
+    const bool Loop=CurrentPose==ELHPlayerPose::Idle || CurrentPose==ELHPlayerPose::Walk || CurrentPose==ELHPlayerPose::Run;
+    float Time=Clock;
+    if(CurrentPose==ELHPlayerPose::Walk || CurrentPose==ELHPlayerPose::Run) Time=Phase*Clip->GetPlayLength();
+    else if(CurrentPose==ELHPlayerPose::Hit) Time=.2f-FlinchRemaining;
+    else if(CurrentPose==ELHPlayerPose::Death) Time=DeathAge;
+    else if(!Loop)
+    {
+        const float Contact=CurrentPose==ELHPlayerPose::Melee?.5f:.7f;
+        Time=bAction?(ImpactDelay>0?Contact*FMath::Clamp(ActionAge/ImpactDelay,0.f,1.f):Contact):Contact+(Clip->GetPlayLength()-Contact)*(1-ReleaseRemaining/.18f);
+    }
+    Time=Loop?FMath::Fmod(Time,Clip->GetPlayLength()):FMath::Clamp(Time,0.f,Clip->GetPlayLength());
+    ImportedBody->PlayAnimation(Clip,Loop); ImportedBody->SetPlayRate(0); ImportedBody->SetPosition(Time,false);
+    ImportedBody->RefreshBoneTransforms();
+    // Move the legacy equipment anchors to authored sockets. This preserves
+    // their hierarchy (including bow string) and never moves the pawn/capsule.
+    for(const FName Name:{FName(TEXT("Socket.Weapon.R")),FName(TEXT("Socket.Bow.L")),FName(TEXT("Socket.Quiver.Back"))})
+        if(auto* Anchor=Socket(Name)) Anchor->SetWorldTransform(ImportedBody->GetSocketTransform(Name));
+    if(auto* Arrow=Socket(TEXT("BowArrow"))) Arrow->SetWorldTransform(ImportedBody->GetSocketTransform(TEXT("Socket.Arrow")));
+}
 USceneComponent* ULHPlayerVisualComponent::Socket(FName Name) const
 { for(const auto& A:Anchors) if(A && A->GetFName()==Name) return A; return nullptr; }
 void ULHPlayerVisualComponent::Rebuild(const TArray<FLHPlayerPart>& Parts)
@@ -99,18 +266,34 @@ void ULHPlayerVisualComponent::Committed(const FLHAttackEvent& E)
 void ULHPlayerVisualComponent::Finished(const FLHAttackEvent& Event,ELHAttackOutcome Outcome)
 { if(!(Event.Identity==ActionIdentity)) return; bAction=false; ReleaseRemaining=(Outcome==ELHAttackOutcome::ResolvedHit || Outcome==ELHAttackOutcome::ResolvedMiss)?.18f:0; }
 void ULHPlayerVisualComponent::SetPresentationEnabled(bool Enabled)
-{ bEnabled=Enabled; for(const auto& P:RenderPieces) if(P) P->SetActorHiddenInGame(!Enabled || (P->GetRecipe().Id==TEXT("Presentation.Player.BowArrow") && (CurrentPose!=ELHPlayerPose::Bow || !bAction))); }
+{
+    bEnabled=Enabled;
+    if(ImportedBody) ImportedBody->SetVisibility(Enabled);
+    if(ImportedHair) ImportedHair->SetVisibility(Enabled);
+    for(const auto& P:RenderPieces) if(P)
+    {
+        const FString Id=P->GetRecipe().Id.ToString();
+        const bool Equipment=Id.EndsWith(TEXT("Weapon")) || Id.EndsWith(TEXT("Quiver")) || Id.Contains(TEXT("BowString")) || Id.EndsWith(TEXT("BowArrow"));
+        P->SetActorHiddenInGame(!Enabled || (ImportedBody && !Equipment) || (Id.EndsWith(TEXT("BowArrow")) && (CurrentPose!=ELHPlayerPose::Bow || !bAction)));
+    }
+}
 void ULHPlayerVisualComponent::Present(const FLHCharacterRecord* C,ULHCombatComponent* Combat,float Speed,float Seconds)
 {
     Bind(Combat);
-    const auto Parts=LHPlayerVisual::Build(C?*C:FLHCharacterRecord{}); const uint32 Hash=LHPlayerVisual::Fingerprint(Parts);
-    if(!bBuilt || Hash!=BuiltFingerprint) { Rebuild(Parts); BuiltFingerprint=Hash; bBuilt=true; }
+    const auto Parts=LHPlayerVisual::Build(C?*C:FLHCharacterRecord{}); uint32 Hash=LHPlayerVisual::Fingerprint(Parts);
+    TArray<FString> IDs; if(C) for(const auto& ID:C->AppearanceIds) IDs.Add(ID.Value.ToString()); IDs.Sort();
+    for(const auto& ID:IDs) Hash=HashCombine(Hash,FCrc::StrCrc32(*ID));
+    if(!bBuilt || Hash!=BuiltFingerprint) { Rebuild(Parts); RebuildImported(C?*C:FLHCharacterRecord{}); BuiltFingerprint=Hash; bBuilt=true; }
     const float Dt=FMath::IsFinite(Seconds)?FMath::Max(0.f,Seconds):0;
     Clock+=Dt; Phase+=Dt*FMath::Max(0.f,Speed)/(Speed>300?360.f:220.f); ActionAge+=Dt;
     ReleaseRemaining=FMath::Max(0.f,ReleaseRemaining-Dt); FlinchRemaining=FMath::Max(0.f,FlinchRemaining-Dt);
-    const bool Alive=!Combat || Combat->IsAlive();
-    if(Combat) { const float Health=Combat->GetCombatAttributes()->GetHealth(); if(Alive && PreviousHealth>=0 && Health<PreviousHealth) FlinchRemaining=.2f; PreviousHealth=Health; }
-    if(Alive && !bWasAlive) { DeathAge=0; bAction=false; ReleaseRemaining=0; } bWasAlive=Alive;
+    // IsAlive also requires an attached GAS avatar. Travel/spawn detachment is
+    // not a death pose: use the saved health until this pawn owns the avatar.
+    const bool Ready=Combat && Combat->GetAvatarActor()==GetOwner();
+    const bool Alive=Ready?Combat->IsAlive():!C || C->CurrentHealth.Resolution!=ELHValueResolution::Resolved || C->CurrentHealth.Value>0;
+    if(!Ready) { PreviousHealth=-1; bAction=false; ReleaseRemaining=0; FlinchRemaining=0; }
+    if(Ready) { const float Health=Combat->GetCombatAttributes()->GetHealth(); if(Alive && PreviousHealth>=0 && Health<PreviousHealth) FlinchRemaining=.2f; PreviousHealth=Health; }
+    if(Alive && !bWasAlive) { DeathAge=0; bAction=false; ReleaseRemaining=0; FlinchRemaining=0; } bWasAlive=Alive;
     if(!Alive) DeathAge+=Dt;
     CurrentPose=!Alive?ELHPlayerPose::Death:FlinchRemaining>0?ELHPlayerPose::Hit:(bAction || ReleaseRemaining>0)?ActionPose:Speed>300?ELHPlayerPose::Run:Speed>5?ELHPlayerPose::Walk:ELHPlayerPose::Idle;
     const float Cycle=FMath::Sin(Phase*2*PI), Stride=FMath::Clamp(Speed/450.f,0.f,1.f)*38;
@@ -134,14 +317,15 @@ void ULHPlayerVisualComponent::Present(const FLHCharacterRecord* C,ULHCombatComp
     for(const auto& Piece:RenderPieces) if(Piece && Piece->GetRecipe().Id==TEXT("Presentation.Player.BowArrow"))
         Piece->SetActorHiddenInGame(!bEnabled || CurrentPose!=ELHPlayerPose::Bow || !bAction);
     if(CurrentPose==ELHPlayerPose::Cast) { Rotate(TEXT("Arm.L"),FRotator(75,0,-25)); Rotate(TEXT("Arm.R"),FRotator(75,0,25)); }
-    SetRelativeRotation(CurrentPose==ELHPlayerPose::Death?FRotator(-90*FMath::Clamp(DeathAge/.65f,0.f,1.f),0,0):FRotator::ZeroRotator);
+    SetRelativeRotation(!ImportedBody && CurrentPose==ELHPlayerPose::Death?FRotator(-90*FMath::Clamp(DeathAge/.65f,0.f,1.f),0,0):FRotator::ZeroRotator);
+    SampleImported();
 }
 void ULHPlayerVisualComponent::EndPlay(const EEndPlayReason::Type Reason)
-{ Unbind(); for(const auto& P:RenderPieces) if(P) P->Destroy(); RenderPieces.Reset(); Super::EndPlay(Reason); }
+{ Unbind(); ClearImported(); for(const auto& P:RenderPieces) if(P) P->Destroy(); RenderPieces.Reset(); Super::EndPlay(Reason); }
 
 void ULHPlayerVisualComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
-    Unbind();
+    Unbind(); ClearImported();
     for(const auto& P:RenderPieces) if(P) P->Destroy();
     RenderPieces.Reset();
     for(int32 I=Anchors.Num()-1;I>=0;--I) if(Anchors[I]) Anchors[I]->DestroyComponent();

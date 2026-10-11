@@ -3,7 +3,9 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/lh-env.sh"
 : "${BLENDER_ROOT:?Set BLENDER_ROOT to the pinned Blender 5.2.2 directory}"
 cd "$LH_PROJECT_ROOT"
-mkdir -p Saved/ArtExport artsource/blender/.config
+mkdir -p Saved/ArtExport
+if [[ ${LH_ART_PLAYER_ONLY:-0} != 1 ]]; then
+mkdir -p artsource/blender/.config
 if [[ ${LH_ART_SKIP_EXPORT:-0} != 1 ]]; then
 XDG_CONFIG_HOME="$PWD/artsource/blender/.config" "$BLENDER_ROOT/blender" \
   --background --factory-startup --python-exit-code 1 --python artsource/blender/build_env.py \
@@ -585,5 +587,46 @@ u.log('CREATURE_IMPORT_TOTAL_BYTES '+str(total))
 PY
 "$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$LH_PROJECT" \
   -run=pythonscript "-Script=$PWD/Saved/ArtExport/import_creatures.py" -EnablePlugins=PythonScriptPlugin \
+  -stdout -FullStdOutLogOutput -nullrhi -unattended -nosound -nop4 '-DDC=(Local)' "-LocalDataCachePath=$PWD/Saved/DerivedDataCache" \
+  '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0'
+
+fi
+
+# Player rig source stays in the visual lane; generated packages stay local.
+mkdir -p Saved/PlayerBlenderConfig
+player_export_current=$(python3 - "$BLENDER_ROOT/blender" <<'PYPLAYER'
+import hashlib, json, subprocess, sys
+from pathlib import Path
+source=Path('artsource/player')
+hash=hashlib.sha256(subprocess.check_output([sys.argv[1],'--version']))
+for path in sorted(source.glob('*.py'))+[source/'appearances.json']:
+    hash.update(path.name.encode()); hash.update(path.read_bytes())
+files=[source/'output'/(kind+suffix) for kind in ('player_a','player_b') for suffix in ('.glb','_base.png','_normal.png','_orm.png')]
+inventory={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in files if p.is_file()}
+current=dict(signature=hash.hexdigest(),outputs=inventory)
+Path('Saved/ArtExport/player-export-candidate.json').write_text(json.dumps(current,indent=2)+'\n')
+stamp=Path('Saved/ArtExport/player-export-receipt.json')
+print('1' if len(inventory)==8 and stamp.exists() and json.loads(stamp.read_text())==current else '0')
+PYPLAYER
+)
+if [[ ${LH_ART_SKIP_EXPORT:-0} != 1 && $player_export_current != 1 ]]; then
+  XDG_CONFIG_HOME="$PWD/Saved/PlayerBlenderConfig" "$BLENDER_ROOT/blender" \
+    --background --factory-startup --threads 3 --python-exit-code 1 \
+    --python artsource/player/build.py
+elif [[ $player_export_current == 1 ]]; then
+  echo PLAYER_EXPORT_UNCHANGED
+fi
+python3 artsource/player/validate_glb.py > Saved/ArtExport/player-validation.json
+if [[ ${LH_ART_SKIP_EXPORT:-0} != 1 || $player_export_current == 1 ]]; then
+python3 - <<'PYPLAYER'
+import hashlib, json
+from pathlib import Path
+receipt=json.loads(Path('Saved/ArtExport/player-export-candidate.json').read_text())
+receipt['outputs']={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for kind in ('player_a','player_b') for suffix in ('.glb','_base.png','_normal.png','_orm.png') for p in [Path('artsource/player/output')/(kind+suffix)]}
+Path('Saved/ArtExport/player-export-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+PYPLAYER
+fi
+"$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$LH_PROJECT" \
+  -run=pythonscript "-Script=$PWD/Source/Lighthaven/Visual/Player/import_player.py" -EnablePlugins=PythonScriptPlugin \
   -stdout -FullStdOutLogOutput -nullrhi -unattended -nosound -nop4 '-DDC=(Local)' "-LocalDataCachePath=$PWD/Saved/DerivedDataCache" \
   '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0'

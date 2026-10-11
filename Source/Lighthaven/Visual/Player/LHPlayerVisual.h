@@ -13,8 +13,17 @@ struct LIGHTHAVEN_API FLHPlayerPart
     FTransform Transform;
     FLHVisualRecipe Recipe;
 };
+class USkeletalMesh;
+class USkeletalMeshComponent;
+class UAnimSequence;
+class UMaterialInterface;
 namespace LHPlayerVisual
 {
+    LIGHTHAVEN_API bool ResolveAppearance(const FLHCharacterRecord& Character, int32& Body, int32& Hair, int32& Skin);
+    LIGHTHAVEN_API FString AssetRoot(const FLHCharacterRecord& Character);
+    LIGHTHAVEN_API FName Action(ELHPlayerPose Pose);
+    LIGHTHAVEN_API FString MeshAssetPath(const FLHCharacterRecord& Character, FName Part);
+    LIGHTHAVEN_API FString ActionAssetPath(const FLHCharacterRecord& Character, ELHPlayerPose Pose);
     // Pure presentation recipes. No random stream, rules mutation or collision.
     LIGHTHAVEN_API TArray<FLHPlayerPart> Build(const FLHCharacterRecord& Character);
     LIGHTHAVEN_API uint32 Fingerprint(const TArray<FLHPlayerPart>& Parts);
@@ -25,6 +34,12 @@ class LIGHTHAVEN_API ULHPlayerVisualComponent : public USceneComponent
     GENERATED_BODY()
 public:
     ULHPlayerVisualComponent();
+    UFUNCTION(BlueprintCallable, Category="Lighthaven|Art")
+    static bool ConfigureImportedMesh(USkeletalMesh* Mesh, UMaterialInterface* Clothing, UMaterialInterface* Skin);
+    UFUNCTION(BlueprintCallable, Category="Lighthaven|Art")
+    static bool CompactImportedMesh(USkeletalMesh* Mesh);
+    bool UsesImportedBody() const { return ImportedBody != nullptr; }
+    USkeletalMeshComponent* BodyMesh() const { return ImportedBody; }
     void Present(const FLHCharacterRecord* Character, ULHCombatComponent* Combat, float Speed, float Seconds);
     void SetPresentationEnabled(bool Enabled);
     ELHPlayerPose Pose() const { return CurrentPose; }
@@ -35,9 +50,19 @@ public:
 private:
     void Rebuild(const TArray<FLHPlayerPart>& Parts);
     void Bind(ULHCombatComponent* Combat);
+    void RebuildImported(const FLHCharacterRecord& Character);
+    void SampleImported();
+    void ClearImported();
     void Committed(const FLHAttackEvent& Event);
     void Finished(const FLHAttackEvent& Event, ELHAttackOutcome Outcome);
     void Unbind();
+    UPROPERTY() TArray<TObjectPtr<USkeletalMesh>> BodyAssets;
+    UPROPERTY() TArray<TObjectPtr<USkeletalMesh>> HairAssets;
+    UPROPERTY() TArray<TObjectPtr<UAnimSequence>> ActionAssets;
+    UPROPERTY() TArray<TObjectPtr<UMaterialInterface>> SkinAssets;
+    UPROPERTY() TObjectPtr<USkeletalMeshComponent> ImportedBody;
+    UPROPERTY() TObjectPtr<USkeletalMeshComponent> ImportedHair;
+    int32 ImportedIndex=0;
     UPROPERTY() TArray<TObjectPtr<ALHVisualPiece>> RenderPieces;
     UPROPERTY() TArray<TObjectPtr<USceneComponent>> Anchors;
     TWeakObjectPtr<ULHCombatComponent> BoundCombat;
