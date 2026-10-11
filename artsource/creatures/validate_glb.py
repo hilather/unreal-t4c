@@ -8,7 +8,7 @@ import zlib
 from pathlib import Path
 
 
-def png_red(data, decode=True):
+def png_red(data, decode=True, channel=0):
     assert data[:8] == b'\x89PNG\r\n\x1a\n', 'embedded image is not PNG'
     pos, compressed = 8, bytearray()
     while pos < len(data):
@@ -31,14 +31,15 @@ def png_red(data, decode=True):
     assert all(raw[y*(stride+1)] <= 4 for y in range(h)), 'invalid PNG filter'
     if not decode:
         return (w, h), None
-    # PNG predictors connect bytes in the same channel. Decode red alone.
+    # PNG predictors connect bytes in the same channel. Decode one channel.
+    assert 0 <= channel < channels
     previous = bytearray(w)
     red = bytearray()
     for y in range(h):
         start = y * (stride + 1)
         mode = raw[start]
         assert mode <= 4
-        row = bytearray(raw[start+1:start+1+stride:channels])
+        row = bytearray(raw[start+1+channel:start+1+stride:channels])
         if mode:
             for x in range(w):
                 left = row[x-1] if x else 0
@@ -195,11 +196,23 @@ def validate(path):
     image_data = [view(im['bufferView']) for im in d['images']]
     images = [png_red(data, decode=False) for data in image_data]
     assert len(images) == 3
-    allowed_dimensions={(512,512),(1024,1024)}
-    if path.stem=='balork':allowed_dimensions.add((2048,2048))
+    allowed_dimensions={(512,512)}
     assert all(dim in allowed_dimensions for dim,_ in images)
     ao = []
+    emissive_materials = []
     for material_index, material in enumerate(d['materials']):
+        factor = material.get('emissiveFactor',[0,0,0])
+        assert len(factor)==3 and all(math.isfinite(v) and 0<=v<=1 for v in factor)
+        is_emissive = any(factor)
+        if is_emissive:
+            assert path.stem=='undead_bat', 'unexpected creature emission'
+            assert 'emissiveTexture' in material, 'eye pigment must use baked atlas'
+            emission = material['emissiveTexture']
+            base = material['pbrMetallicRoughness']['baseColorTexture']
+            assert d['textures'][emission['index']]['source']==d['textures'][base['index']]['source'], 'emission adds a texture'
+            assert emission.get('texCoord',0)==base.get('texCoord',0)==0
+            assert 0 < max(factor) <= .25, 'eye emission must stay faint'
+            emissive_materials.append(material_index)
         occlusion = material['occlusionTexture']
         orm = material['pbrMetallicRoughness']['metallicRoughnessTexture']
         assert occlusion['index'] == orm['index'], 'AO not bound to ORM'
@@ -209,6 +222,14 @@ def validate(path):
         occupied = {min(height-1,int(v*height))*width + min(width-1,int(u*width))
                     for u,v in uv_samples[material_index]}
         sampled = sorted(reds[pixel] for pixel in occupied)
+        if is_emissive:
+            # Tiny eye islands need not contain the body's broad AO distribution.
+            assert sampled and min(sampled)>0, 'emissive eye islands missing baked AO'
+            base_data = image_data[d['textures'][base['index']]['source']]
+            _, eye_red = png_red(base_data)
+            _, eye_blue = png_red(base_data,channel=2)
+            assert sum(eye_blue[p] for p in occupied) > sum(eye_red[p] for p in occupied), 'eye emission pigment must be cold blue'
+            continue
         assert len(sampled) >= 100, 'insufficient occupied texels'
         low, high = sampled[len(sampled)//20], sampled[19*len(sampled)//20]
         assert max(sampled)-min(sampled) >= 8 and len(set(sampled)) >= 8, 'occupied AO neutral/constant'
@@ -217,9 +238,12 @@ def validate(path):
                    'distinct_values':len(set(sampled)),'occupied_texels_sampled':len(sampled),
                    'percentile_5':low,'percentile_95':high,
                    'mean':round(sum(sampled)/len(sampled),2)})
+    if path.stem=='undead_bat':
+        assert len(emissive_materials)==1, 'undead eyes need one baked emissive material'
     return dict(creature=path.stem,triangles=triangles,animation_seconds=durations,
                 embedded_png_dimensions=[dim for dim,_ in images],ao_red_statistics=ao,
                 skin_joints=len(d['skins'][0]['joints']),bytes=len(blob),
+                emissive_materials=emissive_materials,
                 checked=['finite_attributes','normalized_normals_weights','joint_index_bounds',
                          'constant_root','loop_endpoints','death_hold_45_60','bound_nonconstant_ORM_AO'])
 

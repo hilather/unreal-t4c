@@ -262,3 +262,189 @@ Generated GLBs and atlases remain local, ignored and regenerable. One long
 combined render loop exited 143 without a diagnostic cause; short individual
 view invocations completed the final evidence. Startup socket notices and
 Blender material/sampler warnings did not prevent successful export/re-import.
+
+# W5-08f — bat family and slime from the packaged lineup
+
+Task ID **W5-08f**, contract revision **1**, actual isolated base
+`a701b606ccebcb36a9ee9d826c7f8402d3599637`. The brief mentions `a62e130`;
+this candidate uses the assigned checkout/submission base, without resetting it.
+The result is the commit containing this appended section, identified in the
+attempt report and submission receipt. Owned changes are Blender/Python scripts
+under `artsource/creatures/` and this document. No generated binary is committed.
+This is an evidence candidate, not engine integration or a passed project gate.
+
+## Visual decisions and provenance
+
+The supplied B1 packaged-build contact sheet, individual bat close/gameplay
+captures and slime close capture were inspected at
+`/home/brewerm/.herdr-projects/unreal-t4c/scratch/captures/w5-10e-lineup/`.
+All **11** entries were reviewed: the brief's “other seven” is interpreted as the
+**six** creatures beyond the four bats and slime. Rat, both goblins, giant spider,
+atrocity and Balork have no plain defect requiring another edit in this pass and
+retain their artwork. The supplied `slime-gameplay.png` is occluded by a near
+surface and cannot support a gameplay before/after comparison.
+
+The package's starter and deep-dungeon concept sheets supplied visual targets
+only. No reference image was copied, traced, sampled into a material or used as a
+mesh input. No asset/tool installation or download occurred. All new dimensions,
+colors, poses, material precision and review lighting are **Prototype presentation
+tuning: W5-08f / LH_Prototype_v1 / 2026-10-11 / source_url null**. No source-backed
+mechanics changed. The current task's explicit bones/glow request supersedes the
+older undead spec's visual prohibition; its size/clearance limits remain intact.
+
+The common bat has broader membrane chords, shallow camber and a held-open wing
+plane. Leading spars, thumbs, wing bones and wing-tip anchors follow the authored
+wing geometry. Smaller idle/move strokes avoid turning the whole web edge-on.
+Reduced fur-card density, ear tessellation and membrane subdivisions fund the
+larger readable shapes without adding triangles. Heads and cupped ears remain
+separate visible masses. All existing bone names, parent relationships, action
+names/durations and exported anchors survive; the ordinary bat's original eight
+bones and slime's two bones are retained, rather than claiming new sockets.
+
+Variant identities are broad baked cues: warm brown bat; dark slate dungeon bat
+with a wide pale dorsal chevron; larger brown giant bat with broad ochre leading
+edges; bone-pale undead bat with missing membrane wedges, a dark recessed thorax,
+four exposed curved ribs, a spinal ridge and faint blue eyes. Tears are real
+missing geometry, not transparency. Undead eyes have one additional material
+slot sharing the existing base/normal/ORM images; emission uses the baked blue
+base-color eye islands at strength **0.18**. There is **no fourth texture**.
+
+Slime now has one dominant off-center dome, connected lower shoulders, shallow
+skirt folds and a grounded irregular rim. Its rest peak rises from **21.11 cm**
+to **36.38 cm** within the 40 cm ruler. Antiphase lateral squash and vertical
+breathing create idle/move wobble while root-weighted skirt vertices stay put.
+The darker green core, broad bright rim and low-roughness highlights remain
+opaque PBR surface cues, not refraction, emission or internal volume.
+
+## Measured export budgets
+
+Both sides were actually rebuilt with provided **Blender 5.2.2 LTS
+`d13f752e3b9c`**, factory startup, CPU Cycles and checkout-local
+`artsource/creatures/.config`. Before files came from an unchanged copy of the
+assigned base scripts. Values below are **before → after**, in bytes except
+triangles. Mesh bytes count unique GLB buffer views referenced by primitive
+attributes/indices; texture bytes count the three embedded PNG payloads.
+
+| Creature | Triangles | Mesh buffers | Embedded textures | Complete GLB |
+|---|---:|---:|---:|---:|
+| Bat | 7,150 → 5,550 | 651,820 → 468,384 | 773,161 → 742,794 | 1,463,116 → 1,249,916 |
+| Dungeon bat | 7,150 → 5,550 | 647,452 → 467,292 | 774,532 → 639,291 | 1,479,128 → 1,163,876 |
+| Giant bat | 7,150 → 5,550 | 640,120 → 468,956 | 711,643 → 501,767 | 1,408,860 → 1,027,160 |
+| Undead bat | 7,150 → 5,234 | 648,648 → 384,796 | 743,938 → 516,733 | 1,449,856 → 960,248 |
+| Green slime | 5,184 → 3,680 | 192,044 → 148,908 | 256,121 → 216,333 | 459,864 → 376,940 |
+
+Every individual base/normal/ORM PNG also stays below its corresponding baseline
+byte size; all remain **512×512, RGB, 8-bit PNG containers**, three per creature.
+The [budget audit](../../artsource/creatures/audit_polish.py) records each channel
+and rejects growth, altered rig hierarchies, changed action names or extra maps.
+Slime and giant-bat baked pigment is quantized to 6-bit levels in sRGB and normal/
+ORM data to 7-bit levels in linear space before saving. This reduces compressed
+entropy without changing dimensions or runtime texture count. Precision is
+recorded in build validation. The initial higher-entropy attempt was rejected;
+final images were reviewed after quantization. These export measurements do not
+certify the size of reimported Unreal assets or the remaining 25 MB cook budget.
+
+Source animation checks and independent GLB re-import checks use unchanged spec
+rulers and tolerances. Final rest spans are about **77.46 / 96.63 / 162.03 /
+102.75 cm**, respectively; all live/death samples fit the **80 / 100 / 170 /
+110 cm** lateral ceilings and their fore-aft/height rulers. Slime's idle peak is
+**39.65 cm** and move peak **40.74 cm**, below its 60 cm animated limit. The
+five tracks retain idle **2.0 s**, move **0.8 s**, attack **1.4 s**, hit **0.6 s**,
+death **2.0 s**, with the f30 attack pose and f45–f60 dead hold.
+
+## Feedback renders and observed limits
+
+[preview_polish.py](../../artsource/creatures/preview_polish.py) imports the
+exported GLBs. Final evidence consists of **13 PNGs**: hero/gameplay for all five,
+one common-scale warm bat-family comparison, and bat/slime action sheets.
+All are **1280×720, 12-sample denoised Cycles CPU** renders. Gameplay uses the
+unchanged 12 m camera, 55° down pitch, 45° yaw/FOV and 90 cm focus height; no
+creature is enlarged for the camera. Procedural slate slabs, a 650 W warm point
+key and restrained cool fill approximate the capture's stone-floor/torch setting.
+They do not reproduce Unreal exposure, shadowing, texture mips or post-processing.
+Hero lights are reduced to 35% of the inherited studio power and the bat camera
+is elevated to expose the membranes. Family framing uses common mesh scale and
+uniform warm/cool directional light; it is an overview, not the game camera.
+
+Iterations broadened the wing plane twice, reduced the overly tall first ear
+pass, darkened the ordinary bat's washed-out membranes, restored smaller slime
+shoulders/skirt hollows to a too-smooth first dome, and reduced texture entropy.
+Failed draft images were overwritten and are excluded from the evidence set.
+The final bat/slime action sheets inspect five sampled poses, not motion video.
+
+Concept proximity remains partial: bat anatomy is rounded and stylized, fur is
+sparse and membranes relatively planar, with angular undead tear slots; slime is
+glossy opaque jelly with a more
+saturated rim than the naturalistic concept. Broader wings and broad value marks
+carry gameplay identity; tiny eye/rib detail is mainly visible in hero views.
+A fresh Unreal lineup is still required to judge warm-light recognition, motion,
+zoom/orbit extremes, mip behavior and the owner's final visual quality bar.
+
+## Checks and integration boundary
+
+Actually run: final bakes/exports and source integer-frame bounds; GLB byte
+validation (finite attributes, skin weights/joints, normalized normals, clip
+names/durations, stationary roots, loop endpoints, death hold, PNG decoding and
+occupied-UV geometric AO variation); strict before/after byte/hierarchy audit;
+independent Blender re-import with **1,045 integer-frame pose samples, zero
+envelope violations**, and matching geometry/bone construction signatures across
+two repeats per creature; Python compilation; `git diff --check`; and visual
+inspection of the final evidence. The undead validator additionally requires a
+faint emissive material, shared base atlas and cold-blue eye pigment. The slime
+AO check initially caught a too-convex dome; geometry was corrected without
+relaxing the validator. Final occupied slime AO is 223–255 with 17 distinct values.
+
+Evidence is in this attempt's `library/`: `budget-audit.json`,
+`glb-validation.json`, `source-validation.json`, `export-pose-audit.json`,
+`evidence-manifest.json` and the 13 render PNGs. Generated GLBs/atlases stay ignored
+under `artsource/creatures/output/`; they can be regenerated from source. Several
+superseded render processes were deliberately interrupted while iterating. One
+multi-view loop exited 143 without a diagnostic; its remaining views were rerun
+individually. Only completed final renders enter the manifest. Blender's socket startup notices,
+material deprecation and shared-sampler warnings did not prevent final export,
+import, rendering or audits.
+
+**Concrete downstream issue found by read-only code inspection:** the current
+Unreal import script creates `M_Creature` without an emissive input
+(`build/build-art.sh`, master-material block), and
+`ULHMonsterVisual::ConfigureCreatureMaterial` replaces every material slot with
+the same `MI_Creature`. The import cleanup then removes other imported materials;
+`LHCreatureArtTests.cpp` expects this uniform binding. Therefore a normal current
+reimport would discard the undead eye emission even though it is present in the
+validated GLB. The coordinator's separate import task must preserve an eye-only
+material instance sharing the three atlases, add an emissive parameter/input,
+make persistent binding/cleanup slot-aware and adjust the material test. Those
+paths are outside this worker's ownership and were **not edited**.
+
+Not run: Unreal import/editor/build/cook/package/play, post-import material size,
+new B1 captures, socket alignment, collision/nav/stairs, continuous or subframe
+clearance, animation blending/playback, LOD/mips or crowd performance. Missing
+prerequisite is a separately authorized Unreal integration/material pass and a
+new packaged lineup of these exports, not an assumed absent engine. Windows is
+deferred by project decision. Next task: review these artifacts, integrate the
+five regenerated meshes plus the eye material correctly, measure the real
+import/cook budget, and recapture the same B1 lineup before judging in-game polish.
+
+Reproduction from the checkout (repeat `--only` for each changed creature):
+
+```sh
+export BLENDER_ROOT=/home/brewerm/Downloads/blender-5.2.2-linux-x64
+export XDG_CONFIG_HOME="$PWD/artsource/creatures/.config"
+"$BLENDER_ROOT/blender" --background --factory-startup --threads 5 --python-exit-code 1 \
+  --python artsource/creatures/build.py -- --only bat --no-render
+python3 artsource/creatures/validate_glb.py --only bat
+"$BLENDER_ROOT/blender" --background --factory-startup --threads 2 --python-exit-code 1 \
+  --python artsource/creatures/validate_blender.py -- --only bat
+"$BLENDER_ROOT/blender" --background --factory-startup --threads 5 --python-exit-code 1 \
+  --python artsource/creatures/preview_polish.py -- --only bat --view hero
+"$BLENDER_ROOT/blender" --background --factory-startup --threads 5 --python-exit-code 1 \
+  --python artsource/creatures/preview_polish.py -- --only bat --view gameplay
+"$BLENDER_ROOT/blender" --background --factory-startup --threads 5 --python-exit-code 1 \
+  --python artsource/creatures/preview_polish.py -- --family
+python3 artsource/creatures/audit_polish.py --before /tmp/w5-08f-baseline/output \
+  --after artsource/creatures/output --report /tmp/w5-08f-budget-audit.json
+```
+
+For a later machine, reconstruct the comparison directory from the specified
+base revision's scripts before running the last command; `/tmp` is not an input
+asset dependency. No gameplay rule implementation or external image is required.

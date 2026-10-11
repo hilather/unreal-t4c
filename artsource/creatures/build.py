@@ -15,6 +15,29 @@ RESULT=[]
 # Only pixel resolution changes; authored geometry, pigments and motion remain.
 def texture_size(kind, channel):
     return 512
+
+def texture_quantization(kind):
+    """Limit baked atlas entropy where silhouette polish tightened byte budgets."""
+    return {'base':6, 'normal':7, 'orm':7} if kind in ('slime','giant_bat') else {}
+
+def quantize_baked_image(image, channel, bits):
+    """Quantize pigment in display sRGB, data maps in their linear space."""
+    pixels=array('f',[0.0])*(image.size[0]*image.size[1]*4)
+    image.pixels.foreach_get(pixels)
+    levels=(1 << bits)-1
+    for offset in range(0,len(pixels),4):
+        for component in range(3):
+            value=max(0.0,min(1.0,pixels[offset+component]))
+            if channel=='base':
+                value=12.92*value if value<=.0031308 else 1.055*value**(1/2.4)-.055
+            value=round(value*levels)/levels
+            if channel=='base':
+                value=value/12.92 if value<=.04045 else ((value+.055)/1.055)**2.4
+            pixels[offset+component]=value
+        pixels[offset+3]=1.0
+    image.pixels.foreach_set(pixels)
+    image.update()
+
 def material(name, color, rough=.7, scale=70):
     m=bpy.data.materials.new(name); m.use_nodes=True
     n=m.node_tree.nodes; l=m.node_tree.links; p=n.get('Principled BSDF')
@@ -79,6 +102,16 @@ def build(kind, bake_assets=True):
 
     mesh['rest_min_cm']=[round(v*100,3) for v in rest_min];mesh['rest_max_cm']=[round(v*100,3) for v in rest_max]
     if bake_assets:
+        # Retain the eye-face mask through atlas baking. A second material uses
+        # the same three images, so emission needs no extra runtime texture.
+        emissive_faces = {}
+        for face in mesh.data.polygons:
+            source = mesh.data.materials[face.material_index]
+            if 'w5_emissive' in source:
+                assert kind == 'undead_bat', 'eye emission is reserved for undead_bat'
+                emissive_faces[face.index] = tuple(source['w5_emissive'])
+        emissive_colors = set(emissive_faces.values())
+        assert len(emissive_colors) <= 1, 'expected one cold eye emission color'
         # Bake the generated shading into an atlas; no source-image pixels are used.
         scene=bpy.context.scene;scene.render.fps=30;scene.render.engine='CYCLES';scene.cycles.device='CPU';scene.cycles.samples=8
         images={}
@@ -120,6 +153,9 @@ def build(kind, bake_assets=True):
                     else:combine.inputs[2].default_value=metal.default_value
                     e=n.new('ShaderNodeEmission');links.new(combine.outputs[0],e.inputs[0]);links.new(e.outputs[0],out.inputs[0])
                 bpy.ops.object.bake(type='EMIT',margin=2)
+            quantization=texture_quantization(kind)
+            if channel in quantization:
+                quantize_baked_image(im,channel,quantization[channel])
             if channel=='orm':
                 pixels=array('f',[0.0])*(size*size*4);im.pixels.foreach_get(pixels)
                 ao=[pixels[i] for i in range(0,len(pixels),4) if pixels[i+1]>.01]
@@ -140,6 +176,19 @@ def build(kind, bake_assets=True):
                     group=create_settings_group('glTF Material Output')
                 occlusion=n.new('ShaderNodeGroup');occlusion.node_tree=group;l.new(sep.outputs[0],occlusion.inputs['Occlusion'])
         mesh.data.materials.clear();mesh.data.materials.append(baked)
+        if emissive_faces:
+            eyes = baked.copy();eyes.name = kind+'_baked_eyes'
+            eye_nodes = eyes.node_tree.nodes;eye_links = eyes.node_tree.links
+            eye_bsdf = eye_nodes.get('Principled BSDF')
+            base_texture = next(node for node in eye_nodes
+                                if node.type == 'TEX_IMAGE' and node.image == images['base'])
+            eye_links.new(base_texture.outputs['Color'],eye_bsdf.inputs['Emission Color'])
+            # Pigment and mask are baked into the existing base atlas; the eye
+            # primitive restricts this faint emission to its occupied UV islands.
+            eye_bsdf.inputs['Emission Strength'].default_value = .18
+            mesh.data.materials.append(eyes)
+            for face in mesh.data.polygons:
+                face.material_index = 1 if face.index in emissive_faces else 0
     scene=bpy.context.scene;scene.render.fps=30
     rigdata=bpy.data.armatures.new(kind+'_skeleton');rig=bpy.data.objects.new(kind+'_rig',rigdata);bpy.context.collection.objects.link(rig)
     bpy.context.view_layer.objects.active=rig;mesh.select_set(False);rig.select_set(True);bpy.ops.object.mode_set(mode='EDIT')
@@ -161,6 +210,10 @@ def build(kind, bake_assets=True):
                 roster.module(kind).pose(kind,rig,clip,f,end)
             elif clip in ['idle','move']:
                 body.scale=(1,1,1+(.025 if clip=='idle' else .07)*phase)
+                if kind=='slime':
+                    body.scale=(1+(.045 if clip=='idle' else .06)*phase,
+                                1-(.035 if clip=='idle' else .04)*phase,
+                                1+(.09 if clip=='idle' else .12)*phase)
                 if kind=='rat':
                     body.scale=(1,1,1+.015*(1-math.cos(math.tau*f/end)))
                     body.location.z=.1*(body.scale.z-1)
@@ -168,7 +221,7 @@ def build(kind, bake_assets=True):
                     if b.name.startswith(('front','rear')) and clip=='move':
                         step=phase*(1 if ('front' in b.name)==('-1' in b.name) else -1)
                         translate_world(b,(.015*step,0,.012*max(0,step)))
-                    if b.name.startswith('wing') and not b.name.startswith('wingtip'):rotate_world(b,(1,0,0),(.25 if clip=='move' else .12)*(-1 if '-1' in b.name else 1)*(1 if f==end//2 else -1))
+                    if b.name.startswith('wing') and not b.name.startswith('wingtip'):rotate_world(b,(1,0,0),(.13 if clip=='move' else .07)*(-1 if '-1' in b.name else 1)*(1 if f==end//2 else -1))
             elif clip=='attack':
                 a={0:0,20:-.12,29:-.12,30:.16,42:0}[f]
                 if kind=='slime':body.location.x=a*.35;body.scale=(1+a,1,1-a)
@@ -192,7 +245,7 @@ def build(kind, bake_assets=True):
                     rotate_world(b,(0,0,1),.025*phase)
                 if b.name=='jaw' and clip=='attack':rotate_world(b,(0,1,0),.32 if f==30 else 0)
                 if b.name.startswith('wingtip') and clip in ['idle','move']:
-                    rotate_world(b,(1,0,0),.12*phase*(-1 if '-1' in b.name else 1))
+                    rotate_world(b,(1,0,0),.06*phase*(-1 if '-1' in b.name else 1))
             if clip=='death' and death_hold is not None and f>=45:
                 for b in rig.pose.bones:
                     b.location,b.rotation_euler,b.scale=[value.copy() for value in death_hold[b.name]]
@@ -359,7 +412,7 @@ def main(kinds=('rat','bat','slime'), do_render=True, geometry_only=False):
         assert imported,kind+' missing armature';assert len(names)>=5,(kind,names)
         skinned=[o for o in bpy.context.scene.objects if o.type=='MESH' and any(m.type=='ARMATURE' for m in o.modifiers)]
         assert skinned,kind+' missing skin'
-        RESULT.append(dict(creature=kind,triangles=tris,bones=len(imported[0].data.bones),texture_size=texture_size(kind,'base'),texture_sizes={channel:texture_size(kind,channel) for channel in ('base','normal','orm')},rest_bounds=rest_bounds,baked_ranges=baked_ranges,bake={'ao':'Cycles geometric AO shader','ao_distance_m':.065,'ao_samples':32,'uv_margin':.0005,'uv_margin_method':'FRACTION','bake_margin_px':2,'channels':'AO/roughness/metallic'},animation_bounds=bounds,imported_actions=names,glb_bytes=(OUT/(kind+'.glb')).stat().st_size))
+        RESULT.append(dict(creature=kind,triangles=tris,bones=len(imported[0].data.bones),texture_size=texture_size(kind,'base'),texture_sizes={channel:texture_size(kind,channel) for channel in ('base','normal','orm')},texture_quantization={'bits':texture_quantization(kind),'base_space':'sRGB','data_space':'linear'},rest_bounds=rest_bounds,baked_ranges=baked_ranges,bake={'ao':'Cycles geometric AO shader','ao_distance_m':.065,'ao_samples':32,'uv_margin':.0005,'uv_margin_method':'FRACTION','bake_margin_px':2,'channels':'AO/roughness/metallic'},animation_bounds=bounds,imported_actions=names,glb_bytes=(OUT/(kind+'.glb')).stat().st_size))
         (OUT/(kind+'-validation.json')).write_text(json.dumps(RESULT[-1],indent=2)+'\n')
         previous=json.loads((OUT/'validation.json').read_text()) if (OUT/'validation.json').exists() else []
         merged={r['creature']:r for r in previous};merged.update({r['creature']:r for r in RESULT})

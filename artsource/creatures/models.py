@@ -13,14 +13,14 @@ TAU = math.tau
 
 
 def slime_height(x, y, r):
-    lobes=[(-.08,.065,.20,.185,.203),(.135,-.075,.155,.15,.185),
-           (-.19,-.15,.13,.135,.135),(.015,-.24,.135,.105,.09),
-           (.19,.18,.13,.13,.11)]
-    heights=[h*math.exp(-(((x-cx)/rx)**2+((y-cy)/ry)**2)**1.45)
-             for cx,cy,rx,ry,h in lobes]
-    mound=sum(h**5 for h in heights)**.2
-    folds=.006*math.sin(x*39+2*math.sin(y*17))*math.sin(y*31+x*9)*math.sin(math.pi*r)
-    return max(.005,.009+mound+folds)*(1-.55*r**12)
+    # W5-08f: one connected off-centre dome, with low shoulders feeding the
+    # pooled skirt. All dimensions are prototype presentation tuning in metres.
+    dome=.352*math.exp(-(((x+.035)/.235)**2+((y-.04)/.225)**2)**1.35)
+    shoulder=.185*math.exp(-(((x-.18)/.17)**2+((y+.13)/.155)**2)**1.4)
+    rear=.12*math.exp(-(((x+.20)/.145)**2+((y+.17)/.14)**2)**1.3)
+    mass=(dome**5+shoulder**5+rear**5)**.2
+    folds=.009*math.sin(x*28+2*math.sin(y*15))*math.sin(y*24+x*9)*math.sin(math.pi*r)
+    return max(.005,.009+mass+folds)*(1-.55*r**12)
 
 
 def ramp(nodes, values):
@@ -67,7 +67,7 @@ def shader(name, kind, creature='rat'):
         l.new(sep.outputs['Z'],height.inputs['Value'])
         region=ramp(n,[(.02,(.23,.17,.11)),(.27,(.185,.102,.046)),(.50,(.105,.052,.023)),(.76,(.057,.032,.018)),(1,(.055,.038,.025))])
         if creature=='bat':
-            region.color_ramp.elements[-1].color=(.038,.025,.016,1)
+            region.color_ramp.elements[-1].color=(.095,.041,.014,1)
         l.new(height.outputs[0],region.inputs[0])
         coat_color=region.outputs[0]
         if creature=='rat':
@@ -101,7 +101,7 @@ def shader(name, kind, creature='rat'):
             p.inputs['Roughness'].default_value=.62
     elif kind=='membrane':
         noise.inputs['Scale'].default_value=30
-        color=ramp(n,[(.2,(.075,.032,.012)),(.48,(.23,.12,.048)),(.78,(.43,.26,.12))])
+        color=ramp(n,[(.2,(.030,.008,.002)),(.48,(.090,.026,.006)),(.78,(.19,.073,.022))])
         l.new(noise.outputs['Fac'],color.inputs[0])
         veins=n.new('ShaderNodeTexVoronoi');veins.feature='DISTANCE_TO_EDGE';veins.inputs['Scale'].default_value=72
         l.new(tex.outputs['Object'],veins.inputs['Vector'])
@@ -114,13 +114,13 @@ def shader(name, kind, creature='rat'):
         noise.inputs['Scale'].default_value=9
         # Opaque thickness illusion: dense central mass and a pale thin rim.
         # Deliberately no Voronoi rings: they read as painted polka dots.
-        color=ramp(n,[(.20,(.0008,.006,.001)),(.46,(.002,.022,.0025)),(.72,(.008,.056,.004)),(.86,(.018,.088,.008))])
+        color=ramp(n,[(.20,(.003,.022,.0015)),(.46,(.009,.062,.003)),(.72,(.028,.12,.007)),(.86,(.055,.18,.011))])
         l.new(noise.outputs['Fac'],color.inputs[0])
         sep=n.new('ShaderNodeSeparateXYZ');l.new(tex.outputs['Object'],sep.inputs[0])
-        depth=n.new('ShaderNodeMapRange');depth.inputs['From Min'].default_value=.012;depth.inputs['From Max'].default_value=.095
+        depth=n.new('ShaderNodeMapRange');depth.inputs['From Min'].default_value=.025;depth.inputs['From Max'].default_value=.18
         depth.inputs['To Min'].default_value=1;depth.inputs['To Max'].default_value=0
         l.new(sep.outputs['Z'],depth.inputs['Value'])
-        rim=ramp(n,[(.18,(.015,.063,.007)),(.78,(.068,.18,.022))]);l.new(noise.outputs['Fac'],rim.inputs[0])
+        rim=ramp(n,[(.18,(.075,.24,.012)),(.78,(.19,.42,.035))]);l.new(noise.outputs['Fac'],rim.inputs[0])
         mix=n.new('ShaderNodeMixRGB');l.new(depth.outputs[0],mix.inputs[0]);l.new(color.outputs[0],mix.inputs[1]);l.new(rim.outputs[0],mix.inputs[2])
         # Only four irregular soft inclusions, colored beneath the surface film.
         previous=mix.outputs[0]
@@ -130,7 +130,7 @@ def shader(name, kind, creature='rat'):
             fade=n.new('ShaderNodeMapRange');fade.interpolation_type='SMOOTHERSTEP';fade.inputs['From Min'].default_value=radius*.2;fade.inputs['From Max'].default_value=radius*2.2;fade.inputs['To Min'].default_value=.42;fade.inputs['To Max'].default_value=0;l.new(dist.outputs['Value'],fade.inputs['Value'])
             bubble=n.new('ShaderNodeMixRGB');l.new(fade.outputs[0],bubble.inputs[0]);l.new(previous,bubble.inputs[1]);bubble.inputs[2].default_value=(.12,.23,.04,1);previous=bubble.outputs[0]
         l.new(previous,p.inputs['Base Color'])
-        rough=n.new('ShaderNodeMapRange');rough.inputs['To Min'].default_value=.105;rough.inputs['To Max'].default_value=.19
+        rough=n.new('ShaderNodeMapRange');rough.inputs['To Min'].default_value=.14;rough.inputs['To Max'].default_value=.22
         l.new(noise.outputs['Fac'],rough.inputs[0]);l.new(rough.outputs[0],p.inputs['Roughness'])
         bump.inputs['Strength'].default_value=.16;bump.inputs['Distance'].default_value=.0025
     else:
@@ -348,7 +348,7 @@ def rat(m,bones):
 
 
 def slime(m,bones):
-    N=96;R=28;v=[(0,0,0)];f=[];weights=[{'root':1}]
+    N=80;R=24;v=[(0,0,0)];f=[];weights=[{'root':1}]
     for i in range(R):
         r=1-i/(R-1)
         for j in range(N):
@@ -356,13 +356,13 @@ def slime(m,bones):
             x=r*edge*math.cos(a);y=r*edge*math.sin(a)
             z=slime_height(x,y,r)
             # Low rounded edge lobes feed into several small flattened drips.
-            z+=.014*math.exp(-((r-.85)/.105)**2)*(max(0,math.sin(7*a+.7))**4)
+            z+=.040*math.exp(-((r-.85)/.095)**2)*(max(0,math.sin(7*a+.7))**4)
             if i==0:z=.0025
             v.append((x,y,z));w=min(1,max(0,(z-.016)/.14));weights.append({'root':1-w,'body':w})
     for j in range(N):f.append((0,1+(j+1)%N,1+j))
     for i in range(R-1):
         for j in range(N):a=1+i*N+j;b=1+i*N+(j+1)%N;f.append((a,b,b+N,a+N))
-    obj=mesh('Low rounded lobes with pooled dripping rim',v,f,m['slime'],weights=weights)
+    obj=mesh('Domed wobbling body with pooled bright rim',v,f,m['slime'],weights=weights)
     # A flat underside must not pull the wet upper lip's normals downward.
     # Keep the outer rim below its adjacent ring to avoid isolated upturned
     # triangular flaps that reflect as black notches in a grazing hero view.
@@ -379,9 +379,9 @@ def create(kind):
     from bat_polish import bat as polished_bat
     {'rat':rat,'bat':polished_bat,'slime':slime}[kind](m,bones)
     if kind=='bat':
-        # Authored 6% resting-span reserve keeps the downward flap inside 80 cm.
+        # Shallow wings need only a 2% span reserve inside the 80 cm envelope.
         for obj in PARTS:
-            for v in obj.data.vertices:v.co.y*=.94
-        bones={name:((head[0],head[1]*.94,head[2]),(tail[0],tail[1]*.94,tail[2]),parent)
+            for v in obj.data.vertices:v.co.y*=.98
+        bones={name:((head[0],head[1]*.98,head[2]),(tail[0],tail[1]*.98,tail[2]),parent)
                for name,(head,tail,parent) in bones.items()}
     return PARTS,bones

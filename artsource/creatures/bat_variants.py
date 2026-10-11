@@ -39,9 +39,9 @@ def recolor(mat,kind,part):
     noise=n.new('ShaderNodeTexNoise');noise.inputs['Scale'].default_value=35;noise.inputs['Detail'].default_value=3
     l.new(coord.outputs[0],noise.inputs['Vector'])
     colors={
-       'dungeon_bat':{'fur':((.027,.035,.033),(.10,.115,.10)), 'membrane':((.022,.027,.022),(.095,.115,.085)), 'skin':((.051,.046,.032),(.135,.12,.079))},
+       'dungeon_bat':{'fur':((.009,.018,.031),(.026,.045,.068)), 'membrane':((.008,.016,.030),(.027,.048,.072)), 'skin':((.022,.030,.042),(.063,.077,.097))},
        'giant_bat':{'fur':((.025,.016,.010),(.09,.051,.027)), 'membrane':((.070,.030,.010),(.28,.145,.058)), 'skin':((.076,.038,.018),(.22,.13,.055))},
-       'undead_bat':{'fur':((.018,.026,.026),(.075,.094,.085)), 'membrane':((.047,.061,.052),(.145,.18,.141)), 'skin':((.046,.059,.052),(.133,.163,.125))},
+       'undead_bat':{'fur':((.22,.225,.185),(.52,.51,.39)), 'membrane':((.20,.215,.18),(.52,.53,.42)), 'skin':((.28,.28,.215),(.61,.59,.45))},
     }
     family='fur' if part in ('fur','fur_tip') else 'membrane' if part=='membrane' else 'skin'
     ramp=M.ramp(n,[(.2,colors[kind][family][0]),(.8,colors[kind][family][1])]);l.new(noise.outputs['Fac'],ramp.inputs[0]);base=ramp.outputs[0]
@@ -59,23 +59,18 @@ def recolor(mat,kind,part):
         # One broad connected dorsal V, centred over the shoulders, in pigmentation.
         target=mathnode(n,l,'ADD',mathnode(n,l,'MULTIPLY',y,.27),-.063)
         distance=mathnode(n,l,'ABSOLUTE',mathnode(n,l,'SUBTRACT',x,target))
-        width=mathnode(n,l,'LESS_THAN',distance,.023)
-        extent=mathnode(n,l,'LESS_THAN',y,.275)
+        width=mathnode(n,l,'LESS_THAN',distance,.035)
+        extent=mathnode(n,l,'LESS_THAN',y,.29)
         dorsal=mathnode(n,l,'GREATER_THAN',separate.outputs['Z'],1.012)
         mark=mathnode(n,l,'MULTIPLY',mathnode(n,l,'MULTIPLY',width,extent),dorsal)
     elif kind=='giant_bat' and family in ('membrane','skin'):
         # Continuous ochre leading edge, including the shoulder-to-wrist section.
-        slope=mathnode(n,l,'MULTIPLY',y,-.24)
-        leading=mathnode(n,l,'ADD',slope,.066)
+        slope=mathnode(n,l,'MULTIPLY',y,-.115)
+        leading=mathnode(n,l,'ADD',slope,.070)
         delta=mathnode(n,l,'SUBTRACT',leading,x)
-        mark=mathnode(n,l,'LESS_THAN',delta,.028)
-    elif kind=='undead_bat' and family=='membrane':
-        # Broad pale outer panels against the intact charcoal inner membrane.
-        edge=n.new('ShaderNodeMapRange');edge.interpolation_type='SMOOTHSTEP'
-        edge.inputs['From Min'].default_value=.18;edge.inputs['From Max'].default_value=.215
-        l.new(y,edge.inputs['Value']);mark=edge.outputs[0]
+        mark=mathnode(n,l,'LESS_THAN',delta,.055)
     if mark is not None:
-        pale={'dungeon_bat':(.43,.37,.245),'giant_bat':(.43,.29,.115),'undead_bat':(.49,.50,.38)}[kind]
+        pale={'dungeon_bat':(.37,.43,.48),'giant_bat':(.43,.29,.115),'undead_bat':(.49,.50,.38)}[kind]
         variation=M.ramp(n,[(.18,tuple(v*.65 for v in pale)),(.85,pale)])
         l.new(noise.outputs['Fac'],variation.inputs[0])
         mix=n.new('ShaderNodeMixRGB');l.new(mark,mix.inputs[0]);l.new(base,mix.inputs[1]);l.new(variation.outputs[0],mix.inputs[2]);base=mix.outputs[0]
@@ -85,9 +80,9 @@ def recolor(mat,kind,part):
 
 def shape(co,kind,body=False):
     sx,sy,sz,z0=PRESETS[kind];x,y,z=co
-    if kind=='dungeon_bat' and abs(y)>.335:
+    if kind=='dungeon_bat' and abs(y)>.36:
         # Broad clipped tips retain every wing bone and a continuous membrane.
-        y=math.copysign(.335+(abs(y)-.335)*.20,y)
+        y=math.copysign(.36+(abs(y)-.36)*.25,y)
     if kind=='giant_bat' and body:
         y*=1.20
         z=1.05+(z-1.05)*1.12
@@ -96,10 +91,10 @@ def shape(co,kind,body=False):
 
 
 def wing_plane(co,kind):
-    # Put the inherited steep membranes into an upward-facing rest plane for
-    # the fixed isometric camera. Pigmentation retains pre-rotation coordinates.
-    x,y,z=co;z-=PRESETS[kind][3];c=math.cos(.50);s=math.sin(.50)
-    return (c*x+s*z,y,-s*x+c*z+PRESETS[kind][3])
+    # W5-08f common geometry already authors a shallow open membrane plane.
+    # A second tilt would turn the chord edge-on; keep socket coordinates exact.
+    return tuple(co)
+
 
 def create(kind):
     assert kind in PRESETS
@@ -107,19 +102,29 @@ def create(kind):
     m={k:M.shader(kind+' '+k,k,'bat') for k in ['fur','fur_tip','skin','tail','ear','eye','claw','mouth','tooth','membrane']}
     for name in ('fur','fur_tip','skin','ear','membrane'):recolor(m[name],kind,name)
     bones={'root':((0,0,0),(0,0,.05),None)}
-    bat(m,bones)
+    bat(m,bones,undead=kind=='undead_bat')
+    if kind=='undead_bat':
+        # Fewer hair cards fund the exposed rib cage without triangle growth.
+        for obj in list(M.PARTS):
+            if obj.name.startswith('Layered shoulder and chest ruff'):
+                M.PARTS.remove(obj);bpy.data.objects.remove(obj,do_unlink=True)
+        cavity=M.shader('Undead dark rib cage recess','mouth','bat')
+        cavity.node_tree.nodes.get('Principled BSDF').inputs['Base Color'].default_value=(.018,.025,.023,1)
+        for obj in M.PARTS:
+            if obj.name.startswith('Tapered furry chest'):obj.data.materials[0]=cavity
+        ivory=M.shader('Undead exposed ivory ribs','tooth','bat')
+        ivory.node_tree.nodes.get('Principled BSDF').inputs['Base Color'].default_value=(.63,.63,.48,1)
+        for index,(x,ry,rz,zc) in enumerate([(-.075,.042,.051,1.016),(-.047,.055,.066,1.026),(-.019,.065,.075,1.033),(.01,.064,.075,1.041)]):
+            points=[(x,ry*math.cos(math.pi*j/9),zc+rz*math.sin(math.pi*j/9)) for j in range(10)]
+            M.tube('Exposed dorsal rib '+str(index),points,.0048,ivory,'body',5)
+        M.tube('Exposed spinal ridge',[(-.085,0,1.067),(-.045,0,1.095),(.015,0,1.118)],[.005,.006,.005],ivory,'body',6)
+        glow=M.shader('Undead cold eye pigment','eye','bat')
+        glow.node_tree.nodes.get('Principled BSDF').inputs['Base Color'].default_value=(.12,.52,.72,1)
+        glow['w5_emissive']=(.15,.50,.70)
+        for obj in M.PARTS:
+            if obj.name.startswith('Inset alert bat eye'):
+                obj.data.materials[0]=glow
     for obj in M.PARTS:
-        membrane=obj.name.startswith('Four scalloped membrane panels')
-        if kind=='undead_bat' and membrane:
-            # Exactly one broad additional shallow notch on each outer trailing arc.
-            # This is opaque modeled topology, never transparency or a wound decal.
-            for vertex in obj.data.vertices:
-                idx=vertex.index
-                if idx>=99:continue
-                row,col=divmod(idx,11);t=row/8;u=col/10
-                notch=max(0,1-abs(u-.60)/.18)*.26*t**3
-                wrist=Vector((.035,math.copysign(.135,vertex.co.y),1.155))
-                vertex.co=vertex.co.lerp(wrist,notch)
         body=all(not group.name.startswith('wing') for group in obj.vertex_groups)
         design=obj.data.attributes.new(name='variant_design_coordinate',type='FLOAT_VECTOR',domain='POINT')
         for vertex in obj.data.vertices:
@@ -138,7 +143,7 @@ def create(kind):
     bones['VFX_Hit']=((0,0,z0),(.04,0,z0),'body')
     bones['UI_Anchor']=((0,0,z0+.33),(0,0,z0+.37),'body')
     for s,label in [(-1,'R'),(1,'L')]:
-        p=wing_plane(shape((-.025,s*.387,1.225),kind),kind)
+        p=wing_plane(shape((.095,s*.395,1.125),kind),kind)
         bones['WingTip_'+label]=(p,(p[0]+.02,p[1],p[2]),'wingtip'+str(s))
     return M.PARTS,bones
 
@@ -156,7 +161,7 @@ def pose(kind,rig,clip,frame,end):
     b=rig.pose.bones;phase=math.sin(math.tau*frame/end);z0=PRESETS[kind][3]
     if clip in ('idle','move'):
         translate(b['body'],(0,0,.015*phase))
-        amplitude=.19 if clip=='idle' else .27
+        amplitude=.09 if clip=='idle' else .16
         for s in [-1,1]:
             irregular=.025*math.sin(math.tau*frame/end*2+s) if kind=='undead_bat' else 0
             rotate(b['wing'+str(s)],(1,0,0),s*(amplitude*phase+irregular))

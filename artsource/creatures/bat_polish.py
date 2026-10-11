@@ -1,7 +1,8 @@
 """W5-08d bat anatomy; all geometry is authored from functions, not image input.
 
-The W5-08c membrane panels, spars and their exact weighting are retained. The
-chest, cheek/forehead, thin ridged pinnae and thumb are a new anatomical pass.
+W5-08f broad, shallow wing planes keep membranes visible from above. The
+existing bones and anatomical anchors are retained; tiny fur cards are reduced
+to fund a stronger silhouette and the undead rib detail without mesh growth.
 """
 import math
 import random
@@ -11,14 +12,14 @@ from models import ellipsoid, coat, ellipsoid_coat, loft, tube, mesh
 
 def pinna(name, side, m):
     """Thin forward-facing ear cup, tapered and swept outwards above the ruff."""
-    count = 20
+    count = 16
     verts, faces = [], []
     # Four rings: the interior is behind the lip, not a bulging center disk.
     for radius in [0, .36, .73, 1]:
         for j in range(count):
             a = math.tau*j/count
-            zz = .044*radius*math.sin(a)
-            yy = .026*radius*math.cos(a)*(1-.66*max(0, math.sin(a)))
+            zz = .048*radius*math.sin(a)
+            yy = .030*radius*math.cos(a)*(1-.66*max(0, math.sin(a)))
             yy += .020*radius*max(0, math.sin(a))
             verts.append((.055-.011*(1-radius*radius)-.011*max(0, math.sin(a)),
                           side*(.048+yy), 1.166+zz))
@@ -47,7 +48,7 @@ def pinna(name, side, m):
          [.0038,.0027,.0004],m['skin'],'head',5)
 
 
-def bat(m,bones):
+def bat(m,bones,undead=False):
     # The muzzle and brow share the procedural fur grain, with a restrained
     # warmer dark mask. This is material shading, never a painted eye ring.
     facial_fur=m['fur'].copy();facial_fur.name='Bat warm facial fur'
@@ -77,7 +78,7 @@ def bat(m,bones):
         along=Vector((1,slopes[1]*math.cos(theta),slopes[3]+slopes[2]*math.sin(theta)))
         around=Vector((0,-s[1]*math.sin(theta),s[2]*math.cos(theta)))
         return p,around.cross(along),-along
-    coat('Layered shoulder and chest ruff',chest_surface,650,m['fur_tip'],length=.014)
+    coat('Layered shoulder and chest ruff',chest_surface,350,m['fur_tip'],length=.014)
     # A shorter domed cranium flows into cheek shelves and a paired pug muzzle.
     # Sampling this same loft roots the coat on the actual surface; an ellipsoid
     # proxy underneath the skull buries most of the hair and leaves a bald ball.
@@ -99,7 +100,7 @@ def bat(m,bones):
         direction=Vector((-1,.22*math.cos(theta),-.18))
         tangent=direction-normal*normal.dot(direction)
         return p,normal,tangent
-    coat('Rooted forehead cheek and neck fringe',face_surface,420,m['fur_tip'],'head',.009)
+    coat('Rooted forehead cheek and neck fringe',face_surface,230,m['fur_tip'],'head',.009)
     ellipsoid('Recessed mouth',(.131,0,1.068),(.017,.018,.0055),m['mouth'],'jaw',12,6)
     ellipsoid('Small soft chin',(.125,0,1.062),(.019,.016,.0055),m['fur'],'jaw',12,6)
     # Folded nostril wings and a narrow lance-shaped leaf, deliberately tiny.
@@ -117,7 +118,7 @@ def bat(m,bones):
         coat('Short velvet muzzle fur',ellipsoid_coat(cheek_center,cheek_axes),
              60,facial_fur,'head',.004)
         ellipsoid('Inset alert bat eye',(.114,s*.026,1.104),
-                  (.0065,.0045,.0055),m['eye'],'head',12,7)
+                  (.008,.006,.007),m['eye'],'head',12,7)
         # A triangular brow shelf is buried into the loft at its upper roots.
         # Only its thin outer lip overhangs the eye: no detached brow sausages.
         brow=[(.089,s*.022,1.111),(.099,s*.029,1.115),
@@ -136,11 +137,11 @@ def bat(m,bones):
              [.0014,.0003],m['tooth'],'jaw',5)
         pinna('Ridged pointed pinna',s,m)
         wing='wing'+str(s);tipbone='wingtip'+str(s)
-        bones[wing]=((-.008,s*.035,1.042),(.025,s*.15,1.15),'body')
-        bones[tipbone]=((.025,s*.15,1.15),(-.045,s*.388,1.215),wing)
-        wrist=Vector((.035,.135,1.155))
-        tips=[Vector((-.025,.387,1.225)),Vector((-.15,.318,1.087)),Vector((-.207,.198,.984)),Vector((-.145,.064,.947)),Vector((-.047,.036,.972))]
-        v=[];faces=[];weights=[];U=10;R=8
+        bones[wing]=((-.008,s*.035,1.042),(.105,s*.135,1.075),'body')
+        bones[tipbone]=((.105,s*.135,1.075),(.095,s*.395,1.125),wing)
+        wrist=Vector((.105,.135,1.075))
+        tips=[Vector((.095,.395,1.125)),Vector((-.155,.345,1.045)),Vector((-.201,.215,1.000)),Vector((-.16,.085,.970)),Vector((-.047,.036,.982))]
+        v=[];faces=[];weights=[];U=8;R=6
         for panel in range(len(tips)-1):
             a,b=tips[panel:panel+2];base=len(v)
             for i in range(R+1):
@@ -148,15 +149,20 @@ def bat(m,bones):
                 for j in range(U+1):
                     u=j/U
                     # Scallop is a taut catenary-like curve pulled towards the wrist.
-                    edge=a.lerp(b,u);edge=edge.lerp(wrist,.25*math.sin(math.pi*u))
+                    edge=a.lerp(b,u);edge=edge.lerp(wrist,.17*math.sin(math.pi*u))
                     q=wrist.lerp(edge,t);q.z+=.014*math.sin(math.pi*t)*math.sin(math.pi*u)
                     v.append((q.x,s*q.y,q.z));w=max(0,min(1,(q.y-.13)/.17))
                     weights.append({wing:1-w,tipbone:w})
             for i in range(R):
-                for j in range(U):k=base+i*(U+1)+j;faces.append((k,k+1,k+U+2,k+U+1))
+                for j in range(U):
+                    # Coarse missing wedges remain real silhouette tears at 512px.
+                    if undead and ((panel==0 and i>=R-2 and j in (3,4)) or
+                                   (panel==1 and i>=R-2 and j==5) or
+                                   (panel==2 and i==R-1 and j in (2,3))):continue
+                    k=base+i*(U+1)+j;faces.append((k,k+1,k+U+2,k+U+1))
         if s>0:faces=[tuple(reversed(face)) for face in faces]
         mesh('Four scalloped membrane panels',v,faces,m['membrane'],weights=weights)
-        tube('Arm and leading spar',[(-.015,s*.035,1.046),(-.036,s*.078,1.118),(.035,s*.135,1.155),(-.025,s*.387,1.225)],[.006,.005,.004,.001],m['skin'],wing,7,
+        tube('Arm and leading spar',[(-.015,s*.035,1.046),(.014,s*.078,1.068),(.105,s*.135,1.075),(.095,s*.395,1.125)],[.006,.005,.004,.001],m['skin'],wing,7,
              [{wing:1},{wing:1},{wing:1},{tipbone:1}])
         for tip in tips[1:]:
             pts=[];ws=[]
@@ -164,8 +170,8 @@ def bat(m,bones):
                 t=i/6;q=wrist.lerp(tip,t);q.z+=.004*math.sin(math.pi*t);pts.append((q.x,s*q.y,q.z+.001))
                 w=max(0,min(1,(q.y-.13)/.17));ws.append({wing:1-w,tipbone:w})
             tube('Spreading finger',pts,[.0035*(1-i/7)+.0007 for i in range(7)],m['skin'],wing,5,ws)
-        tube('Exposed muscular thumb',[(.033,s*.133,1.154),(.061,s*.141,1.178),(.074,s*.140,1.185)],[.0055,.0045,.003],m['skin'],wing,7)
-        tube('Ivory hooked thumb claw',[(.071,s*.140,1.184),(.081,s*.137,1.190),(.085,s*.131,1.183),(.083,s*.129,1.173)],[.0038,.003,.0018,.0002],m['claw'],wing,7)
+        tube('Exposed muscular thumb',[(.103,s*.133,1.074),(.131,s*.141,1.098),(.144,s*.140,1.105)],[.0055,.0045,.003],m['skin'],wing,7)
+        tube('Ivory hooked thumb claw',[(.141,s*.140,1.104),(.151,s*.137,1.110),(.155,s*.131,1.103),(.153,s*.129,1.093)],[.0038,.003,.0018,.0002],m['claw'],wing,7)
         tube('Hind ankle',[(-.041,s*.025,.974),(-.09,s*.035,.946),(-.099,s*.039,.927)],[.005,.004,.002],m['skin'],'body',6)
         for j in range(3):tube('Hind claw',[(-.099,s*(.032+j*.007),.928),(-.084,s*(.032+j*.007),.92),(-.078,s*(.032+j*.007),.926)],[.002,.0014,.0002],m['claw'],'body',5)
 
