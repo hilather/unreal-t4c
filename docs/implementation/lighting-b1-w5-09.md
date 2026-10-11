@@ -893,3 +893,152 @@ intentionally absent from this deliverable until host generation. Canonical work
 `report.md` and trimmed logs contain exact outcomes and commands. All hydrated
 art packages are restored to their original pointer bytes before submission.
 No push/merge or verified task/gate-success declaration is made.
+
+## W5-09g — warm stone, perimeter clutter and masonry cut faces
+
+Task ID: W5-09g. Base revision: `a3de69ae3f6a3cee989ac4359bbdcd87f2ebe714`
+(the isolated attempt anchor; the brief's human-readable base was `b035a96`).
+Result revision: submission candidate containing this section; canonical receipt
+records the exact commit. Contract revision: 1. This is an evidence candidate,
+not a gate, integration or verified-success declaration.
+
+### Behavior and assumptions
+
+The supplied W5-09f room captures and the concept's right half were inspected.
+The concept is a visual target only; no pixels, meshes or textures were extracted
+from it. No gameplay values, transforms, collision, nav, rules or save schemas
+are intentionally changed. Existing props suffice, so no new kit ID is introduced.
+Every new colour, dimension, placement margin and prediction is **Prototype
+presentation tuning**, provenance W5-09g visual comparison, retrieval 2026-10-11,
+source URL null. No T4C authenticity is asserted.
+
+The four room fills keep 14000 lm / 3000cm and now use linear RGB
+`(.86,.68,.47)`, with approximately the old Rec.709 luminance weight. The 450lm
+pawn fill becomes `(.88,.69,.46)`, skylight `(.94,.73,.50)`, nonvolumetric haze
+`(.18,.125,.075)`, and shadow gain `(1.035,1,.94,1)`. Exposure EV100 2.5,
+1000lm/2900K/375cm torches, flicker, room-fill positions, opacity, AO and bloom
+remain at the accepted baseline. Torch/fill shadows stay off; no Lumen or renderer
+setting changes. Pools are still required to exceed gaps by at least 3:1 in the
+existing analytic audit; this is not a pixel prediction from lux.
+
+The Blender kit has larger irregular flagstones, unequal row heights and repair
+joints; larger wall blocks have varied warm tone, worn edges and a darker lower
+course. Nine shared 512px textures, twelve meshes and the manifest's dimensions,
+pivots, IDs and stair variants are retained. The arch's custom stones had inward
+winding on all six faces: corrected outward winding is now tested on exported
+GLB shells. The pre-correction export fails the new regression check.
+
+Native wall/arch supports use individually varied cap lengths (72/106/88cm),
+6cm depth, 1.6cm joints and warm vertex tones. Horizontal courses own the
+corners; end courses stop at their inner faces, avoiding coplanar overlapping
+stone faces. Core beds recess 1.5cm below the
+covered top/end faces. The union retains the fitted wall envelope and the arch
+aperture. Support remains transient, NoCollision and excluded from navigation.
+The coping edges themselves are square; shared stone normal maps provide surface
+wear but do not round that silhouette.
+
+B1's old one-prop-per-floor-corner placement is replaced by small wall clusters
+using Barrel, Crate, Debris, Table and Bench. Unequal wall insets/staggers break
+alignment. A padded footprint must have flat floor support, 600cm of continuous
+inward room depth with no intervening wall, and clearance from other props,
+wall segments, stairs plus 200cm approaches, and protected anchors plus 350cm.
+Wall-end margins protect door mouths. Tall clutter within 120cm of an actual fixture flame is removed without
+moving the fixture; low rubble/benches below 60cm keep 40cm from wall-flame
+projections. Every piece keeps 120cm from a floor brazier. Candidate stations
+are 500cm apart along eligible wall segments. This also avoids dressing both
+sides of narrow corridors and burying low sconces in barrels. New pieces have
+`LH.B1.PerimeterClutter`; recipes contain no collision and never affect nav.
+Non-B1 placement follows its prior branch.
+
+### Visual evidence and predictions
+
+Existing supplied captures measured with the unchanged full-frame exported sRGB
+Rec.709 checker:
+
+| W5-09f supplied capture | Mean | Share below .02 |
+|---|---:|---:|
+| Room 1 | .23591 | .11626 |
+| Room 2 | .20953 | .12677 |
+| Room 3 | .20103 | .07557 |
+
+All three already satisfy .15–.25 / at most .20 near-black. The revised palette
+preserves fill luminance while darkening individual stones; **predicted new Unreal
+means are .21 / .19 / .18, uncertainty at least ±.035**. These are hypotheses,
+not observed new Unreal image results. Exact same-view captures remain necessary.
+
+Blender mock-ups import the actual final GLBs: a room, a 120cm cutaway stone/prop
+study and a neutral arch study. They use Cycles CPU, 1280×720, 32 samples, AgX,
+denoising and non-shadow-casting point lights. The room is the established art
+diorama, not B1's floor plan; it has taller/thicker demonstration walls. The
+close-up crops the true 20cm wall and approximates native coping. Cycles indirect
+lighting, area lights and tone mapping differ from Unreal, so mock-up means do
+not establish the .15–.25 gameplay acceptance. Measured full-frame mock-up means are .09355 (room), .12695 (cutaway study)
+and .54288 (studio arch); exterior void and studio ground dominate their different
+compositions. Renders judge warm shadows, stone scale/variation, cap readability
+and storage grouping. No Unreal screenshot,
+packaged launch or GPU performance result is claimed.
+
+### Validation and handoff
+
+Both Linux Development targets build with the required farm recipe: final editor
+122.25 seconds and game 62.21 seconds engine time (123/62 seconds wall), both exit 0.
+The binding core was explicitly recompiled for both targets. Build flags were
+`-WaitMutex -DisableAdaptiveUnity -UBASharedMemoryTempFile=true -NoUBA`, with
+checkout-local XML/XDG/UBA directories. This base lacks the named farm recipe
+heading, so that heading was read from the approved source checkout's `_env.md`.
+No toolchain installation or source-checkout edit was required. UE5.8 still uses
+an executor wrapper and reports action-result-store warnings; compile actions
+show `[NoUba]` and both logs end `Result: Succeeded`.
+
+Hub, Basement A, Basement B, dev and frontend generators all ran successfully.
+Final Basement A regeneration exits 0 in 33 seconds: B1 has 269 dressing pieces,
+631,948 triangles, 488 sections and zero blockers. Perimeter clutter comprises
+20 pieces: three barrels, six crates, four debris, five tables and two benches.
+B2's generated map remains byte-identical to its pre-final-generation SHA-256.
+All generator source outside the two B1 visual constants is byte-identical to
+base after reversing those constants.
+
+`build/build-art.sh` exits 0 (464 seconds), including real UE imports. B1's
+26 packages occupy **4,316,432 bytes**, below the 8,000,000-byte budget; receipt
+inventory and hashes were independently checked. Blender exports comprise twelve
+meshes/nine 512px textures, 4,369,302 bytes including manifest, 20,696 unique
+triangles. All twelve exported GLBs re-import successfully. Bounds, pivots, UVs,
+normals, material/PNG contracts and outward arch shells pass. An independent
+repeat matches all 21 mesh/texture hashes. The old arch is rejected by the new
+outward-shell check. Three final Blender renders were opened and inspected.
+
+The first full suite completed 216 tests: 213 passed and three failed. The
+failures exposed insufficient initial clutter (11 pieces), old audit assumptions
+of four flat cap slabs/1cm edges, and an object compiled while the final core
+recess source was still being edited. The fixture-aware density revision, updated
+masonry audit and forced fresh core compilation resolve all four focused tests:
+fit/fallback, imported bounds/lifecycle, perimeter clutter and loaded lighting.
+Focused checks exit 0, four passed with only the common pre-SDL Wayland warning.
+The subsequent full run completed all 216 tests with no failures, then review
+found overlapping corner faces; end-course trimming and a cap-volume overlap
+regression were added before the final build/check run below.
+Loaded analytic lighting reports gap mean 4.7073 lux, pool mean 26.9945 lux and
+contrast 5.735:1; these are geometric light estimates, not rendered luminance.
+
+Final full suite: **216 expected / 216 observed / 216 passed / zero failed,
+not-run or in-process**, exit 0 (355 seconds wall;
+298.62 seconds test duration). All successes carry warnings;
+the compact report preserves pre-SDL Wayland, navigation, spawn-refusal and
+read-only home-config messages. These are not presented as a warning-free run.
+The final cap overlap/bounds/lifecycle focused run also passed 2/2, exit 0.
+
+Final arrival review exits 0 (73 seconds): **9/9**, with registry
+transform hashes and `Config/Lighthaven/ReviewedArrivals.tsv` unchanged.
+`LHValidateWorld` exits 0 (20 seconds), validating all five
+maps. Python syntax and final diff whitespace checks pass. Generated packages,
+receipts and all `.umap`/`.uasset` files are restored to their starting pointer
+bytes before submission; no binary is included. The final source scope and
+restoration hashes are recorded in the attempt report/library.
+
+Checks not run: new rendered Unreal views, packaged launch, GPU timing or Windows
+packaging/play. A renderer-enabled rebuilt game and the original view transforms
+are needed to judge the predicted .21/.19/.18 means. Windows remains deferred.
+Known limitations: predictions are unobserved; modular repetition, thin B1 walls,
+square coping silhouettes and simplified props remain. Next: coordinator source
+review, fresh import/map generation and matching Unreal captures; integration,
+asset/LFS publication and gate acceptance remain outside this source candidate.

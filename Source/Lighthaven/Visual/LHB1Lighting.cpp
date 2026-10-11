@@ -79,16 +79,16 @@ ALHB1Atmosphere::ALHB1Atmosphere()
     SetRootComponent(Haze);
     Haze->SetMobility(EComponentMobility::Movable);
     Haze->FogDensity=.008f; Haze->FogHeightFalloff=.25f; Haze->FogMaxOpacity=.12f;
-    // A faint blue-grey distance floor also softens the black cutaway void.
+    // A faint warm-brown distance floor also softens the black cutaway void.
     // Prototype radiance, capped to 12% fog opacity; host capture must verify luma.
-    Haze->FogInscatteringLuminance=FLinearColor(.10f,.14f,.20f);
+    Haze->FogInscatteringLuminance=FLinearColor(.18f,.125f,.075f);
     Haze->bEnableVolumetricFog=false;
     ReadabilityFill=CreateDefaultSubobject<UPointLightComponent>(TEXT("B1PlayerReadability"));
     ReadabilityFill->SetupAttachment(Haze);
     ReadabilityFill->SetMobility(EComponentMobility::Movable);
     ReadabilityFill->SetIntensityUnits(ELightUnits::Lumens);
     ReadabilityFill->SetIntensity(450.f); ReadabilityFill->SetAttenuationRadius(750.f);
-    ReadabilityFill->SetLightColor(FLinearColor(.55f,.7f,1.f));
+    ReadabilityFill->SetLightColor(FLinearColor(.88f,.69f,.46f));
     ReadabilityFill->SetCastShadows(false);
     ReadabilityFill->bUseInverseSquaredFalloff=true;
     ReadabilityFill->SetVisibility(false);
@@ -105,7 +105,7 @@ ALHB1Atmosphere::ALHB1Atmosphere()
         Fill->SetMobility(EComponentMobility::Movable);
         Fill->SetIntensityUnits(ELightUnits::Lumens);
         Fill->SetIntensity(14000.f); Fill->SetAttenuationRadius(3000.f);
-        Fill->SetLightColor(FLinearColor(.65f,.70f,.80f));
+        Fill->SetLightColor(FLinearColor(.86f,.68f,.47f));
         Fill->SetCastShadows(false); Fill->bUseInverseSquaredFalloff=true;
         Fill->SetCanEverAffectNavigation(false);
         RoomFills.Add(Fill);

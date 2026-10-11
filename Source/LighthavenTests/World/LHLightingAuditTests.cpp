@@ -44,7 +44,7 @@ bool FLHLightingAuditTest::RunTest(const FString& Parameters)
                 TestEqual(TEXT("B1 haze density"),A->Haze->FogDensity,.008f);
                 TestFalse(TEXT("B1 no volumetric fog"),A->Haze->bEnableVolumetricFog);
                 TestEqual(TEXT("B1 haze bounded opacity"),A->Haze->FogMaxOpacity,.12f);
-                TestEqual(TEXT("B1 cool haze radiance"),A->Haze->FogInscatteringLuminance,FLinearColor(.10f,.14f,.20f));
+                TestEqual(TEXT("B1 warm haze radiance"),A->Haze->FogInscatteringLuminance,FLinearColor(.18f,.125f,.075f));
             }
             if(auto* Piece=Cast<ALHVisualPiece>(*It))
             {
@@ -97,7 +97,7 @@ bool FLHLightingAuditTest::RunTest(const FString& Parameters)
                 {
                     TestTrue(TEXT("B1 AO"),S.bOverride_AmbientOcclusionIntensity && S.AmbientOcclusionIntensity==.65f);
                     TestTrue(TEXT("B1 AO world radius"),S.bOverride_AmbientOcclusionRadius && S.AmbientOcclusionRadius==120.f && S.bOverride_AmbientOcclusionRadiusInWS && S.AmbientOcclusionRadiusInWS);
-                    TestTrue(TEXT("B1 grade"),S.bOverride_ColorSaturation && S.ColorSaturation==FVector4(.95f,.95f,.95f,1.f) && S.bOverride_ColorGainHighlights && S.ColorGainHighlights==FVector4(1.04f,1.01f,.96f,1.f) && S.bOverride_ColorGainShadows && S.ColorGainShadows==FVector4(.97f,1.f,1.04f,1.f));
+                    TestTrue(TEXT("B1 grade"),S.bOverride_ColorSaturation && S.ColorSaturation==FVector4(.95f,.95f,.95f,1.f) && S.bOverride_ColorGainHighlights && S.ColorGainHighlights==FVector4(1.04f,1.01f,.96f,1.f) && S.bOverride_ColorGainShadows && S.ColorGainShadows==FVector4(1.035f,1.f,.94f,1.f));
                     TestTrue(TEXT("B1 flame bloom"),S.bOverride_BloomIntensity && S.BloomIntensity==.25f);
                     TestTrue(TEXT("B1 vignette"),S.bOverride_VignetteIntensity && S.VignetteIntensity==.2f);
                 }
@@ -330,7 +330,7 @@ bool FLHB1LoadedGameLightingTest::RunTest(const FString& Parameters)
     {
         TestTrue(TEXT("Room fill lights unoccupied gaps"),Bounce->IsRegistered() && Bounce->IsVisible() && Bounce->bAffectsWorld);
         TestFalse(TEXT("Room fill never casts shadows"),Bounce->CastShadows);
-        TestEqual(TEXT("Room fill neutral-cool tint"),Bounce->LightColor,FLinearColor(.65f,.70f,.80f).ToFColor(true));
+        TestEqual(TEXT("Room fill warm-brown tint"),Bounce->LightColor,FLinearColor(.86f,.68f,.47f).ToFColor(true));
     }
     auto BounceLux=[&](FVector Surface,FVector Normal)
     {
@@ -345,7 +345,7 @@ bool FLHB1LoadedGameLightingTest::RunTest(const FString& Parameters)
     };
     TestEqual(TEXT("Loaded readability fill retains450 lumens"),Fill->Intensity,450.f);
     TestEqual(TEXT("Loaded readability fill retains750cm radius"),Fill->AttenuationRadius,750.f);
-    TestEqual(TEXT("Loaded readability fill retains cool tint"),Fill->LightColor,FLinearColor(.55f,.7f,1.f).ToFColor(true));
+    TestEqual(TEXT("Loaded readability fill retains warm tint"),Fill->LightColor,FLinearColor(.88f,.69f,.46f).ToFColor(true));
     const double FillHeight=PlayerDefaults->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()+220.;
     const FLinearColor FillColor(Fill->LightColor);
     const double FillLuminance=.2126*FillColor.R+.7152*FillColor.G+.0722*FillColor.B;
@@ -425,16 +425,34 @@ bool FLHB1LoadedGameLightingTest::RunTest(const FString& Parameters)
             auto* Support=It->GetArtSupport();
             const auto* Section=Support?Support->GetProcMeshSection(0):nullptr;
             if(!TestNotNull(TEXT("Wall backing and cut caps are built"),Section)) continue;
-            TestEqual(TEXT("One core plus four perimeter caps"),Section->ProcVertexBuffer.Num(),5*24);
+            const auto Caps=LHB1Art::MasonryCaps(Recipe,Fit);
+            TestTrue(TEXT("Wall coping is segmented into multiple stones"),Caps.Num()>4);
+            TestEqual(TEXT("One core plus independently fitted masonry stones"),Section->ProcVertexBuffer.Num(),(1+Caps.Num())*24);
+            TestTrue(TEXT("Core mortar recedes 1.5cm below coping top and end joints"),
+                FMath::IsNearlyEqual(CoreHi.Z,Fit.ClipBounds.Max.Z-1.5,.01) &&
+                FMath::IsNearlyEqual(CoreLo.X,Fit.ClipBounds.Min.X+1.5,.01) &&
+                FMath::IsNearlyEqual(CoreHi.X,Fit.ClipBounds.Max.X-1.5,.01));
+            FBox SupportBounds(ForceInit);
+            double MaximumOverflow=0.;
             for(const auto& Vertex:Section->ProcVertexBuffer)
             {
                 const FVector P=Vertex.Position;
-                TestTrue(TEXT("Wall support stays inside masonry crop"),Fit.ClipBounds.IsInsideOrOn(P));
+                // Procedural vertices serialize to float; fitted recipe math is
+                // double. A hundredth centimetre allows only conversion roundoff.
+                TestTrue(TEXT("Wall support stays inside masonry crop"),Fit.ClipBounds.ExpandBy(.01).IsInsideOrOn(P));
+                SupportBounds+=P;
+                for(int32 Axis=0;Axis<3;++Axis)
+                    MaximumOverflow=FMath::Max(MaximumOverflow,FMath::Max(Fit.ClipBounds.Min[Axis]-P[Axis],P[Axis]-Fit.ClipBounds.Max[Axis]));
                 const bool InCoreDepth=P.Y>=CoreLo.Y-.01 && P.Y<=CoreHi.Y+.01;
-                const bool AtPerimeter=P.X<=Fit.ClipBounds.Min.X+1.01 || P.X>=Fit.ClipBounds.Max.X-1.01 ||
-                    P.Z<=Fit.ClipBounds.Min.Z+1.01 || P.Z>=Fit.ClipBounds.Max.Z-1.01;
+                const bool AtPerimeter=P.X<=Fit.ClipBounds.Min.X+6.01 || P.X>=Fit.ClipBounds.Max.X-6.01 ||
+                    P.Z<=Fit.ClipBounds.Min.Z+6.01 || P.Z>=Fit.ClipBounds.Max.Z-6.01;
                 TestTrue(TEXT("Caps cannot fill broad mortar recesses"),InCoreDepth || AtPerimeter);
             }
+            if(MaximumOverflow>0.) AddInfo(FString::Printf(TEXT("%s support maximum crop overflow %.9fcm"),*It->GetName(),MaximumOverflow));
+            TestTrue(TEXT("Coping and core together close exact saved silhouette"),
+                SupportBounds.Min.Equals(Fit.ClipBounds.Min,.01) && SupportBounds.Max.Equals(Fit.ClipBounds.Max,.01));
+            TestEqual(TEXT("Masonry remains visual only"),Support->GetCollisionEnabled(),ECollisionEnabled::NoCollision);
+            TestFalse(TEXT("Masonry cannot affect navigation"),Support->CanEverAffectNavigation());
         }
         if(Recipe.Id.ToString().EndsWith(TEXT(".Sconce"))) ++Sconces;
         if(Recipe.Id.ToString().EndsWith(TEXT(".Torch")))

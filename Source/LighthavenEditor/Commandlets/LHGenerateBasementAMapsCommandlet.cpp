@@ -385,7 +385,7 @@ struct FBuilder
         {
             auto* C=A->GetLightComponent(); C->SetMobility(EComponentMobility::Movable);
             C->SetCastShadows(false); C->SetIntensity(B1?.12f:.8f);
-            if(B1) C->SetLightColor(FLinearColor(.65f,.75f,1.f));
+            if(B1) C->SetLightColor(FLinearColor(.94f,.73f,.50f));
             C->bLowerHemisphereIsBlack=false;
             C->bRealTimeCapture=false; C->LowerHemisphereColor=FLinearColor::White;
             // Fixed engine cubemap, no external HDRI. Capture source is recorded in handoff.
@@ -416,7 +416,7 @@ struct FBuilder
                 S.bOverride_VignetteIntensity=true; S.VignetteIntensity=.2f;
                 S.bOverride_ColorSaturation=true; S.ColorSaturation=FVector4(.95f,.95f,.95f,1.f);
                 S.bOverride_ColorGainHighlights=true; S.ColorGainHighlights=FVector4(1.04f,1.01f,.96f,1.f);
-                S.bOverride_ColorGainShadows=true; S.ColorGainShadows=FVector4(.97f,1.f,1.04f,1.f);
+                S.bOverride_ColorGainShadows=true; S.ColorGainShadows=FVector4(1.035f,1.f,.94f,1.f);
             }
         }
         World->GetWorldSettings()->DefaultGameMode=ALHGameMode::StaticClass();
