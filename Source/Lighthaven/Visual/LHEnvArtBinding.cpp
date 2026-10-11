@@ -38,7 +38,17 @@ bool LHEnvArt::Resolve(const FLHVisualRecipe& R, FFit& Out)
     if(!Allowed && R.Style==ELHVisualStyle::Church) Allowed=Name.RemoveFromStart(TEXT("Presentation.Environment.Church."));
     if(!Allowed && R.Style==ELHVisualStyle::B4Ritual) Allowed=Name.RemoveFromStart(TEXT("Presentation.Environment.Basement."));
     if(!Allowed || !AssetNames(R.Style).Contains(Name) || LHB1Art::AssetNames().Contains(Name)) return false;
-    FFit Fit; Fit.AssetName=Name; Fit.Instances.Add(FTransform::Identity); Out=MoveTemp(Fit); return true;
+    FFit Fit; Fit.AssetName=Name;
+    if(Name==TEXT("DoorLeafPreview"))
+    {
+        // Use the first saved solid as the fit authority. Crop the imported
+        // leaf instead of squashing its plank/hinge detail into a near cutaway.
+        const auto& B=R.Geometry[0];
+        const double Height=B.Size.Z;
+        if(Height<=0 || Height>300 || !FMath::IsNearlyEqual(B.Size.X,160.,.1)) return false;
+        Fit.ClipBounds=FBox(FVector(0,-5,0),FVector(160,5,Height));
+    }
+    Fit.Instances.Add(FTransform::Identity); Out=MoveTemp(Fit); return true;
 }
 
 TArray<FLHVisualBox> LHEnvArt::SolidBacking(const FLHVisualRecipe& R, const FFit& Fit)

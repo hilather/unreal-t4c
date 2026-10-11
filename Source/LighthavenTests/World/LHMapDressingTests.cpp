@@ -13,6 +13,7 @@
 #include "Camera/CameraComponent.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/StaticMesh.h"
+#include "StaticMeshResources.h"
 #include "Components/StaticMeshComponent.h"
 #include "ProceduralMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -348,5 +349,138 @@ bool FLHB1PerimeterClutterTest::RunTest(const FString&)
     TestTrue(TEXT("At least three existing kit kinds provide varied silhouettes"),Kinds.Num()>=3);
     TestTrue(TEXT("Clutter stays within bounded presentation budget"),Clutter<=90);
     AddInfo(FString::Printf(TEXT("B1 perimeter clutter: %d pieces, %d kinds"),Clutter,Kinds.Num()));
+    return true;
+}
+
+// Physics cannot audit visual occlusion: imported dressing deliberately has no
+// collision. Shoot geometry-envelope rays through the actual fitted/cropped art.
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FLHGameplayDressingSightTest,"Lighthaven.World.Dressing.GameplaySight",
+    EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+void FLHGameplayDressingSightTest::GetTests(TArray<FString>& Names,TArray<FString>& Commands) const
+{
+    for(const auto& Area:LHWorld::Registry()) { Names.Add(Area.Id.Content.Value.ToString()); Commands.Add(Area.Id.Content.Value.ToString()); }
+}
+bool FLHGameplayDressingSightTest::RunTest(const FString& Parameters)
+{
+    const auto* Area=LHWorld::Registry().FindByPredicate([&](const FLHAreaDefinition& A){return A.Id.Content.Value.ToString()==Parameters;});
+    if(!Area) return false;
+    auto* Package=LoadPackage(nullptr,*Area->Map.GetLongPackageName(),LOAD_None);
+    auto* World=Package?UWorld::FindWorldInPackage(Package):nullptr;
+    if(!TestNotNull(TEXT("Regenerated map required"),World)) return false;
+    struct FEnvelope { FTransform Transform; FBox Box; FString Label; UStaticMesh* Mesh=nullptr; FTransform Instance; bool New=false; };
+    TArray<FEnvelope> Visuals, Floors, Blockers;
+    int32 TallWalls=0,Carpets=0,Pillars=0,Leaves=0;
+    for(TActorIterator<AActor> It(World);It;++It)
+    {
+        if(auto* P=Cast<ALHVisualPiece>(*It))
+        {
+            TallWalls+=P->Tags.Contains(TEXT("LH.Dressing.FullHeight"))?1:0;
+            const FString Id=P->GetRecipe().Id.ToString();
+            Carpets+=Id.EndsWith(TEXT(".Carpet"))?1:0;
+            Pillars+=Id.EndsWith(TEXT(".Pillar"))?1:0;
+            Leaves+=Id.EndsWith(TEXT(".DoorLeafPreview"))?1:0;
+            const bool New=P->Tags.Contains(TEXT("LH.Dressing.FullHeight")) || Id.EndsWith(TEXT(".Pillar")) || Id.EndsWith(TEXT(".DoorLeafPreview"));
+            const FString SightLabel=P->GetActorLabel()+TEXT("/")+Id;
+            if(Id.Contains(TEXT(".Floor")) || Id.Contains(TEXT(".Stair")) || Id.EndsWith(TEXT(".Carpet"))) continue;
+            LHEnvArt::FFit Fit;
+            auto* Mesh=P->GetImportedMesh();
+            if(Mesh->IsVisible() && Mesh->GetStaticMesh() && LHEnvArt::Resolve(P->GetRecipe(),Fit))
+                for(const auto& Instance:Fit.Instances)
+                {
+                    FBox Box=Mesh->GetStaticMesh()->GetBoundingBox().TransformBy(Instance).Overlap(Fit.ClipBounds);
+                    if(Box.IsValid) Visuals.Add({P->GetActorTransform(),Box,SightLabel,Mesh->GetStaticMesh(),Instance,New});
+                }
+            else for(const auto& B:P->GetRecipe().Geometry)
+                Visuals.Add({FTransform(B.Rotation,B.Center)*P->GetActorTransform(),FBox(-B.Size/2,B.Size/2),SightLabel,nullptr,FTransform::Identity,New});
+        }
+        if(auto* A=Cast<AStaticMeshActor>(*It))
+        {
+            auto* C=A->GetStaticMeshComponent();
+            if(!C->GetStaticMesh() || C->GetStaticMesh()->GetName()!=TEXT("Cube")) continue;
+            const FVector Size=A->GetActorScale3D().GetAbs()*100;
+            const FString Label=A->GetActorLabel();
+            const FEnvelope E{C->GetComponentTransform(),C->GetStaticMesh()->GetBoundingBox(),Label};
+            if(Size.Z<=20 && Size.X>=5 && Size.Y>=5 && !A->IsHidden()
+                && (C->IsVisible() || A->Tags.Contains(TEXT("LH.Dressing.RetainedCollider")))
+                && !Label.StartsWith(TEXT("Scenic.")) && !Label.StartsWith(TEXT("NPC."))
+                && !Label.Contains(TEXT("Arrow")) && !Label.Contains(TEXT("Tread")) && !Label.Contains(TEXT("RedAisle"))) Floors.Add(E);
+            else if(C->GetCollisionEnabled()!=ECollisionEnabled::NoCollision) Blockers.Add(E);
+        }
+    }
+    int32 Points=0,Blocked=0,NewBlocked=0;
+    TMap<FString,int32> HitPieces;
+    const FVector Offset=-FRotator(-55,45,0).Vector()*1200+FVector(0,0,90);
+    for(const auto& Floor:Floors)
+    {
+        const FBox Bounds=Floor.Box.TransformBy(Floor.Transform);
+        // 50cm lattice covers narrow floor strips too. Transform the authored
+        // plane to obtain the actual ramp elevation, not its bounding-box top.
+        const FVector Normal=Floor.Transform.GetRotation().RotateVector(FVector::UpVector);
+        if(Normal.Z<.5) continue;
+        const FVector Top=Floor.Transform.TransformPosition(FVector(0,0,Floor.Box.Max.Z));
+        for(double X=Bounds.Min.X+25;X<Bounds.Max.X;X+=50)
+        for(double Y=Bounds.Min.Y+25;Y<Bounds.Max.Y;Y+=50)
+        {
+            const double Z=Top.Z-(Normal.X*(X-Top.X)+Normal.Y*(Y-Top.Y))/Normal.Z;
+            const FVector Feet(X,Y,Z+2);
+            const FVector Local=Floor.Transform.InverseTransformPosition(Feet-FVector(0,0,2));
+            if(Local.X<Floor.Box.Min.X || Local.X>Floor.Box.Max.X || Local.Y<Floor.Box.Min.Y || Local.Y>Floor.Box.Max.Y) continue;
+            // Pawn-center walkable points: reject a padded36cm capsule's
+            // horizontal footprint against authored obstacles at body height.
+            if(Blockers.ContainsByPredicate([&](const FEnvelope& B)
+            {
+                const FBox Box=B.Box.TransformBy(B.Transform);
+                return Box.Max.Z>Z+5 && Box.Min.Z<Z+175 && X>Box.Min.X-36 && X<Box.Max.X+36 && Y>Box.Min.Y-36 && Y<Box.Max.Y+36;
+            })) continue;
+            ++Points;
+            const FVector Camera=Feet+Offset;
+            for(double Height:{0.,178.})
+            {
+                const FVector End=Feet+FVector(0,0,Height);
+                bool RayBlocked=false,RayNewBlocked=false;
+                for(const auto& V:Visuals)
+                {
+                    const FVector A=V.Transform.InverseTransformPosition(Camera),B=V.Transform.InverseTransformPosition(End);
+                    if(!FMath::LineBoxIntersection(V.Box,A,B,B-A)) continue;
+                    if(V.Mesh)
+                    {
+                        const auto* Data=V.Mesh->GetRenderData();
+                        if(!Data || Data->LODResources.IsEmpty()) { AddError(TEXT("Imported CPU geometry missing for sight audit")); continue; }
+                        const auto& LOD=Data->LODResources[0];
+                        const auto Indices=LOD.IndexBuffer.GetArrayView();
+                        const FVector MeshStart=V.Instance.InverseTransformPosition(A),MeshEnd=V.Instance.InverseTransformPosition(B);
+                        bool Hit=false;
+                        for(int32 Index=0;Index+2<Indices.Num();Index+=3)
+                        {
+                            FVector Point,TriangleNormal;
+                            if(FMath::SegmentTriangleIntersection(MeshStart,MeshEnd,
+                                FVector(LOD.VertexBuffers.PositionVertexBuffer.VertexPosition(Indices[Index])),
+                                FVector(LOD.VertexBuffers.PositionVertexBuffer.VertexPosition(Indices[Index+1])),
+                                FVector(LOD.VertexBuffers.PositionVertexBuffer.VertexPosition(Indices[Index+2])),Point,TriangleNormal)
+                                && V.Box.IsInsideOrOn(V.Instance.TransformPosition(Point))) { Hit=true; break; }
+                        }
+                        if(!Hit) continue;
+                    }
+                    if(!RayBlocked && Blocked<12) AddInfo(FString::Printf(TEXT("Occlusion %s point=%s endpoint=%.0f piece=%s"),*Parameters,*Feet.ToString(),Height,*V.Label));
+                    RayBlocked=true; RayNewBlocked|=V.New;
+                    ++HitPieces.FindOrAdd(V.Label);
+                }
+                Blocked+=RayBlocked?1:0; NewBlocked+=RayNewBlocked?1:0;
+            }
+        }
+    }
+    TestTrue(TEXT("Walkable grid audited"),Points>0);
+    TestTrue(TEXT("Safe full-height walls present"),TallWalls>0);
+    TestEqual(TEXT("New tall walls, supports and leaves do not occlude head/feet"),NewBlocked,0);
+    TestEqual(TEXT("No head/feet dressing occlusion on walkable grid"),Blocked,0);
+    TArray<FString> HitNames; HitPieces.GetKeys(HitNames); HitNames.Sort();
+    for(const auto& Label:HitNames) AddInfo(FString::Printf(TEXT("Sight hit piece %s rays=%d"),*Label,HitPieces[Label]));
+    if(Area==&LHWorld::Registry()[0])
+    {
+        TestEqual(TEXT("Imported aisle recipe placed"),Carpets,1);
+        TestEqual(TEXT("Nave back supports placed"),Pillars,2);
+        TestEqual(TEXT("Open entry leaves placed"),Leaves,2);
+    }
+    AddInfo(FString::Printf(TEXT("%s: points=%d rays=%d blocked=%d newBlocked=%d raised=%d carpet=%d pillars=%d leaves=%d"),*Parameters,Points,Points*2,Blocked,NewBlocked,TallWalls,Carpets,Pillars,Leaves));
     return true;
 }
