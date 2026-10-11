@@ -300,3 +300,8 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
   - **W5-14 (astra):** Blender kits for the church and B2–B4, each floor distinct.
   - **W5-08f (astra):** bat family and slime polish from the in-game lineup.
   - **W5-13 (sol):** player import. Still running.
+- **W5-13 integrated (3466506; player assets 9ef79e4, 7.4 MB LFS).** Player imported and bound; the alive-state fix for a detached avatar is in.
+  - **Host:** 219/219; arrivals 9/9 unchanged; validator 0; package OK; 15/15 captures.
+  - **Capture finding:** direct-map captures have no session, so the pawn has no record and zero health. That falls back to the old figure in the death pose, and every capture so far has shown a placeholder player. → **W5-13b (sol):** session-backed captures with a default starter, and a sane no-session pawn.
+- **W5-14 merged (9d4d4d8, sources).** Blender kits for Church, B2Damp, B3Crypt and B4Ritual (11.96 MB of exports, each under 4 MB, B1 bytes unchanged). Strong and distinct in the Blender mock-ups (`scratch/captures/w5-14-blender/`). Note: main's `build/build-art.sh` no longer matches the new per-style export layout. → **W5-15 (sol):** repair the art build, import and bind the four kits; lighting per floor follows.
+- **W5-08f merged (33ae1e4, sources).** Bat family and slime polish (broad distinct bats, domed slime; exports 1.5 MB smaller). The committed creature assets still predate it: re-import on the next host art build (W5-15's host check) with `LH_ART_REIMPORT=1`.
