@@ -4,7 +4,7 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/lh-env.sh"
 : "${BLENDER_ROOT:?Set BLENDER_ROOT to the pinned Blender 5.2.2 directory}"
 cd "$LH_PROJECT_ROOT"
 mkdir -p Saved/ArtExport
-if [[ ${LH_ART_PLAYER_ONLY:-0} != 1 ]]; then
+if [[ ${LH_ART_PLAYER_ONLY:-0} != 1 && ${LH_ART_NPC_ONLY:-0} != 1 ]]; then
 mkdir -p artsource/blender/.config
 if [[ ${LH_ART_SKIP_EXPORT:-0} != 1 ]]; then
 XDG_CONFIG_HOME="$PWD/artsource/blender/.config" "$BLENDER_ROOT/blender" \
@@ -755,6 +755,7 @@ LH_CREATURE_PREPARE=1 LH_ART_ENGINE_VERSION="$creature_engine_version" python3 S
 fi
 
 # Player rig source stays in the visual lane; generated packages stay local.
+if [[ ${LH_ART_NPC_ONLY:-0} != 1 ]]; then
 mkdir -p Saved/PlayerBlenderConfig
 player_export_current=$(python3 - "$BLENDER_ROOT/blender" <<'PYPLAYER'
 import hashlib, json, subprocess, sys
@@ -788,7 +789,32 @@ receipt['outputs']={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for kind i
 Path('Saved/ArtExport/player-export-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
 PYPLAYER
 fi
+# The player importer is owned by another lane. Stage its unchanged import
+# behavior locally, replacing only its receipt input list. Never hash the
+# compiled module: unrelated gameplay changes must not invalidate art packages.
+python3 - <<'PYPLAYER_SIGNATURE'
+from pathlib import Path
+source = Path('Source/Lighthaven/Visual/Player/import_player.py')
+text = source.read_text()
+old = "root/'Binaries/Linux/libUnrealEditor-Lighthaven.so'"
+new = "root/'Source/Lighthaven/Visual/Player/LHPlayerVisual.h'"
+if text.count(old) != 1:
+    raise RuntimeError('Player receipt input layout changed; review signature adapter')
+Path('Saved/ArtExport/import_player.py').write_text(text.replace(old, new))
+PYPLAYER_SIGNATURE
 "$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$LH_PROJECT" \
-  -run=pythonscript "-Script=$PWD/Source/Lighthaven/Visual/Player/import_player.py" -EnablePlugins=PythonScriptPlugin \
+  -run=pythonscript "-Script=$PWD/Saved/ArtExport/import_player.py" -EnablePlugins=PythonScriptPlugin \
   -stdout -FullStdOutLogOutput -nullrhi -unattended -nosound -nop4 '-DDC=(Local)' "-LocalDataCachePath=$PWD/Saved/DerivedDataCache" \
   '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0'
+
+fi
+# NPC imports depend on real player packages and use their exact body-specific rigs.
+# NPC_ONLY is a local iteration aid; normal execution imports player first.
+if [[ ${LH_ART_PLAYER_ONLY:-0} != 1 ]]; then
+  python3 Source/Lighthaven/Visual/Npc/export_npc.py
+  python3 Source/Lighthaven/Visual/Npc/prepare_npc.py
+  "$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$LH_PROJECT" \
+    -run=pythonscript "-Script=$PWD/Source/Lighthaven/Visual/Npc/import_npc.py" -EnablePlugins=PythonScriptPlugin -NoCrashDialog -NoAnalytics \
+    -stdout -FullStdOutLogOutput -nullrhi -unattended -nosound -nop4 '-DDC=(Local)' "-LocalDataCachePath=$PWD/Saved/DerivedDataCache" \
+    '-ini:Engine:[ConsoleVariables]:HomeScreen.EnableHomeScreen=0'
+fi

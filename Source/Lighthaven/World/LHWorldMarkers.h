@@ -52,5 +52,10 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Lighthaven") FLHAreaId Area;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Lighthaven") FGuid InstanceId;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Lighthaven") FLHContentId DefinitionId;
+    // Explicit generated presentation ownership; never infer fallback geometry by position.
+    UPROPERTY(VisibleAnywhere, Category="Lighthaven|Art") TArray<TObjectPtr<AActor>> NpcFallbackFigures;
+    UPROPERTY(VisibleAnywhere, Category="Lighthaven|Art") TObjectPtr<class ULHNpcVisualComponent> NpcVisual;
+    bool RegisterNpcFallback(AActor* Figure);
+    void SetNpcFallbackVisible(bool bVisible);
     FLHEntityId Materialize(const FGuid& Run) const;
 };

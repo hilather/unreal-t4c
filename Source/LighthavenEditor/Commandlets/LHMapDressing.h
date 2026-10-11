@@ -3,6 +3,7 @@
 #include "Visual/LHVisualKit.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/PointLight.h"
+#include "Components/PointLightComponent.h"
 #include "Engine/StaticMesh.h"
 #include "World/LHWorldMarkers.h"
 #include "EngineUtils.h"
@@ -39,6 +40,33 @@ inline ALHVisualPiece* Piece(UWorld* World, FName Id, ELHVisualStyle Style,
     A->Tags.Append({TEXT("LH.Dressing"), TEXT("LH.Provenance.Prototype")});
     return A;
 }
+// A continuous conservative shadow envelope, not a few room-center rays.
+// At yaw45 the camera is southwest of the pawn. Project a prospective visual
+// envelope northeast onto every floor elevation, including ramps and both sides
+// of partitions. Reject on any overlap; false negatives retain the old cutaway.
+inline bool CanRaise(const FBox& Visual, const TArray<FBox>& Floors, bool WallFootprint=false)
+{
+    const FVector Boom=-FRotator(-55,45,0).Vector()*1200;
+    for(const FBox& Floor:Floors)
+    {
+        // Head rays are shallower than foot rays (capsule center90/head180).
+        const double Slope=-Boom.X/(Boom.Z-90.);
+        const double Near=0.; // including head endpoints above the wall base
+        const double Far=FMath::Max(0.,Visual.Max.Z-Floor.Min.Z)*Slope;
+        FBox Shadow(FVector(Visual.Min.X+Near,Visual.Min.Y+Near,Floor.Min.Z),
+            FVector(Visual.Max.X+Far,Visual.Max.Y+Far,Floor.Max.Z));
+        // The original solid wall footprint cannot contain walkable centers.
+        // Its northeast face starts the shadow in the wall-normal direction.
+        if(WallFootprint)
+        {
+            if(Visual.GetSize().X>=Visual.GetSize().Y) Shadow.Min.Y=Visual.Max.Y;
+            else Shadow.Min.X=Visual.Max.X;
+        }
+        if(Visual.Max.Z>Floor.Min.Z && Shadow.Min.X<Floor.Max.X-.01 && Shadow.Max.X>Floor.Min.X+.01
+            && Shadow.Min.Y<Floor.Max.Y-.01 && Shadow.Max.Y>Floor.Min.Y+.01) return false;
+    }
+    return true;
+}
 inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Vantages,
     const TArray<FVector>& Targets)
 {
@@ -47,6 +75,18 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
     for (TActorIterator<AStaticMeshActor> It(World); It; ++It) Surfaces.Add(*It);
     for (TActorIterator<APointLight> It(World); It; ++It) Lights.Add(*It);
     TArray<ALHVisualPiece*> Pieces;
+    TArray<FBox> WalkableFloors, RaisedWalls;
+    for(auto* A:Surfaces)
+    {
+        const auto* C=A->GetStaticMeshComponent();
+        const FVector Size=A->GetActorScale3D().GetAbs()*100;
+        const FString Label=A->GetActorLabel();
+        if(!A->IsHidden() && C->IsVisible() && C->GetStaticMesh() && C->GetStaticMesh()->GetName()==TEXT("Cube")
+            && Size.Z<=20 && Size.X>=5 && Size.Y>=5 && !Label.StartsWith(TEXT("Scenic."))
+            && !Label.Contains(TEXT("RedAisle")) && !Label.Contains(TEXT("Tread"))
+            && !Label.Contains(TEXT("Arrow")) && !Label.StartsWith(TEXT("NPC.")))
+            WalkableFloors.Add(C->Bounds.GetBox());
+    }
     TArray<FBox> B1VisibleWalls, B1FlatFloors, B1Stairs;
     TArray<FVector> Protected;
     for (TActorIterator<AActor> It(World); It; ++It)
@@ -64,8 +104,16 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
         const FString Label = A->GetActorLabel();
         if (A->GetAttachParentActor() || Label.StartsWith(TEXT("NPC.")) || Label.StartsWith(TEXT("Scenic."))
             || Label.Contains(TEXT("Arrow")) || Label.Contains(TEXT("Tread"))
-            || Label.Contains(TEXT("RedAisle")) || Label.Contains(TEXT("Feature"))
+            || Label.Contains(TEXT("Feature"))
             || Label.Contains(TEXT("Stain")) || Label.Contains(TEXT("Pale"))) continue;
+        if(Label==TEXT("Temple.RedAisle"))
+        {
+            auto* Carpet=Piece(World,TEXT("Presentation.Environment.Church.Carpet"),Style,
+                FVector(A->GetActorLocation().X,A->GetActorLocation().Y,.1),FRotator::ZeroRotator);
+            if(!Carpet) return false;
+            Pieces.Add(Carpet); C->SetVisibility(false); C->SetCastShadow(false);
+            continue;
+        }
         if (Label.StartsWith(TEXT("Temple.Pew.")) || Label == TEXT("Temple.AltarTable"))
         {
             auto* Prop = Piece(World,Label==TEXT("Temple.AltarTable")?TEXT("Presentation.Environment.Shared.Altar"):TEXT("Presentation.Environment.Shared.Bench"),
@@ -85,8 +133,13 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
             const FName Id = Width >= 500 ? TEXT("Presentation.Environment.Basement.ArchBoss500") : TEXT("Presentation.Environment.Shared.Arch240");
             auto* Arch = Piece(World,Id,Style,FVector(A->GetActorLocation().X,A->GetActorLocation().Y,0),FRotator(0,Size.Y>Size.X?90:0,0));
             if (!Arch) return false;
+            // Structural lintel tests identify the retained actors by label.
+            Arch->SetActorLabel(TEXT("Dressing.Arch.")+Label.Replace(TEXT("Lintel"),TEXT("Arch")));
             Pieces.Add(Arch);
             C->SetVisibility(false); C->SetCastShadow(false);
+            A->Tags.Add(TEXT("LH.Dressing.RetainedCollider"));
+            if(Wall) UE_LOG(LogTemp,Display,TEXT("Dressing sight: omit duplicate lintel wall %s at %s"),*Label,*A->GetActorLocation().ToString());
+            continue; // An aperture gets one visual, never a second elevated wall slab.
         }
         if (!Floor && !Wall) continue; // NPC assemblies, signs and route proxies retain their owner.
         if(Style==ELHVisualStyle::B1Cellar && Wall && A->GetActorRotation().IsNearlyZero()
@@ -127,10 +180,26 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
         FRotator Rotation = A->GetActorRotation();
         FVector Dimensions = Size;
         if (Wall && Size.Y > Size.X) { Swap(Dimensions.X,Dimensions.Y); Rotation.Yaw += 90; }
+        FVector VisualPosition=A->GetActorLocation();
+        if(Wall)
+        {
+            const double Base=FMath::Max(0.,A->GetActorLocation().Z-Size.Z/2);
+            const FBox Candidate(FVector(A->GetActorLocation().X-Size.X/2,A->GetActorLocation().Y-Size.Y/2,Base),
+                FVector(A->GetActorLocation().X+Size.X/2,A->GetActorLocation().Y+Size.Y/2,Base+300));
+            Dimensions.Z=FMath::Min(Size.Z,120.); VisualPosition.Z=Base+Dimensions.Z/2;
+            // Rotated district edges stay cutaways: their world envelope is not
+            // the unrotated strip. Axis-aligned room segments alone qualify.
+            if(A->GetActorRotation().IsNearlyZero() && CanRaise(Candidate,WalkableFloors,true))
+            {
+                Dimensions.Z=300; VisualPosition.Z=Base+150; RaisedWalls.Add(Candidate);
+                UE_LOG(LogTemp,Display,TEXT("Dressing full-height wall %s: %s"),*Label,*Candidate.ToString());
+            }
+        }
         auto* Replacement = Piece(World, Floor ? TEXT("Presentation.Environment.Shared.Floor400")
-            : TEXT("Presentation.Environment.Shared.Wall400"), Style, A->GetActorLocation(), Rotation, Dimensions);
+            : TEXT("Presentation.Environment.Shared.Wall400"), Style, VisualPosition, Rotation, Dimensions);
         if (!Replacement) return false;
         Replacement->SetActorLabel(TEXT("Dressing.") + A->GetActorLabel());
+        if(Wall && Dimensions.Z==300) Replacement->Tags.Add(TEXT("LH.Dressing.FullHeight"));
         Pieces.Add(Replacement);
         C->SetVisibility(false); C->SetCastShadow(false);
         A->Tags.Add(TEXT("LH.Dressing.RetainedCollider"));
@@ -144,6 +213,31 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
             auto* Prop = Piece(World,FName(*Id),Style,Position,FRotator::ZeroRotator);
             if (!Prop) return false;
             Pieces.Add(Prop); ++Props;
+        }
+    }
+    if(Style==ELHVisualStyle::Church)
+    {
+        // Entry leaves are folded outward against the jambs, never closed
+        // across the 320cm arrival route. Near-side leaves share the cutaway.
+        for(int32 Side:{-1,1})
+        {
+            const FVector Hinge(Side<0?640:960,-15,0);
+            FLHVisualRecipe Door;
+            if(!LHVisual::MakeRecipe(TEXT("Presentation.Environment.Church.DoorLeafPreview"),Style,Door)) return false;
+            Door.Collision.Reset();
+            for(auto& B:Door.Geometry) { B.Center.Z*=.2; B.Size.Z*=.2; }
+            auto* Leaf=World->SpawnActor<ALHVisualPiece>(Hinge,FRotator(0,Side<0?180:0,0));
+            if(!Leaf || !Leaf->Build(Door)) return false;
+            Leaf->Tags.Append({TEXT("LH.Dressing"),TEXT("LH.Provenance.Prototype")});
+            Leaf->SetActorLabel(FString::Printf(TEXT("Dressing.Temple.EntryLeaf.%d"),Side)); Pieces.Add(Leaf);
+        }
+        for(double X:{200.,1400.})
+        {
+            const FVector Position(X,2440,0);
+            if(!CanRaise(FBox(Position+FVector(-30,-30,0),Position+FVector(30,30,400)),WalkableFloors)) return false;
+            auto* Pillar=Piece(World,TEXT("Presentation.Environment.Church.Pillar"),Style,Position,FRotator::ZeroRotator);
+            if(!Pillar) return false;
+            Pillar->SetActorLabel(TEXT("Dressing.Temple.BackPillar")); Pieces.Add(Pillar);
         }
     }
     TMap<ALHVisualPiece*,FBox> B1ClutterFootprints;
@@ -301,6 +395,30 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
             B1FixtureFlames.Add(Flame);
             if(!Mounted) B1FloorFixtureFlames.Add(Flame);
         }
+        if(Style!=ELHVisualStyle::B1Cellar)
+        {
+            double Nearest=FMath::Square(375.);
+            for(const FBox& Wall:RaisedWalls)
+            {
+                const bool AlongX=Wall.GetSize().X>=Wall.GetSize().Y;
+                FVector Mount=Wall.GetCenter();
+                const FVector Inward=AlongX?FVector(0,-1,0):FVector(-1,0,0);
+                if(AlongX)
+                {
+                    Mount.X=FMath::Clamp(Position.X,Wall.Min.X+5,Wall.Max.X-5);
+                    Mount.Y=Wall.Min.Y-.5;
+                }
+                else
+                {
+                    Mount.Y=FMath::Clamp(Position.Y,Wall.Min.Y+5,Wall.Max.Y-5);
+                    Mount.X=Wall.Min.X-.5;
+                }
+                const double Distance=FVector::DistSquared2D(Light->GetActorLocation(),Mount);
+                if(Distance>=Nearest) continue;
+                Nearest=Distance; Mount.Z=Wall.Min.Z+180;
+                Position=Mount; Rotation=FRotator(0,Inward.Rotation().Yaw-90,0);
+            }
+        }
         auto* Fixture = Piece(World,FixtureId,Style,Position,Rotation);
         if (!Fixture) return false;
         if(Style==ELHVisualStyle::B1Cellar)
@@ -339,11 +457,60 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
         if (!Altar) return false;
         Pieces.Add(Altar);
     }
+    // Full arches on a foreground boundary can hide both pawn endpoints.
+    // Retain full-height arches only when their complete floor shadow is clear;
+    // otherwise crop the visual to the same 120cm cutaway as adjacent walls.
+    // This also covers the hub arches authored through Piece before Dress.
+    for(TActorIterator<ALHVisualPiece> It(World);It;++It)
+    {
+        const auto& Original=It->GetRecipe();
+        if(!Original.Id.ToString().Contains(TEXT(".Arch"))) continue;
+        FBox Envelope(ForceInit);
+        for(const auto& B:Original.Geometry)
+            Envelope+=FBox(-B.Size/2,B.Size/2).TransformBy(FTransform(B.Rotation,B.Center)*It->GetActorTransform());
+        if(CanRaise(Envelope,WalkableFloors)) continue;
+        auto Cutaway=Original;
+        for(int32 I=Cutaway.Geometry.Num()-1;I>=0;--I)
+        {
+            auto& B=Cutaway.Geometry[I];
+            const double Bottom=B.Center.Z-B.Size.Z/2;
+            const double Top=FMath::Min(120.,B.Center.Z+B.Size.Z/2);
+            if(Top<=Bottom) { Cutaway.Geometry.RemoveAt(I); continue; }
+            B.Center.Z=(Bottom+Top)/2; B.Size.Z=Top-Bottom;
+        }
+        if(!It->Build(Cutaway)) return false;
+        It->Tags.Add(TEXT("LH.Dressing.ArchCutaway"));
+        UE_LOG(LogTemp,Display,TEXT("Dressing sight: crop foreground arch %s id=%s at %s yaw=%.0f to120cm (floor shadow overlap)"),
+            *It->GetActorLabel(),*Original.Id.ToString(),*It->GetActorLocation().ToString(),It->GetActorRotation().Yaw);
+    }
+    for(auto* Light:Lights)
+    {
+        const FVector Source=Light->GetActorLocation();
+        const double Radius=Light->PointLightComponent->AttenuationRadius;
+        for(const FBox& Wall:RaisedWalls)
+        {
+            if(Wall.ComputeSquaredDistanceToPoint(Source)>FMath::Square(Radius)) continue;
+            const FVector RoomProbe=Wall.GetCenter()-FVector(150,150,0);
+            const bool Blocks=FMath::LineBoxIntersection(Wall,Source,RoomProbe,RoomProbe-Source);
+            UE_LOG(LogTemp,Display,TEXT("Dressing light-wall: light=%s source=%s wall=%s withinRadius=1 centerProbeBlocked=%d"),
+                *Light->GetActorLabel(),*Source.ToString(),*Wall.ToString(),Blocks?1:0);
+        }
+    }
     if (Vantages.Num() != Targets.Num() || Vantages.Num() != 3) return false;
     for (int32 I=0; I<Vantages.Num(); ++I)
     {
         FActorSpawnParameters Params; Params.Name = FName(*FString::Printf(TEXT("LH_Capture_%d"),I+1));
-        auto* Camera = World->SpawnActor<ACameraActor>(Vantages[I],(Targets[I]-Vantages[I]).Rotation(),Params);
+        FVector CapturePosition=Vantages[I];
+        if(RaisedWalls.ContainsByPredicate([&](const FBox& Wall)
+            {return FMath::LineBoxIntersection(Wall,CapturePosition,Targets[I],Targets[I]-CapturePosition);}))
+        {
+            CapturePosition=Targets[I]-FRotator(-55,45,0).Vector()*1200;
+            UE_LOG(LogTemp,Display,TEXT("Dressing capture move %d: old=%s new=%s target=%s"),
+                I+1,*Vantages[I].ToString(),*CapturePosition.ToString(),*Targets[I].ToString());
+        }
+        if(RaisedWalls.ContainsByPredicate([&](const FBox& Wall)
+            {return FMath::LineBoxIntersection(Wall,CapturePosition,Targets[I],Targets[I]-CapturePosition);})) return false;
+        auto* Camera = World->SpawnActor<ACameraActor>(CapturePosition,(Targets[I]-CapturePosition).Rotation(),Params);
         if (!Camera) return false;
         Camera->GetCameraComponent()->SetFieldOfView(65);
         Camera->Tags.Add(TEXT("LH.Capture"));

@@ -187,7 +187,9 @@ const TArray<FName>& LHVisual::PieceIds()
 }
 bool LHVisual::MakeRecipe(FName Id,ELHVisualStyle Style,FLHVisualRecipe& Out,bool bDescending)
 {
-    if (!PieceIds().Contains(Id) || uint8(Style)>uint8(ELHVisualStyle::B4Ritual)) return false;
+    const bool ChurchCarpet=Style==ELHVisualStyle::Church && Id==TEXT("Presentation.Environment.Church.Carpet");
+    // Imported auxiliary dressing; preserve the established 26-piece catalog.
+    if ((!PieceIds().Contains(Id) && !ChurchCarpet) || uint8(Style)>uint8(ELHVisualStyle::B4Ritual)) return false;
     using namespace LHVisualPrivate;
     FLHVisualRecipe R; R.Id=Id; R.Style=Style;
     R.Colors[0]=Hex(Style==ELHVisualStyle::B4Ritual?TEXT("A69C89"):TEXT("78634B"));
@@ -212,6 +214,12 @@ bool LHVisual::MakeRecipe(FName Id,ELHVisualStyle Style,FLHVisualRecipe& Out,boo
         else if(S.EndsWith(TEXT("600x120"))) Stair(R,600,Sign*120);
         else if(S.EndsWith(TEXT("250x80"))) Stair(R,250,Sign*80);
         else Stair(R,300,Sign*80);
+    }
+    else if(S.EndsWith(TEXT("Carpet")))
+    {
+        R.Colors[0]=Hex(TEXT("733D35")); R.Colors[1]=Hex(TEXT("A88C52"));
+        Box(R,{0,0,.4},{400,2100,.8});
+        for(float X:{-182.f,-174.f,174.f,182.f}) Box(R,{X,0,.9},{2.5f,2065,.2f},1);
     }
     else if(S.EndsWith(TEXT("DoorLeafPreview")))
     {
