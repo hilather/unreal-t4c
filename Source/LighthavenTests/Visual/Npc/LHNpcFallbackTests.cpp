@@ -1,5 +1,6 @@
 #include "Misc/AutomationTest.h"
 #include "World/LHWorldMarkers.h"
+#include "Visual/Npc/LHNpcVisual.h"
 #include "Engine/World.h"
 #include "Engine/StaticMeshActor.h"
 #include "Components/StaticMeshComponent.h"
@@ -34,6 +35,19 @@ bool FLHNpcFallbackOwnership::RunTest(const FString&)
     // A stale/malformed serialized reference must never hide somebody else's actor.
     First->NpcFallbackFigures.Add(Other); First->SetNpcFallbackVisible(false);
     TestFalse(TEXT("Wrong-owner serialized reference ignored"),Other->IsHidden());
+    auto* Missing=World->SpawnActor<ALHInteractableMarker>();
+    Missing->DefinitionId.Value=TEXT("NPC.DeliberatelyMissingAsset");
+    auto* MissingFigure=World->SpawnActor<AStaticMeshActor>();
+    Missing->RegisterNpcFallback(MissingFigure);
+    Missing->SetNpcFallbackVisible(false);
+    const auto EntityBefore=Missing->Materialize(FGuid(1,2,3,4));
+    const FTransform MarkerBefore=Missing->GetActorTransform();
+    Missing->NpcVisual->Refresh();
+    TestFalse(TEXT("Missing appearance creates no partial imported figure"),Missing->NpcVisual->UsesImportedCharacter());
+    TestFalse(TEXT("Fallback restored after failed bind"),MissingFigure->IsHidden());
+    TestTrue(TEXT("Visual refresh preserves marker transform"),MarkerBefore.Equals(Missing->GetActorTransform()));
+    const auto EntityAfter=Missing->Materialize(FGuid(1,2,3,4));
+    TestEqual(TEXT("Interaction instance unchanged"),EntityBefore.InstanceId,EntityAfter.InstanceId);
     World->DestroyWorld(false);
     return true;
 }

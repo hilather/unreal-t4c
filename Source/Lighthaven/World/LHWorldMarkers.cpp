@@ -1,10 +1,11 @@
 #include "LHWorldMarkers.h"
 #include "LHAreaRegistry.h"
+#include "Visual/Npc/LHNpcVisual.h"
 #include "Components/SceneComponent.h"
 ALHPortal::ALHPortal() { PrimaryActorTick.bCanEverTick=false; SetRootComponent(CreateDefaultSubobject<USceneComponent>(TEXT("Root"))); }
 ALHEntranceMarker::ALHEntranceMarker() { PrimaryActorTick.bCanEverTick=false; SetRootComponent(CreateDefaultSubobject<USceneComponent>(TEXT("Root"))); }
 ALHSpawnMarker::ALHSpawnMarker() { PrimaryActorTick.bCanEverTick=false; SetRootComponent(CreateDefaultSubobject<USceneComponent>(TEXT("Root"))); }
-ALHInteractableMarker::ALHInteractableMarker() { PrimaryActorTick.bCanEverTick=false; SetRootComponent(CreateDefaultSubobject<USceneComponent>(TEXT("Root"))); }
+ALHInteractableMarker::ALHInteractableMarker() { PrimaryActorTick.bCanEverTick=false; SetRootComponent(CreateDefaultSubobject<USceneComponent>(TEXT("Root"))); NpcVisual=CreateDefaultSubobject<ULHNpcVisualComponent>(TEXT("NpcVisual")); NpcVisual->SetupAttachment(RootComponent); }
 FLHEntityId ALHPortal::Materialize(const FGuid& Run) const { FLHEntityId E; E.RunId=Run; E.Area=Source.Area; E.InstanceId=PortalId; return E; }
 FLHEntityId ALHInteractableMarker::Materialize(const FGuid& Run) const { FLHEntityId E; E.RunId=Run; E.Area=Area; E.InstanceId=InstanceId; return E; }
 bool ALHSpawnMarker::ResolveLife(const FLHAreaRecord& Record,FLHSpawnLifeId& Out) const
