@@ -11,6 +11,10 @@ public:
     virtual void Deinitialize() override;
     bool PlaceSessionArrival(UWorld* World,FString& Error);
     TSharedPtr<FLHWave2Session> Session() const { return Live; }
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+    // Ephemeral capture session; prepares production creation before possession.
+    bool PrepareCaptureSession(UWorld* World, bool BodyB, FString& Error);
+#endif
 private:
     TSharedPtr<FLHWave2Session> Live;
 };

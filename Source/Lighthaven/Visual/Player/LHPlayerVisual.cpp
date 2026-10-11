@@ -279,17 +279,23 @@ void ULHPlayerVisualComponent::SetPresentationEnabled(bool Enabled)
 }
 void ULHPlayerVisualComponent::Present(const FLHCharacterRecord* C,ULHCombatComponent* Combat,float Speed,float Seconds)
 {
-    Bind(Combat);
-    const auto Parts=LHPlayerVisual::Build(C?*C:FLHCharacterRecord{}); uint32 Hash=LHPlayerVisual::Fingerprint(Parts);
-    TArray<FString> IDs; if(C) for(const auto& ID:C->AppearanceIds) IDs.Add(ID.Value.ToString()); IDs.Sort();
+    // Missing session is a presentation preview, never a zero-health corpse.
+    FLHCharacterRecord Default;
+    if(!C) for(const TCHAR* Id:{TEXT("Presentation.Player.Body.A"),TEXT("Presentation.Player.Hair.Cropped"),TEXT("Presentation.Player.Skin.LightWarm"),TEXT("Presentation.Player.Outfit.StarterLinen")})
+    { FLHContentId V; V.Value=Id; Default.AppearanceIds.Add(V); }
+    const auto& Appearance=C?*C:Default;
+    if(!C) Speed=0;
+    Bind(C?Combat:nullptr);
+    const auto Parts=LHPlayerVisual::Build(Appearance); uint32 Hash=LHPlayerVisual::Fingerprint(Parts);
+    TArray<FString> IDs; for(const auto& ID:Appearance.AppearanceIds) IDs.Add(ID.Value.ToString()); IDs.Sort();
     for(const auto& ID:IDs) Hash=HashCombine(Hash,FCrc::StrCrc32(*ID));
-    if(!bBuilt || Hash!=BuiltFingerprint) { Rebuild(Parts); RebuildImported(C?*C:FLHCharacterRecord{}); BuiltFingerprint=Hash; bBuilt=true; }
+    if(!bBuilt || Hash!=BuiltFingerprint) { Rebuild(Parts); RebuildImported(Appearance); BuiltFingerprint=Hash; bBuilt=true; }
     const float Dt=FMath::IsFinite(Seconds)?FMath::Max(0.f,Seconds):0;
     Clock+=Dt; Phase+=Dt*FMath::Max(0.f,Speed)/(Speed>300?360.f:220.f); ActionAge+=Dt;
     ReleaseRemaining=FMath::Max(0.f,ReleaseRemaining-Dt); FlinchRemaining=FMath::Max(0.f,FlinchRemaining-Dt);
     // IsAlive also requires an attached GAS avatar. Travel/spawn detachment is
     // not a death pose: use the saved health until this pawn owns the avatar.
-    const bool Ready=Combat && Combat->GetAvatarActor()==GetOwner();
+    const bool Ready=C && Combat && Combat->GetAvatarActor()==GetOwner();
     const bool Alive=Ready?Combat->IsAlive():!C || C->CurrentHealth.Resolution!=ELHValueResolution::Resolved || C->CurrentHealth.Value>0;
     if(!Ready) { PreviousHealth=-1; bAction=false; ReleaseRemaining=0; FlinchRemaining=0; }
     if(Ready) { const float Health=Combat->GetCombatAttributes()->GetHealth(); if(Alive && PreviousHealth>=0 && Health<PreviousHealth) FlinchRemaining=.2f; PreviousHealth=Health; }
