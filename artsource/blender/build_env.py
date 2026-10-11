@@ -15,7 +15,7 @@ from materials import bake_materials, export_piece
 from geometry import PIECES, build_piece
 
 PREFIX = 'Presentation.Environment.Shared.'
-REVISION = 'W5-07b-v1'
+REVISION = 'W5-09g-v1'
 
 
 def canonical_bounds(name):
@@ -118,7 +118,9 @@ def light(name, location, power, color, radius=.18, area=0, target=(0,0,0)):
     data.energy=power
     data.color=color
     if area: data.shape='DISK'; data.size=area
-    else: data.shadow_soft_size=radius
+    else:
+        data.shadow_soft_size=radius
+        data.use_shadow=False  # match the B1 non-shadow-casting torch policy
     obj=bpy.data.objects.new(name,data)
     bpy.context.collection.objects.link(obj)
     obj.location=location
@@ -179,7 +181,7 @@ def render_room(pieces, directory, revision):
     def torch(x,y,z,yaw=0,power=125):
         obj=put('Sconce',(x,y,z),yaw)
         a=math.radians(yaw)
-        light('Amber torch',(x-.38*math.sin(a),y+.38*math.cos(a),z+.18),power,(1,.24,.035),radius=.11)
+        light('Amber torch',(x-.38*math.sin(a),y+.38*math.cos(a),z+.18),power,(1,.48,.20),radius=.11)
     # A concept-comparison diorama, NOT the registry-authored B1 gameplay topology.
     for x in (0,4,8):
         for y in (0,4,8): put('Floor400',(x,y,0))
@@ -236,9 +238,10 @@ def render_room(pieces, directory, revision):
     torch(4.3,11.52,2.2,180,185)
     torch(9.4,11.52,2.3,180,190)
     torch(8.2,-3.0,.65,-90,140)
-    light('Cool air',(7,5,13),440,(.46,.61,.82),area=9,target=(6,6,0))
-    light('Front bounce',(8,-5,7),220,(.68,.73,.82),area=8,target=(6,5,0))
+    light('Warm room bounce',(7,5,13),560,(.82,.68,.49),area=9,target=(6,6,0))
+    light('Front bounce',(8,-5,7),250,(.82,.69,.51),area=8,target=(6,5,0))
     camera((23,-23,25),(5.5,4.3,1.1),29.2)
+    bpy.context.scene.world.node_tree.nodes['Background'].inputs[0].default_value=(.20,.13,.075,1)
     bpy.context.scene.world.node_tree.nodes['Background'].inputs[1].default_value=.026
     bpy.context.scene.render.filepath=str(directory/('B1_room_'+revision+'.png'))
     bpy.ops.render.render(write_still=True)

@@ -113,3 +113,62 @@ Evidence destination for this attempt: `/home/brewerm/.herdr-projects/unreal-t4c
 Checks not run: Unreal import/material conversion, map regeneration, collision/nav/arrival tests, in-engine rendering, editor/game build, cook/package/play, GPU timings and Windows packaging. Concrete prerequisite: the separately assigned Unreal import/binding/lighting task must implement and exercise these assets in the actual project; no such changes are owned here. Windows remains deferred by project decision. The prior W5-07 tiny CPU smoke is not substituted for any of these checks.
 
 Next task: codex-sol import/binding work using the manifest and fitting notes, then visual review of the real B1 map against the concept. Keep generated binaries uncommitted here; asset ownership/LFS/import destinations and G5 acceptance belong to the integrator. No main merge, push, release of worker capacity, or verified task-success declaration is made by this evidence candidate.
+
+## W5-09g — warmer, larger worn masonry (2026-10-11)
+
+This section supersedes the original geometry counts and stone palette above;
+manifest IDs, dimensions, pivots, signed stair variants and nine shared 512px
+textures remain the same. Source revision is `W5-09g-v1` (seed 7507). No new kit
+IDs, downloads, textures made from reference images, or binary deliverables.
+All choices are Prototype presentation tuning, provenance W5-09g supplied B1
+captures and concept comparison, retrieval 2026-10-11, URL null.
+
+Wall courses now average 68cm high with 78–146cm stones instead of 40cm courses
+and 57–94cm stones. Individual warm tones and a darker bottom course suggest
+floor grime. Unequal 65/95/70/100/70cm paving bands, wider flags, occasional
+cross-jointed repairs, warped joints and worn bevels break the former uniform
+rows. The shared stone albedo uses umber/ochre mineral tones; timber and iron
+texture recipes stay unchanged. Bounds still normalize to the frozen canonical
+contract without object scale or pivot changes.
+
+The custom arch voussoirs had all six face windings reversed. Correct outward
+faces remove that source of backface culling and inverted lighting. The independent
+GLB validator now welds split normal/UV vertices and requires positive signed
+volume for each arch shell. It rejects the previous exported arches as a negative
+control and accepts the corrected twelve-piece export. This complements the
+existing bounds, UV, normal, PNG, manifest and Blender re-import checks.
+
+Rebuild/import remains `build/build-art.sh`. Render evidence can be regenerated
+without rebaking or exporting again:
+
+```sh
+XDG_CONFIG_HOME="$PWD/artsource/blender/.config" \
+  /home/brewerm/Downloads/blender-5.2.2-linux-x64/blender \
+  --background --factory-startup --python-exit-code 1 \
+  --python artsource/blender/render_b1_review.py -- \
+  --source Saved/ArtExport/env --samples 32
+```
+
+This imports the actual exported GLBs and renders a room, a 120cm cropped wall /
+flagstone / storage study, and the arch. The study's coping uses the native cap
+length pattern, 6cm depth and 1.6cm joints; it is an art approximation rather than
+execution of the Unreal cap code. The room retains the earlier demonstration
+layout and thicker/taller walls. The study uses the true 20cm-thick kit wall.
+Point lights have shadows disabled. Cycles CPU, AgX, indirect light and area fills
+still differ from Unreal; these images judge shape/palette and cannot establish
+Unreal exposure, pixel acceptance, performance or gameplay clearance.
+
+Visual assessment: larger varied stones and warm gaps move toward the concept;
+perimeter storage is useful at oblique distance. Remaining differences include
+visible modular repetition, thinner actual B1 walls, crisp native coping edges,
+simplified props/flames and no pottery or cobwebs. The existing five prop families
+were sufficient for this pass, so the allowance for new pieces was not used.
+The authoritative task validation and predicted Unreal means are recorded in
+[lighting-b1-w5-09.md](lighting-b1-w5-09.md), W5-09g section.
+
+Observed final export: 20,696 unique triangles (Wall400 1,560; Floor400 1,500;
+Arch240 1,392; Arch320 1,152), 1,701,596 GLB bytes plus 2,655,012 texture bytes,
+**4,369,302 bytes including manifest**. A fresh independent export matches all
+21 asset hashes byte-for-byte. Imported B1 packages total **4,316,432 bytes**
+across 26 packages, below the task's 8,000,000-byte limit. The source-only
+submission excludes these generated files.

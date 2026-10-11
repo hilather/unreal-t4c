@@ -111,39 +111,50 @@ class Builder:
 def wall(b, length=4, height=4, x=0, z=0):
     # Mortar must sit behind the entire bevel, otherwise it occludes chipped edges.
     b.block((x+length/2,-.1,z+height/2),(length,.10,height),bevel=.008,irregular=0,tint=(.36,.34,.30,1))
-    rows = max(1,round(height/.4))
+    rows = max(1,round(height/.68))
     step = height/rows
     for row in range(rows):
         left = 0
         while left < length-.001:
-            width = min(length-left, b.rng.uniform(.57,.94) if left or row%2==0 else .36)
-            gap = .022
+            width = min(length-left, b.rng.uniform(.78,1.46) if left or row%2==0 else .51)
+            gap = .025
             jitter=b.rng.uniform(-.014,.014)
+            # Individual ochre/umber/slate-brown blocks; darker dusty base course.
+            shade=b.rng.uniform(.56,1.0) * (.72 if z+row*step<.7 else 1)
+            tint=(shade,shade*b.rng.uniform(.86,.99),shade*b.rng.uniform(.72,.94),1)
             b.block((x+left+width/2,-.1,z+(row+.5)*step),
-                    (max(.015,width-gap),.2,step-.01+jitter),bevel=.038,irregular=.045)
+                    (max(.015,width-gap),.2,step-.025+jitter),
+                    bevel=.048,irregular=.047,tint=tint)
             left += width
 
 
 def floor(b, length=4):
     first_vertex=len(b.vertices)
     b.block((length/2,length/2,-.1375),(length,length,.125),bevel=.008,irregular=0,tint=(.40,.38,.35,1))
-    rows = 7
-    for row in range(rows):
-        y0 = row*length/rows
-        x = 0
+    # Unequal bands plus occasional cross-joints make broad flags and smaller
+    # repairs share one tile. Keep every outer seam at the canonical boundary.
+    heights=(.65,.95,.70,1.0,.70)
+    y0=0
+    for row,h in enumerate(heights):
+        x=0
         while x < length-.001:
-            w = min(length-x,b.rng.uniform(.48,.95))
-            h = length/rows
-            # A dry dusty, moderately irregular flagstone pavement, at exactly Z0.
-            if w>.65 and b.rng.random()<.25:
-                # Occasional split flags break the regular rows without changing the tile boundary.
-                for half in (0,1):
-                    b.block((x+w*(.25+.5*half),y0+h/2,-.04),
-                            (w*.5-.016,h-.014,.08),bevel=.022,irregular=.024)
+            w=min(length-x,b.rng.uniform(.72,1.52))
+            if length-x-w<.24: w=length-x
+            shade=b.rng.uniform(.46,1.0)
+            tint=(shade,shade*b.rng.uniform(.88,1.02),shade*b.rng.uniform(.76,.99),1)
+            if w>1.0 and b.rng.random()<.28:
+                # Two different repair stones instead of a repeated square grid.
+                split=b.rng.uniform(.38,.64)
+                for low,high in ((0,split),(split,1)):
+                    tone=tuple(c*b.rng.uniform(.85,1.0) for c in tint[:3])+(1,)
+                    b.block((x+w/2,y0+h*(low+high)/2,-.04),
+                            (w-.019,h*(high-low)-.017,.08),
+                            bevel=.028,irregular=.029,tint=tone)
             else:
-                b.block((x+w/2,y0+h/2,-.04),(max(.01,w-.014),h-.014,.08),
-                        bevel=.022,irregular=.024)
-            x += w
+                b.block((x+w/2,y0+h/2,-.04),(max(.01,w-.019),h-.017,.08),
+                        bevel=.028,irregular=.029,tint=tint)
+            x+=w
+        y0+=h
     # A continuous, boundary-preserving warp gives worn flags irregular joints.
     for i in range(first_vertex,len(b.vertices)):
         x,y,z=b.vertices[i]
@@ -166,7 +177,9 @@ def arch(b, width):
         v=[(xa,-.2,low(xa)),(xb,-.2,low(xb)),(xb,-.2,3.57),(xa,-.2,3.57),
            (xa,0,low(xa)),(xb,0,low(xb)),(xb,0,3.57),(xa,0,3.57)]
         # Slightly wedge-shaped individual voussoirs; bevel applied to this strip below.
-        b.polyhedron(v,[(0,3,2,1),(4,5,6,7),(0,1,5,4),(3,7,6,2),(0,4,7,3),(1,2,6,5)])
+        # Outward winding is essential: inward voussoirs produced black/cull
+        # faces on the imported arch even when the top was capped.
+        b.polyhedron(v,[(0,1,2,3),(4,7,6,5),(0,4,5,1),(3,2,6,7),(0,3,7,4),(1,5,6,2)])
     # No backing across the arch: the opening is a real shallow segmental silhouette.
     wall(b,4,.43,x=-2,z=3.57)
     for xx in (-2+side/2,2-side/2):

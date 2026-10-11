@@ -87,7 +87,7 @@ def _procedural(name):
                      _math(tree, 'ADD', _math(tree, 'MULTIPLY', tone, .85), .12),
                      _math(tree, 'MULTIPLY', grain, .28))
     ramp = _node(tree, 'ShaderNodeValToRGB')
-    colors = {'stone': ((.065, .055, .037, 1), (.39, .345, .245, 1)),
+    colors = {'stone': ((.070, .049, .030, 1), (.40, .315, .210, 1)),
               'timber': ((.019, .016, .011, 1), (.105, .075, .043, 1)),
               'iron': ((.025, .03, .032, 1), (.12, .095, .067, 1))}
     for stop, color in zip(ramp.color_ramp.elements, colors[name]):
@@ -95,7 +95,7 @@ def _procedural(name):
         stop.position = .2 if stop.position == 0 else .8
     if name == 'stone':
         mineral = ramp.color_ramp.elements.new(.53)
-        mineral.color = (.19, .18, .14, 1)
+        mineral.color = (.205, .157, .103, 1)
     tree.links.new(tone, ramp.inputs[0])
     roughness = _math(tree, 'ADD', _math(tree, 'MULTIPLY', noise.outputs['Fac'], .16),
                       .79 if name == 'stone' else .72 if name == 'timber' else .48)

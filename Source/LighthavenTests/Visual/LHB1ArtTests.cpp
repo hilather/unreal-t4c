@@ -28,11 +28,52 @@ bool FLHB1ArtFitTest::RunTest(const FString&)
     TestEqual(TEXT("Cutaway has one closed masonry core"),Backing.Num(),1);
     if(Backing.Num()==1)
     {
-        TestTrue(TEXT("Core spans exact crop ends and top"),Backing[0].Center.Equals(Fit.ClipBounds.GetCenter()) &&
-            FMath::IsNearlyEqual(Backing[0].Size.X,1000.) && FMath::IsNearlyEqual(Backing[0].Size.Z,120.));
+        AddInfo(FString::Printf(TEXT("Actual wall core center=%s size=%s fitMin=%s fitMax=%s"),*Backing[0].Center.ToString(),*Backing[0].Size.ToString(),*Fit.ClipBounds.Min.ToString(),*Fit.ClipBounds.Max.ToString()));
+        TestTrue(TEXT("Mortar core recedes beneath coping at ends and top"),Backing[0].Center.Equals(Fit.ClipBounds.GetCenter()) &&
+            FMath::IsNearlyEqual(Backing[0].Size.X,997.) && FMath::IsNearlyEqual(Backing[0].Size.Z,117.));
         TestTrue(TEXT("Broad faces inset behind imported stone"),Backing[0].Size.Y<Fit.ClipBounds.GetSize().Y);
     }
-    const uint32 Unchanged=R.Fingerprint(); LHB1Art::SolidBacking(R,Fit);
+    const auto CheckCapOverlaps=[&](const TArray<FLHVisualBox>& Stones)
+    {
+        for(int32 A=0;A<Stones.Num();++A) for(int32 B=A+1;B<Stones.Num();++B)
+        {
+            const FVector AMin=Stones[A].Center-Stones[A].Size/2, AMax=Stones[A].Center+Stones[A].Size/2;
+            const FVector BMin=Stones[B].Center-Stones[B].Size/2, BMax=Stones[B].Center+Stones[B].Size/2;
+            const FVector Overlap(FMath::Min(AMax.X,BMax.X)-FMath::Max(AMin.X,BMin.X),
+                FMath::Min(AMax.Y,BMax.Y)-FMath::Max(AMin.Y,BMin.Y),
+                FMath::Min(AMax.Z,BMax.Z)-FMath::Max(AMin.Z,BMin.Z));
+            TestFalse(*FString::Printf(TEXT("Coping stones %d/%d cannot overlap in volume or create coplanar corner faces"),A,B),
+                Overlap.X>.0001 && Overlap.Y>.0001 && Overlap.Z>.0001);
+        }
+    };
+    const auto Caps=LHB1Art::MasonryCaps(R,Fit);
+    CheckCapOverlaps(Caps);
+    TestTrue(TEXT("Cutaway coping has individually sized stones"),Caps.Num()>12);
+    bool DifferentLengths=false, HasJoint=false;
+    double LastTopEnd=Fit.ClipBounds.Min.X;
+    for(const auto& B:Caps)
+    {
+        const FVector Min=B.Center-B.Size/2, Max=B.Center+B.Size/2;
+        TestTrue(TEXT("Cap never grows exact fitted silhouette"),
+            Fit.ClipBounds.IsInsideOrOn(Min) && Fit.ClipBounds.IsInsideOrOn(Max));
+        TestTrue(TEXT("Cap closes full masonry thickness"),FMath::IsNearlyEqual(B.Size.Y,20.));
+        if(FMath::IsNearlyEqual(Max.Z,Fit.ClipBounds.Max.Z) && B.Size.Z<=6.01)
+        {
+            HasJoint|=Min.X>LastTopEnd+.1;
+            DifferentLengths|=!FMath::IsNearlyEqual(B.Size.X,Caps[0].Size.X,.1);
+            LastTopEnd=Max.X;
+        }
+    }
+    TestTrue(TEXT("Coping uses varied stone lengths"),DifferentLengths);
+    TestTrue(TEXT("Coping leaves visible recessed mortar joints"),HasJoint);
+    TestTrue(TEXT("Last coping stone reaches exact crop endpoint"),FMath::IsNearlyEqual(LastTopEnd,Fit.ClipBounds.Max.X));
+    FBox Combined(ForceInit);
+    for(const auto& B:Backing) Combined+=FBox(B.Center-B.Size/2,B.Center+B.Size/2);
+    for(const auto& B:Caps) Combined+=FBox(B.Center-B.Size/2,B.Center+B.Size/2);
+    TestTrue(TEXT("Core and coping together retain exact fitted envelope"),Combined.Min.Equals(Fit.ClipBounds.Min) && Combined.Max.Equals(Fit.ClipBounds.Max));
+    if(Backing.Num()==1) TestTrue(TEXT("Joints expose a recessed mortar bed"),
+        FMath::IsNearlyEqual(Backing[0].Center.Z+Backing[0].Size.Z/2,Fit.ClipBounds.Max.Z-1.5));
+    const uint32 Unchanged=R.Fingerprint(); LHB1Art::SolidBacking(R,Fit); LHB1Art::MasonryCaps(R,Fit);
     TestEqual(TEXT("Backing never mutates gameplay recipe"),R.Fingerprint(),Unchanged);
     for(auto Style:{ELHVisualStyle::Church,ELHVisualStyle::B2Damp,ELHVisualStyle::B3Crypt,ELHVisualStyle::B4Ritual})
     { R.Style=Style; TestFalse(TEXT("Other styles fall back"),LHB1Art::Resolve(R,Fit)); }
@@ -53,6 +94,34 @@ bool FLHB1ArtFitTest::RunTest(const FString&)
     TestEqual(TEXT("Arch closed uprights and crown"),ArchBacking.Num(),3);
     if(ArchBacking.Num()==3) TestTrue(TEXT("Crown does not fill segmental aperture"),
         FMath::IsNearlyEqual(ArchBacking[2].Center.Z-ArchBacking[2].Size.Z/2,357.));
+    for(const TCHAR* Name:{TEXT("Arch240"),TEXT("Arch320")})
+    {
+        LHVisual::MakeRecipe(FName(*(FString(TEXT("Presentation.Environment.Shared."))+Name)),ELHVisualStyle::B1Cellar,R);
+        LHB1Art::Resolve(R,Fit);
+        const auto ArchCaps=LHB1Art::MasonryCaps(R,Fit);
+        CheckCapOverlaps(ArchCaps);
+        const auto RecessedArch=LHB1Art::SolidBacking(R,Fit);
+        if(TestEqual(TEXT("Arch retains three closed backing regions"),RecessedArch.Num(),3))
+        {
+            for(const auto& B:RecessedArch) AddInfo(FString::Printf(TEXT("%s actual arch core center=%s size=%s"),Name,*B.Center.ToString(),*B.Size.ToString()));
+            TestTrue(TEXT("Arch core top recedes below coping joints"),FMath::IsNearlyEqual(RecessedArch[2].Center.Z+RecessedArch[2].Size.Z/2,398.5));
+            TestTrue(TEXT("Arch jamb outer beds recede while inner reveals remain exact"),
+                FMath::IsNearlyEqual(RecessedArch[0].Center.X-RecessedArch[0].Size.X/2,-198.5) &&
+                FMath::IsNearlyEqual(RecessedArch[1].Center.X+RecessedArch[1].Size.X/2,198.5) &&
+                FMath::IsNearlyEqual(RecessedArch[0].Center.X+RecessedArch[0].Size.X/2,R.Geometry[0].Center.X+R.Geometry[0].Size.X/2) &&
+                FMath::IsNearlyEqual(RecessedArch[1].Center.X-RecessedArch[1].Size.X/2,R.Geometry[1].Center.X-R.Geometry[1].Size.X/2));
+        }
+        TestTrue(TEXT("Arch has segmented crown and outer jamb caps"),ArchCaps.Num()>8);
+        for(const auto& B:ArchCaps)
+        {
+            const FVector Min=B.Center-B.Size/2, Max=B.Center+B.Size/2;
+            TestTrue(TEXT("Arch cap stays in masonry envelope"),Min.X>=-200. && Max.X<=200. && Min.Z>=0. && Max.Z<=400.);
+            TestTrue(TEXT("Caps never enter segmental aperture"),Min.Z>=357. || Max.X<=R.Geometry[0].Center.X+R.Geometry[0].Size.X/2 ||
+                Min.X>=R.Geometry[1].Center.X-R.Geometry[1].Size.X/2);
+        }
+        R.Style=ELHVisualStyle::B2Damp;
+        TestEqual(TEXT("Other styles receive no B1 caps"),LHB1Art::MasonryCaps(R,Fit).Num(),0);
+    }
     LHVisual::MakeRecipe(TEXT("Presentation.Environment.Shared.Door240"),ELHVisualStyle::B1Cellar,R);
     TestFalse(TEXT("Unexported IDs fall back"),LHB1Art::Resolve(R,Fit));
     return true;
@@ -104,6 +173,23 @@ bool FLHB1ArtAssetsTest::RunTest(const FString&)
                     TestTrue(TEXT("Masonry tangent handedness follows increasing UV V"),Bitangent.Equals(V,.0001));
                 }
             }
+        TestEqual(TEXT("Masonry support has no collision"),Piece->GetArtSupport()->GetCollisionEnabled(),ECollisionEnabled::NoCollision);
+        TestFalse(TEXT("Masonry support has no navigation"),Piece->GetArtSupport()->CanEverAffectNavigation());
+        if(Name==TEXT("Wall400") || Name.StartsWith(TEXT("Arch")))
+        {
+            const auto* Support=Piece->GetArtSupport()->GetProcMeshSection(0);
+            if(TestNotNull(TEXT("Masonry coping generated"),Support) && Support->ProcVertexBuffer.Num()>24)
+            {
+                const FColor Core=Support->ProcVertexBuffer[0].Color;
+                bool Varied=false;
+                for(const auto& Vertex:Support->ProcVertexBuffer)
+                {
+                    Varied|=Vertex.Color!=Core;
+                    TestTrue(TEXT("Masonry colors retain warm channel order"),Vertex.Color.R>=Vertex.Color.G && Vertex.Color.G>=Vertex.Color.B);
+                }
+                TestTrue(TEXT("Masonry courses carry individual stone tones"),Varied);
+            }
+        }
         TestEqual(TEXT("Render has no collision"),Piece->GetImportedMesh()->GetCollisionEnabled(),ECollisionEnabled::NoCollision);
         TestFalse(TEXT("Render has no navigation"),Piece->GetImportedMesh()->CanEverAffectNavigation());
         const auto Copy=Piece->GetRecipe();

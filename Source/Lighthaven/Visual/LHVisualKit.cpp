@@ -511,25 +511,17 @@ void ALHVisualPiece::UpdateArtSupport(const FLHVisualRecipe& R)
     if(R.Style!=ELHVisualStyle::B1Cellar) return;
     TArray<FLHVisualBox> Boxes;
     TArray<FVector2D> Pedestal;
+    int32 MasonryStart=INDEX_NONE;
     UMaterialInterface* Parent=MaterialParent;
     LHB1Art::FFit Fit;
     if(ImportedMesh->IsVisible() && LHB1Art::Resolve(R,Fit))
     {
         Boxes=LHB1Art::SolidBacking(R,Fit);
-        if(Fit.AssetName==TEXT("Wall400"))
+        const auto Caps=LHB1Art::MasonryCaps(R,Fit);
+        if(!Caps.IsEmpty())
         {
-            // Closed cut caps stay at the perimeter; never fill broad mortar faces.
-            const FVector Lo=Fit.ClipBounds.Min, Hi=Fit.ClipBounds.Max, Center=Fit.ClipBounds.GetCenter();
-            for(double Z:{Lo.Z+.5,Hi.Z-.5})
-            {
-                FLHVisualBox Cap; Cap.Center={Center.X,Center.Y,Z};
-                Cap.Size={Hi.X-Lo.X,Hi.Y-Lo.Y,1}; Boxes.Add(Cap);
-            }
-            for(double X:{Lo.X+.5,Hi.X-.5})
-            {
-                FLHVisualBox Cap; Cap.Center={X,Center.Y,Center.Z};
-                Cap.Size={1,Hi.Y-Lo.Y,Hi.Z-Lo.Z}; Boxes.Add(Cap);
-            }
+            MasonryStart=Boxes.Num();
+            Boxes.Append(Caps);
         }
         // Separate MID: crop shader bounds default to effectively infinite on backing.
         if(!Boxes.IsEmpty()) Parent=ImportedMesh->GetStaticMesh()->GetMaterial(0);
@@ -586,6 +578,18 @@ void ALHVisualPiece::UpdateArtSupport(const FLHVisualRecipe& R)
     if(!Pedestal.IsEmpty()) LHVisualPrivate::AppendRadial(FVector(0,25,0),Pedestal,V,Ind,N,UV);
     TArray<FProcMeshTangent> Tangents; TArray<FColor> Colors;
     LHVisualPrivate::Frames(V,N,Tangents,Colors,Pedestal.IsEmpty()?FColor::White:FColor(110,110,110));
+    if(MasonryStart!=INDEX_NONE)
+    {
+        // Imported master multiplies albedo by vertex color. Coping stones
+        // receive subtle warm variation, matching the kit without dark cut faces.
+        for(int32 BoxIndex=0;BoxIndex<Boxes.Num();++BoxIndex)
+        {
+            const float Value=BoxIndex<MasonryStart?.70f:.78f+.04f*((BoxIndex-MasonryStart)%5);
+            const FColor Tint=FLinearColor(Value,Value*.96f,Value*.89f,1.f).ToFColor(true);
+            for(int32 Vertex=BoxIndex*24;Vertex<(BoxIndex+1)*24 && Colors.IsValidIndex(Vertex);++Vertex)
+                Colors[Vertex]=Tint;
+        }
+    }
     ArtSupport->CreateMeshSection(0,V,Ind,N,UV,Colors,Tangents,false);
     auto* M=UMaterialInstanceDynamic::Create(Parent,this);
     M->SetVectorParameterValue(TEXT("Color"),R.Colors[0]); M->SetScalarParameterValue(TEXT("Roughness"),Id.EndsWith(TEXT("Torch"))?.78f:.9f);

@@ -1,6 +1,7 @@
 #include "Misc/AutomationTest.h"
 #include "Visual/LHVisualKit.h"
 #include "Visual/LHB1ArtBinding.h"
+#include "Visual/LHB1Lighting.h"
 #include "World/LHAreaRegistry.h"
 #include "World/LHWorldMarkers.h"
 #include "Engine/World.h"
@@ -201,5 +202,126 @@ bool FLHCaptureFramingTest::RunTest(const FString& Parameters)
         TestTrue(TEXT("At least 85 percent view rays hit geometry within 60m"),Fraction>=.85);
     }
     TestEqual(TEXT("Three cameras audited"),Cameras,3);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHB1PerimeterClutterTest,"Lighthaven.World.Dressing.B1PerimeterClutter",
+    EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FLHB1PerimeterClutterTest::RunTest(const FString&)
+{
+    auto* Package=LoadPackage(nullptr,TEXT("/Game/Lighthaven/Maps/L_TempleB1"),LOAD_None);
+    auto* World=Package?UWorld::FindWorldInPackage(Package):nullptr;
+    if(!TestNotNull(TEXT("Regenerated B1 required"),World)) return false;
+    TArray<FBox> Walls,Floors,Stairs,Occupied;
+    TArray<FVector> Protected,Flames,FloorFlames;
+    for(TActorIterator<AActor> It(World);It;++It)
+    {
+        if(auto* E=Cast<ALHEntranceMarker>(*It)) Protected.Add(E->SafeArrivalTransform.GetLocation());
+        else if(It->IsA<ALHSpawnMarker>() || It->IsA<ALHPortal>() || It->IsA<ALHInteractableMarker>()
+            || It->Tags.Contains(TEXT("LH.Landmark.Healer"))) Protected.Add(It->GetActorLocation());
+        auto* A=Cast<AStaticMeshActor>(*It);
+        if(!A || !A->GetActorLabel().StartsWith(TEXT("Geometry_"))) continue;
+        const FVector Size=A->GetActorScale3D().GetAbs()*100;
+        const FBox Box(A->GetActorLocation()-Size/2,A->GetActorLocation()+Size/2);
+        if(Size.Z<=20 && Size.X>=5 && Size.Y>=5)
+        {
+            if(A->GetActorRotation().IsNearlyZero()) Floors.Add(Box);
+            else Stairs.Add(A->GetStaticMeshComponent()->Bounds.GetBox().ExpandBy(FVector(200,200,0)));
+        }
+        if(Size.Z>=80 && FMath::Min(Size.X,Size.Y)<=40 && A->GetActorRotation().IsNearlyZero()
+            && Box.Min.Z<=.1 && Box.Max.Z<=120.1) Walls.Add(Box);
+    }
+    auto Intersects2D=[](const FBox& A,const FBox& B)
+    {return A.Min.X<B.Max.X && A.Max.X>B.Min.X && A.Min.Y<B.Max.Y && A.Max.Y>B.Min.Y;};
+    for(TActorIterator<ALHVisualPiece> It(World);It;++It)
+        if(auto* Light=It->FindComponentByClass<ULHB1TorchLightComponent>())
+        {
+            Flames.Add(Light->GetComponentLocation());
+            if(It->Tags.Contains(TEXT("LH.B1.FloorFixture"))) FloorFlames.Add(Light->GetComponentLocation());
+        }
+    TestTrue(TEXT("Actual fixture flames exist for clearance checks"),Flames.Num()>0);
+    int32 Clutter=0;
+    TSet<FName> Kinds;
+    for(TActorIterator<ALHVisualPiece> It(World);It;++It)
+    {
+        if(!It->Tags.Contains(TEXT("LH.B1.PerimeterClutter"))) continue;
+        ++Clutter;
+        const auto& Recipe=It->GetRecipe();
+        Kinds.Add(Recipe.Id);
+        const FString Id=Recipe.Id.ToString();
+        const bool Long=Id.EndsWith(TEXT("Table")) || Id.EndsWith(TEXT("Bench"));
+        if(Id.EndsWith(TEXT("Debris")) || Id.EndsWith(TEXT("Bench")))
+        {
+            double Height=0;
+            for(const auto& Box:Recipe.Geometry) Height=FMath::Max(Height,Box.Center.Z+Box.Size.Z/2);
+            TestTrue(TEXT("Reduced wall-flame clearance applies only to silhouettes below60cm"),Height<60);
+        }
+        const bool AlongX=FMath::IsNearlyZero(It->GetActorRotation().Yaw);
+        const FVector Half=AlongX?FVector(Long?88:55,55,0):FVector(55,Long?88:55,0);
+        const FVector Position=It->GetActorLocation();
+        const FBox Foot(Position-Half,Position+Half);
+        TestTrue(TEXT("Clutter stays at a wall face, outside walkable middle"),Walls.ContainsByPredicate([&](const FBox& W)
+        {
+            const bool X=W.GetSize().X>=W.GetSize().Y;
+            const double Along=X?Position.X:Position.Y,Low=X?W.Min.X:W.Min.Y,High=X?W.Max.X:W.Max.Y;
+            const double Normal=X?Position.Y:Position.X;
+            const double FaceLow=X?W.Min.Y:W.Min.X,FaceHigh=X?W.Max.Y:W.Max.X;
+            return Along>=Low+150 && Along<=High-150
+                && FMath::Min(FMath::Abs(Normal-FaceLow),FMath::Abs(Normal-FaceHigh))<=101;
+        }));
+        bool BroadRoom=false;
+        for(const FBox& W:Walls)
+        {
+            const bool X=W.GetSize().X>=W.GetSize().Y;
+            const double Along=X?Position.X:Position.Y,Low=X?W.Min.X:W.Min.Y,High=X?W.Max.X:W.Max.Y;
+            const double Normal=X?Position.Y:Position.X;
+            const double FaceLow=X?W.Min.Y:W.Min.X,FaceHigh=X?W.Max.Y:W.Max.X;
+            if(Along<Low+150 || Along>High-150 || FMath::Min(FMath::Abs(Normal-FaceLow),FMath::Abs(Normal-FaceHigh))>101) continue;
+            const double Sign=Normal> (FaceLow+FaceHigh)/2?1.:-1.;
+            const FVector Inward=X?FVector(0,Sign,0):FVector(Sign,0,0);
+            const FVector Tangent=X?FVector(1,0,0):FVector(0,1,0);
+            const FVector End=Position+Inward*600;
+            const FBox Strip(Foot.Min.ComponentMin(End-Half),Foot.Max.ComponentMax(End+Half));
+            bool Supported=!Walls.ContainsByPredicate([&](const FBox& B){return Intersects2D(Strip,B);});
+            for(double Depth=100;Depth<=600;Depth+=100)
+            for(double Side:{-1.,0.,1.})
+            {
+                const FVector Sample=Position+Inward*Depth+Tangent*(Side*(X?Half.X:Half.Y));
+                Supported &= Floors.ContainsByPredicate([&](const FBox& F)
+                {return Sample.X>=F.Min.X && Sample.X<=F.Max.X && Sample.Y>=F.Min.Y && Sample.Y<=F.Max.Y && FMath::Abs(F.Max.Z)<=.1;});
+            }
+            BroadRoom |= Supported;
+        }
+        TestTrue(TEXT("Clutter faces600cm of continuous room depth with no partition crossed; narrow corridors excluded"),BroadRoom);
+        for(const FVector& Flame:Flames)
+        {
+            const FVector Nearest(FMath::Clamp(Flame.X,Foot.Min.X,Foot.Max.X),FMath::Clamp(Flame.Y,Foot.Min.Y,Foot.Max.Y),0);
+            const bool Low=Id.EndsWith(TEXT("Debris")) || Id.EndsWith(TEXT("Bench"));
+            const double Clearance=Low && !FloorFlames.Contains(Flame)?40.:120.;
+            TestTrue(TEXT("Tall clutter and floor bowls stay120cm clear; low clutter stays40cm clear of wall flame projection"),
+                FVector::DistSquared2D(Flame,Nearest)>=FMath::Square(Clearance));
+        }
+        TestFalse(TEXT("No clutter on stairs or stair approaches"),Stairs.ContainsByPredicate([&](const FBox& B){return Intersects2D(Foot,B);}));
+        TestFalse(TEXT("No clutter intersects walls"),Walls.ContainsByPredicate([&](const FBox& B){return Intersects2D(Foot,B);}));
+        TestFalse(TEXT("Clusters do not overlap each other"),Occupied.ContainsByPredicate([&](const FBox& B){return Intersects2D(Foot,B);}));
+        for(const FVector& P:Protected)
+        {
+            const FVector Nearest(FMath::Clamp(P.X,Foot.Min.X,Foot.Max.X),FMath::Clamp(P.Y,Foot.Min.Y,Foot.Max.Y),0);
+            TestTrue(TEXT("Entire footprint clear of arrivals, portals, spawns and services"),FVector::DistSquared2D(P,Nearest)>=FMath::Square(350.));
+        }
+        for(double X:{Foot.Min.X,Position.X,Foot.Max.X})
+        for(double Y:{Foot.Min.Y,Position.Y,Foot.Max.Y})
+            TestTrue(TEXT("Whole clutter footprint has flat floor support"),Floors.ContainsByPredicate([&](const FBox& F)
+            {return X>=F.Min.X && X<=F.Max.X && Y>=F.Min.Y && Y<=F.Max.Y && FMath::Abs(F.Max.Z)<=.1;}));
+        TestEqual(TEXT("Visual clutter collision recipe empty"),Recipe.Collision.Num(),0);
+        TestEqual(TEXT("Visual clutter has zero blockers"),It->GetBlockers().Num(),0);
+        TestEqual(TEXT("Visual clutter mesh collision disabled"),It->GetMesh()->GetCollisionEnabled(),ECollisionEnabled::NoCollision);
+        TestFalse(TEXT("Visual clutter mesh has no navigation contribution"),It->GetMesh()->CanEverAffectNavigation());
+        Occupied.Add(Foot);
+    }
+    TestTrue(TEXT("B1 contains multiple perimeter clusters"),Clutter>=12);
+    TestTrue(TEXT("At least three existing kit kinds provide varied silhouettes"),Kinds.Num()>=3);
+    TestTrue(TEXT("Clutter stays within bounded presentation budget"),Clutter<=90);
+    AddInfo(FString::Printf(TEXT("B1 perimeter clutter: %d pieces, %d kinds"),Clutter,Kinds.Num()));
     return true;
 }

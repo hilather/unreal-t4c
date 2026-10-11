@@ -47,12 +47,13 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
     for (TActorIterator<AStaticMeshActor> It(World); It; ++It) Surfaces.Add(*It);
     for (TActorIterator<APointLight> It(World); It; ++It) Lights.Add(*It);
     TArray<ALHVisualPiece*> Pieces;
-    TArray<FBox> B1VisibleWalls;
+    TArray<FBox> B1VisibleWalls, B1FlatFloors, B1Stairs;
     TArray<FVector> Protected;
     for (TActorIterator<AActor> It(World); It; ++It)
     {
         if (auto* E=Cast<ALHEntranceMarker>(*It)) Protected.Add(E->SafeArrivalTransform.GetLocation());
-        else if (It->IsA<ALHSpawnMarker>() || It->IsA<ALHPortal>() || It->IsA<ALHInteractableMarker>()) Protected.Add(It->GetActorLocation());
+        else if (It->IsA<ALHSpawnMarker>() || It->IsA<ALHPortal>() || It->IsA<ALHInteractableMarker>()
+            || (Style==ELHVisualStyle::B1Cellar && It->Tags.Contains(TEXT("LH.Landmark.Healer")))) Protected.Add(It->GetActorLocation());
     }
     int32 Props = 0;
     for (auto* A : Surfaces)
@@ -91,6 +92,12 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
         if(Style==ELHVisualStyle::B1Cellar && Wall && A->GetActorRotation().IsNearlyZero()
             && A->GetActorLocation().Z-Size.Z/2<=.1 && A->GetActorLocation().Z+Size.Z/2<=120.1)
             B1VisibleWalls.Add(FBox(A->GetActorLocation()-Size/2,A->GetActorLocation()+Size/2));
+        if(Style==ELHVisualStyle::B1Cellar && Floor)
+        {
+            if(A->GetActorRotation().IsNearlyZero())
+                B1FlatFloors.Add(FBox(A->GetActorLocation()-Size/2,A->GetActorLocation()+Size/2));
+            else B1Stairs.Add(C->Bounds.GetBox().ExpandBy(FVector(200,200,0)));
+        }
         if (Floor && !A->GetActorRotation().IsNearlyZero() && FMath::IsNearlyEqual(FMath::Min(Size.X,Size.Y),300.,1.))
         {
             const FVector Axis = Size.X > Size.Y ? FVector::ForwardVector : FVector::RightVector;
@@ -128,7 +135,7 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
         C->SetVisibility(false); C->SetCastShadow(false);
         A->Tags.Add(TEXT("LH.Dressing.RetainedCollider"));
         // Corners of broad room floor surfaces, never new obstacles or interactables.
-        if (Floor && Size.X >= 600 && Size.Y >= 400 && Props < 48 && A->GetActorRotation().IsNearlyZero())
+        if (Style!=ELHVisualStyle::B1Cellar && Floor && Size.X >= 600 && Size.Y >= 400 && Props < 48 && A->GetActorRotation().IsNearlyZero())
         {
             const TCHAR* Catalog[] = {TEXT("Barrel"), TEXT("Crate"), TEXT("Table"), TEXT("Bench"), TEXT("Debris")};
             FVector Position = A->GetActorLocation() + FVector(-Size.X/2+130,-Size.Y/2+130,Size.Z/2);
@@ -139,7 +146,79 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
             Pieces.Add(Prop); ++Props;
         }
     }
-    TArray<FVector> B1FixtureFlames;
+    TMap<ALHVisualPiece*,FBox> B1ClutterFootprints;
+    if(Style==ELHVisualStyle::B1Cellar)
+    {
+        // Prototype perimeter clusters. Seed only the interior of continuous wall
+        // segments: the 320cm end margin protects every open mouth/door approach.
+        // Full padded footprints must be supported by the union of flat slabs;
+        // slopes, markers and earlier props veto a seed. No floor-center seeding.
+        TArray<FBox> Occupied;
+        for(const FBox& Wall:B1VisibleWalls)
+        {
+            const bool AlongX=Wall.GetSize().X>=Wall.GetSize().Y;
+            const double Low=AlongX?Wall.Min.X:Wall.Min.Y;
+            const double High=AlongX?Wall.Max.X:Wall.Max.Y;
+            const FVector Tangent=AlongX?FVector(1,0,0):FVector(0,1,0);
+            for(double Station=Low+320;Station<=High-320;Station+=500)
+            for(double Sign:{-1.,1.})
+            {
+                const FVector Inward=AlongX?FVector(0,Sign,0):FVector(Sign,0,0);
+                FVector Seed=Wall.GetCenter();
+                if(AlongX) { Seed.X=Station; Seed.Y+=Sign*(Wall.GetSize().Y/2+75); }
+                else { Seed.Y=Station; Seed.X+=Sign*(Wall.GetSize().X/2+75); }
+                const TCHAR* Catalog[]={TEXT("Barrel"),TEXT("Crate"),TEXT("Debris"),TEXT("Table"),TEXT("Bench")};
+                for(int32 Member=0;Member<3 && Props<90;++Member)
+                {
+                    const TCHAR* Kind=Catalog[(Props+Member)%5];
+                    const bool Long=FCString::Strcmp(Kind,TEXT("Table"))==0 || FCString::Strcmp(Kind,TEXT("Bench"))==0;
+                    const FVector Half=AlongX?FVector(Long?88:55,55,0):FVector(55,Long?88:55,0);
+                    // Broken wall-side silhouettes rather than a ruler-straight row.
+                    const double Inset[]={65.,100.,85.};
+                    const double Stagger[]={-12.,18.,-6.};
+                    FVector Position=Seed+Tangent*((Member-1)*150+Stagger[Member])+Inward*(Inset[Member]-75.);
+                    Position.Z=0;
+                    FBox Foot(Position-Half,Position+Half);
+                    auto Intersects2D=[](const FBox& A,const FBox& B)
+                    { return A.Min.X<B.Max.X && A.Max.X>B.Min.X && A.Min.Y<B.Max.Y && A.Max.Y>B.Min.Y; };
+                    if(B1Stairs.ContainsByPredicate([&](const FBox& B){return Intersects2D(Foot,B);})
+                        || B1VisibleWalls.ContainsByPredicate([&](const FBox& B){return Intersects2D(Foot,B);})
+                        || Occupied.ContainsByPredicate([&](const FBox& B){return Intersects2D(Foot,B);})
+                        || Protected.ContainsByPredicate([&](const FVector& P)
+                        {
+                            const double X=FMath::Clamp(P.X,Foot.Min.X,Foot.Max.X),Y=FMath::Clamp(P.Y,Foot.Min.Y,Foot.Max.Y);
+                            return FVector::DistSquared2D(P,FVector(X,Y,0))<FMath::Square(350.);
+                        })) continue;
+                    bool Supported=true;
+                    for(double X:{Foot.Min.X,Position.X,Foot.Max.X})
+                    for(double Y:{Foot.Min.Y,Position.Y,Foot.Max.Y})
+                        Supported &= B1FlatFloors.ContainsByPredicate([&](const FBox& F)
+                        {return X>=F.Min.X && X<=F.Max.X && Y>=F.Min.Y && Y<=F.Max.Y && FMath::Abs(F.Max.Z)<=.1;});
+                    // Dress broad rooms only. Sweep a 600cm inward strip from
+                    // this footprint; floor support alone could pass through an
+                    // interior partition into the next room, so walls also veto it.
+                    const FVector DepthEnd=Position+Inward*600;
+                    const FBox DepthStrip(Foot.Min.ComponentMin(DepthEnd-Half),Foot.Max.ComponentMax(DepthEnd+Half));
+                    Supported &= !B1VisibleWalls.ContainsByPredicate([&](const FBox& B){return Intersects2D(DepthStrip,B);});
+                    for(double Depth=100;Depth<=600;Depth+=100)
+                    for(double Side:{-1.,0.,1.})
+                    {
+                        const FVector Sample=Position+Inward*Depth+Tangent*(Side*(AlongX?Half.X:Half.Y));
+                        Supported &= B1FlatFloors.ContainsByPredicate([&](const FBox& F)
+                        {return Sample.X>=F.Min.X && Sample.X<=F.Max.X && Sample.Y>=F.Min.Y && Sample.Y<=F.Max.Y && FMath::Abs(F.Max.Z)<=.1;});
+                    }
+                    if(!Supported) continue;
+                    const FString Id=TEXT("Presentation.Environment.Shared.")+FString(Kind);
+                    auto* Prop=Piece(World,FName(*Id),Style,Position,FRotator(0,AlongX?0:90,0));
+                    if(!Prop) return false;
+                    Prop->Tags.Add(TEXT("LH.B1.PerimeterClutter"));
+                    Prop->SetActorLabel(FString::Printf(TEXT("Dressing.B1.Cluster.%02d.%s"),Props,Kind));
+                    Pieces.Add(Prop); Occupied.Add(Foot); B1ClutterFootprints.Add(Prop,Foot); ++Props;
+                }
+            }
+        }
+    }
+    TArray<FVector> B1FixtureFlames, B1FloorFixtureFlames;
     for (auto* Light : Lights)
     {
         if (Light->GetActorLocation().Z > 350) continue; // ceiling/fill lights have no fixture.
@@ -220,12 +299,31 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
             if(B1FixtureFlames.ContainsByPredicate([&](const FVector& P)
                 {return FVector::DistSquared2D(P,Flame)<FMath::Square(300.);})) continue;
             B1FixtureFlames.Add(Flame);
+            if(!Mounted) B1FloorFixtureFlames.Add(Flame);
         }
         auto* Fixture = Piece(World,FixtureId,Style,Position,Rotation);
         if (!Fixture) return false;
         if(Style==ELHVisualStyle::B1Cellar)
             Fixture->Tags.Add(FixtureId.ToString().EndsWith(TEXT("Sconce"))?TEXT("LH.B1.WallFixture"):TEXT("LH.B1.FloorFixture"));
         Pieces.Add(Fixture);
+    }
+    // Preserve fixture/light transforms. Remove only conflicting presentation
+    // clutter once actual wall mounting/floor placement has established flames.
+    for(const auto& Pair:B1ClutterFootprints)
+    {
+        const FBox& Foot=Pair.Value;
+        if(!B1FixtureFlames.ContainsByPredicate([&](const FVector& Flame)
+        {
+            const FVector Nearest(FMath::Clamp(Flame.X,Foot.Min.X,Foot.Max.X),FMath::Clamp(Flame.Y,Foot.Min.Y,Foot.Max.Y),0);
+            // Low rubble/benches can dress below wall sconces. Keep the full
+            // clearance for tall silhouettes and every freestanding floor bowl.
+            const FString Id=Pair.Key->GetRecipe().Id.ToString();
+            const bool Low=Id.EndsWith(TEXT("Debris")) || Id.EndsWith(TEXT("Bench"));
+            const bool FloorFixture=B1FloorFixtureFlames.Contains(Flame);
+            return FVector::DistSquared2D(Flame,Nearest)<FMath::Square(Low && !FloorFixture?40.:120.);
+        })) continue;
+        Pieces.Remove(Pair.Key);
+        World->DestroyActor(Pair.Key);
     }
     if (Style == ELHVisualStyle::B1Cellar || Style == ELHVisualStyle::B2Damp)
     {

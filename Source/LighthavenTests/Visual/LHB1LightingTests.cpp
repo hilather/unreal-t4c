@@ -81,6 +81,11 @@ bool FLHB1ReadabilityLifecycleTest::RunTest(const FString& Parameters)
     auto* First=MakePawn(FVector(100,200,80));
     auto* Respawn=MakePawn(FVector(-400,500,90));
     const FVector FogOrigin=Atmosphere->Haze->GetComponentLocation();
+    auto Warm=[](const FLinearColor& C){return C.R>C.G && C.G>C.B;};
+    TestTrue(TEXT("Warm player fill"),Warm(Atmosphere->ReadabilityFill->GetLightColor()));
+    TestTrue(TEXT("Warm brown haze"),Warm(Atmosphere->Haze->FogInscatteringLuminance));
+    for(const auto& Fill:Atmosphere->RoomFills)
+        TestTrue(TEXT("Warm ambient bounce"),Warm(Fill->GetLightColor()));
     TArray<FVector> BouncePositions;
     for(const auto& Fill:Atmosphere->RoomFills) BouncePositions.Add(Fill->GetComponentLocation());
     TestEqual(TEXT("Four room bounce fills"),BouncePositions.Num(),4);

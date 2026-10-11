@@ -96,6 +96,35 @@ def node_matrix(node):
     return result
 
 
+def outward_masonry(vertices, indices):
+    """Signed volume per welded shell catches inside-out arch stones after export.
+
+    Hard normals/UV seams duplicate GLB vertices, so join equal positions first.
+    Use a local origin for each shell to avoid translation-sensitive cancellation.
+    """
+    keys=[tuple(round(c,6) for c in v) for v in vertices]
+    parent={p:p for p in keys}
+    def root(p):
+        while parent[p]!=p:
+            parent[p]=parent[parent[p]]
+            p=parent[p]
+        return p
+    faces=[]
+    for i in range(0,len(indices),3):
+        face=[keys[indices[i+j]] for j in range(3)]
+        for point in face[1:]:parent[root(point)]=root(face[0])
+        faces.append(face)
+    shells={}
+    for face in faces:shells.setdefault(root(face[0]),[]).append(face)
+    for origin, shell in shells.items():
+        volume=0
+        for triangle in shell:
+            a,b,c=[tuple(v[i]-origin[i] for i in range(3)) for v in triangle]
+            cross=(b[1]*c[2]-b[2]*c[1],b[2]*c[0]-b[0]*c[2],b[0]*c[1]-b[1]*c[0])
+            volume+=sum(a[i]*cross[i] for i in range(3))/6
+        require(volume>1e-9,'Arch masonry shell has inward/degenerate winding')
+
+
 def glb(data, entry):
     require(len(data) >= 28, 'Truncated GLB')
     require(struct.unpack_from('<III', data) == (0x46546C67, 2, len(data)), 'Invalid GLB header')
@@ -184,6 +213,8 @@ def glb(data, entry):
                 material = materials[primitive['material']]
                 if 'baseColorTexture' in material.get('pbrMetallicRoughness', {}):
                     require('COLOR_0' in attributes, 'Textured surface missing vertex tint COLOR_0')
+                if entry['file'].startswith('Arch'):
+                    outward_masonry(vertices,indices)
                 triangles += len(indices) // 3
                 for point in vertices:
                     transformed = [sum(world[col * 4 + row] * point[col] for col in range(3)) + world[12 + row] for row in range(3)]
