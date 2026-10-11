@@ -328,3 +328,58 @@ Assumptions/remaining uncertainty: 512 atlases are taken as adequate at the brie
 Development-only `lh.CreatureLineup <0..10> [close]` selects a B1 torch-pool floor spot at least 300 cm from room edges, fixture/prop bounds and blocking geometry; it logs an error if none exists. It hides the pawn and attached kit actors, including first-tick additions. Gameplay uses the pawn’s actual collision-tested camera boom at −55° pitch, 45° yaw, 1200 cm arm and 45° FOV, centred on creature bounds. Close uses complete body/weapon/wing bounds, a three-quarter view and approximately 70% frame height, plus temporary key/fill/rim lights (prototype 3500/2200/3000 lm; 4500/5500/4500 K). Cleanup at 59 seconds restores visibility, view target and boom/FOV, removes review actors and stops the visibility timer.
 
 Capture retries remain unchanged; acceptance requires the hidden-pawn/rig-count log. Available `montage` produces a labelled 2×6 close contact sheet, with one empty cell and no installs. `Lighthaven.Visual.CreatureLineup.NullRHI` checks placement, pawn/late attachment hiding, rig lifetime, actual gameplay camera settings and restoration. Rendered lighting/framing and the real contact sheet still require host-display capture before art approval.
+
+
+## W5-15 — blocked contract checkpoint (2026-10-11)
+
+Task W5-15, contract revision 1, base `33ae1e49470dcb3e406755e508e06f6068cf86f4`.
+This attempt supplies inspection evidence only; import and binding are **not implemented**.
+No new package, receipt, map, lighting change or gameplay change is submitted.
+
+The requested committed import receipts live under
+`Content/Lighthaven/Art/Env/<Style>/import-receipt.json`, but neither the owned-path
+list nor the mandatory submission allowlist permits those files. The brief also
+says never to commit binaries. Local generation is allowed by the environment
+instructions; it does not authorize submitting receipts outside the owned paths.
+The retained worker rule requires stopping when the necessary change needs an
+unowned file. This checkpoint follows that rule. A coordinator-owned receipt and
+binary handoff, or a revised receipt scope, is needed to resolve the committed
+receipt requirement. The submission script additionally permits the literal
+`Source/Lighthaven/Visual/LHEnvArt` path, rather than the advertised `LHEnvArt*`
+files; any split binding needs that allowlist corrected or must use the existing
+owned binding files.
+
+### Confirmed source defects and constraints
+
+- `build/build-art.sh` invokes the five-style dispatcher, then runs the old
+  `validate_env.py` at the flat export root and reads `env/manifest.json`.
+  W5-14's documented output has manifests in `B1Cellar`, `Church`, `B2Damp`,
+  `B3Crypt`, and `B4Ritual`; `validate_styles.py` is the documented validator.
+  The current script has no loop importing the four new folders.
+- B1's signature includes the entire embedded importer script. Merely adapting
+  its source directory changes the signature and defeats the committed receipt
+  skip. A compatibility migration must verify the existing package inventory
+  and source identity before preserving B1, rather than blindly accepting old
+  receipts or rewriting B1 to obtain a fresh signature.
+- The creature importer hashes all eleven creatures into one signature. Once
+  that changes, its unconditional `for kind in kinds` import loop rewrites all
+  creatures. `LH_ART_REIMPORT=1` only bypasses the locked-package guard; it does
+  not select changed creatures. Thus the existing code does not satisfy the
+  partial-reimport requirement. Per-creature input/output receipts and selective
+  saves are needed, retaining the final whole-pool 25,000,000-byte assertion.
+- `LHB1Art::Resolve` rejects every style except B1Cellar; `ALHVisualPiece`
+  loads only `/Game/Lighthaven/Art/Env/B1/SM_*`. New packages alone cannot activate
+  Church/B2/B3/B4 presentation or establish their hard cook references.
+- This checkout's `SM_Wall400.uasset` is an LFS pointer, whereas the committed
+  receipt describes real imported package hashes. Pointer inventories must not
+  be treated as unchanged hydrated packages. No LFS hydration was performed.
+
+The pinned UnrealEditor-Cmd and Blender executables exist at the documented
+Downloads paths. No missing engine is claimed. No exports, imports, target builds,
+map generators, automation suite, arrival checks, framing tests or cook ran at
+this scope checkpoint. Bytes per style/shared pool, deduplication, bounds/pivots,
+partial-reimport byte preservation, arrivals 9/9 and camera framing remain
+unverified. Existing B1 packages and receipts were not modified. No mechanics or
+prototype tuning was introduced. Next: coordinator resolves the receipt ownership
+and split-file allowlist, then assigns the implementation and full required Linux
+validation. This evidence is not a gate pass or task-success declaration.
