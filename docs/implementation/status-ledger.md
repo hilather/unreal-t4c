@@ -267,3 +267,11 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
   - **Host:** 213/213; arrivals 9/9 unchanged; validator 0; package OK; B1 room 1 mean .246.
   - **Look:** warm and readable, but evenly orange (59 overlapping 700 cm lights, no pools or gaps). Torches stand on skinny poles in open floor, and the walls wash out to flat orange. → **W5-09c (astra):** pools vs gaps, wall-mounted or brazier fixtures, readable wall stone.
   - **Capture launches hang about once per run** (SIGKILL can't reap the process within 5 s, likely stuck in the GPU driver), aborting the script. → **W5-11 (sol):** retries and survival.
+- **W5-09c + W5-09d integrated (6536491; B1/B2 maps c953364).**
+  - **Change:** 51 fixtures at 1000 lm / 2900 K / 375 cm pools; wall sconces and braziers.
+  - **Host:** 213/213; arrivals 9/9 unchanged; validator 0; 15/15 captures on the first attempt (W5-11b retry script).
+  - **B1 look:** real pools, darkness between them, readable wall stone. But the gaps are pitch black (means .12 / .10 / .07, near-black up to .63), and the braziers read as white stools.
+  - **LFS:** every B1 regeneration also rewrites B2 (8.4 MB).
+  - → **W5-09e (astra):** readable gaps, iron-bowl braziers, and B2 left byte-stable.
+- **W5-10b (fd3d254):** the creature import works (rig basis, weapon sockets, persisted materials, full cook inclusion), but it is **55.2 MB against the 25 MB gate**. → **W5-10c (sol, base `integration/w5-10c-base` 5f34ac8 = main + W5-10b):** reduce size; the lineup capture adopts the retry helper.
+- **W5-11b (acf3043):** map captures retry and survive hung launches (host self-test passed).
