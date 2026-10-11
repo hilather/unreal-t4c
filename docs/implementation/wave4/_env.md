@@ -57,3 +57,31 @@ For a sandbox-local Linux cook without Zen storage (after map generation/import)
 ```
 
 This uses the installed engine's configured Vulkan shader formats; first-time global shader compilation can be slow. The command is a cook check, not a packaged launch or rendered visual review.
+
+### Build recipe for farm workers (required; other recipes stall in UBA)
+
+Write this ignored file to both `Saved/UnrealBuildTool/BuildConfiguration.xml` and `$XDG_CONFIG_HOME/Unreal Engine/UnrealBuildTool/BuildConfiguration.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Configuration xmlns="https://www.unrealengine.com/BuildConfiguration">
+  <BuildConfiguration>
+    <bAllowUBAExecutor>false</bAllowUBAExecutor>
+    <bAllowUBALocalExecutor>false</bAllowUBALocalExecutor>
+    <bUseUnityBuild>true</bUseUnityBuild>
+    <bUseAdaptiveUnityBuild>false</bUseAdaptiveUnityBuild>
+  </BuildConfiguration>
+  <UnrealBuildAccelerator><SharedMemoryTempFile>true</SharedMemoryTempFile></UnrealBuildAccelerator>
+</Configuration>
+```
+
+Then, from the checkout root:
+
+```sh
+export UE_ROOT=/home/brewerm/Downloads/unreal XDG_CONFIG_HOME="$PWD/Saved/BuildEnvironment/config" UBA_ROOT="$PWD/Saved/UBA" HOME="$PWD/Saved/home"
+mkdir -p "$HOME"
+bash "$UE_ROOT/Engine/Build/BatchFiles/Linux/Build.sh" LighthavenEditor Linux Development "-Project=$PWD/Lighthaven.uproject" -WaitMutex -DisableAdaptiveUnity -UBASharedMemoryTempFile=true -NoUBA
+bash "$UE_ROOT/Engine/Build/BatchFiles/Linux/Build.sh" Lighthaven Linux Development "-Project=$PWD/Lighthaven.uproject" -WaitMutex -DisableAdaptiveUnity -UBASharedMemoryTempFile=true -NoUBA
+```
+
+The build must be non-adaptive unity (the host builds that way; adaptive builds hide unity-only errors). If a build makes no progress for 10 minutes, record the last lines, kill it and retry once with a fresh `Saved/UBA`. Proven by W5-07d, W5-09, W5-09b–e and W5-10b/c; W5-10 and W5-09f stalled without it.
