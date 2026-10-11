@@ -1,0 +1,110 @@
+{
+  "signature": "12051a927de86096c585a69459c467657c82a767f4a1f0656804095878eb3b4e",
+  "assets": {
+    "MI_B1_flame.uasset": {
+      "bytes": 5083,
+      "sha256": "f6b7d89b69311ed09d803a984b71d8fac9294308905c9f70e131cca5d4a5a415"
+    },
+    "MI_B1_iron.uasset": {
+      "bytes": 5066,
+      "sha256": "a24608e96b21501b007915a0e7b1c17b2baaece2dd8df98e8ad86d5a88f140bc"
+    },
+    "MI_B1_stone.uasset": {
+      "bytes": 5077,
+      "sha256": "7020092fa2a06e04d96f10560fec8b8862d3cfb470f06a4971d24a8abf8a3a6e"
+    },
+    "MI_B1_timber.uasset": {
+      "bytes": 5088,
+      "sha256": "566722c63ceccf47b0e054c2bf3eef867771b097d93892bf9ef6b3330ed7c0d6"
+    },
+    "M_B1.uasset": {
+      "bytes": 14061,
+      "sha256": "b086ade999a884251667019a6297c3521aa9a291d6d9accb24cc5484b0b56762"
+    },
+    "SM_Arch240.uasset": {
+      "bytes": 138925,
+      "sha256": "98177bfbc48416d7cce1373bc5c2c7313e2d1675dd03b66fe92606b9a2d15f42"
+    },
+    "SM_Arch320.uasset": {
+      "bytes": 142406,
+      "sha256": "baf756437ab9bda1c6194b4c5db7b6079cd5837abd84453efe5b14469ce03b0f"
+    },
+    "SM_Barrel.uasset": {
+      "bytes": 139848,
+      "sha256": "175028b081b6d6a5f9dba6328e863a3d69c10a00727ea64014bcad268e47b31b"
+    },
+    "SM_Bench.uasset": {
+      "bytes": 105476,
+      "sha256": "0cf79d00d9048d68b7d50300dac1423f43ac2a67cfa0e0d7856a852e7226b948"
+    },
+    "SM_Crate.uasset": {
+      "bytes": 154707,
+      "sha256": "fff6294cc3f86c95e2410ba7970eb9bfd751ae1498b5885fb8d4887f0234eb59"
+    },
+    "SM_Debris.uasset": {
+      "bytes": 112024,
+      "sha256": "16cc3ec641b5920b93bb0ab9707f3e22a9504cf31d69dd7cf2db71bdcec1b7ec"
+    },
+    "SM_Floor400.uasset": {
+      "bytes": 169519,
+      "sha256": "1c38cd03424d8868b5529b5dc0f20b24d7c10a4aa87f230420c6cf51cfa5f30c"
+    },
+    "SM_Sconce.uasset": {
+      "bytes": 102504,
+      "sha256": "1511cb69a4a9923d7c5f962313e68a93b0333acf85dbefc95c9b6244d69e9149"
+    },
+    "SM_Stair600x120.uasset": {
+      "bytes": 163505,
+      "sha256": "4e63b9ff3b8f2b3bba593e8358126fd7257c36db5445e2601c8a39af6be9160d"
+    },
+    "SM_Stair600x120Descending.uasset": {
+      "bytes": 163788,
+      "sha256": "d1122484c23b50329167884905bd3042d4c0d08c3855c5524286565433bc9276"
+    },
+    "SM_Table.uasset": {
+      "bytes": 113136,
+      "sha256": "ec6bcb517629d7648a7af539bfd178a61bf90723875c8a477e28349d7f36a424"
+    },
+    "SM_Wall400.uasset": {
+      "bytes": 171380,
+      "sha256": "8898cd337feeb427df72d58f5621d0dad399302fbea61a77e3f14b325ad1d2d1"
+    },
+    "Textures/T_iron_basecolor.uasset": {
+      "bytes": 221638,
+      "sha256": "ec640e48901d823c779c2a36e46e79425ae70495348d6217f98340363127bf93"
+    },
+    "Textures/T_iron_normal.uasset": {
+      "bytes": 359324,
+      "sha256": "78907ce140cc6c43fbdb5eabb96501ab9c874081b0b23a87bd2c74f71f0bf7e8"
+    },
+    "Textures/T_iron_orm.uasset": {
+      "bytes": 94600,
+      "sha256": "b802ff806321bc68dbe05548138c7d984c162d0995f9e8ebdb91e2fb79e84826"
+    },
+    "Textures/T_stone_basecolor.uasset": {
+      "bytes": 304056,
+      "sha256": "deee880d520cc4cb07bd72a821990b14a0b5ffa1b208c6d1280d8aefa8fccc9f"
+    },
+    "Textures/T_stone_normal.uasset": {
+      "bytes": 768939,
+      "sha256": "9cf39068681013eb2d0840662e8806a4f8cc705ce00b4c926e52e12bd21e825f"
+    },
+    "Textures/T_stone_orm.uasset": {
+      "bytes": 94566,
+      "sha256": "fd451060f7165905269486a94778739ecf59c57ed26acb9d2b975b79b8c673cb"
+    },
+    "Textures/T_timber_basecolor.uasset": {
+      "bytes": 297609,
+      "sha256": "7d0214fed9d39e77b1244495ac7dbccad45c0a922c55ca6e78677f9732706e20"
+    },
+    "Textures/T_timber_normal.uasset": {
+      "bytes": 424854,
+      "sha256": "7c9c3e458c1d43c7030e0f398459ea3c2350172e7d3a3bdb93e59c53e65c6a90"
+    },
+    "Textures/T_timber_orm.uasset": {
+      "bytes": 94419,
+      "sha256": "793c35971d0591045cb1a9331aadf1f10aae77c2ef6fe9d58d165dbde4d41fbf"
+    }
+  },
+  "total_bytes": 4371598
+}
