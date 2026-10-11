@@ -81,3 +81,50 @@ bool ULHSessionSubsystem::PlaceSessionArrival(UWorld* World,FString& Error)
     if (Success) Live->CompleteGameplayArrival();
     return Success;
 }
+
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+#include "Framework/LHWave2Profile.h"
+namespace LHCaptureSessionPrivate
+{
+class FStorage final : public ILHSaveStorage
+{
+    TMap<FGuid,TArray<uint8>> Slots[2];
+public:
+    TArray<FGuid> Enumerate() override { TArray<FGuid> Ids; Slots[0].GetKeys(Ids); return Ids; }
+    bool Read(const FGuid& Id,int32 Slot,TArray<uint8>& Bytes,FLHSaveError& Error) override
+    { if(auto* Found=Slots[Slot].Find(Id)) { Bytes=*Found; return true; } Error={ELHSaveReason::NotFound,TEXT("Capture generation absent")}; return false; }
+    void Write(const FGuid& Id,int32 Slot,TArray<uint8> Bytes,TFunction<void(bool)> Done) override
+    { Slots[Slot].Add(Id,MoveTemp(Bytes)); Done(true); }
+};
+}
+bool ULHSessionSubsystem::PrepareCaptureSession(UWorld* World,bool BodyB,FString& Error)
+{
+    if(!World || (Live && Live->HasCharacter())) { Error=TEXT("Capture requires an empty session"); return false; }
+    const auto* Area=LHWorld::Registry().FindByPredicate([&](const auto& A){return A.Map.GetAssetName()==World->GetMapName();});
+    if(!Area) { Error=TEXT("Capture map is not registered"); return false; }
+    // Production creation/save boundary, isolated from the user's profiles and disk.
+    Live=MakeShared<FLHWave2Session>(MakeShared<FLHSaveStore>(MakeShared<LHCaptureSessionPrivate::FStorage>()));
+    auto* State=World->SpawnActor<ALHPlayerState>();
+    if(!State) { Error=TEXT("Capture creation owner unavailable"); return false; }
+    bool Success=Live->Bind(State,true);
+    TArray<FLHContentId> Looks;
+    for(const TCHAR* Id:{BodyB?TEXT("Presentation.Player.Body.B"):TEXT("Presentation.Player.Body.A"),TEXT("Presentation.Player.Hair.Cropped"),TEXT("Presentation.Player.Skin.LightWarm"),TEXT("Presentation.Player.Outfit.StarterLinen")})
+    { FLHContentId V; V.Value=Id; Looks.Add(V); }
+    const auto Preview=Live->Preview(TEXT("Capture Starter"),Looks,LHWave2::PrototypeAnswers(),false);
+    FLHCreateCharacterRequest Q; Q.Request.Epoch=Live->Snapshot().Session.RequestEpoch; Q.Request.Value=FGuid::NewGuid();
+    Q.DisplayName=TEXT("Capture Starter"); Q.AppearanceIds=Looks; Q.Creation=Preview.Record; Q.PreviewToken=Preview.Token;
+    Success=Success && Preview.bLegal && Live->Execute(Q).Disposition==ELHCommandDisposition::Accepted;
+    if(Success)
+    {
+        Live->Flush(); // synchronous in-memory readback, same codec and compatibility validation
+        Success=!Live->HasUnsavedChanges() && Live->Bind(State);
+        auto Snapshot=Live->Snapshot(); Snapshot.Character.ActiveEntrance=Area->SafeFallback;
+        if(!Snapshot.World.Areas.ContainsByPredicate([&](const auto& A){return LHWorld::SameArea(A.Area,Area->Id);}))
+        { FLHAreaRecord A; A.Area=Area->Id; Snapshot.World.Areas.Add(A); }
+        Success=Success && FLHWave2Session::PopulateEncounterCheckpoint(Snapshot,Error) && Live->InstallTravel(Snapshot);
+    }
+    State->Destroy(); // next possession binds the actual player state and restores full resources
+    if(!Success && Error.IsEmpty()) Error=TEXT("Production capture creation failed");
+    return Success;
+}
+#endif

@@ -10,6 +10,13 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "Animation/AnimSequence.h"
+#include "Framework/LHSessionSubsystem.h"
+#include "Framework/LHPlayerController.h"
+#include "Framework/LHPlayerState.h"
+#include "Engine/GameInstance.h"
+#include "World/LHWorldMarkers.h"
+#include "UObject/Package.h"
+#include "EngineUtils.h"
 #if WITH_DEV_AUTOMATION_TESTS
 namespace LHPlayerTestsPrivate
 {
@@ -246,4 +253,77 @@ bool FLHPlayerImportedAppearanceTest::RunTest(const FString&)
     int32 B,H,S; TestFalse(TEXT("Mismatched face rejected"),LHPlayerVisual::ResolveAppearance(Invalid,B,H,S));
     V->DestroyComponent(); return true;
 }
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHPlayerNoSessionTest,"Lighthaven.Visual.Player.NoSessionDefaultImportedIdle",LHPlayerTestsPrivate::LHPlayerVisualTestsFlags)
+bool FLHPlayerNoSessionTest::RunTest(const FString&)
+{
+    LHPlayerTestsPrivate::FFixture F;
+    auto* V=NewObject<ULHPlayerVisualComponent>(F.Source); V->RegisterComponent();
+    F.Attacker->SetNumericAttributeBase(ULHAttributeSet::GetHealthAttribute(),0);
+    V->Present(nullptr,F.Attacker,0,1);
+    TestTrue(TEXT("No record with attached zero-health avatar stays idle"),V->Pose()==ELHPlayerPose::Idle);
+    TestTrue(TEXT("Default imported body required"),V->UsesImportedBody());
+    TestTrue(TEXT("Upright root"),V->GetRelativeRotation().IsNearlyZero());
+    if(V->BodyMesh())
+    {
+        TestTrue(TEXT("Default A body"),V->BodyMesh()->GetSkeletalMeshAsset()->GetPathName().StartsWith(LHPlayerVisual::AssetRoot(LHPlayerTestsPrivate::Looks(0,0,0))));
+        TestTrue(TEXT("Imported idle head above pelvis"),V->BodyMesh()->GetSocketLocation(TEXT("head")).Z>V->BodyMesh()->GetSocketLocation(TEXT("pelvis")).Z+50);
+    }
+    V->Present(nullptr,nullptr,0,1);
+    TestTrue(TEXT("Unresolved resources stay idle"),V->Pose()==ELHPlayerPose::Idle);
+    TestEqual(TEXT("No gameplay health write"),F.Attacker->GetCombatAttributes()->GetHealth(),0.f);
+    V->DestroyComponent(); return true;
+}
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHPlayerCaptureSessionTest,"Lighthaven.Visual.Player.CaptureSessionProductionPossession",LHPlayerTestsPrivate::LHPlayerVisualTestsFlags)
+bool FLHPlayerCaptureSessionTest::RunTest(const FString&)
+{
+    for(bool BodyB:{false,true})
+    {
+        LHPlayerTestsPrivate::FFixture F;
+        F.World->Rename(nullptr,CreatePackage(*(FString(TEXT("/Temp/LHCapture/"))+FGuid::NewGuid().ToString(EGuidFormats::Digits)+TEXT("/L_TempleB1"))));
+        auto* GI=NewObject<UGameInstance>(GEngine); GI->AddToRoot();
+        GI->InitializeStandalone(MakeUniqueObjectName(nullptr,UWorld::StaticClass(),TEXT("LHCaptureDummy")));
+        auto* Dummy=GI->GetWorld(); auto* Context=GEngine->GetWorldContextFromWorld(Dummy);
+        Dummy->DestroyWorld(false); GEngine->DestroyWorldContext(F.World);
+        Context->SetCurrentWorld(F.World); F.World->SetGameInstance(GI);
+        auto* SS=GI->GetSubsystem<ULHSessionSubsystem>(); FString Error;
+        if(TestTrue(TEXT("Prepare capture through production creation"),SS->PrepareCaptureSession(F.World,BodyB,Error)))
+        {
+            auto Session=SS->Session(); auto Record=Session->Snapshot().Character;
+            const auto* Entrance=LHWorld::FindEntrance(Record.ActiveEntrance);
+            auto* Marker=F.World->SpawnActor<ALHEntranceMarker>();
+            Marker->EntranceId=Entrance->Id; Marker->SafeArrivalTransform=Entrance->SafeTransform; Marker->bSafetyReviewed=true;
+            const auto* Area=LHWorld::FindArea(Record.ActiveEntrance.Area);
+            for(const auto& SpawnRow:Area->Spawns)
+            {
+                auto* SpawnMarker=F.World->SpawnActor<ALHSpawnMarker>();
+                SpawnMarker->Area=Area->Id; SpawnMarker->SpawnId=SpawnRow.SpawnId; SpawnMarker->EnemyDefinitionId=SpawnRow.Enemy;
+                SpawnMarker->SetActorTransform(SpawnRow.Anchor);
+            }
+            auto* Controller=F.World->SpawnActor<ALHPlayerController>();
+            auto* State=F.World->SpawnActor<ALHPlayerState>(); Controller->SetPlayerState(State);
+            FActorSpawnParameters Spawn; Spawn.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+            auto* Pawn=F.World->SpawnActor<ALHCharacter>(FVector(1000,0,90),FRotator::ZeroRotator,Spawn);
+            Controller->Possess(Pawn);
+            TestTrue(TEXT("Pawn possessed"),Controller->GetPawn()==Pawn);
+            TestTrue(TEXT("Session character record"),Session->HasCharacter());
+            TestTrue(TEXT("Starter equipment"),!Record.Equipment.IsEmpty());
+            TestTrue(TEXT("Positive restored health"),State->GetCombatComponent()->GetCombatAttributes()->GetHealth()>0);
+            TestEqual(TEXT("Full starter health"),State->GetCombatComponent()->GetCombatAttributes()->GetHealth(),State->GetCombatComponent()->GetCombatAttributes()->GetMaxHealth());
+            int32 Enemies=0;
+            for(TActorIterator<ALHEnemyCharacter> It(F.World);It;++It) if(LHWorld::SameArea(It->GetLife().Area,Area->Id)) ++Enemies;
+            TestEqual(TEXT("Production encounters spawned"),Enemies,Area->Spawns.Num());
+            Pawn->PlayerVisual->Present(&Record,State->GetCombatComponent(),0,0);
+            TestTrue(TEXT("Session imported body required"),Pawn->PlayerVisual->UsesImportedBody());
+            TestTrue(TEXT("Session idle"),Pawn->PlayerVisual->Pose()==ELHPlayerPose::Idle);
+            if(Pawn->PlayerVisual->BodyMesh()) TestTrue(TEXT("Requested A/B mesh"),Pawn->PlayerVisual->BodyMesh()->GetSkeletalMeshAsset()->GetPathName().StartsWith(LHPlayerVisual::AssetRoot(Record)));
+            TestFalse(TEXT("Arrival completed"),Session->IsBlocked());
+            Controller->UnPossess(); Pawn->Destroy(); Controller->Destroy(); State->Destroy(); Marker->Destroy();
+        }
+        GI->Shutdown(); GI->RemoveFromRoot();
+    }
+    return true;
+}
+#endif
 #endif

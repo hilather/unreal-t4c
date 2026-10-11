@@ -5,6 +5,7 @@
 #include "Rewards/LHEncounterLifecycle.h"
 #include "UI/LHGameplayHud.h"
 #include "Framework/LHCharacter.h"
+#include "Visual/Player/LHPlayerVisual.h"
 #include "Framework/LHPlayerState.h"
 #include "Framework/LHEnemyCharacter.h"
 #include "Framework/LHDevCombatFixture.h"
@@ -24,6 +25,10 @@
 #include "Misc/CoreDelegates.h"
 #include "UnrealClient.h"
 #include "InputKeyEventArgs.h"
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
+#endif
 ALHPlayerController::ALHPlayerController() { bShowMouseCursor=true; PrimaryActorTick.bTickEvenWhenPaused=true; bShouldPerformFullTickWhenPaused=true; }
 void ALHPlayerController::BeginPlay()
 {
@@ -64,6 +69,9 @@ void ALHPlayerController::OnPossess(APawn* Pawn)
             {
                 SAssignNew(HudWidget,SLHGameplayHud).Presenter(JournalPresenter.Get());
                 HudWidget->SetVisibility(EVisibility::HitTestInvisible);
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+                if(FParse::Param(FCommandLine::Get(),TEXT("LHCaptureHideHUD"))) HudWidget->SetVisibility(EVisibility::Collapsed);
+#endif
                 Viewport->AddViewportWidgetContent(HudWidget.ToSharedRef(),10);
             }
         }
@@ -80,6 +88,20 @@ void ALHPlayerController::OnPossess(APawn* Pawn)
             UGameplayStatics::OpenLevel(GetGameInstance(),TEXT("/Game/Lighthaven/Maps/L_Frontend"));
         }
     }
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+    if(FParse::Param(FCommandLine::Get(),TEXT("LHCaptureSession")))
+    {
+        auto* Character=Cast<ALHCharacter>(Pawn);
+        if(Character && LiveSession && LiveSession->HasCharacter())
+        {
+            auto Record=LiveSession->Snapshot().Character;
+            Character->PlayerVisual->Present(&Record,GetPlayerState<ALHPlayerState>()->GetCombatComponent(),0,0);
+            UE_LOG(LogTemp,Display,TEXT("LH CAPTURE SESSION %s health=%g imported=%d possessed=%d"),
+                Character->PlayerVisual->UsesImportedBody() && GetPlayerState<ALHPlayerState>()->GetCombatComponent()->IsAlive() && !LiveSession->IsBlocked()?TEXT("PASS"):TEXT("FAIL"),
+                double(GetPlayerState<ALHPlayerState>()->GetCombatComponent()->GetCombatAttributes()->GetHealth()),Character->PlayerVisual->UsesImportedBody(),GetPawn()==Character);
+        }
+    }
+#endif
     ClearHeldMovement();
 }
 void ALHPlayerController::OnUnPossess()

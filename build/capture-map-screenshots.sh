@@ -9,8 +9,18 @@ from statistics import mean, median
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.environ['LH_CAPTURE_HELPER_DIR'])
 from lh_capture_common import launch, retry_view, self_test
+def capture_flags(no_session=False, appearance='A', keep_hud=False):
+    flags = [] if no_session else ['-LHCaptureSession', '-LHCaptureAppearance=' + appearance]
+    if not keep_hud:
+        flags.append('-LHCaptureHideHUD')
+    return flags
 if sys.argv[1:] == ['--self-test']:
     self_test()
+    assert capture_flags() == ['-LHCaptureSession', '-LHCaptureAppearance=A', '-LHCaptureHideHUD']
+    assert capture_flags(appearance='B', keep_hud=True) == ['-LHCaptureSession', '-LHCaptureAppearance=B']
+    assert capture_flags(no_session=True) == ['-LHCaptureHideHUD']
+    assert capture_flags(no_session=True, keep_hud=True) == []
+    print('capture session/HUD options self-test passed')
     sys.exit(0)
 converter = shutil.which('magick') or shutil.which('convert')
 if not converter:
@@ -18,6 +28,9 @@ if not converter:
 parser = argparse.ArgumentParser(description='Capture three fixed CameraActor room views per generated map')
 parser.add_argument('binary', type=Path)
 parser.add_argument('--overview', action='store_true', help='Compatibility option; three room views are always captured')
+parser.add_argument('--no-session', action='store_true', help='Capture an empty-session appearance preview')
+parser.add_argument('--appearance', choices=['A', 'B'], default='A', help='Session starter body (default A)')
+parser.add_argument('--keep-hud', action='store_true', help='Keep gameplay HUD (default hidden)')
 options = parser.parse_args()
 if os.getuid() == 0:
     sys.exit('Run as the normal desktop user')
@@ -56,6 +69,7 @@ for area, view, position, yaw in shots:
         args += [str(root / 'Lighthaven.uproject'), '-game']
     args += ['/Game/Lighthaven/Maps/' + map_name, '-windowed', '-ResX=1280', '-ResY=720',
              '-nosplash', '-seconds=15', f'-abslog={log}', '-ExecCmds=' + commands]
+    args += capture_flags(options.no_session, options.appearance, options.keep_hud)
     def capture_attempt(number):
         # Remove stale output before every launch; a previous image cannot pass a retry.
         # Preserve failed evidence under attempt-specific names; successful paths stay canonical.
@@ -67,6 +81,8 @@ for area, view, position, yaw in shots:
         text = log.read_text(errors='replace') if log.exists() else ''
         accepted = (result['exit'] == 0 and shot.exists()
                     and re.search(r'ViewTarget[^\n]*Target=[^\n]*LH_Capture_' + view[-1], text)
+                    and (options.no_session or 'LH CAPTURE SESSION PASS' in text)
+                    and 'LH CAPTURE SESSION FAIL' not in text
                     and 'Unrecognized property' not in text and 'ImportText (' not in text)
         if not accepted:
             print(f'{label}: attempt {number} capture/placement failed; {result}; inspect {log}', flush=True)
