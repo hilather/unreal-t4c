@@ -17,6 +17,11 @@
 #include "Engine/Engine.h"
 #include "Engine/Level.h"
 #include "Misc/App.h"
+#include "Framework/LHCharacter.h"
+#include "Components/CapsuleComponent.h"
+#include "Visual/LHB1ArtBinding.h"
+#include "ProceduralMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHLightingAuditTest,"Lighthaven.World.LightingAudit",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FLHLightingAuditTest::RunTest(const FString& Parameters)
@@ -107,8 +112,8 @@ bool FLHLightingAuditTest::RunTest(const FString& Parameters)
         {
             TestEqual(TEXT("One B1 atmosphere"),Atmosphere,1);
             TestEqual(TEXT("No B1 grid lights"),Coverage,0);
-            // 12 landmarks + 47 rectangle coverage samples retained as visual fixtures.
-            TestEqual(TEXT("B1 authored fixture inventory"),Fixtures,59);
+            // Relocated landmarks and coverage samples are thinned where pools overlap.
+            TestEqual(TEXT("B1 thinned fixture inventory"),Fixtures,51);
             TestEqual(TEXT("B1 fixtures plus one readability fill"),Local,Fixtures+1);
         }
         else
@@ -188,7 +193,7 @@ bool FLHB1LoadedGameLightingTest::RunTest(const FString& Parameters)
             }
         }
     }
-    TestEqual(TEXT("Pre-init assertions examine every serialized torch light"),PreInitFixtureLights,59);
+    TestEqual(TEXT("Pre-init assertions examine thinned serialized fixture set"),PreInitFixtureLights,51);
     GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(World);
     if(!World->IsInitialized()) World->InitWorld(UWorld::InitializationValues().AllowAudioPlayback(false)
         .CreatePhysicsScene(true).CreateNavigation(false).CreateAISystem(false).ShouldSimulatePhysics(false));
@@ -212,8 +217,8 @@ bool FLHB1LoadedGameLightingTest::RunTest(const FString& Parameters)
             if(FApp::CanEverRender())
                 TestTrue(*FString::Printf(TEXT("%s render state created"),*Label),Light->IsRenderStateCreated());
             TestEqual(*FString::Printf(TEXT("%s lumens"),*Label),Light->IntensityUnits,ELightUnits::Lumens);
-            TestEqual(*FString::Printf(TEXT("%s base intensity"),*Label),Light->Intensity,1800.f);
-            TestEqual(*FString::Printf(TEXT("%s pool radius"),*Label),Light->AttenuationRadius,700.f);
+            TestEqual(*FString::Printf(TEXT("%s base intensity"),*Label),Light->Intensity,1000.f);
+            TestEqual(*FString::Printf(TEXT("%s pool radius"),*Label),Light->AttenuationRadius,375.f);
             TestEqual(*FString::Printf(TEXT("%s source radius"),*Label),Light->SourceRadius,12.f);
             TestEqual(*FString::Printf(TEXT("%s zero source length"),*Label),Light->SourceLength,0.f);
             TestEqual(*FString::Printf(TEXT("%s white input tint before temperature"),*Label),Light->LightColor,FColor::White);
@@ -221,12 +226,49 @@ bool FLHB1LoadedGameLightingTest::RunTest(const FString& Parameters)
             TestEqual(*FString::Printf(TEXT("%s no distance fade"),*Label),Light->MaxDistanceFadeRange,0.f);
             TestEqual(*FString::Printf(TEXT("%s movable"),*Label),Light->Mobility,EComponentMobility::Movable);
             TestTrue(*FString::Printf(TEXT("%s visible and affects world"),*Label),Light->IsVisible() && !Light->bHiddenInGame && Light->bAffectsWorld && !It->IsHidden());
-            TestTrue(*FString::Printf(TEXT("%s physical falloff and temperature"),*Label),Light->bUseInverseSquaredFalloff && Light->bUseTemperature && Light->Temperature==2000.f);
+            TestTrue(*FString::Printf(TEXT("%s physical falloff and temperature"),*Label),Light->bUseInverseSquaredFalloff && Light->bUseTemperature && Light->Temperature==2900.f);
             TestFalse(*FString::Printf(TEXT("%s shadow cost"),*Label),Light->CastShadows);
             TestTrue(*FString::Printf(TEXT("%s flame world position"),*Label),Light->GetComponentLocation().Equals(It->GetActorTransform().TransformPosition(FVector(0,25,14)),.01));
         }
     }
-    TestEqual(TEXT("All serialized fixtures survive game load"),Fixtures.Num(),59);
+    TestEqual(TEXT("All serialized fixtures survive game load"),Fixtures.Num(),PreInitFixtureLights);
+    for(int32 I=0;I<Fixtures.Num();++I)
+    {
+        const auto* Piece=CastChecked<ALHVisualPiece>(Fixtures[I]->GetOwner());
+        TestEqual(TEXT("Every B1 fixture is visual only"),Piece->GetRecipe().Collision.Num(),0);
+        if(Piece->Tags.Contains(TEXT("LH.B1.WallFixture")))
+        {
+            bool OnWallFace=false;
+            const FVector Mount=Piece->GetActorLocation();
+            const FVector Inward=Piece->GetActorQuat().RotateVector(FVector::RightVector);
+            for(TActorIterator<AStaticMeshActor> Wall(World);Wall;++Wall)
+            {
+                if(!Wall->Tags.Contains(TEXT("LH.Dressing.RetainedCollider"))) continue;
+                const FVector Size=Wall->GetActorScale3D().GetAbs()*100.;
+                if(Size.Z<80 || FMath::Min(Size.X,Size.Y)>40) continue;
+                const FVector Center=Wall->GetActorLocation();
+                const bool AlongX=Size.X>=Size.Y;
+                const double Sign=(AlongX?Mount.Y-Center.Y:Mount.X-Center.X)>=0?1.:-1.;
+                const double Face=AlongX?Center.Y+Sign*Size.Y/2:Center.X+Sign*Size.X/2;
+                const double Distance=FMath::Abs((AlongX?Mount.Y:Mount.X)-Face);
+                const bool InSegment=AlongX?FMath::Abs(Mount.X-Center.X)<=Size.X/2-44:
+                    FMath::Abs(Mount.Y-Center.Y)<=Size.Y/2-44;
+                const FVector ExpectedNormal=AlongX?FVector(0,Sign,0):FVector(Sign,0,0);
+                if(Distance<=2. && InSegment && FVector::DotProduct(Inward,ExpectedNormal)>.99) OnWallFace=true;
+            }
+            TestTrue(TEXT("Sconce plate is on a real wall face and points inward"),OnWallFace);
+            TestTrue(TEXT("Sconce stays below cropped visual wall top"),Mount.Z+14<=120.);
+        }
+        TArray<UPrimitiveComponent*> Primitives; Piece->GetComponents(Primitives);
+        for(const auto* Primitive:Primitives)
+        {
+            TestEqual(TEXT("B1 fixture has no gameplay collision"),Primitive->GetCollisionEnabled(),ECollisionEnabled::NoCollision);
+            TestFalse(TEXT("B1 fixture has no nav influence"),Primitive->CanEverAffectNavigation());
+        }
+        for(int32 J=0;J<I;++J)
+            TestTrue(TEXT("Relocated B1 fixtures keep at least 3m between warm pools"),
+                FVector::DistSquared2D(Fixtures[I]->GetComponentLocation(),Fixtures[J]->GetComponentLocation())>=FMath::Square(300.)-.1);
+    }
     auto RuntimeLux=[&](FVector Surface,FVector Normal)
     {
         double Lux=0;
@@ -236,78 +278,162 @@ bool FLHB1LoadedGameLightingTest::RunTest(const FString& Parameters)
                 Lux+=DirectLux(Light->GetComponentLocation(),Surface,Normal,Light->Intensity,Light->AttenuationRadius);
         return Lux;
     };
-    // Receiver planes near EVERY torch: floor below its flame and a vertical
-    // wall-facing receiver 100 cm to its local -X, 64 cm below the flame.
-    // These are light-delivery probes, not an assertion that a wall exists there.
+    // Actual geometry receivers: the room floor below each flame and the wall
+    // behind wall-mounted sconces. Open braziers have no invented wall probe.
+    double PoolMean=0., WallMean=0.; int32 WallCount=0;
     for(const auto* Light:Fixtures)
     {
         const FVector Flame=Light->GetComponentLocation();
-        const FVector Floor(Flame.X,Flame.Y,0);
-        const FVector Wall=Flame+FVector(-100,0,-64);
-        const double FloorLux=RuntimeLux(Floor,FVector::UpVector);
-        const double WallLux=RuntimeLux(Wall,FVector::ForwardVector);
-        const double OwnFloor=DirectLux(Flame,Floor,FVector::UpVector,1800.,700.);
-        const double OwnWall=DirectLux(Flame,Wall,FVector::ForwardVector,1800.,700.);
-        AddInfo(FString::Printf(TEXT("B1 loaded fixture %s flame=%s registered=%d visible=%d hiddenInGame=%d affectsWorld=%d ownerHidden=%d lumens=%.1f radius=%.1f kelvin=%.1f inverseSquare=%d shadows=%d sourceRadius=%.1f sourceLength=%.1f inputTint=%s maxDrawDistance=%.1f fadeRange=%.1f floorReceiver=%s totalLux=%.4f ownLux=%.4f verticalReceiver=%s totalLux=%.4f ownLux=%.4f"),
-            *Light->GetOwner()->GetName(),*Flame.ToString(),Light->IsRegistered(),Light->IsVisible(),Light->bHiddenInGame,Light->bAffectsWorld,Light->GetOwner()->IsHidden(),Light->Intensity,Light->AttenuationRadius,Light->Temperature,Light->bUseInverseSquaredFalloff,Light->CastShadows,Light->SourceRadius,Light->SourceLength,*Light->LightColor.ToString(),Light->MaxDrawDistance,Light->MaxDistanceFadeRange,*Floor.ToString(),FloorLux,OwnFloor,*Wall.ToString(),WallLux,OwnWall));
-        TestTrue(*FString::Printf(TEXT("%s near floor lit pool >= own %.3f lux (actual %.3f)"),*Light->GetOwner()->GetName(),OwnFloor,FloorLux),FloorLux>=OwnFloor-.001 && FloorLux>=19.);
-        TestTrue(*FString::Printf(TEXT("%s near vertical receiver lit pool >= own %.3f lux (actual %.3f)"),*Light->GetOwner()->GetName(),OwnWall,WallLux),WallLux>=OwnWall-.001 && WallLux>=80.);
+        FHitResult FloorHit;
+        const bool FoundFloor=World->LineTraceSingleByChannel(FloorHit,Flame-FVector(0,0,20),Flame-FVector(0,0,700),ECC_Visibility);
+        TestTrue(*FString::Printf(TEXT("%s owner=%s flame=%s pool receiver is an actual walkable floor (hit=%s penetrating=%d normal=%s)"),*Light->GetOwner()->GetName(),*Light->GetOwner()->GetActorLocation().ToString(),*Flame.ToString(),*FloorHit.ImpactPoint.ToString(),FloorHit.bStartPenetrating,*FloorHit.ImpactNormal.ToString()),FoundFloor && !FloorHit.bStartPenetrating && FloorHit.ImpactNormal.Z>.7);
+        if(!FoundFloor || FloorHit.bStartPenetrating || FloorHit.ImpactNormal.Z<=.7) continue;
+        const double FloorLux=RuntimeLux(FloorHit.ImpactPoint,FloorHit.ImpactNormal);
+        PoolMean+=FloorLux;
+        TestTrue(TEXT("Every fixture creates a distinct floor pool"),FloorLux>=35. && FloorLux<300.);
+        if(CastChecked<ALHVisualPiece>(Light->GetOwner())->GetRecipe().Id.ToString().EndsWith(TEXT(".Sconce")))
+        {
+            const FVector Inward=Light->GetOwner()->GetActorQuat().RotateVector(FVector::RightVector);
+            const FVector Wall=Flame-Inward*25.5;
+            const double WallLux=RuntimeLux(Wall,Inward);
+            WallMean+=WallLux; ++WallCount;
+            TestTrue(TEXT("Wall receiver behind sconce receives warm key"),WallLux>100.);
+        }
     }
-    struct FLegacyLight { FVector Position; double Lumens; };
-    // Reconstruct the native pre-W5-09 grid independently from generator B1()
-    // and CoverageLighting(); no transient runtime light supplies this baseline.
-    TArray<FLegacyLight> Legacy={
-        {{200,-2000,250},1800},{{770,-500,250},900},{{900,40,250},900},
-        {{40,1200,250},900},{{1760,1200,250},900},{{-1200,1200,250},1500},
-        {{-3160,1000,250},1800},{{2400,1030,250},900},{{4000,1000,250},1500},
-        {{5360,700,250},900},{{3300,2560,250},900},{{4850,1800,250},1800}
-    };
-    struct FRect { double X0,X1,Y0,Y1; };
-    const FRect Rects[]={{0,18,-28,-10},{0,18,0,18},{-3,0,3,7},{18,21,13,17},
-        {-32,-10,0,20},{30,54,0,26},{7.4,10.6,-10,0},{-10,0,7.4,10.6},{18,30,7.4,10.6}};
-    for(const auto& Rect:Rects)
+    // Fixed 100cm samples inside the FOUR real main room floors, 100cm from
+    // walls. Samples are independent of the fixture list, so adding more lights
+    // cannot move the measured dark gaps to convenient locations.
+    struct FRoom { const TCHAR* Name; int32 X0,X1,Y0,Y1; };
+    const FRoom Rooms[]={{TEXT("entry"),100,1700,-2700,-1100},
+        {TEXT("hub"),100,1700,100,1700},{TEXT("healer"),-3100,-1100,100,1900},
+        {TEXT("east"),3100,5300,100,2500}};
+    const auto* PlayerDefaults=GetDefault<ALHCharacter>();
+    UPointLightComponent* Fill=nullptr;
+    int32 AtmosphereCount=0;
+    for(TActorIterator<ALHB1Atmosphere> It(World);It;++It)
     {
-        const int32 NX=FMath::CeilToInt((Rect.X1-Rect.X0)/8.);
-        const int32 NY=FMath::CeilToInt((Rect.Y1-Rect.Y0)/8.);
-        for(int32 X=0;X<NX;++X) for(int32 Y=0;Y<NY;++Y)
-            Legacy.Add({FVector((Rect.X0+(X+.5)*(Rect.X1-Rect.X0)/NX)*100,
-                (Rect.Y0+(Y+.5)*(Rect.Y1-Rect.Y0)/NY)*100,250),1800.});
+        ++AtmosphereCount; Fill=It->ReadabilityFill.Get();
     }
-    TestEqual(TEXT("Independent original landmark and coverage count"),Legacy.Num(),59);
-    struct FSample { const TCHAR* Name; FVector Position,Normal; double ExpectedNew,ExpectedOld; };
-    // Independent reference values from the original B1 authoring rectangles:
-    // 47 ceil(width/8m)*ceil(depth/8m) coverage centres at 1800 lm plus 12
-    // landmarks at their N/W/T 1800/1500/900 lm profiles, all z250/r1400.
-    // New references use the same fixture positions plus flame (0,25,14),
-    // 1800 lm/r700; floor z0 and inward-facing vertical surface are fixed cm.
-    const FSample Samples[]={
-        {TEXT("near fixture floor"),{200,-1975,0},{0,0,1},33.4760,42.5590},
-        {TEXT("near fixture vertical surface"),{100,-1975,200},{1,0,0},108.3937,127.5781},
-        {TEXT("entry centre"),{900,-1900,0},{0,0,1},19.7737,29.8458},
-        {TEXT("hub centre"),{900,900,0},{0,0,1},19.7737,29.7579},
-        {TEXT("healer centre"),{-2100,1000,0},{0,0,1},19.4530,26.8730},
-        {TEXT("east centre"),{4200,1300,0},{0,0,1},11.4277,15.9162},
-        {TEXT("entry dark corner"),{100,-2700,0},{0,0,1},4.6971,8.1876},
-        {TEXT("hub dark corner"),{100,100,0},{0,0,1},5.4557,10.8801},
-        {TEXT("healer dark corner"),{-3100,100,0},{0,0,1},2.6932,4.9602},
-        {TEXT("east dark corner"),{5300,2500,0},{0,0,1},2.9468,4.5416}
-    };
-    for(const auto& Sample:Samples)
+    TestEqual(TEXT("Loaded B1 has exactly one readability atmosphere"),AtmosphereCount,1);
+    if(!TestNotNull(TEXT("Loaded B1 actual readability fill"),Fill))
     {
-        const double Lux=RuntimeLux(Sample.Position,Sample.Normal);
-        double OldLux=0;
-        for(const auto& Light:Legacy)
-            OldLux+=DirectLux(Light.Position,Sample.Position,Sample.Normal,Light.Lumens,1400.);
-        TestTrue(*FString::Printf(TEXT("%s independent original grid lux"),Sample.Name),FMath::Abs(OldLux-Sample.ExpectedOld)<.02);
-        if(FString(Sample.Name).Contains(TEXT("dark corner")))
-            TestTrue(*FString::Printf(TEXT("%s stays below 6 direct lux"),Sample.Name),Lux>0. && Lux<6.);
-        else if(FString(Sample.Name).Contains(TEXT("centre")))
-            TestTrue(*FString::Printf(TEXT("%s remains readable >=10 direct lux"),Sample.Name),Lux>=10.);
-        TestTrue(*FString::Printf(TEXT("%s expected unoccluded direct lux %.4f, actual %.4f"),Sample.Name,Sample.ExpectedNew,Lux),FMath::Abs(Lux-Sample.ExpectedNew)<.02);
-        TestTrue(*FString::Printf(TEXT("%s reduced vs legacy grid"),Sample.Name),Lux<Sample.ExpectedOld);
-        AddInfo(FString::Printf(TEXT("B1 photometric prediction %s: new %.4f lux / legacy %.4f lux; excludes sky/fill/colour/render response"),Sample.Name,Lux,Sample.ExpectedOld));
+        World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
+        Package->ClearFlags(RF_Standalone);
+        return false;
     }
-    AddInfo(TEXT("Legacy host rendered mean approximately .3; proposed .15-.25 new rendered mean remains an unobserved tuning prediction. Direct lux is not exported sRGB luma acceptance."));
+    TestEqual(TEXT("Loaded readability fill retains450 lumens"),Fill->Intensity,450.f);
+    TestEqual(TEXT("Loaded readability fill retains750cm radius"),Fill->AttenuationRadius,750.f);
+    TestEqual(TEXT("Loaded readability fill retains cool tint"),Fill->LightColor,FLinearColor(.55f,.7f,1.f).ToFColor(true));
+    const double FillHeight=PlayerDefaults->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()+220.;
+    const FLinearColor FillColor(Fill->LightColor);
+    const double FillLuminance=.2126*FillColor.R+.7152*FillColor.G+.0722*FillColor.B;
+    int32 Candidates=0, Rejected=0, Samples=0, Gaps=0, Pools=0, FloodedGaps=0;
+    double MeanLux=0., GapMean=0., FillGapMean=0., ColoredFillGapMean=0., FloodedMean=0.;
+    for(const auto& Room:Rooms)
+    {
+        int32 RoomSamples=0, RoomGaps=0; double RoomMean=0.;
+        for(int32 X=Room.X0;X<=Room.X1;X+=100) for(int32 Y=Room.Y0;Y<=Room.Y1;Y+=100)
+        {
+            ++Candidates;
+            FHitResult Hit;
+            const bool Found=World->LineTraceSingleByChannel(Hit,FVector(X,Y,80),FVector(X,Y,-700),ECC_Visibility);
+            if(!Found || Hit.bStartPenetrating || Hit.ImpactNormal.Z<.7) { ++Rejected; continue; }
+            const FVector Floor=Hit.ImpactPoint, Normal=Hit.ImpactNormal;
+            const double Lux=RuntimeLux(Floor,Normal);
+            // Negative regression: retain ACTUAL positions but restore W5-09b
+            // 1800lm/700cm. A flooded profile must fail the same gap criterion.
+            double FloodedLux=0.;
+            for(const auto* Light:Fixtures)
+                FloodedLux+=DirectLux(Light->GetComponentLocation(),Floor,Normal,1800.,700.);
+            ++Samples; ++RoomSamples; MeanLux+=Lux; RoomMean+=Lux; FloodedMean+=FloodedLux;
+            if(Lux<1.5)
+            {
+                ++Gaps; ++RoomGaps; GapMean+=Lux;
+                // Atmosphere Tick follows pawn CENTRE +220, not floor+220.
+                // Capsule half-height comes from the actual player defaults.
+                const double FillLux=DirectLux(Floor+FVector(0,0,FillHeight),Floor,Normal,Fill->Intensity,Fill->AttenuationRadius);
+                FillGapMean+=Lux+FillLux;
+                ColoredFillGapMean+=Lux+FillLux*FillLuminance;
+            }
+            if(Lux>=8.) ++Pools;
+            if(FloodedLux<1.5) ++FloodedGaps;
+        }
+        TestTrue(*FString::Printf(TEXT("%s has darker readable gaps"),Room.Name),RoomGaps>=RoomSamples*.15);
+        AddInfo(FString::Printf(TEXT("B1 %s predicted floor mean %.4f direct lux; gap fraction %.3f"),Room.Name,RoomMean/RoomSamples,double(RoomGaps)/RoomSamples));
+    }
+    TestTrue(TEXT("At least 25 percent of real room floor samples are warm-light gaps"),Gaps>=Samples*.25);
+    TestTrue(TEXT("At least 15 percent of real room floor samples are lit pools"),Pools>=Samples*.15);
+    TestTrue(TEXT("Prior flooded attenuation fails the 25 percent gap criterion"),FloodedGaps<Samples*.25);
+    TestEqual(TEXT("Fixed room grids inspect every authored candidate"),Candidates,1552);
+    TestTrue(TEXT("At least 90 percent of fixed room grid finds walkable surfaces"),Samples>=Candidates*.90);
+    TestTrue(TEXT("Actual pawn-centred fill keeps occupied gaps above 3 direct lux"),Gaps>0 && FillGapMean/Gaps>=3.);
+    AddInfo(FString::Printf(TEXT("B1 floor sampling candidates=%d walkable=%d rejected=%d; pawn capsule halfheight=%.1f fill floor height=%.1f actual intensity=%.1f radius=%.1f; approximate linear color luminance weight=%.4f occupied gap tinted estimate=%.4f lux (temperature/material/exposure excluded)"),Candidates,Samples,Rejected,FillHeight-220.,FillHeight,Fill->Intensity,Fill->AttenuationRadius,FillLuminance,ColoredFillGapMean/FMath::Max(1,Gaps)));
+    TestTrue(TEXT("At least one actual wall-mounted fixture is audited"),WallCount>0);
+    AddInfo(FString::Printf(TEXT("B1 photometric prediction: fixture floor pool mean %.4f lux; wall key mean %.4f lux; room floor mean %.4f lux; warm gap mean %.4f lux; occupied gap with cool fill %.4f lux; restored flooded mean %.4f lux / gap fraction %.3f; pools %.3f gaps %.3f"),
+        PoolMean/FMath::Max(1,Fixtures.Num()),WallMean/FMath::Max(1,WallCount),MeanLux/Samples,GapMean/FMath::Max(1,Gaps),FillGapMean/FMath::Max(1,Gaps),FloodedMean/Samples,double(FloodedGaps)/Samples,double(Pools)/Samples,double(Gaps)/Samples));
+    AddInfo(TEXT("Rendered basement mean target .15-.25, tuning prediction .18-.22; these direct lux means exclude material, sky, exposure, fog and tone mapping and cannot establish capture luma."));
+    // Verify supports after InitWorld and BeginPlay rebuild them against real
+    // physics. Editor PostLoad occurs before a usable floor tracing scene.
+    int32 Walls=0,Braziers=0;
+    for(TActorIterator<ALHVisualPiece> It(World);It;++It)
+    {
+        const auto& Recipe=It->GetRecipe();
+        if(Recipe.Style!=ELHVisualStyle::B1Cellar) continue;
+        LHB1Art::FFit Fit;
+        if(LHB1Art::Resolve(Recipe,Fit) && Fit.AssetName==TEXT("Wall400"))
+        {
+            ++Walls;
+            const auto Backing=LHB1Art::SolidBacking(Recipe,Fit);
+            TestEqual(TEXT("Wall has one inset solid core"),Backing.Num(),1);
+            if(Backing.Num()!=1) continue;
+            const FVector CoreLo=Backing[0].Center-Backing[0].Size/2,CoreHi=Backing[0].Center+Backing[0].Size/2;
+            TestTrue(TEXT("Wall core is inset five centimetres on both broad faces"),
+                FMath::IsNearlyEqual(CoreLo.Y-Fit.ClipBounds.Min.Y,5.,.01) &&
+                FMath::IsNearlyEqual(Fit.ClipBounds.Max.Y-CoreHi.Y,5.,.01));
+            auto* Support=It->GetArtSupport();
+            const auto* Section=Support?Support->GetProcMeshSection(0):nullptr;
+            if(!TestNotNull(TEXT("Wall backing and cut caps are built"),Section)) continue;
+            TestEqual(TEXT("One core plus four perimeter caps"),Section->ProcVertexBuffer.Num(),5*24);
+            for(const auto& Vertex:Section->ProcVertexBuffer)
+            {
+                const FVector P=Vertex.Position;
+                TestTrue(TEXT("Wall support stays inside masonry crop"),Fit.ClipBounds.IsInsideOrOn(P));
+                const bool InCoreDepth=P.Y>=CoreLo.Y-.01 && P.Y<=CoreHi.Y+.01;
+                const bool AtPerimeter=P.X<=Fit.ClipBounds.Min.X+1.01 || P.X>=Fit.ClipBounds.Max.X-1.01 ||
+                    P.Z<=Fit.ClipBounds.Min.Z+1.01 || P.Z>=Fit.ClipBounds.Max.Z-1.01;
+                TestTrue(TEXT("Caps cannot fill broad mortar recesses"),InCoreDepth || AtPerimeter);
+            }
+        }
+        if(Recipe.Id.ToString().EndsWith(TEXT(".Torch")))
+        {
+            ++Braziers;
+            TestEqual(TEXT("Brazier geometry contributes no collision"),Recipe.Collision.Num(),0);
+            TestTrue(TEXT("Brazier bowl has a broad iron base"),Recipe.Geometry.ContainsByPredicate([](const FLHVisualBox& B){return B.Size.X>=58 && B.Size.Y>=58;}));
+            const auto* FlameSection=It->GetMesh()->GetProcMeshSection(1);
+            if(TestNotNull(TEXT("Brazier flame surface is built"),FlameSection))
+            {
+                TestEqual(TEXT("Two tapered eight-side flames emit sixty-four triangles"),FlameSection->ProcIndexBuffer.Num()/3,64);
+                for(const auto& Vertex:FlameSection->ProcVertexBuffer)
+                    TestTrue(TEXT("Flame vertices stay inside conservative recipe bounds"),Recipe.Geometry.ContainsByPredicate([&](const FLHVisualBox& B)
+                    {
+                        if(B.Surface!=1) return false;
+                        const FVector Local=B.Rotation.UnrotateVector(Vertex.Position-B.Center);
+                        return FMath::Abs(Local.X)<=B.Size.X/2+.01 && FMath::Abs(Local.Y)<=B.Size.Y/2+.01 && FMath::Abs(Local.Z)<=B.Size.Z/2+.01;
+                    }));
+            }
+            const auto* FlameMaterial=Cast<UMaterialInstanceDynamic>(It->GetMesh()->GetMaterial(1));
+            TestTrue(TEXT("Brazier flame uses existing imported emissive material"),FlameMaterial && FlameMaterial->Parent && FlameMaterial->Parent->GetName().Contains(TEXT("flame")));
+            const auto* Section=It->GetArtSupport()->GetProcMeshSection(0);
+            if(!TestNotNull(TEXT("Brazier legs and wide foot are built"),Section)) continue;
+            FBox Bounds(ForceInit);
+            for(const auto& Vertex:Section->ProcVertexBuffer) Bounds+=Vertex.Position;
+            TestTrue(TEXT("Freestanding brazier foot spans seventy centimetres"),Bounds.GetSize().X>=69.9 && Bounds.GetSize().Y>=69.9);
+            TestEqual(TEXT("Brazier support has no collision"),It->GetArtSupport()->GetCollisionEnabled(),ECollisionEnabled::NoCollision);
+            TestFalse(TEXT("Brazier support has no nav influence"),It->GetArtSupport()->CanEverAffectNavigation());
+        }
+    }
+    TestTrue(TEXT("Real generated masonry was inspected"),Walls>0);
+    TestTrue(TEXT("Real generated freestanding braziers were inspected"),Braziers>0);
     // DestroyWorld unregisters components/releases the scene and clears world
     // standalone/root flags. Remove this isolated context as well; the unique
     // /Temp package can then be reclaimed without disturbing shared editor maps.

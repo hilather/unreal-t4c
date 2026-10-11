@@ -91,6 +91,29 @@ void AppendBox(const FLHVisualBox& B,TArray<FVector>& V,TArray<int32>& Ind,TArra
         Ind.Append({Base,Base+2,Base+1,Base,Base+3,Base+2});
     }
 }
+// Faceted teardrop flame; its recipe box remains the conservative authored bounds.
+void AppendFlame(const FLHVisualBox& B,TArray<FVector>& V,TArray<int32>& Ind,TArray<FVector>& N,TArray<FVector2D>& UV)
+{
+    constexpr int32 Sides=8;
+    auto Point=[&](int32 Ring,int32 Side)
+    {
+        const double A=Side*2.*PI/Sides;
+        const double Radius=Ring==0?.22:Ring==1?.5:.015;
+        const double Height=Ring==0?-.5:Ring==1?-.12:.5;
+        return B.Center+B.Rotation.RotateVector(FVector(B.Size.X*Radius*FMath::Cos(A),
+            B.Size.Y*Radius*FMath::Sin(A),B.Size.Z*Height));
+    };
+    for(int32 Ring=0;Ring<2;++Ring) for(int32 Side=0;Side<Sides;++Side)
+    {
+        const FVector P[4]={Point(Ring,Side),Point(Ring,Side+1),Point(Ring+1,Side+1),Point(Ring+1,Side)};
+        const int32 Base=V.Num();
+        const FVector Normal=FVector::CrossProduct(P[1]-P[0],P[3]-P[0]).GetSafeNormal();
+        for(int32 I=0;I<4;++I) { V.Add(P[I]); N.Add(Normal); }
+        UV.Append({{0,0},{1,0},{1,1},{0,1}});
+        Ind.Append({Base,Base+2,Base+1,Base,Base+3,Base+2});
+    }
+}
+
 }
 
 uint32 FLHVisualRecipe::Fingerprint() const
@@ -167,6 +190,21 @@ bool LHVisual::MakeRecipe(FName Id,ELHVisualStyle Style,FLHVisualRecipe& Out,boo
     {
         R.TriangleBudget=4000; Box(R,{0,0,200},{60,60,400},0,true); R.Geometry.Last().Size={54,54,400};
         Box(R,{0,0,15},{60,60,30},1); Box(R,{0,0,385},{60,60,30},1);
+    }
+    else if(Style==ELHVisualStyle::B1Cellar && S.EndsWith(TEXT("Torch")))
+    {
+        // Low broad iron brazier, centered below the shared flame/light offset.
+        // Ground support is fitted separately from a static floor trace.
+        R.Colors[0]=Hex(TEXT("303438")); R.Colors[1]=Hex(TEXT("E8AA53")); R.Roughness[0]=.78f;
+        Box(R,{0,25,-15},{58,58,12});
+        for(int32 I=0;I<4;++I)
+        {
+            const FRotator Yaw(0,I*90.f,0);
+            Box(R,FVector(0,25,-4)+Yaw.RotateVector(FVector(0,29,0)),{58,5,18});
+            R.Geometry.Last().Rotation=Yaw;
+        }
+        Box(R,{0,25,9},{22,22,24},1);
+        Box(R,{2,25,24},{10,10,12},1);
     }
     else if(S.EndsWith(TEXT("Torch")) || S.EndsWith(TEXT("Sconce")))
     {
@@ -269,10 +307,31 @@ bool ALHVisualPiece::Build(const FLHVisualRecipe& R)
     for(int32 Surface=0;Surface<2;++Surface)
     {
         TArray<FVector> V,N; TArray<int32> Ind; TArray<FVector2D> UV;
-        for(const auto& B:R.Geometry) if(B.Surface==Surface) LHVisualPrivate::AppendBox(B,V,Ind,N,UV);
+        const bool B1Flame=R.Style==ELHVisualStyle::B1Cellar && R.Id.ToString().EndsWith(TEXT("Torch")) && Surface==1;
+        for(const auto& B:R.Geometry) if(B.Surface==Surface)
+        {
+            if(B1Flame) LHVisualPrivate::AppendFlame(B,V,Ind,N,UV);
+            else LHVisualPrivate::AppendBox(B,V,Ind,N,UV);
+        }
         if(V.IsEmpty()) continue;
         Mesh->CreateMeshSection(Surface,V,Ind,N,UV,TArray<FColor>(),TArray<FProcMeshTangent>(),false);
-        auto* M=UMaterialInstanceDynamic::Create(Parent,this);
+        UMaterialInterface* SurfaceParent=Parent;
+        if(B1Flame)
+        {
+            // Existing imported flame slot is already emissive and cook-reachable
+            // through the hard-referenced Sconce mesh; no new material asset.
+            const int32 SconceIndex=LHB1Art::AssetNames().IndexOfByKey(TEXT("Sconce"));
+            if(B1Assets.IsValidIndex(SconceIndex) && B1Assets[SconceIndex])
+                for(const auto& Slot:B1Assets[SconceIndex]->GetStaticMaterials())
+                    if(Slot.MaterialInterface && Slot.MaterialInterface->GetName().Contains(TEXT("flame")))
+                        SurfaceParent=Slot.MaterialInterface;
+        }
+        auto* M=UMaterialInstanceDynamic::Create(SurfaceParent,this);
+        if(B1Flame)
+        {
+            M->SetVectorParameterValue(TEXT("ClipOrigin"),FLinearColor(0,0,0,0));
+            M->SetVectorParameterValue(TEXT("ClipExtent"),FLinearColor(1.e8,1.e8,1.e8,0));
+        }
         M->SetVectorParameterValue(TEXT("Color"),R.Colors[Surface]);
         M->SetScalarParameterValue(TEXT("Roughness"),R.Roughness[Surface]); Mesh->SetMaterial(Surface,M);
     }
@@ -361,7 +420,10 @@ FLHVisualTotals LHVisual::ValidatePlacedSet(const TArray<ALHVisualPiece*>& Piece
         T.Triangles+=VisibleTri; T.DrawCalls+=VisibleDraw; T.CollisionBoxes+=P->GetBlockers().Num();
         const auto& R=P->GetRecipe();
         if(R.Geometry.IsEmpty() || !P->GetActorScale3D().Equals(FVector::OneVector)) T.Errors.Add(R.Id.ToString()+TEXT(": empty recipe/nonunit scale"));
-        if(Tri>R.TriangleBudget || Draw>R.DrawBudget || Tri!=R.Geometry.Num()*12)
+        int32 ExpectedTriangles=0;
+        const bool B1Brazier=R.Style==ELHVisualStyle::B1Cellar && R.Id.ToString().EndsWith(TEXT("Torch"));
+        for(const auto& Box:R.Geometry) ExpectedTriangles+=B1Brazier && Box.Surface==1?32:12;
+        if(Tri>R.TriangleBudget || Draw>R.DrawBudget || Tri!=ExpectedTriangles)
             T.Errors.Add(R.Id.ToString()+TEXT(": geometry/budget mismatch"));
         if(M->GetCollisionEnabled()!=ECollisionEnabled::NoCollision || M->CanEverAffectNavigation()) T.Errors.Add(R.Id.ToString()+TEXT(": render collision"));
         if(P->GetBlockers().Num()!=R.Collision.Num()) T.Errors.Add(R.Id.ToString()+TEXT(": blocker count"));
@@ -410,17 +472,32 @@ void ALHVisualPiece::UpdateArtSupport(const FLHVisualRecipe& R)
     if(ImportedMesh->IsVisible() && LHB1Art::Resolve(R,Fit))
     {
         Boxes=LHB1Art::SolidBacking(R,Fit);
+        if(Fit.AssetName==TEXT("Wall400"))
+        {
+            // Closed cut caps stay at the perimeter; never fill broad mortar faces.
+            const FVector Lo=Fit.ClipBounds.Min, Hi=Fit.ClipBounds.Max, Center=Fit.ClipBounds.GetCenter();
+            for(double Z:{Lo.Z+.5,Hi.Z-.5})
+            {
+                FLHVisualBox Cap; Cap.Center={Center.X,Center.Y,Z};
+                Cap.Size={Hi.X-Lo.X,Hi.Y-Lo.Y,1}; Boxes.Add(Cap);
+            }
+            for(double X:{Lo.X+.5,Hi.X-.5})
+            {
+                FLHVisualBox Cap; Cap.Center={X,Center.Y,Center.Z};
+                Cap.Size={1,Hi.Y-Lo.Y,Hi.Z-Lo.Z}; Boxes.Add(Cap);
+            }
+        }
         // Separate MID: crop shader bounds default to effectively infinite on backing.
         if(!Boxes.IsEmpty()) Parent=ImportedMesh->GetStaticMesh()->GetMaterial(0);
     }
     const FString Id=R.Id.ToString();
-    if(Id.EndsWith(TEXT("Sconce")) || Id.EndsWith(TEXT("Torch")))
+    if(Id.EndsWith(TEXT("Torch")) || (Id.EndsWith(TEXT("Sconce")) && GetActorLocation().Z>120))
     {
         const FTransform T=GetActorTransform();
         FCollisionQueryParams Query(SCENE_QUERY_STAT(LHB1FixtureSupport),false,this);
         FHitResult FloorHit;
-        // All B1 fixtures receive a stand: retained full-height colliders cannot
-        // prove the cropped presentation wall still exists behind a plate.
+        // Wall sconces are mounted by the generator on the visible cutaway.
+        // Only the freestanding brazier needs floor-fitted presentation legs.
         bool FoundFloor=false;
         // Prototype bounded retry: a hidden wall overlapping the origin is not ground.
         for(int32 Attempt=0;GetWorld() && Attempt<8;++Attempt)
@@ -437,8 +514,13 @@ void ALHVisualPiece::UpdateArtSupport(const FLHVisualRecipe& R)
             const double Base=T.InverseTransformPosition(FloorHit.ImpactPoint).Z;
             if(Base<-20)
             {
-                FLHVisualBox Stem; Stem.Center={0,25,(Base-8)/2}; Stem.Size={9,9,-8-Base}; Boxes.Add(Stem);
-                FLHVisualBox Foot; Foot.Center={0,25,Base+3}; Foot.Size={38,38,6}; Boxes.Add(Foot);
+                const double SupportTop=Id.EndsWith(TEXT("Torch"))?-15.:-8.;
+                for(double X:{-22.,22.}) for(double Y:{3.,47.})
+                {
+                    FLHVisualBox Leg; Leg.Center={X,Y,(Base+SupportTop)/2};
+                    Leg.Size={10,10,SupportTop-Base}; Boxes.Add(Leg);
+                }
+                FLHVisualBox Foot; Foot.Center={0,25,Base+4}; Foot.Size={70,70,8}; Boxes.Add(Foot);
             }
         }
     }
@@ -455,7 +537,7 @@ void ALHVisualPiece::UpdateArtSupport(const FLHVisualRecipe& R)
     }
     ArtSupport->CreateMeshSection(0,V,Ind,N,UV,TArray<FColor>(),Tangents,false);
     auto* M=UMaterialInstanceDynamic::Create(Parent,this);
-    M->SetVectorParameterValue(TEXT("Color"),R.Colors[0]); M->SetScalarParameterValue(TEXT("Roughness"),.9f);
+    M->SetVectorParameterValue(TEXT("Color"),R.Colors[0]); M->SetScalarParameterValue(TEXT("Roughness"),Id.EndsWith(TEXT("Torch"))?.78f:.9f);
     M->SetVectorParameterValue(TEXT("ClipOrigin"),FLinearColor(0,0,0,0));
     M->SetVectorParameterValue(TEXT("ClipExtent"),FLinearColor(1.e8,1.e8,1.e8,0));
     ArtSupport->SetMaterial(0,M);
