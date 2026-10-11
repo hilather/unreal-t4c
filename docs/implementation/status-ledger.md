@@ -293,3 +293,10 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
 - **W5-09g (492b5ab) submitted.** B1 warm palette, 20 clutter props, larger varied stone, segmented coping; 216/216. Host check running.
 - **Farm:** the W5-10d launch lease expired at 01:12Z, and the farm closed it as `dedicated_server_lost` at 03:07Z. Control auto-paused and re-activated on the ticker's own pass (epoch 714). Nothing forced.
 - **Temp space:** host clones now live in `~/.cache/unreal-t4c-host/` (they filled the /tmp quota). `CLAUDE_CODE_TMPDIR` is set to `~/.cache/claude-tmp` in user settings for new sessions. The build recipe for workers is in `wave4/_env.md`.
+- **W5-09g integrated (745decc; B1 kit and map a62e130, 6.9 MB LFS).**
+  - **Host:** B1 kit re-imported (4.23 MB); B1 regenerated with B2 byte-identical (the tracked receipt works); 217/217; arrivals 9/9 unchanged; validator 0; package OK; 15/15 captures; B1 means .23 / .20 / .20.
+  - **Look:** warm brown-amber stone throughout, varied flagstones, wall-sconce pools, fire bowls, and some barrels, crates and tables along the walls. Close to the concept; the clutter is thin and room 3's arch is still a dark block. Captures are in `scratch/captures/w5-09g/`.
+- **Launched:**
+  - **W5-14 (astra):** Blender kits for the church and B2–B4, each floor distinct.
+  - **W5-08f (astra):** bat family and slime polish from the in-game lineup.
+  - **W5-13 (sol):** player import. Still running.
