@@ -594,3 +594,245 @@ those remain outside this test-only task (Windows deferred). Evidence candidate
 and reproduction wrappers: canonical W5-09d worker-output `report.md` and
 `library/`; no binaries are submitted. Next: coordinator review/integration,
 then the previously requested render-capable B1 acceptance pass.
+
+## W5-09e — readable gaps, iron fire bowls and unchanged B2 saves
+
+Task ID: W5-09e. Base revision: `c95336452c7a69bf13b6db07d929671fbe61dc3a`.
+Result revision: candidate recorded in the canonical submission receipt.
+Contract revision: 1. Attempt:
+`attempt-00507bfaf728ed66973e998b9ec6dd3b273cea1aea85471e3e24f0213c77963f`.
+This is an evidence candidate, not rendered acceptance or a gate declaration.
+
+Owned paths changed: `LHB1Lighting.{h,cpp}`, `LHVisualKit.cpp`, the B1 fixture
+branch of `LHMapDressing.h`, `LHGenerateBasementAMapsCommandlet.cpp`,
+`LHB1LightingTests.cpp`, `World/LHLightingAuditTests.cpp`, two checks under
+`Source/LighthavenTests/World/`, and this appended section. No binary assets
+are delivered. `LHB1ArtBinding.*` and `LHVisualKit.h` needed no changes.
+
+### Presentation changes and assumptions
+
+The supplied room captures and the right half of the temple/basement concept
+were inspected as visual targets only. Their pixels were not used in assets.
+Independent full-frame exported sRGB Rec.709 luma measurements of the supplied
+W5-09d captures are:
+
+| Capture | Mean | Median | Share below .02 |
+|---|---:|---:|---:|
+| Room 1 | .12194 | .05088 | .37493 |
+| Room 2 | .09695 | .01089 | .53983 |
+| Room 3 | .07486 | .00392 | .62711 |
+
+Four fixed **14000 lm, 3000 cm radius** inverse-square room fills sit at
+`(900,-1900,900)`, `(900,900,900)`, `(-2100,1000,900)` and `(4200,1300,900)` cm.
+Their linear tint is `(.65,.70,.80)`. At nine metres above the floor the light
+is broad and dim at the edges. These approximate reflected room light and
+remain visible without a pawn. This lifts unoccupied gaps; simply increasing
+the pawn fill would leave most of each capture dark. All four are movable,
+non-shadow-casting and have no navigation contribution. The existing `.12`
+skylight, 450 lm pawn fill, haze, exposure EV100 2.5 and post-process remain.
+Warm fixtures retain **1000 lm / 2900 K / 375 cm**, with the same bounded flicker.
+There are 47 fixtures plus four room fills and one pawn fill (52 point lights),
+compared with 51 plus one previously. No Lumen or renderer configuration changed.
+
+The B1-only mount search now prefers an actual visible wall within 375 cm
+(previously 240), retaining the 45 cm endpoint clearance, floor checks and
+300 cm flame spacing. The generated inventory is **42 wall sconces and five
+freestanding braziers**. The remaining bowls have a 64 cm circular outer diameter,
+a concave well, rolled rim, broad ember bed and four tapered flame lobes.
+A circular 54 cm flange and central pedestal replace the four table legs.
+The light remains inside the fire at local `(0,25,14)`; the bowl has no flat
+square top beneath it. The bowl and pedestal bind the existing imported
+`MI_B1_iron` (linear ORM roughness/metallic), with dark vertex tint and explicit
+normal-map tangents. Flame geometry binds the existing emissive material.
+No material or mesh package was created. Each bowl adds 288 bowl triangles,
+160 ember/flame triangles and 160 pedestal triangles across three base sections.
+The support still requires a real static floor trace; it is never a collider.
+Regenerate B1 to replace old serialized fixture recipes and placements.
+
+Source-backed mechanics: none changed. All dimensions, intensities, colours,
+thresholds and predictions above are **Prototype presentation tuning**, provenance
+W5-09e supplied-capture/concept comparison and installed UE5.8.3/art inspection,
+retrieval 2026-10-10, URL null. No T4C mechanics authenticity is asserted.
+The entire generator `FBuilder` (layout, collisions, route checks, spawns,
+arrivals, portals and original lighting authoring) is byte-identical to the
+base: SHA-256 `f0d1c2f161d09c45652ff8aab076ba4318291e3b8d894f42cb673476b5ec6e72`.
+
+### Numeric checks and predicted captures
+
+The loaded-game audit still inspects serialized recipes before scene
+initialization and after BeginPlay. Its four fixed one-metre grids have
+**1552 candidates / 1545 walkable samples / seven rejected**. It retains the
+warm-pool/gap checks and the broad-torch negative control. New checks require
+unoccupied gaps to average at least 3 lux but less than 12, every sampled gap
+to exceed .75 lux, and sampled pools to be at least three times brighter than
+gaps. Removing the room fills must fail the 3 lux gap target. These estimates
+use actual traced floors and linear Rec.709 weighting for the room-fill tint;
+they exclude torch temperature, material response, occlusion, finite-source
+integration, skylight, fog, exposure and tone mapping.
+
+| Receiver group | Warm direct lux | With tinted fixed room fills |
+|---|---:|---:|
+| Entry room mean | 4.7303 | 9.9190 |
+| Hub mean | 3.7832 | 8.9586 |
+| Healer room mean | 3.6457 | 8.0348 |
+| East room mean | 4.9886 | 8.5160 |
+| All room samples mean | 4.3692 | 8.7306 |
+| Unoccupied warm gaps mean | .1920 | 4.6708 |
+
+Minimum combined gap is **.7893 lux**; combined sampled-pool mean is
+**26.9598 lux**, giving **5.772:1** pool/gap contrast. The occupied gap estimate
+with the colour-weighted pawn fill is **7.0968 lux**. Warm-only pool and gap
+fractions are .151 and .645; restoring the 1800 lm / 700 cm broad torch profile
+reduces gaps to .195, failing the retained .25 requirement. The mean directly
+beneath fixtures is 72.7252 lux; near-sconce wall probes average 1221.8788 lux
+and remain especially approximate at finite-source distances.
+
+Predicted full-frame room means: **.19 / .18 / .16**, uncertainty at least
+**±.05**. Predicted near-black shares: approximately **.12 / .16 / .18**, with
+uncertainty at least ±.08. These are hypotheses, not observed pixel results
+or a lux-to-luma conversion. `check_b1_capture_luma.py` measures the same three
+full frames with ImageMagick RGB8 output: mean **.15–.25**, share below `.02`
+**at most .20**, substantially below the supplied .375/.540/.627. This explicit
+W5-09e target replaces the older .05 near-black criterion for this pass, under
+the request to update thresholds; it is not an assertion that void is readable.
+No cropping or masking is used. The script correctly rejects all three supplied
+baseline images (exit 1). Fresh rebuilt-package images remain required.
+
+### B2 save stability
+
+Previously both maps always reached `NewMap` and `SaveMap`. A narrow authored
+actor/transform fingerprint could not distinguish changed lights, materials,
+recipes or post-process, and a new save introduces engine-generated identities.
+B2 now builds and validates its prospective world, then compares normalized
+T3D authored content and participating archetype defaults before saving. The
+snapshot includes components, brush geometry, recipes, lights, cameras,
+WorldSettings and gameplay marker fields. Runtime objects marked transient are
+excluded. Actor/component ordering and auto-generated names are normalized;
+only explicitly named engine cache GUID fields are removed. Authored gameplay
+GUIDs and external asset paths remain. Unknown differences conservatively save.
+Including archetype defaults prevents a changed default from disappearing from
+both sides of a delta export.
+
+A local `Saved/MapGeneration/L_TempleB2.semantic-receipt` pairs that signature
+with the current map-file digest. A missing receipt, changed content, changed
+engine version, restored pointer or edited map forces a save. First adoption
+therefore writes B2 once. Subsequent B1-only regeneration skips **B2 SaveMap**;
+it does not attempt to make all Unreal package serialization deterministic.
+Deleting Saved loses the cache safely. Asset references are compared by path;
+changing an external asset in place does not require rewriting the map that
+references it. No receipt is committed.
+
+The committed `check_b2_generation_stability.sh` primes the receipt with five
+mutation controls (point intensity, archetype default, sky, exposure, recipe),
+then compares B2 SHA-256 after two full generator runs. Its second repeat creates
+97 transient B1 visual actors after B1 save to perturb allocation/naming before
+B2; they are never saved. This checks that unrelated B1 fixture-count changes
+cannot masquerade as B2 content changes. An initial control run detected every
+mutation but failed restoration because rebuilding a recipe left unused dynamic
+materials; the final control mutates/restores the serialized recipe directly.
+
+Observed stability check: **exit 0, 61 seconds**, all five mutation controls
+and restoration passed. Both repeat generations preserved B2 SHA-256
+`ded0a854aaa5a830d30bfb441bec00006264b9b0f32c6cdde48c56245321fb84`;
+semantic digest `a9c8056af73dcfb52badfda93a836d2b`. An additional generation
+after rebuilding a B1-only bowl geometry correction preserved the same SHA-256
+and logged the skip again. B1's final dressing totals are **258 pieces /
+1,229,636 triangles / 469 base sections / zero blockers**; B2 remains **833 /
+222,048 / 1,662 / zero**.
+
+### Observed validation and remaining work
+
+Observed environment: uid1000, UE **5.8.3 Linux**, changelist 58210709.
+Final builds used unity with `-DisableAdaptiveUnity -UBASharedMemoryTempFile=true
+-NoUBA`, checkout-local XDG config and UBA storage. Both edited native test
+files are present in the generated unity test translation unit. UBA cache-store
+warnings did not prevent compilation or linking. Local generation logged
+nonfatal read-only HOME config-directory warnings; it had zero logged errors.
+
+| Check | Observed result | Wall time |
+|---|---|---:|
+| Final LighthavenEditor build | Succeeded, exit 0; 54.78 s engine time | 55 s |
+| Final Lighthaven game build | Succeeded, exit 0; 26.58 s engine time | 27 s |
+| Final local basement generation | B1 saved, B2 skipped unchanged; exit 0 | 17 s |
+| B2 three-run stability script | Five mutation controls + two byte-identical repeats; exit 0 | 61 s |
+| Focused B1/light audit | 6 discovered / 6 Success, exit 0 | 32 s |
+| Final full headless Lighthaven suite | **213 discovered / 212 Success / 1 Fail / 0 not-run or in-process**, exit 255 | 277 s |
+| Standalone arrival review | 9/9 PASS, reviewed bytes unchanged; exit 0 | 87 s |
+| Five-map LHValidateWorld | Five maps passed, zero errors; exit 0 | 31 s |
+
+The standalone arrival wrapper logged the installed DDC graph's unavailable
+writable-node error, then explicitly used the memory-cache fallback; its
+actual automation result and all nine arrival receipts passed. This is not
+reported as an error-free startup. Reviewed-arrival SHA-256 remains
+`e56cc528fcbdee98194c878edf84347d5a71f49eb6c23cf927e47634a724e5fc`.
+
+The final suite has **204 clean successes + eight successes with warnings**,
+**248.031433 seconds** reported test duration. Both lighting audits, B1 light
+lifecycle tests, map dressing, arrival safety, route tests and
+`Lighthaven.Visual.DeterminismAndRebuild` pass. The initial full run was
+211/213 (243 s wall); its extra winding failure exposed collapsed half-quads
+at radial poles. Replacing those halves with triangle fans fixed production
+geometry; the final run also checks pedestal triangles explicitly.
+
+**The full suite is not green.** Its remaining failure is
+`Lighthaven.Visual.CatalogBuildCollisionBudgets`: “Roughness exists in engine
+parent”. `Source/LighthavenTests/Visual/LHVisualKitTests.cpp` distinguishes
+imported flame only and still assumes surface 0 uses BasicShapeMaterial's
+scalar roughness. The bowl now deliberately uses imported iron's ORM texture.
+That file is outside W5-09e ownership and is unchanged. The integrator must
+extend its imported-material expectation to iron and check ORM roughness and
+metallic there. The owned loaded-world audit checks the real iron parent,
+linear ORM binding, dark vertex tint, open bowl, fire geometry, pedestal,
+no collision and no navigation contribution. No test was suppressed or
+reclassified as a success. The intermittent session rollback test passed in
+both full runs; this work makes no claim to fix it.
+
+Exact build and editor wrappers, full test-name/state summaries, mutation
+receipts, B2 SHA-256 comparison, baseline pixel metrics and source-invariance
+hashes are in the canonical worker-output `library/`. Reproduction:
+
+```sh
+bash Saved/W509e/build-target.sh LighthavenEditor
+bash Saved/W509e/build-target.sh Lighthaven
+bash Source/LighthavenTests/World/check_b2_generation_stability.sh
+bash Saved/W509e/run-editor.sh full-final \
+  '-ExecCmds=Automation RunTests Lighthaven; Quit' \
+  "-ReportExportPath=$PWD/Saved/W509e/FullFinalReport" '-TestExit=Automation Test Queue Empty'
+env UE_ROOT=/home/brewerm/Downloads/unreal \
+  XDG_CONFIG_HOME="$PWD/Saved/BuildEnvironment/config" \
+  'UE-LocalDataCachePath'="$PWD/Saved/DerivedDataCache" bash build/review-arrivals.sh
+bash Saved/W509e/run-editor.sh validate-final -run=LHValidateWorld
+python3 Source/LighthavenTests/World/check_b1_capture_luma.py \
+  /path/to/L_TempleB1-room{1,2,3}.png
+```
+
+The wrappers themselves are retained in `library/`; `Saved/W509e/` is local,
+ignored verification state. All **34 files (eight maps, 26 art packages)**
+were restored to their exact original LFS pointer bytes after validation.
+Hydration used only verified SHA-256/size matches in the existing local LFS
+store; no downloads. No `.umap`, `.uasset` or reviewed-arrival change is
+submitted. `git diff --check` passes; evidence output is below 1 MiB and the
+40 MiB budget.
+
+Checks not run and concrete missing prerequisite: no fresh rendered Unreal
+capture, packaged launch, GPU profiling or cook/package run. This worker has
+no DISPLAY, WAYLAND_DISPLAY, `/dev/nvidia*` or `/dev/dri/*`; fresh pixels and
+visual comparison require the coordinator's render-capable host session and
+rebuilt Linux package. No Blender mock or synthetic image is presented as a
+render. NullRHI cannot prove iron highlights, flame colour, stone readability,
+near-black share, actor/loot readability or GPU cost. Windows is deferred under
+the Linux-first decision.
+
+Known limits/remaining decisions: capture predictions remain unobserved;
+four broad unshadowed fills can leak through walls; first B2 cache adoption
+still saves once; the out-of-scope catalog material test needs integration.
+The `.20` near-black threshold is an explicit provisional interpretation of
+“well below today's”, not an observed pass or a change to unrelated floors.
+
+Next task/integration notes: review source, update the catalog material
+expectation, regenerate B1 and retain the local B2 receipt, then rebuild the
+Linux package and capture the same three views. Run the supplied luma check
+and visually assess the iron bowl/fire silhouette, cooler brown gaps, distinct
+warm pools and player/enemy/loot readability against the concept. Existing
+imported B1 packages suffice. No merge, push or task-verification declaration
+is part of this attempt.

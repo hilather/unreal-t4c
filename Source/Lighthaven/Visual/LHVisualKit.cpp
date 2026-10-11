@@ -91,6 +91,46 @@ void AppendBox(const FLHVisualBox& B,TArray<FVector>& V,TArray<int32>& Ind,TArra
         Ind.Append({Base,Base+2,Base+1,Base,Base+3,Base+2});
     }
 }
+// Revolved radial profile, with independent facet normals and UV frames.
+// Profile order follows the outside upwards and returns down the open inside.
+void AppendRadial(FVector Center,const TArray<FVector2D>& Profile,TArray<FVector>& V,TArray<int32>& Ind,TArray<FVector>& N,TArray<FVector2D>& UV)
+{
+    constexpr int32 Sides=16;
+    for(int32 Ring=0;Ring<Profile.Num()-1;++Ring) for(int32 Side=0;Side<Sides;++Side)
+    {
+        auto Point=[&](int32 R,int32 S)
+        {
+            const double A=S*2.*PI/Sides;
+            return Center+FVector(Profile[R].X*FMath::Cos(A),Profile[R].X*FMath::Sin(A),Profile[R].Y);
+        };
+        const FVector P[4]={Point(Ring,Side),Point(Ring,Side+1),Point(Ring+1,Side+1),Point(Ring+1,Side)};
+        const int32 Base=V.Num();
+        const FVector Normal=(FVector::CrossProduct(P[1]-P[0],P[3]-P[0])+FVector::CrossProduct(P[2]-P[0],P[3]-P[0])).GetSafeNormal();
+        for(const FVector& Position:P) { V.Add(Position); N.Add(Normal); }
+        UV.Append({{Side/16.f,Ring/8.f},{(Side+1)/16.f,Ring/8.f},{(Side+1)/16.f,(Ring+1)/8.f},{Side/16.f,(Ring+1)/8.f}});
+        // A zero-radius endpoint is a triangle fan, not a collapsed quad.
+        // Keep the shared four-vertex UV frame but never submit its zero-area half.
+        if(Profile[Ring].X>0) Ind.Append({Base,Base+2,Base+1});
+        if(Profile[Ring+1].X>0) Ind.Append({Base,Base+3,Base+2});
+    }
+}
+void AppendBowl(const FLHVisualBox& B,TArray<FVector>& V,TArray<int32>& Ind,TArray<FVector>& N,TArray<FVector2D>& UV)
+{
+    // Closed underside, convex iron shell, thick rolled lip and open concave well.
+    AppendRadial(B.Center,{{0,-20},{12,-20},{20,-14},{27,-5},{31,16},{32,19},{29,20},{28,16},{24,-3},{17,-12},{0,-12}},V,Ind,N,UV);
+}
+void Frames(const TArray<FVector>& V,const TArray<FVector>& N,TArray<FProcMeshTangent>& Tangents,TArray<FColor>& Colors,FColor Color)
+{
+    for(int32 Base=0;Base<V.Num();Base+=4)
+    {
+        FVector U=(V[Base+1]-V[Base]).GetSafeNormal();
+        if(U.IsNearlyZero()) U=(V[Base+2]-V[Base+3]).GetSafeNormal();
+        const FVector W=(V[Base+3]-V[Base]).GetSafeNormal();
+        const bool Flip=FVector::DotProduct(FVector::CrossProduct(N[Base],U),W)<0;
+        for(int32 Corner=0;Corner<4;++Corner) { Tangents.Add(FProcMeshTangent(U,Flip)); Colors.Add(Color); }
+    }
+}
+
 // Faceted teardrop flame; its recipe box remains the conservative authored bounds.
 void AppendFlame(const FLHVisualBox& B,TArray<FVector>& V,TArray<int32>& Ind,TArray<FVector>& N,TArray<FVector2D>& UV)
 {
@@ -196,15 +236,12 @@ bool LHVisual::MakeRecipe(FName Id,ELHVisualStyle Style,FLHVisualRecipe& Out,boo
         // Low broad iron brazier, centered below the shared flame/light offset.
         // Ground support is fitted separately from a static floor trace.
         R.Colors[0]=Hex(TEXT("303438")); R.Colors[1]=Hex(TEXT("E8AA53")); R.Roughness[0]=.78f;
-        Box(R,{0,25,-15},{58,58,12});
-        for(int32 I=0;I<4;++I)
-        {
-            const FRotator Yaw(0,I*90.f,0);
-            Box(R,FVector(0,25,-4)+Yaw.RotateVector(FVector(0,29,0)),{58,5,18});
-            R.Geometry.Last().Rotation=Yaw;
-        }
-        Box(R,{0,25,9},{22,22,24},1);
-        Box(R,{2,25,24},{10,10,12},1);
+        Box(R,{0,25,-20},{64,64,40}); // bounds for the revolved open bowl
+        Box(R,{0,25,-8},{42,42,12},1); // broad glowing coal bed
+        Box(R,{0,25,12},{26,26,38},1);
+        Box(R,{-12,25,7},{18,18,28},1);
+        Box(R,{12,25,6},{18,18,26},1);
+        Box(R,{0,37,5},{16,16,24},1);
     }
     else if(S.EndsWith(TEXT("Torch")) || S.EndsWith(TEXT("Sconce")))
     {
@@ -295,7 +332,10 @@ void ALHVisualPiece::BeginPlay()
 }
 bool ALHVisualPiece::Build(const FLHVisualRecipe& R)
 {
-    if(R.Geometry.IsEmpty() || R.Geometry.Num()*12>R.TriangleBudget) return false;
+    const bool B1Brazier=R.Style==ELHVisualStyle::B1Cellar && R.Id.ToString().EndsWith(TEXT("Torch"));
+    int32 RecipeTriangles=0;
+    for(const auto& B:R.Geometry) RecipeTriangles+=B1Brazier?(B.Surface==1?32:288):12;
+    if(R.Geometry.IsEmpty() || RecipeTriangles>R.TriangleBudget) return false;
     for(const auto* List:{&R.Geometry,&R.Collision}) for(const auto& B:*List)
         if(B.Center.ContainsNaN() || B.Size.ContainsNaN() || B.Rotation.ContainsNaN() || B.Size.GetMin()<=0 || B.Surface<0 || B.Surface>1) return false;
     auto* Parent=MaterialParent.Get();
@@ -311,23 +351,26 @@ bool ALHVisualPiece::Build(const FLHVisualRecipe& R)
         for(const auto& B:R.Geometry) if(B.Surface==Surface)
         {
             if(B1Flame) LHVisualPrivate::AppendFlame(B,V,Ind,N,UV);
+            else if(B1Brazier) LHVisualPrivate::AppendBowl(B,V,Ind,N,UV);
             else LHVisualPrivate::AppendBox(B,V,Ind,N,UV);
         }
         if(V.IsEmpty()) continue;
-        Mesh->CreateMeshSection(Surface,V,Ind,N,UV,TArray<FColor>(),TArray<FProcMeshTangent>(),false);
+        TArray<FProcMeshTangent> Tangents; TArray<FColor> Colors;
+        if(B1Brazier) LHVisualPrivate::Frames(V,N,Tangents,Colors,Surface==0?FColor(110,110,110):FColor::White);
+        Mesh->CreateMeshSection(Surface,V,Ind,N,UV,Colors,Tangents,false);
         UMaterialInterface* SurfaceParent=Parent;
-        if(B1Flame)
+        if(B1Brazier)
         {
             // Existing imported flame slot is already emissive and cook-reachable
             // through the hard-referenced Sconce mesh; no new material asset.
             const int32 SconceIndex=LHB1Art::AssetNames().IndexOfByKey(TEXT("Sconce"));
             if(B1Assets.IsValidIndex(SconceIndex) && B1Assets[SconceIndex])
                 for(const auto& Slot:B1Assets[SconceIndex]->GetStaticMaterials())
-                    if(Slot.MaterialInterface && Slot.MaterialInterface->GetName().Contains(TEXT("flame")))
+                    if(Slot.MaterialInterface && Slot.MaterialInterface->GetName().Contains(B1Flame?TEXT("flame"):TEXT("iron")))
                         SurfaceParent=Slot.MaterialInterface;
         }
         auto* M=UMaterialInstanceDynamic::Create(SurfaceParent,this);
-        if(B1Flame)
+        if(B1Brazier)
         {
             M->SetVectorParameterValue(TEXT("ClipOrigin"),FLinearColor(0,0,0,0));
             M->SetVectorParameterValue(TEXT("ClipExtent"),FLinearColor(1.e8,1.e8,1.e8,0));
@@ -422,7 +465,7 @@ FLHVisualTotals LHVisual::ValidatePlacedSet(const TArray<ALHVisualPiece*>& Piece
         if(R.Geometry.IsEmpty() || !P->GetActorScale3D().Equals(FVector::OneVector)) T.Errors.Add(R.Id.ToString()+TEXT(": empty recipe/nonunit scale"));
         int32 ExpectedTriangles=0;
         const bool B1Brazier=R.Style==ELHVisualStyle::B1Cellar && R.Id.ToString().EndsWith(TEXT("Torch"));
-        for(const auto& Box:R.Geometry) ExpectedTriangles+=B1Brazier && Box.Surface==1?32:12;
+        for(const auto& Box:R.Geometry) ExpectedTriangles+=B1Brazier?(Box.Surface==1?32:288):12;
         if(Tri>R.TriangleBudget || Draw>R.DrawBudget || Tri!=ExpectedTriangles)
             T.Errors.Add(R.Id.ToString()+TEXT(": geometry/budget mismatch"));
         if(M->GetCollisionEnabled()!=ECollisionEnabled::NoCollision || M->CanEverAffectNavigation()) T.Errors.Add(R.Id.ToString()+TEXT(": render collision"));
@@ -467,6 +510,7 @@ void ALHVisualPiece::UpdateArtSupport(const FLHVisualRecipe& R)
     ArtSupport->ClearAllMeshSections();
     if(R.Style!=ELHVisualStyle::B1Cellar) return;
     TArray<FLHVisualBox> Boxes;
+    TArray<FVector2D> Pedestal;
     UMaterialInterface* Parent=MaterialParent;
     LHB1Art::FFit Fit;
     if(ImportedMesh->IsVisible() && LHB1Art::Resolve(R,Fit))
@@ -497,7 +541,7 @@ void ALHVisualPiece::UpdateArtSupport(const FLHVisualRecipe& R)
         FCollisionQueryParams Query(SCENE_QUERY_STAT(LHB1FixtureSupport),false,this);
         FHitResult FloorHit;
         // Wall sconces are mounted by the generator on the visible cutaway.
-        // Only the freestanding brazier needs floor-fitted presentation legs.
+        // Only the freestanding brazier needs a floor-fitted presentation pedestal.
         bool FoundFloor=false;
         // Prototype bounded retry: a hidden wall overlapping the origin is not ground.
         for(int32 Attempt=0;GetWorld() && Attempt<8;++Attempt)
@@ -514,28 +558,35 @@ void ALHVisualPiece::UpdateArtSupport(const FLHVisualRecipe& R)
             const double Base=T.InverseTransformPosition(FloorHit.ImpactPoint).Z;
             if(Base<-20)
             {
-                const double SupportTop=Id.EndsWith(TEXT("Torch"))?-15.:-8.;
-                for(double X:{-22.,22.}) for(double Y:{3.,47.})
+                if(Id.EndsWith(TEXT("Torch")) && Base<-40)
                 {
-                    FLHVisualBox Leg; Leg.Center={X,Y,(Base+SupportTop)/2};
-                    Leg.Size={10,10,SupportTop-Base}; Boxes.Add(Leg);
+                    // One squat stem and circular contact flange; no stool legs.
+                    const double Height=-40-Base;
+                    Pedestal={{0,Base},{27,Base},{27,Base+FMath::Min(5.,Height*.2)},
+                        {20,Base+FMath::Min(9.,Height*.35)},{12,Base+FMath::Min(14.,Height*.5)},
+                        {10,-40},{0,-40}};
+                    if(auto* Iron=Cast<UMaterialInstanceDynamic>(Mesh->GetMaterial(0))) Parent=Iron->Parent;
                 }
-                FLHVisualBox Foot; Foot.Center={0,25,Base+4}; Foot.Size={70,70,8}; Boxes.Add(Foot);
+                else if(Id.EndsWith(TEXT("Sconce")))
+                {
+                    const double SupportTop=-8.;
+                    for(double X:{-22.,22.}) for(double Y:{3.,47.})
+                    {
+                        FLHVisualBox Leg; Leg.Center={X,Y,(Base+SupportTop)/2};
+                        Leg.Size={10,10,SupportTop-Base}; Boxes.Add(Leg);
+                    }
+                    FLHVisualBox Foot; Foot.Center={0,25,Base+4}; Foot.Size={70,70,8}; Boxes.Add(Foot);
+                }
             }
         }
     }
-    if(Boxes.IsEmpty() || !Parent) return;
+    if((Boxes.IsEmpty() && Pedestal.IsEmpty()) || !Parent) return;
     TArray<FVector> V,N; TArray<int32> Ind; TArray<FVector2D> UV;
     for(const auto& B:Boxes) LHVisualPrivate::AppendBox(B,V,Ind,N,UV);
-    TArray<FProcMeshTangent> Tangents;
-    for(int32 Base=0;Base<V.Num();Base+=4)
-    {
-        const FVector U=(V[Base+1]-V[Base]).GetSafeNormal();
-        const FVector W=(V[Base+3]-V[Base]).GetSafeNormal();
-        const bool Flip=FVector::DotProduct(FVector::CrossProduct(N[Base],U),W)<0;
-        for(int32 Corner=0;Corner<4;++Corner) Tangents.Add(FProcMeshTangent(U,Flip));
-    }
-    ArtSupport->CreateMeshSection(0,V,Ind,N,UV,TArray<FColor>(),Tangents,false);
+    if(!Pedestal.IsEmpty()) LHVisualPrivate::AppendRadial(FVector(0,25,0),Pedestal,V,Ind,N,UV);
+    TArray<FProcMeshTangent> Tangents; TArray<FColor> Colors;
+    LHVisualPrivate::Frames(V,N,Tangents,Colors,Pedestal.IsEmpty()?FColor::White:FColor(110,110,110));
+    ArtSupport->CreateMeshSection(0,V,Ind,N,UV,Colors,Tangents,false);
     auto* M=UMaterialInstanceDynamic::Create(Parent,this);
     M->SetVectorParameterValue(TEXT("Color"),R.Colors[0]); M->SetScalarParameterValue(TEXT("Roughness"),Id.EndsWith(TEXT("Torch"))?.78f:.9f);
     M->SetVectorParameterValue(TEXT("ClipOrigin"),FLinearColor(0,0,0,0));

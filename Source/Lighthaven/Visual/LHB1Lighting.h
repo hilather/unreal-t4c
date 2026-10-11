@@ -31,4 +31,6 @@ public:
     virtual void Tick(float DeltaSeconds) override;
     UPROPERTY(VisibleAnywhere) TObjectPtr<UExponentialHeightFogComponent> Haze;
     UPROPERTY(VisibleAnywhere) TObjectPtr<UPointLightComponent> ReadabilityFill;
+    // Prototype reflected room light: fixed, neutral-cool and independent of possession.
+    UPROPERTY(VisibleAnywhere) TArray<TObjectPtr<UPointLightComponent>> RoomFills;
 };

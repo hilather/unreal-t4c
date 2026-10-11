@@ -92,6 +92,24 @@ ALHB1Atmosphere::ALHB1Atmosphere()
     ReadabilityFill->SetCastShadows(false);
     ReadabilityFill->bUseInverseSquaredFalloff=true;
     ReadabilityFill->SetVisibility(false);
+    // Four high, broad bounce approximations lift unoccupied gaps as well as
+    // the player's surroundings. Keep the short warm torch falloff unchanged.
+    // Prototype photometry: 14000 lm at 9m gives ~13 lux directly below, before
+    // tint; the fixed room grids audit the dimmer edges and pool/gap contrast.
+    const FVector Centers[]={{900,-1900,900},{900,900,900},{-2100,1000,900},{4200,1300,900}};
+    for(int32 I=0;I<UE_ARRAY_COUNT(Centers);++I)
+    {
+        auto* Fill=CreateDefaultSubobject<UPointLightComponent>(*FString::Printf(TEXT("B1RoomBounce%d"),I));
+        Fill->SetupAttachment(Haze);
+        Fill->SetRelativeLocation(Centers[I]);
+        Fill->SetMobility(EComponentMobility::Movable);
+        Fill->SetIntensityUnits(ELightUnits::Lumens);
+        Fill->SetIntensity(14000.f); Fill->SetAttenuationRadius(3000.f);
+        Fill->SetLightColor(FLinearColor(.65f,.70f,.80f));
+        Fill->SetCastShadows(false); Fill->bUseInverseSquaredFalloff=true;
+        Fill->SetCanEverAffectNavigation(false);
+        RoomFills.Add(Fill);
+    }
 }
 void ALHB1Atmosphere::Tick(float DeltaSeconds)
 {

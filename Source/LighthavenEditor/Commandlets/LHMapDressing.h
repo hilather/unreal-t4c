@@ -148,7 +148,9 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
         if(Style==ELHVisualStyle::B1Cellar)
         {
             FixtureId=TEXT("Presentation.Environment.Shared.Torch");
-            double Nearest=FMath::Square(240.); bool Mounted=false; FVector B1MountPosition;
+            // Prefer existing wall faces within a torch-pool radius. This removes
+            // near-wall furniture silhouettes without adding gameplay geometry.
+            double Nearest=FMath::Square(375.); bool Mounted=false; FVector B1MountPosition;
             for(const FBox& Wall:B1VisibleWalls)
             {
                 const FVector Size=Wall.GetSize(), Center=Wall.GetCenter();
