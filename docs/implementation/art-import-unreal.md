@@ -571,3 +571,85 @@ for unhydrated art/map pointers; their final reruns all returned 0. Player impor
 outputs were restored to baseline cached packages before the completed suite,
 matching W5-15b's setup. Evidence is a worker candidate, not gate approval;
 no cook, package, rendered review or hands-on play was performed for this task.
+
+## W5-21 — deterministic motion captures and import receipts
+
+`build/capture-creature-lineup.sh /path/to/Development/Lighthaven --attack-sequence`
+retains gameplay/close stills and adds close-camera attack (8 frames) and idle
+(4 frames) samples for every creature. Override with `--attack-frames N` and
+`--idle-frames N` (2–32). Samples include both clip endpoints, evenly spaced in
+normalised clip time. Each sample launches through the existing bounded retry
+helper, with `lh.CreatureLineup INDEX close attack|idle TIME`. The command selects
+the real imported clip, disables presentation and skeletal ticking, sets its
+absolute position, and refreshes bones/render state. Screenshot warm-up cannot
+advance that pose. Missing imported art fails capture acceptance. Pawn hiding,
+late attachment hiding, the three-light close rig, and cleanup remain active.
+All console/sample code is excluded from Shipping.
+
+When `montage` is present, the script writes labelled attack-then-idle strips for
+each creature and `motion-contact-sheet.png`, plus the existing still sheet.
+`sampling.json` records requested times/order. Without ImageMagick it keeps frames
+and explicitly reports skipped assembly; no installation occurs. GIF/APNG output
+is omitted. The self-test covers retry behavior and spacing/endpoints. Native
+`Lighthaven.Visual.CreatureLineup.SequenceNullRHI` checks actual imported clip
+selection, position, play rate and disabled ticking for all 11 figures.
+
+Receipt inputs previously included complete player/NPC runtime C++ files; the
+player source importer also listed the compiled module, with build-art applying
+a temporary header substitution. Whole visual sources unnecessarily invalidate
+imports after runtime presentation edits. `player_receipt.py` hashes only the
+self-contained native ConfigureImportedMesh/CompactImportedMesh hooks, and NPC
+receipts hash SharePlayerRig and the player compaction hook. Both retain relevant
+schema headers, importer scripts, authored bytes and engine identity. NPCs also
+retain exact player package dependencies. No clocks, mtimes, module bytes,
+absolute checkout paths, or map state enter these signatures. Native hook
+extraction fails closed when a named function boundary cannot be found; any new
+project helper called by those hooks must be added as a receipt dependency.
+Player output inventory must be nonempty, and a failed partial import cannot keep
+a stale success receipt. build-art invokes the canonical player importer directly.
+
+The signature format change requires one initial import/receipt refresh; existing
+receipts cannot be silently blessed without their original input evidence. This
+refresh is a coordinator asset operation: this worker submits no packages or
+receipt JSON. Subsequent same-input invocations must log PLAYER_IMPORT_UNCHANGED
+and NPC_IMPORT_UNCHANGED and preserve all package/receipt bytes. Run
+`UE_ROOT=... python3 Source/Lighthaven/Visual/Player/test_import_receipts.py` after
+exports to check timestamp/path independence, unrelated source/module edits,
+and invalidation by import-hook, engine, authored-input and player-package edits.
+
+Observed build/import/test evidence and remaining limitations are recorded in the
+W5-21 attempt report; checks are not inferred from successful compilation.
+
+For a scoped replay of both character importers, use
+`LH_ART_CHARACTER_ONLY=1 LH_ART_REIMPORT=1 bash build/build-art.sh` with the normal
+UE_ROOT/BLENDER_ROOT variables. This preserves player-before-NPC ordering and
+export receipt validation while skipping environment/creature processing. The
+W5-21 local warm-up logged both imports unchanged after the initial receipt
+refresh, with no changed package or receipt hashes. The base revision's receipts list 154 NPC and 49 player packages. The initial
+refresh changed all 154 NPC packages and 38 player packages plus both receipts,
+matching the reported 155/39 changed-file counts; it removed no inventory paths.
+
+Two back-to-back character-only runs after an unrelated lineup C++ edit and both
+Development target rebuilds each logged PLAYER_IMPORT_UNCHANGED and
+NPC_IMPORT_UNCHANGED. All 205 package/receipt files retained their SHA-256 values.
+This demonstrates no-op preservation after receipt refresh, not a clean original
+main checkout: the refresh changed packages and receipts, which are restored and
+excluded from this deliverable. The exact historical coordinator trigger remains
+unresolved because old receipts provide an aggregate signature, not per-input
+hashes, and the corresponding original exports are unavailable in this checkout.
+Two independently regenerated player exports were byte-identical locally. The
+regression test reproduces and prevents invalidation by unrelated edits to the
+whole visual C++ sources; direct importer invocations also avoid the module hash.
+
+Final Linux validation: both Development targets built (`Result: Succeeded`;
+editor 29.81 s, game 27.70 s). Final full suite: 239/239 success, exit 0. Final
+focused lineup: 2/2 success, exit 0; arrival review: 9/9 PASS, exit 0; capture
+self-test and receipt regression passed. The initial suite had 237/239 success:
+DeathAndChurchRespawn failed its session-descent assertion, and
+CreatureImportedAssets lacked all 11 ignored source-validation files. Real
+pinned-source Blender pilot/batch exports supplied the latter; both tests passed
+on the final full rerun. The initial descent failure's transient cause was not
+established. Rendered captures and montage output remain untested without a host
+display/new packaged Development executable. All Content and map pointers and
+the reviewed-arrivals file were restored before submission; no binaries or art
+receipts are part of this result.
