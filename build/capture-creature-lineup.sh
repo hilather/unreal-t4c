@@ -3,7 +3,7 @@ set -euo pipefail
 # Run against a locally packaged Development executable on the host display.
 export LH_CAPTURE_HELPER_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 exec python3 - "$@" <<'PY'
-import os, sys, time
+import os, sys, time, shutil, subprocess
 from pathlib import Path
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.environ['LH_CAPTURE_HELPER_DIR'])
@@ -37,10 +37,22 @@ for i,kind in enumerate(kinds):
                 result=launch(args,stream,out/(kind+'-'+view+f'.attempt{number}.process.txt'))
             text=log.read_text(errors='replace') if log.exists() else ''
             accepted=(result['exit']==0 and shot.exists() and shot.stat().st_size>0
-                      and 'LH_CREATURE_LINEUP' in text)
+                      and 'LH_CREATURE_LINEUP focus=' in text
+                      and 'pawnHidden=1' in text
+                      and ('rigLights=3' if view=='close' else 'rigLights=0') in text)
             return accepted,result
         captured,_=retry_view(kind+'-'+view,capture_attempt,out/'attempts.jsonl')
         failed |= not captured
+montage=shutil.which('montage')
+if montage and not failed:
+    shots=[]
+    for kind in kinds:
+        shots += ['-label',kind,str(out/(kind+'-close.png'))]
+    result=subprocess.run([montage,'-fill','#eeeeee',*shots,'-thumbnail','640x360','-tile','2x6',
+                           '-geometry','+8+24','-background','#202020',str(out/'close-contact-sheet.png')])
+    failed |= result.returncode != 0
+elif not montage:
+    print('montage unavailable; contact sheet skipped (no install)')
 print(out)
 sys.exit(1 if failed else 0)
 PY
