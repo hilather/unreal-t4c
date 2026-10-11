@@ -1,110 +1,110 @@
 {
-  "signature": "12051a927de86096c585a69459c467657c82a767f4a1f0656804095878eb3b4e",
+  "signature": "defd7fec4d272acaf488b0a1697918d6d6089dc62030fa87cfc757de44af005c",
   "assets": {
     "MI_B1_flame.uasset": {
       "bytes": 5083,
-      "sha256": "f6b7d89b69311ed09d803a984b71d8fac9294308905c9f70e131cca5d4a5a415"
+      "sha256": "8554d18667d1d7bf50e9cf795f042cd3ff5507b02f4750e5b68e5062b72f454d"
     },
     "MI_B1_iron.uasset": {
       "bytes": 5066,
-      "sha256": "a24608e96b21501b007915a0e7b1c17b2baaece2dd8df98e8ad86d5a88f140bc"
+      "sha256": "7d75e9713acb34d97babfd665f66442cd29c14ef8255aef67ba47a125a0f78e8"
     },
     "MI_B1_stone.uasset": {
       "bytes": 5077,
-      "sha256": "7020092fa2a06e04d96f10560fec8b8862d3cfb470f06a4971d24a8abf8a3a6e"
+      "sha256": "f7d69dd03b60e0f159e1dc5c5fff3d80c9a6e689b370694db95ca9cc144b6213"
     },
     "MI_B1_timber.uasset": {
       "bytes": 5088,
-      "sha256": "566722c63ceccf47b0e054c2bf3eef867771b097d93892bf9ef6b3330ed7c0d6"
+      "sha256": "a224c75025af3d2e6123cb6c553104bdd01f0dea5fb68941b62dad091a6aebc2"
     },
     "M_B1.uasset": {
       "bytes": 14061,
       "sha256": "b086ade999a884251667019a6297c3521aa9a291d6d9accb24cc5484b0b56762"
     },
     "SM_Arch240.uasset": {
-      "bytes": 138925,
-      "sha256": "98177bfbc48416d7cce1373bc5c2c7313e2d1675dd03b66fe92606b9a2d15f42"
+      "bytes": 117634,
+      "sha256": "088d428b57893241754fe5cf100e700ac63cc19258ae88e54645c190f747ea73"
     },
     "SM_Arch320.uasset": {
-      "bytes": 142406,
-      "sha256": "baf756437ab9bda1c6194b4c5db7b6079cd5837abd84453efe5b14469ce03b0f"
+      "bytes": 110533,
+      "sha256": "d36dddeb6c54135968c4b40d8399213149c1f96638f94717dfd51b4d5ca30945"
     },
     "SM_Barrel.uasset": {
-      "bytes": 139848,
-      "sha256": "175028b081b6d6a5f9dba6328e863a3d69c10a00727ea64014bcad268e47b31b"
+      "bytes": 139808,
+      "sha256": "2deae9c7337bb42f97b0ce1f48539bfa8c476cecbca8d8062a9bc97db2bf1246"
     },
     "SM_Bench.uasset": {
-      "bytes": 105476,
-      "sha256": "0cf79d00d9048d68b7d50300dac1423f43ac2a67cfa0e0d7856a852e7226b948"
+      "bytes": 105438,
+      "sha256": "540371cb9dc717ffeb89ac0da80c0227dc9fe46543863140bf60c301a76ffa6a"
     },
     "SM_Crate.uasset": {
-      "bytes": 154707,
-      "sha256": "fff6294cc3f86c95e2410ba7970eb9bfd751ae1498b5885fb8d4887f0234eb59"
+      "bytes": 154669,
+      "sha256": "782808e99f926f46dbc4139c4324310bd2fc15c61ebfcf3ac50ca7e4dd629409"
     },
     "SM_Debris.uasset": {
-      "bytes": 112024,
-      "sha256": "16cc3ec641b5920b93bb0ab9707f3e22a9504cf31d69dd7cf2db71bdcec1b7ec"
+      "bytes": 111984,
+      "sha256": "c0067eabbbca91eb4557787fc0e311c7f5304f0778919f972c461848c4fb5b77"
     },
     "SM_Floor400.uasset": {
-      "bytes": 169519,
-      "sha256": "1c38cd03424d8868b5529b5dc0f20b24d7c10a4aa87f230420c6cf51cfa5f30c"
+      "bytes": 124932,
+      "sha256": "a69eebaed23d924196b17cf91ba05dd4d36c76b46c8bd42131d3eb54ec1fdc6e"
     },
     "SM_Sconce.uasset": {
-      "bytes": 102504,
-      "sha256": "1511cb69a4a9923d7c5f962313e68a93b0333acf85dbefc95c9b6244d69e9149"
+      "bytes": 102464,
+      "sha256": "a7676b2da46a1ab77d7a1177db2c20b0e4d8b23ab1a8bd4ca9196e5411fd6038"
     },
     "SM_Stair600x120.uasset": {
-      "bytes": 163505,
-      "sha256": "4e63b9ff3b8f2b3bba593e8358126fd7257c36db5445e2601c8a39af6be9160d"
+      "bytes": 163453,
+      "sha256": "3202cb5d5d144fe622ad55b3320d1e039f6ec13c7b40a5801de0ef924f4c6278"
     },
     "SM_Stair600x120Descending.uasset": {
-      "bytes": 163788,
-      "sha256": "d1122484c23b50329167884905bd3042d4c0d08c3855c5524286565433bc9276"
+      "bytes": 163734,
+      "sha256": "23f34135895d043f997e1e076a5bf09b3daca4292802e88f9854f3562c14e924"
     },
     "SM_Table.uasset": {
-      "bytes": 113136,
-      "sha256": "ec6bcb517629d7648a7af539bfd178a61bf90723875c8a477e28349d7f36a424"
+      "bytes": 113098,
+      "sha256": "98b9910bb37aa0f9fe6e69f5f385fe75a0f3d9d0e3c52d0df561ddbbef4bdf48"
     },
     "SM_Wall400.uasset": {
-      "bytes": 171380,
-      "sha256": "8898cd337feeb427df72d58f5621d0dad399302fbea61a77e3f14b325ad1d2d1"
+      "bytes": 125832,
+      "sha256": "8ff28de38235e4b269168adc2ae5a7fb15a4fe1f2db8a176bc13c535d6b01d2f"
     },
     "Textures/T_iron_basecolor.uasset": {
-      "bytes": 221638,
-      "sha256": "ec640e48901d823c779c2a36e46e79425ae70495348d6217f98340363127bf93"
+      "bytes": 221155,
+      "sha256": "fcc97cced144b203423e257582a3fd4596b6ccf140e4e7a423368d55f7b73eed"
     },
     "Textures/T_iron_normal.uasset": {
-      "bytes": 359324,
-      "sha256": "78907ce140cc6c43fbdb5eabb96501ab9c874081b0b23a87bd2c74f71f0bf7e8"
+      "bytes": 358842,
+      "sha256": "5831069f2ba9d42bd42924cdb341cc86ae26beaef6facd8c0a4757567646a2e9"
     },
     "Textures/T_iron_orm.uasset": {
-      "bytes": 94600,
-      "sha256": "b802ff806321bc68dbe05548138c7d984c162d0995f9e8ebdb91e2fb79e84826"
+      "bytes": 94118,
+      "sha256": "81f0fdadc8a52e3a32fc5edd5f0ce78fd324913f59370b41953876c5aa1816ca"
     },
     "Textures/T_stone_basecolor.uasset": {
-      "bytes": 304056,
-      "sha256": "deee880d520cc4cb07bd72a821990b14a0b5ffa1b208c6d1280d8aefa8fccc9f"
+      "bytes": 308233,
+      "sha256": "1fc69a8dae48c00c8d2525a2a7ecf38671f038a4c54145b3b36a4d8f257c2743"
     },
     "Textures/T_stone_normal.uasset": {
-      "bytes": 768939,
-      "sha256": "9cf39068681013eb2d0840662e8806a4f8cc705ce00b4c926e52e12bd21e825f"
+      "bytes": 768457,
+      "sha256": "ae072144232428909484a89c43f5233c3539841f6ef0a4c33aab6ef296edc711"
     },
     "Textures/T_stone_orm.uasset": {
-      "bytes": 94566,
-      "sha256": "fd451060f7165905269486a94778739ecf59c57ed26acb9d2b975b79b8c673cb"
+      "bytes": 94083,
+      "sha256": "db90776d9dbe5afaf240148f70cd4c98c56f9fc5d9a47bb0a109e027cb32cb7a"
     },
     "Textures/T_timber_basecolor.uasset": {
-      "bytes": 297609,
-      "sha256": "7d0214fed9d39e77b1244495ac7dbccad45c0a922c55ca6e78677f9732706e20"
+      "bytes": 297126,
+      "sha256": "ffdc588af70256781cc4266c0f6fea554a1f0500721f5d1d56e4c1b57c97ca19"
     },
     "Textures/T_timber_normal.uasset": {
-      "bytes": 424854,
-      "sha256": "7c9c3e458c1d43c7030e0f398459ea3c2350172e7d3a3bdb93e59c53e65c6a90"
+      "bytes": 424371,
+      "sha256": "5c1c6d7144ceb263e9f7b80bf1f4dab7e65c0aa4ef7c7a0b1d098ae854558a9b"
     },
     "Textures/T_timber_orm.uasset": {
-      "bytes": 94419,
-      "sha256": "793c35971d0591045cb1a9331aadf1f10aae77c2ef6fe9d58d165dbde4d41fbf"
+      "bytes": 93936,
+      "sha256": "661eee85cc8fdb3fc394b6b8f7e2a864429f70dd8b2a8296370edd2376a764c6"
     }
   },
-  "total_bytes": 4371598
+  "total_bytes": 4228275
 }
