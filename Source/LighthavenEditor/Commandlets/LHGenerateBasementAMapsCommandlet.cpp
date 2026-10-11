@@ -51,6 +51,8 @@ namespace LHBasementAGeneration
 // from their serialized recipes. External assets retain their actual reference paths.
 // The receipt also hashes the existing map: restored LFS pointers, edits or corruption
 // cannot be mistaken for the map whose semantics we previously generated.
+// Keep the JSON beside the map so the integrator commits the receipt and host-
+// generated map together; a fresh hydrated checkout then has the same evidence.
 struct FB2ExportContext : FExportObjectInnerContext
 {
     FB2ExportContext(UWorld* World,const TArray<UObject*>& Objects,const TArray<UObject*>& TransientObjects)
@@ -218,7 +220,7 @@ FString B2Receipt(const FString& Semantic,const FString& Filename)
     if(Semantic.IsEmpty() || IFileManager::Get().FileSize(*Filename)<=0) return FString();
     const FMD5Hash FileHash=FMD5Hash::HashFile(*Filename);
     if(!FileHash.IsValid()) return FString();
-    return Semantic+TEXT("\n")+LexToString(FileHash)+TEXT("\n");
+    return FString::Printf(TEXT("{\n  \"version\": 1,\n  \"content_md5\": \"%s\",\n  \"map_md5\": \"%s\"\n}\n"),*Semantic,*LexToString(FileHash));
 }
 
 // All geometry is V-01/A-02 prototype, U=100cm. Lighting is A-04 prototype.
@@ -593,7 +595,7 @@ int32 ULHGenerateBasementAMapsCommandlet::Main(const FString& Params)
             if(FParse::Value(*Params,TEXT("B2Snapshot="),SnapshotPath)
                 && !FFileHelper::SaveStringToFile(Snapshot,*SnapshotPath)) return 1;
             if(FParse::Param(*Params,TEXT("VerifyB2Fingerprint")) && !VerifyB2Fingerprint(World,Semantic)) return 1;
-            ReceiptPath=FPaths::ProjectSavedDir()/TEXT("MapGeneration/L_TempleB2.semantic-receipt");
+            ReceiptPath=FPaths::ChangeExtension(Filename,TEXT("gen-receipt.json"));
             FString Previous;
             const FString Current=B2Receipt(Semantic,Filename);
             if(!Current.IsEmpty() && FFileHelper::LoadFileToString(Previous,*ReceiptPath) && Previous==Current)
@@ -604,8 +606,12 @@ int32 ULHGenerateBasementAMapsCommandlet::Main(const FString& Params)
             UE_LOG(LogTemp,Display,TEXT("B2 semantic content or map receipt changed (%s); saving"),*Semantic);
         }
         if(!IFileManager::Get().MakeDirectory(*FPaths::GetPath(Filename),true) || !FEditorFileUtils::SaveMap(World,Filename)) return 1;
-        if(!B1 && (!IFileManager::Get().MakeDirectory(*FPaths::GetPath(ReceiptPath),true)
-            || !FFileHelper::SaveStringToFile(B2Receipt(Semantic,Filename),*ReceiptPath))) return 1;
+        if(!B1)
+        {
+            const FString Receipt=B2Receipt(Semantic,Filename);
+            if(Receipt.IsEmpty() || !FFileHelper::SaveStringToFile(Receipt,*ReceiptPath,
+                FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM)) return 1;
+        }
         UE_LOG(LogTemp,Display,TEXT("Generated %s: %d encounter anchors; safety unreviewed"),*Package,Area->Spawns.Num());
         UE_LOG(LogTemp,Display,TEXT("Authored actor identity/transform fingerprint %s: %s"),*Package,*Builder.Fingerprint());
         if(B1 && FParse::Param(*Params,TEXT("B1AllocationProbe")))

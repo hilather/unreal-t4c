@@ -66,9 +66,12 @@ bool FLHVisualCatalogTest::RunTest(const FString&)
                 float Emission=0;
                 TestTrue(TEXT("Imported flame exposes emission"),M->Parent->GetScalarParameterValue(FMaterialParameterInfo(TEXT("Flame")),Emission));
                 TestTrue(TEXT("Imported flame is emissive"),Emission>0);
-                // Imported master uses ORM G for roughness, not the MID's unused scalar override.
-                UTexture* ORM=nullptr;
-                TestTrue(TEXT("Imported parent exposes ORM"),M->Parent->GetTextureParameterValue(FMaterialParameterInfo(TEXT("ORM")),ORM));
+            }
+            // Inspect the bound parent, not piece IDs or MID overrides (which can
+            // contain unused Roughness values on an imported ORM material).
+            UTexture* ORM=nullptr;
+            if(M->Parent->GetTextureParameterValue(FMaterialParameterInfo(TEXT("ORM")),ORM))
+            {
                 if(TestNotNull(TEXT("Imported roughness texture is bound"),ORM))
                 {
                     TestFalse(TEXT("ORM is linear"),bool(ORM->SRGB));
