@@ -328,3 +328,246 @@ Assumptions/remaining uncertainty: 512 atlases are taken as adequate at the brie
 Development-only `lh.CreatureLineup <0..10> [close]` selects a B1 torch-pool floor spot at least 300 cm from room edges, fixture/prop bounds and blocking geometry; it logs an error if none exists. It hides the pawn and attached kit actors, including first-tick additions. Gameplay uses the pawn’s actual collision-tested camera boom at −55° pitch, 45° yaw, 1200 cm arm and 45° FOV, centred on creature bounds. Close uses complete body/weapon/wing bounds, a three-quarter view and approximately 70% frame height, plus temporary key/fill/rim lights (prototype 3500/2200/3000 lm; 4500/5500/4500 K). Cleanup at 59 seconds restores visibility, view target and boom/FOV, removes review actors and stops the visibility timer.
 
 Capture retries remain unchanged; acceptance requires the hidden-pawn/rig-count log. Available `montage` produces a labelled 2×6 close contact sheet, with one empty cell and no installs. `Lighthaven.Visual.CreatureLineup.NullRHI` checks placement, pawn/late attachment hiding, rig lifetime, actual gameplay camera settings and restoration. Rendered lighting/framing and the real contact sheet still require host-display capture before art approval.
+
+
+## W5-15 — blocked contract checkpoint (2026-10-11)
+
+Task W5-15, contract revision 1, base `33ae1e49470dcb3e406755e508e06f6068cf86f4`.
+This attempt supplies inspection evidence only; import and binding are **not implemented**.
+No new package, receipt, map, lighting change or gameplay change is submitted.
+
+The requested committed import receipts live under
+`Content/Lighthaven/Art/Env/<Style>/import-receipt.json`, but neither the owned-path
+list nor the mandatory submission allowlist permits those files. The brief also
+says never to commit binaries. Local generation is allowed by the environment
+instructions; it does not authorize submitting receipts outside the owned paths.
+The retained worker rule requires stopping when the necessary change needs an
+unowned file. This checkpoint follows that rule. A coordinator-owned receipt and
+binary handoff, or a revised receipt scope, is needed to resolve the committed
+receipt requirement. The submission script additionally permits the literal
+`Source/Lighthaven/Visual/LHEnvArt` path, rather than the advertised `LHEnvArt*`
+files; any split binding needs that allowlist corrected or must use the existing
+owned binding files.
+
+### Confirmed source defects and constraints
+
+- `build/build-art.sh` invokes the five-style dispatcher, then runs the old
+  `validate_env.py` at the flat export root and reads `env/manifest.json`.
+  W5-14's documented output has manifests in `B1Cellar`, `Church`, `B2Damp`,
+  `B3Crypt`, and `B4Ritual`; `validate_styles.py` is the documented validator.
+  The current script has no loop importing the four new folders.
+- B1's signature includes the entire embedded importer script. Merely adapting
+  its source directory changes the signature and defeats the committed receipt
+  skip. A compatibility migration must verify the existing package inventory
+  and source identity before preserving B1, rather than blindly accepting old
+  receipts or rewriting B1 to obtain a fresh signature.
+- The creature importer hashes all eleven creatures into one signature. Once
+  that changes, its unconditional `for kind in kinds` import loop rewrites all
+  creatures. `LH_ART_REIMPORT=1` only bypasses the locked-package guard; it does
+  not select changed creatures. Thus the existing code does not satisfy the
+  partial-reimport requirement. Per-creature input/output receipts and selective
+  saves are needed, retaining the final whole-pool 25,000,000-byte assertion.
+- `LHB1Art::Resolve` rejects every style except B1Cellar; `ALHVisualPiece`
+  loads only `/Game/Lighthaven/Art/Env/B1/SM_*`. New packages alone cannot activate
+  Church/B2/B3/B4 presentation or establish their hard cook references.
+- This checkout's `SM_Wall400.uasset` is an LFS pointer, whereas the committed
+  receipt describes real imported package hashes. Pointer inventories must not
+  be treated as unchanged hydrated packages. No LFS hydration was performed.
+
+The pinned UnrealEditor-Cmd and Blender executables exist at the documented
+Downloads paths. No missing engine is claimed. No exports, imports, target builds,
+map generators, automation suite, arrival checks, framing tests or cook ran at
+this scope checkpoint. Bytes per style/shared pool, deduplication, bounds/pivots,
+partial-reimport byte preservation, arrivals 9/9 and camera framing remain
+unverified. Existing B1 packages and receipts were not modified. No mechanics or
+prototype tuning was introduced. Next: coordinator resolves the receipt ownership
+and split-file allowlist, then assigns the implementation and full required Linux
+validation. This evidence is not a gate pass or task-success declaration.
+
+## W5-15b — five-style import and native binding candidate (2026-10-11)
+
+Task W5-15b, contract revision 1, attempt base
+`5f5d0be5ce092d6b2588f1efe195a71122226afc` (the W5-15 checkpoint above).
+This section supersedes that checkpoint's receipt/allowlist blockers: receipts
+and packages are generated locally, then restored/removed before submission.
+The coordinator owns their eventual host generation and binary commit.
+
+`build/build-art.sh` exports and validates B1Cellar, Church, B2Damp, B3Crypt and
+B4Ritual subfolders. Its environment importer retains the exact legacy B1
+importer bytes in a compressed compatibility constant. It recomputes the legacy
+signature from those bytes, the current B1 manifest and engine version, and
+checks every package SHA-256 before skipping. This is not unconditional acceptance
+of an old receipt. B1's receipt and all 26 package bytes are retained; its observed
+inventory is 4,228,275 bytes. No B1 mesh, master or source is changed.
+
+New textures use content-hash names in `/Game/Lighthaven/Art/Env/Shared/Textures`.
+Identical source PNGs reuse B1 or pooled textures. Base color is sRGB, normal and
+ORM are linear; normals retain the OpenGL-to-Unreal green-channel conversion.
+Material instances reference the existing B1 master. Church cloth/plaster use
+their own albedos and the exported underlying timber/stone normal/ORM families.
+Tiny generated data textures represent W5-14's scalar-only oxide surface and wet
+roughness; the weak wet normal is approximated by a flat normal. These are
+Prototype art settings, not game-mechanics values or visual acceptance.
+
+Sconce, Barrel, Crate, Table and Bench share the B1 mesh packages in every style.
+Church/B2 also share B1 Debris, Arch240, Arch320 and both signed stairs. The
+importer checks complete GLB byte equality before choosing these aliases.
+Different vertex colors/material data prevent sharing the crypt/ritual variants
+merely because their positions match. Per-component material overrides give
+shared geometry the requested style's palette without resaving a B1 package.
+Every imported mesh is checked against its manifest extrema within 0.2 cm.
+
+| Generated editor packages | Bytes |
+|---|---:|
+| Church | 848,124 |
+| B2Damp | 301,955 |
+| B3Crypt | 991,723 |
+| B4Ritual | 1,254,329 |
+| Shared texture pool | 2,279,062 |
+| Four styles plus pool | **5,675,193** |
+
+The combined importer enforces 12,000,000 bytes including the pool. Each style
+receipt inventories its own packages and the pooled dependencies. Same-input
+reruns logged all five styles unchanged. The native `LHEnvArtBinding` table and
+`ALHVisualPiece` hold hard mesh/material references for cooking, including
+auxiliary assets and currently unused instances. A missing mesh or required
+style material keeps the procedural rendering. B1 still delegates to its original
+binding. Other styles use the same unit-scale tiling, signed stair rotation and
+crop rules; unsupported fits fall back rather than silently binding identity.
+Masonry caps remain inside fitted bounds. Crypt/ritual backing uses a 1 cm rear
+plane rather than B1's 10 cm core, preserving the front niche recesses.
+
+The actor's non-collision bounds now report the visible crop for new-style walls
+and floors. Whole tiles previously enlarged lintel bounds and moved the existing
+clearance test's probe center. Collision-only bounds, recipe geometry, colliders,
+B1 bounds behavior, arrival transforms and lighting/exposure/post-process are
+unchanged. Owned tests cover the style table, loaded envelopes/pivots, unsupported
+thickness, cropped lintel bounds, procedural fallback and shared-material binding.
+A separate owned framing test extends the existing fifteen-camera ray-envelope
+check to actual imported meshes for every style.
+
+### Selective creature receipt migration
+
+The old receipt has no per-creature input hashes. For its one-time migration,
+when no archive override is supplied the script reconstructs the pre-W5-08f
+sources from commit `9ef79e46e4bc8902b731e078fe177a186565865a` under ignored Saved
+and exports both Blender batches there. An existing archive may instead be passed
+with `LH_ART_LEGACY_CREATURE_SOURCE`. The complete original aggregate signature
+must match the committed receipt before any archived inputs are accepted.
+The observed reconstructed signature is
+`1dda02011f40382bdfcd255e0783b57347659af5df88ac7293788094fb10052a`, exactly matching
+that receipt under engine `5.8.3-58210709+++UE5+Release-5.8`.
+
+New receipts hash each GLB, its three PNGs and the consumed rest bounds. They
+exclude unrelated validation metadata: W5-08f added `texture_quantization`
+metadata even to unchanged creatures. Selection also verifies per-kind output
+inventories and an explicit importer-semantics revision. Five kinds changed:
+bat, dungeon_bat, giant_bat, slime and undead_bat. Their folders are staged with
+byte-for-byte backups before editor startup; rooted animation controllers made
+in-process deletion/reuse fail. The plan and backup path are under
+`Saved/ArtExport/creature-reimport-plan.json` and `creature-reimport-backup/`.
+A failed import leaves these backups available; do not publish its Content.
+
+The successful selective import produced **23,239,842 bytes**, below the unchanged
+25,000,000-byte assertion. All **76 unselected packages**, including the shared
+master, match their committed hashes. Modern same-input runs skip all imports.
+The reconstructed archive was tested and signature-validated; the automatic
+archive-generation branch was not separately exercised after receipt migration.
+No creature/player source or native rules are submitted.
+
+### Scope checkpoints
+
+The Church carpet remains imported and cook-reachable but unplaced. Its
+`Temple.RedAisle` primitive is explicitly skipped in the unowned
+`Source/LighthavenEditor/Commandlets/LHMapDressing.h:67`. Placing it requires that
+owner's dressing change and map regeneration; no new catalog/schema ID is
+introduced here. Existing Church 80 cm cutaway walls also crop below the plaster
+beginning at 155 cm. This candidate preserves that dressing data; upper plaster
+placement and occlusion require the coordinator's art/placement decision. Pillar
+and door leaf resolve their existing IDs but are not newly placed.
+
+The unowned `Source/LighthavenTests/World/LHMapDressingTests.cpp:63` still asserts
+that only B1 uses imported art. Its four new-style map cases fail for that obsolete
+assumption. The unowned monster test
+`Source/LighthavenTests/Visual/Monsters/LHCreatureArtTests.cpp:87` also contains old
+rest-bound arrays and fails after the W5-08f import, although the importer checks
+the new authored bounds. These files are outside the literal submission scope;
+they are left for their owners, not bypassed or edited. Full-suite success and
+complete Church dressing are therefore not claimed.
+
+### Candidate validation (Linux, final source)
+
+Both pinned native targets built using the farm recipe: editor Succeeded in
+386.17 seconds and game Succeeded in 108.16 seconds. Blender 5.2.2 exported all
+five styles and all style validators passed. The complete art wrapper exited 0
+with `LH_ART_SKIP_EXPORT=1 LH_ART_REIMPORT=1` after those exports; all five
+styles and all creature kinds logged unchanged on that run. Its existing player
+step did a local reimport; player packages were restored to the committed package
+set before final tests/cook. No player implementation is part of this candidate.
+
+All five map generator commandlets exited 0 (dev/frontend/hub/basement A/B:
+41/42/48/64/30 seconds). Final headless automation ran 225 tests: **220 passed,
+5 failed**, process exit 255, total test duration 692.58 seconds. The failures
+are exactly the unowned obsolete creature-bounds test and four obsolete B1-only
+map assertions listed above. Both B1 art tests, EnvArt.StyleTable, door clearance,
+all five new EnvArt framing cases (fifteen cameras), and the existing five framing
+cases passed. ArrivalSafety passed; all nine reviewed entrance IDs and their
+transform hashes remain byte-identical to the base. Every B1 package (26) and its
+receipt match the base bytes/hashes. Evidence summaries and generated-receipt
+copies live in this attempt's worker-output/library; they are not repository
+assets or accepted gate results.
+
+After the full suite, the owned style test added explicit null mesh-reference and
+empty material-reference cases for every new style, simulating failed asset
+loads without renaming packages. The editor rebuilt successfully (140.38 s),
+the game target confirmed Succeeded (3.22 s), and focused EnvArt.StyleTable
+exited 0. Both missing mesh and missing palette cases use the procedural renderer,
+including shared B1 geometry. This test-only addition received a focused rerun;
+the complete 225-test report above preceded those extra assertions.
+
+The Linux hub-plus-B3 cook (`-Map=L_LighthavenTempleDistrict+L_TempleB3`,
+`-SkipZenStore`, Local DDC) exited **0**: **784 packages, zero remaining,
+0 errors, 20 warnings**, commandlet duration **2,759.17 s**. Warnings include
+sandbox netlink/Zen-service limitations; shutdown also logged failed writes to
+the read-only home config directory. Both requested cooked maps exist. All 50
+new-style editor package paths and all 19 Shared paths have cooked packages;
+no missing paths. New styles plus shared pool, including cooked sidecars, total
+**8,244,414 bytes**. All environment and creature editor inventories still match
+their generated receipts after test/cook execution. This is cook inclusion, not
+a packaged launch or visual approval. Content packages, generated receipts and
+local map changes are restored to exact base Git blobs before submission.
+
+## W5-15c: per-style map tests and authored creature bounds
+
+Updated only `LHMapDressingTests.cpp` and `LHCreatureArtTests.cpp`; no additional
+failing test files or production code required changes. Map cases now check the
+resolved mesh and requested style palette, require imported instances when those
+assets load, and require procedural rendering otherwise. Existing collision,
+nav, inventory, recipe, triangle/section and camera thresholds remain intact;
+the existing framing test now uses the generalized style resolver.
+Creature exact rest bounds come from each generated
+`artsource/creatures/output/<kind>-validation.json`, matching the importer's
+source. Missing/malformed evidence fails the test. The 0.5 cm tolerance, combined
+socket-weapon bounds, ruler limits and all other asset checks remain unchanged.
+Run `build/build-art.sh` before these imported-asset tests to generate evidence.
+
+Linux validation on 2026-10-11: final non-adaptive unity editor/game builds
+Succeeded (194.29 s / 2.51 s); five style validators passed; local art wrapper with
+`LH_ART_REIMPORT=1` exited 0 (creature inventory 23,239,842 bytes). All five map
+generator commandlets exited 0 after local cached LFS art hydration. Full
+headless report: **225/225 passed with warnings, 0 failed, 0 not run**, exit 0,
+327.49 s reported test duration. Failures by name: none. The formerly failing
+CreatureImportedAssets and Church/B2/B3/B4 Dressing.Maps cases passed.
+ArrivalSafety passed; reviewed arrivals remain **9/9**, with unchanged file bytes
+and transform hashes. Tracked Content (including `.umap` pointers) was restored
+to base Git blobs and generated Content removed before submission.
+
+The first editor link failed with a JSON object serializer dependency; the final
+test uses the header-only JSON token reader, avoiding an unowned Build.cs edit.
+An initial automation run was terminated by the sandbox's blocked Epic analytics
+request before report export; the completed rerun used the documented analytics
+and crash-report privacy flags plus `-NoAnalytics`. Early generators returned 1
+for unhydrated art/map pointers; their final reruns all returned 0. Player import
+outputs were restored to baseline cached packages before the completed suite,
+matching W5-15b's setup. Evidence is a worker candidate, not gate approval;
+no cook, package, rendered review or hands-on play was performed for this task.

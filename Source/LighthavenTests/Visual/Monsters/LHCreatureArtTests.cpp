@@ -28,14 +28,13 @@ bool FLHCreatureArtCatalog::RunTest(const FString&)
 #include "HAL/FileManager.h"
 #include "Misc/Paths.h"
 #include "Misc/PackageName.h"
+#include "Misc/FileHelper.h"
+#include "Serialization/JsonReader.h"
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHCreatureImportedAssets,"Lighthaven.Visual.Monsters.CreatureImportedAssets",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FLHCreatureImportedAssets::RunTest(const FString&)
 {
     const TCHAR* Kinds[]={TEXT("rat"),TEXT("bat"),TEXT("slime"),TEXT("goblin"),TEXT("giant_spider"),TEXT("balork"),TEXT("goblin_warrior"),TEXT("atrocity"),TEXT("dungeon_bat"),TEXT("giant_bat"),TEXT("undead_bat")};
     const FVector Maximum[]={FVector(90,28,25),FVector(45,80,145),FVector(90,90,40),FVector(110,85,185),FVector(150,170,65),FVector(200,440,310),FVector(120,105,210),FVector(160,180,190),FVector(55,100,155),FVector(85,170,190),FVector(60,110,165)};
-    // Authored W5 creature validation JSON rest bounds (cm); presentation evidence, not mechanics.
-    const FVector Minimum[]={FVector(-66.009,-12.219,0.191),FVector(-20.775,-36.408,91.867),FVector(-42.802,-41.075,0.0),FVector(-26.4,-40.596,1.848),FVector(-60.774,-81.669,0.257),FVector(-96.245,-212.159,0.1),FVector(-26.4,-43.0,1.848),FVector(-51.07,-79.984,0.759),FVector(-23.89,-45.256,94.792),FVector(-35.692,-79.4,106.643),FVector(-27.168,-50.351,98.504)};
-    const FVector RestMaximum[]={FVector(20.004,12.201,24.745),FVector(15.1,36.41,122.594),FVector(44.099,44.669,21.114),FVector(43.108,40.596,184.0),FVector(79.072,81.671,62.9),FVector(60.201,212.159,302.571),FVector(43.108,43.0,209.0),FVector(79.298,79.988,189.056),FVector(16.912,45.256,128.147),FVector(25.67,79.405,156.481),FVector(19.479,50.355,133.781)};
     for(int32 I=0;I<11;++I)
     {
         const FString Root=FString(TEXT("/Game/Lighthaven/Art/Creatures/"))+Kinds[I]+TEXT("/");
@@ -84,8 +83,57 @@ bool FLHCreatureImportedAssets::RunTest(const FString&)
                 }
             }
         }
-        TestTrue(TEXT("Exact authored rest minimum including socket weapon"),RestBox.Min.Equals(Minimum[I],.5));
-        TestTrue(TEXT("Exact authored rest maximum including socket weapon"),RestBox.Max.Equals(RestMaximum[I],.5));
+        // Use the same authored full-rig rest bounds consumed by build-art.sh.
+        // Missing or malformed evidence is a failure, never a skipped bounds check.
+        const FString ValidationPath=FPaths::ProjectDir()/TEXT("artsource/creatures/output")/(FString(Kinds[I])+TEXT("-validation.json"));
+        FString Validation;
+        if(TestTrue(*ValidationPath,FFileHelper::LoadFileToString(Validation,*ValidationPath)))
+        {
+            // The token reader is header-only: no unowned module dependency change.
+            const auto Reader=TJsonReaderFactory<>::Create(Validation);
+            EJsonNotation Token;
+            int32 Depth=0,RestDepth=-1;
+            bool HasMinimum=false,HasMaximum=false,Valid=true;
+            FVector Minimum,RestMaximum;
+            while(Reader->ReadNext(Token))
+            {
+                if(Token==EJsonNotation::Error) { Valid=false; break; }
+                if(Token==EJsonNotation::ObjectStart)
+                {
+                    ++Depth;
+                    if(Depth==2 && Reader->GetIdentifier()==TEXT("rest_bounds")) RestDepth=Depth;
+                }
+                else if(Token==EJsonNotation::ObjectEnd)
+                {
+                    if(Depth==RestDepth) RestDepth=-1;
+                    --Depth;
+                }
+                else if(Token==EJsonNotation::ArrayStart)
+                {
+                    const FString Field=Reader->GetIdentifier();
+                    if(Depth!=RestDepth || (Field!=TEXT("min_cm") && Field!=TEXT("max_cm")))
+                    {
+                        if(!Reader->SkipArray()) { Valid=false; break; }
+                        continue;
+                    }
+                    FVector Value;
+                    int32 Count=0;
+                    while(Reader->ReadNext(Token) && Token!=EJsonNotation::ArrayEnd)
+                    {
+                        if(Token!=EJsonNotation::Number || Count>=3 || !FMath::IsFinite(Reader->GetValueAsNumber())) { Valid=false; break; }
+                        Value[Count++]=Reader->GetValueAsNumber();
+                    }
+                    if(!Valid || Token!=EJsonNotation::ArrayEnd || Count!=3) { Valid=false; break; }
+                    if(Field==TEXT("min_cm")) { Minimum=Value; HasMinimum=true; }
+                    else { RestMaximum=Value; HasMaximum=true; }
+                }
+            }
+            if(TestTrue(TEXT("Valid build JSON with finite three-coordinate rest bounds"),Valid && Depth==0 && HasMinimum && HasMaximum))
+            {
+                TestTrue(TEXT("Exact authored rest minimum including socket weapon"),RestBox.Min.Equals(Minimum,.5));
+                TestTrue(TEXT("Exact authored rest maximum including socket weapon"),RestBox.Max.Equals(RestMaximum,.5));
+            }
+        }
         for(const TCHAR* Action:{TEXT("idle"),TEXT("move"),TEXT("attack"),TEXT("hit"),TEXT("death")})
         {
             const FString ClipPath=Root+TEXT("A_")+Action;
