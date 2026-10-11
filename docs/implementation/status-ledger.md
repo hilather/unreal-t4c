@@ -305,3 +305,9 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
   - **Capture finding:** direct-map captures have no session, so the pawn has no record and zero health. That falls back to the old figure in the death pose, and every capture so far has shown a placeholder player. → **W5-13b (sol):** session-backed captures with a default starter, and a sane no-session pawn.
 - **W5-14 merged (9d4d4d8, sources).** Blender kits for Church, B2Damp, B3Crypt and B4Ritual (11.96 MB of exports, each under 4 MB, B1 bytes unchanged). Strong and distinct in the Blender mock-ups (`scratch/captures/w5-14-blender/`). Note: main's `build/build-art.sh` no longer matches the new per-style export layout. → **W5-15 (sol):** repair the art build, import and bind the four kits; lighting per floor follows.
 - **W5-08f merged (33ae1e4, sources).** Bat family and slime polish (broad distinct bats, domed slime; exports 1.5 MB smaller). The committed creature assets still predate it: re-import on the next host art build (W5-15's host check) with `LH_ART_REIMPORT=1`.
+- **W5-13b integrated (e021ca8).** Captures now start a real starter session (the Development-only `-LHCaptureSession` switch, absent from Shipping).
+  - **Host:** 221/221; arrivals 9/9 unchanged; validator 0; package OK; 15/15 room captures and 22/22 lineup shots.
+  - **Result:** the first captures that show what a player sees. The imported starter stands upright with a sword in the warm B1, and a slime is spawned in room 3. Captures are in `scratch/captures/w5-13b/`.
+  - **Remaining gap:** the hub (church) still has the old flat look and blocky NPCs.
+- **W5-15 stopped at a wording checkpoint** ("committed receipts", and a wildcard write path). → **W5-15b (sol) running:** art-build repair plus import and binding of the Church/B2/B3/B4 kits.
+- **W5-16 (astra) launched:** 15 hub NPCs in Blender, reusing the player rig.
