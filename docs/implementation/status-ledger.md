@@ -281,3 +281,8 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
 - **W5-09e (6f233fb) submitted.** Four cool room fills, 42 wall sconces and 5 iron braziers, B2 skip-save. Suite 212/213: the material check still fails for the brazier, and the B2 receipt sits in ignored `Saved/`. → **W5-09f (sol):** fix the test and move the B2 receipt to a tracked file. The host check of W5-09e+f follows.
 - **W5-12 (astra) launched:** player characters in Blender (backlog item 2).
 - **Farm:** a brief automatic pause after W5-09e's worker ended (epoch 710 → 711) cleared on the ticker's own pass; nothing forced.
+- **W5-09e + W5-09f integrated (1f33c05; maps and B2 receipt 3939b81).** W5-09f's worker build stalled (its brief lacked the UBA recipe), so the host check was the first compile.
+  - **Host:** build OK; 215/215; arrivals 9/9 unchanged; validator 0; package OK; 15/15 captures.
+  - **B1 room means .24 / .21 / .20, in band.** A second regeneration left B2 byte-identical via the tracked receipt `L_TempleB2.gen-receipt.json`; B1 bytes still vary between runs.
+  - **Look:** readable floor, warm wall-sconce pools, iron fire-bowl braziers, readable stone. Good, not yet great. Missing: a warm-brown gap palette (gaps are cool grey), concept clutter (barrels, crates, rubble, cobwebs), and the player still lies flat (W5-12).
+- **LAUNCH-LEASE-EXPIRED-1 hit (01:12Z):** the W5-10d launch op is `ambiguous` ("lease expired"); the attempt is Reserved. Reported to the orch; not forced. New launches (W5-12) are held until the orch answers.
