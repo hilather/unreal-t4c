@@ -1,5 +1,5 @@
 #include "Visual/LHVisualKit.h"
-#include "Visual/LHB1ArtBinding.h"
+#include "Visual/LHEnvArtBinding.h"
 #include "Visual/LHB1Lighting.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
@@ -309,6 +309,41 @@ ALHVisualPiece::ALHVisualPiece()
         const FString Path=TEXT("/Game/Lighthaven/Art/Env/B1/SM_")+Name+TEXT(".SM_")+Name;
         B1Assets.Add(LoadObject<UStaticMesh>(nullptr,*Path,nullptr,LOAD_NoWarn|LOAD_Quiet));
     }
+    for(const auto Style:{ELHVisualStyle::Church,ELHVisualStyle::B2Damp,ELHVisualStyle::B3Crypt,ELHVisualStyle::B4Ritual})
+        for(const auto& Name:LHEnvArt::AssetNames(Style))
+        {
+            const FString Key=LHEnvArt::Folder(Style)+TEXT("/SM_")+Name;
+            const FString Path=TEXT("/Game/Lighthaven/Art/Env/")+LHEnvArt::MeshFolder(Style,Name)+TEXT("/SM_")+Name+TEXT(".SM_")+Name;
+            EnvAssets.Add(Key,LoadObject<UStaticMesh>(nullptr,*Path,nullptr,LOAD_NoWarn|LOAD_Quiet));
+        }
+    // Keep the complete importer-owned instance catalog cook-reachable, even
+    // when an auxiliary mesh or material is not used by this map's dressing.
+    for(const auto Style:{ELHVisualStyle::Church,ELHVisualStyle::B2Damp,ELHVisualStyle::B3Crypt,ELHVisualStyle::B4Ritual})
+        for(const auto* Family:{TEXT("stone"),TEXT("timber"),TEXT("iron"),TEXT("flame"),TEXT("wet"),TEXT("oxide"),TEXT("plaster"),TEXT("cloth")})
+        {
+            const FString Name=TEXT("MI_")+LHEnvArt::Folder(Style)+TEXT("_")+Family;
+            const FString Path=TEXT("/Game/Lighthaven/Art/Env/")+LHEnvArt::Folder(Style)+TEXT("/")+Name+TEXT(".")+Name;
+            if(auto* Material=LoadObject<UMaterialInterface>(nullptr,*Path,nullptr,LOAD_NoWarn|LOAD_Quiet)) EnvMaterials.Add(Material);
+        }
+}
+FBox ALHVisualPiece::GetComponentsBoundingBox(bool bNonColliding, bool bIncludeFromChildActors) const
+{
+    LHEnvArt::FFit Fit;
+    if(!bNonColliding || bIncludeFromChildActors || BuiltRecipe.Style==ELHVisualStyle::B1Cellar ||
+        !ImportedMesh || !ImportedMesh->IsVisible() || !ImportedMesh->GetStaticMesh() ||
+        !LHEnvArt::Resolve(BuiltRecipe,Fit) || (Fit.AssetName!=TEXT("Wall400") && Fit.AssetName!=TEXT("Floor400")))
+        return Super::GetComponentsBoundingBox(bNonColliding,bIncludeFromChildActors);
+    // Whole unit tiles extend beyond masked cutaway/lintel surfaces. Report
+    // their visible cropped envelope so bounds-based probes keep the saved
+    // doorway center. Collision-only bounds and every collider stay unchanged.
+    FBox Bounds(ForceInit);
+    for(const auto& Instance:Fit.Instances)
+    {
+        const FBox Clipped=ImportedMesh->GetStaticMesh()->GetBoundingBox().TransformBy(Instance).Overlap(Fit.ClipBounds);
+        if(Clipped.IsValid) Bounds+=Clipped.TransformBy(GetActorTransform());
+    }
+    for(const auto& Blocker:Blockers) if(IsValid(Blocker.Get())) Bounds+=Blocker->Bounds.GetBox();
+    return Bounds.IsValid?Bounds:Super::GetComponentsBoundingBox(bNonColliding,bIncludeFromChildActors);
 }
 void ALHVisualPiece::PostLoad()
 {
@@ -388,16 +423,47 @@ bool ALHVisualPiece::Build(const FLHVisualRecipe& R)
     ImportedMesh->SetStaticMesh(nullptr); ImportedMesh->SetVisibility(false);
     Mesh->SetVisibility(true);
     LHB1Art::FFit Fit;
-    if(LHB1Art::Resolve(R,Fit))
+    if(LHEnvArt::Resolve(R,Fit))
     {
         const int32 Index=LHB1Art::AssetNames().IndexOfByKey(Fit.AssetName);
-        if(B1Assets.IsValidIndex(Index) && B1Assets[Index])
+        UStaticMesh* Asset=nullptr;
+        if(R.Style==ELHVisualStyle::B1Cellar) Asset=B1Assets.IsValidIndex(Index)?B1Assets[Index].Get():nullptr;
+        else if(const auto* Found=EnvAssets.Find(LHEnvArt::Folder(R.Style)+TEXT("/SM_")+Fit.AssetName)) Asset=Found->Get();
+        if(Asset && R.Style!=ELHVisualStyle::B1Cellar)
         {
-            ImportedMesh->SetStaticMesh(B1Assets[Index]);
+            // Shared B1 meshes alone do not mean the requested kit is installed.
+            // Require every style instance before replacing the procedural mesh.
+            const FString Prefix=TEXT("MI_")+LHEnvArt::Folder(R.Style)+TEXT("_");
+            for(int32 Slot=0;Slot<Asset->GetStaticMaterials().Num();++Slot)
+            {
+                const auto* SlotParent=Asset->GetMaterial(Slot);
+                FString Wanted=SlotParent?SlotParent->GetName():FString();
+                if(Wanted.RemoveFromStart(TEXT("MI_B1_"))) Wanted=Prefix+Wanted;
+                if(!Wanted.StartsWith(Prefix) || !EnvMaterials.ContainsByPredicate([&](const auto& M){return M && M->GetName()==Wanted;}))
+                { Asset=nullptr; break; }
+            }
+        }
+        if(Asset)
+        {
+            ImportedMesh->SetStaticMesh(Asset);
             ImportedMesh->SetRelativeTransform(FTransform::Identity);
             for(const auto& Instance:Fit.Instances) ImportedMesh->AddInstance(Instance);
             for(int32 Slot=0;Slot<ImportedMesh->GetStaticMesh()->GetStaticMaterials().Num();++Slot)
-                ImportedMesh->SetMaterial(Slot,UMaterialInstanceDynamic::Create(ImportedMesh->GetStaticMesh()->GetMaterial(Slot),this));
+            {
+                UMaterialInterface* ArtParent=ImportedMesh->GetStaticMesh()->GetMaterial(Slot);
+                if(R.Style!=ELHVisualStyle::B1Cellar && LHEnvArt::MeshFolder(R.Style,Fit.AssetName)==TEXT("B1") && ArtParent)
+                {
+                    // Shared geometry retains its B1 package bytes. Instance
+                    // overrides apply the requested style's stone palette.
+                    FString Family=ArtParent->GetName();
+                    if(Family.RemoveFromStart(TEXT("MI_B1_")))
+                    {
+                        const FString Wanted=TEXT("MI_")+LHEnvArt::Folder(R.Style)+TEXT("_")+Family;
+                        if(const auto* Material=EnvMaterials.FindByPredicate([&](const auto& M){return M && M->GetName()==Wanted;})) ArtParent=Material->Get();
+                    }
+                }
+                ImportedMesh->SetMaterial(Slot,UMaterialInstanceDynamic::Create(ArtParent,this));
+            }
             UpdateArtClip();
             ImportedMesh->SetVisibility(true); Mesh->SetVisibility(false);
         }
@@ -487,7 +553,7 @@ FLHVisualTotals LHVisual::ValidatePlacedSet(const TArray<ALHVisualPiece*>& Piece
 void ALHVisualPiece::UpdateArtClip()
 {
     LHB1Art::FFit Fit;
-    if(!LHB1Art::Resolve(BuiltRecipe,Fit) || !ImportedMesh->GetStaticMesh()) return;
+    if(!LHEnvArt::Resolve(BuiltRecipe,Fit) || !ImportedMesh->GetStaticMesh()) return;
     const FTransform Actor=GetActorTransform();
     const FVector Center=Actor.TransformPosition(Fit.ClipBounds.GetCenter());
     const FVector Extent=Fit.ClipBounds.GetExtent()*Actor.GetScale3D().GetAbs();
@@ -514,17 +580,17 @@ void ALHVisualPiece::UpdateArtSupport(const FLHVisualRecipe& R)
     int32 MasonryStart=INDEX_NONE;
     UMaterialInterface* Parent=MaterialParent;
     LHB1Art::FFit Fit;
-    if(ImportedMesh->IsVisible() && LHB1Art::Resolve(R,Fit))
+    if(ImportedMesh->IsVisible() && LHEnvArt::Resolve(R,Fit))
     {
-        Boxes=LHB1Art::SolidBacking(R,Fit);
-        const auto Caps=LHB1Art::MasonryCaps(R,Fit);
+        Boxes=LHEnvArt::SolidBacking(R,Fit);
+        const auto Caps=LHEnvArt::MasonryCaps(R,Fit);
         if(!Caps.IsEmpty())
         {
             MasonryStart=Boxes.Num();
             Boxes.Append(Caps);
         }
         // Separate MID: crop shader bounds default to effectively infinite on backing.
-        if(!Boxes.IsEmpty()) Parent=ImportedMesh->GetStaticMesh()->GetMaterial(0);
+        if(!Boxes.IsEmpty()) Parent=R.Style==ELHVisualStyle::B1Cellar?ImportedMesh->GetStaticMesh()->GetMaterial(0):ImportedMesh->GetMaterial(0);
     }
     const FString Id=R.Id.ToString();
     if(Id.EndsWith(TEXT("Torch")) || (Id.EndsWith(TEXT("Sconce")) && GetActorLocation().Z>120))

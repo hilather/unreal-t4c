@@ -195,7 +195,7 @@ bool FLHB1ArtAssetsTest::RunTest(const FString&)
         const auto Copy=Piece->GetRecipe();
         TestTrue(TEXT("Rebuild"),Piece->Build(Copy));
         TestEqual(TEXT("No duplicate instances"),Piece->GetImportedMesh()->GetInstanceCount(),1);
-        FLHVisualRecipe Other=Copy; Other.Style=ELHVisualStyle::B2Damp;
+        FLHVisualRecipe Other=Copy; Other.Style=static_cast<ELHVisualStyle>(255);
         TestTrue(TEXT("Other style rebuild"),Piece->Build(Other));
         TestFalse(TEXT("Other style imported hidden"),Piece->GetImportedMesh()->IsVisible());
         TestTrue(TEXT("Other style procedural fallback visible"),Piece->GetMesh()->IsVisible());

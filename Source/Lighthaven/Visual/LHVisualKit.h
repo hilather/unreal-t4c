@@ -55,6 +55,7 @@ public:
     void UpdateArtClip();
     const FLHVisualRecipe& GetRecipe() const { return BuiltRecipe; }
     UProceduralMeshComponent* GetMesh() const { return Mesh; }
+    virtual FBox GetComponentsBoundingBox(bool bNonColliding = false, bool bIncludeFromChildActors = false) const override;
     UInstancedStaticMeshComponent* GetImportedMesh() const { return ImportedMesh; }
     UProceduralMeshComponent* GetArtSupport() const { return ArtSupport; }
     const TArray<TObjectPtr<UBoxComponent>>& GetBlockers() const { return Blockers; }
@@ -66,6 +67,8 @@ private:
     void UpdateArtSupport(const FLHVisualRecipe& Recipe);
     // CDO hard references keep the complete imported catalog reachable to cook.
     UPROPERTY() TArray<TObjectPtr<UStaticMesh>> B1Assets;
+    UPROPERTY() TMap<FString,TObjectPtr<UStaticMesh>> EnvAssets;
+    UPROPERTY() TArray<TObjectPtr<UMaterialInterface>> EnvMaterials;
     UPROPERTY() FLHVisualRecipe BuiltRecipe;
     UPROPERTY() TObjectPtr<UMaterialInterface> MaterialParent;
 };
