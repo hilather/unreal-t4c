@@ -1,4 +1,5 @@
 #include "Visual/Player/LHPlayerVisual.h"
+#include "Visual/Player/LHPlayerEquipmentVisual.h"
 #include "Data/Items/LHItemCatalog.h"
 #include "Engine/World.h"
 #include "Misc/Crc.h"
@@ -268,6 +269,7 @@ void ULHPlayerVisualComponent::Finished(const FLHAttackEvent& Event,ELHAttackOut
 void ULHPlayerVisualComponent::SetPresentationEnabled(bool Enabled)
 {
     bEnabled=Enabled;
+    if(auto* Equipment=GetOwner()->FindComponentByClass<ULHPlayerEquipmentVisual>()) Equipment->SetEnabled(Enabled);
     if(ImportedBody) ImportedBody->SetVisibility(Enabled);
     if(ImportedHair) ImportedHair->SetVisibility(Enabled);
     for(const auto& P:RenderPieces) if(P)
@@ -325,6 +327,9 @@ void ULHPlayerVisualComponent::Present(const FLHCharacterRecord* C,ULHCombatComp
     if(CurrentPose==ELHPlayerPose::Cast) { Rotate(TEXT("Arm.L"),FRotator(75,0,-25)); Rotate(TEXT("Arm.R"),FRotator(75,0,25)); }
     SetRelativeRotation(!ImportedBody && CurrentPose==ELHPlayerPose::Death?FRotator(-90*FMath::Clamp(DeathAge/.65f,0.f,1.f),0,0):FRotator::ZeroRotator);
     SampleImported();
+    auto* Equipment=GetOwner()->FindComponentByClass<ULHPlayerEquipmentVisual>();
+    if(!Equipment) { Equipment=NewObject<ULHPlayerEquipmentVisual>(GetOwner()); GetOwner()->AddInstanceComponent(Equipment); Equipment->RegisterComponent(); }
+    Equipment->Present(this,Appearance,Combat,bEnabled,CurrentPose==ELHPlayerPose::Bow && bAction);
 }
 void ULHPlayerVisualComponent::EndPlay(const EEndPlayReason::Type Reason)
 { Unbind(); ClearImported(); for(const auto& P:RenderPieces) if(P) P->Destroy(); RenderPieces.Reset(); Super::EndPlay(Reason); }
@@ -332,6 +337,7 @@ void ULHPlayerVisualComponent::EndPlay(const EEndPlayReason::Type Reason)
 void ULHPlayerVisualComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
     Unbind(); ClearImported();
+    if(auto* Equipment=GetOwner()->FindComponentByClass<ULHPlayerEquipmentVisual>()) Equipment->DestroyComponent();
     for(const auto& P:RenderPieces) if(P) P->Destroy();
     RenderPieces.Reset();
     for(int32 I=Anchors.Num()-1;I>=0;--I) if(Anchors[I]) Anchors[I]->DestroyComponent();

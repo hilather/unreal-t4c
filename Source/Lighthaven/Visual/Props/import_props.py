@@ -84,7 +84,12 @@ for row in manifest['assets']:
         if key not in materials:
             mat=material('M_'+key.replace('.','_')); pbr=info.get('pbrMetallicRoughness',{}); color=pbr.get('baseColorFactor',[1,1,1,1]); alpha=color[3]
             mat.set_editor_property('blend_mode',u.BlendMode.BLEND_TRANSLUCENT if info.get('alphaMode')=='BLEND' else u.BlendMode.BLEND_OPAQUE)
-            if info.get('alphaMode')=='BLEND': mat.set_editor_property('blend_mode',u.BlendMode.BLEND_TRANSLUCENT); constant(mat,alpha,u.MaterialProperty.MP_OPACITY)
+            if info.get('alphaMode')=='BLEND':
+                mat.set_editor_property('blend_mode',u.BlendMode.BLEND_TRANSLUCENT)
+                opacity=expression(mat,u.MaterialExpressionConstant,'opacity'); opacity.set_editor_property('r',alpha)
+                fade=expression(mat,u.MaterialExpressionScalarParameter,'presentation-fade'); fade.set_editor_property('parameter_name','PresentationFade'); fade.set_editor_property('default_value',1.0)
+                product=expression(mat,u.MaterialExpressionMultiply,'faded-opacity')
+                editor.connect_material_expressions(opacity,'',product,'A'); editor.connect_material_expressions(fade,'',product,'B'); editor.connect_material_property(product,'',u.MaterialProperty.MP_OPACITY)
             node=expression(mat,u.MaterialExpressionConstant3Vector,"base"); node.set_editor_property('constant',u.LinearColor(*color[:3],1)); editor.connect_material_property(node,'',u.MaterialProperty.MP_BASE_COLOR)
             emission=info.get('emissiveFactor',[0,0,0]); strength=info.get('extensions',{}).get('KHR_materials_emissive_strength',{}).get('emissiveStrength',1)
             glow=expression(mat,u.MaterialExpressionConstant3Vector,"emission"); glow.set_editor_property('constant',u.LinearColor(*(x*strength for x in emission),1)); editor.connect_material_property(glow,'',u.MaterialProperty.MP_EMISSIVE_COLOR)
