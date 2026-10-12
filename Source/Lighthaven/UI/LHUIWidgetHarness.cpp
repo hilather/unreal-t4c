@@ -1,5 +1,6 @@
 #include "UI/LHUIWidgetHarness.h"
 #include "UI/LHFrontendWidget.h"
+#include "UI/LHPropIcon.h"
 #include "InputCoreTypes.h"
 namespace LHUIWidgetHarnessPrivate
 {
@@ -13,6 +14,7 @@ public:
     FString FieldName() const override { return Widget->FieldName(); }
     FString SummaryText() const override { return Widget->SummaryText(); }
     FString MessageText() const override { return Widget->MessageText(); }
+    FName ControlIconId(FName Id) const override { return Widget->IconIdentity(Id); }
     bool HasControl(FName Id) const override { return Widget->HasControl(Id); }
     bool IsModal() const override { return Widget->IsModal(); }
     void Key(ELHUITestKey K, bool Repeat) override
@@ -27,3 +29,5 @@ private:
 };
 }
 TUniquePtr<ILHUIWidgetHarness> ILHUIWidgetHarness::Create(FLHUIPresenter& P) { return MakeUnique<LHUIWidgetHarnessPrivate::FHarness>(P); }
+
+UObject* ILHUIWidgetHarness::IconResource(FName Id) { auto W=SNew(SLHPropIcon).Identity(Id); const auto* B=W->CurrentBrush(); return B?B->GetResourceObject():nullptr; }

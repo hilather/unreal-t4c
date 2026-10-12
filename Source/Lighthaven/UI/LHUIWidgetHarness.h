@@ -14,8 +14,10 @@ public:
     virtual FString FieldName() const = 0;
     virtual FString SummaryText() const = 0;
     virtual FString MessageText() const = 0;
+    virtual FName ControlIconId(FName Id) const = 0;
     virtual bool HasControl(FName Id) const = 0;
     virtual bool IsModal() const = 0;
     virtual void Key(ELHUITestKey Key, bool bRepeat = false) = 0;
+    static UObject* IconResource(FName Id);
     static TUniquePtr<ILHUIWidgetHarness> Create(FLHUIPresenter& Presenter);
 };
