@@ -1,4 +1,5 @@
 #include "Framework/LHEnemyCharacter.h"
+#include "Visual/Effects/LHMeshEffects.h"
 #include "Abilities/LHCombatComponent.h"
 #include "Framework/LHDevCombatFixture.h"
 #include "Components/CapsuleComponent.h"
@@ -9,6 +10,7 @@
 ALHEnemyCharacter::ALHEnemyCharacter()
 {
     GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+    CreateDefaultSubobject<ULHMeshEffects>(TEXT("MeshEffects"));
     Combat = CreateDefaultSubobject<ULHCombatComponent>(TEXT("Combat"));
     MonsterVisual = CreateDefaultSubobject<ULHMonsterVisual>(TEXT("MonsterVisual"));
     MonsterVisual->SetupAttachment(GetRootComponent());
@@ -70,6 +72,7 @@ void ALHEnemyCharacter::BindPresentationEvents()
 {
     if (bPresentationBound) return;
     bPresentationBound = true;
+    FindComponentByClass<ULHMeshEffects>()->Bind(Combat);
     Combat->OnDeath.AddWeakLambda(this, [this](const FLHHitIdentity&) { MarkCorpse(); });
     Combat->OnAttackCommitted.AddWeakLambda(this, [this](const FLHAttackEvent& E) { MonsterVisual->Attack(E.ImpactSeconds, E.CommitSimulationTime); });
     Combat->OnAttackCancelled.AddWeakLambda(this, [this](const FLHAttackEvent&, ELHAttackCancelReason) { MonsterVisual->CancelAttack(); });

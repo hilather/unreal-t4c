@@ -1,4 +1,5 @@
 #include "Framework/LHPlayerController.h"
+#include "Visual/Props/LHLootMarker.h"
 #include "Framework/LHInteractionReach.h"
 #include "Framework/LHSessionSubsystem.h"
 #include "UI/LHFrontendWidget.h"
@@ -186,6 +187,7 @@ void ALHPlayerController::PlayerTick(float DeltaSeconds)
     Super::PlayerTick(DeltaSeconds);
     if (bCloseJournalRequested) { bCloseJournalRequested=false; CloseJournal(); }
     if (LiveSession) LiveSession->Flush();
+    if(LiveSession) { const auto View=LiveSession->Snapshot(); for(TActorIterator<ALHEnemyCharacter> It(GetWorld());It;++It) LHLootMarker::Present(*It,View); }
     if (JournalPresenter) { JournalPresenter->Refresh(); if(JournalPresenter->Hud().bDead && !JournalWidget) OpenScreen("Death"); }
     if (!HasLiveMovementAvatar()) { ClearHeldMovement(); return; }
     auto* V=GetWorld() ? GetWorld()->GetGameViewport() : nullptr;

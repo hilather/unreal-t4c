@@ -1,4 +1,5 @@
 #include "UI/LHFrontendWidget.h"
+#include "UI/LHPropIcon.h"
 #include "UI/LHPresentation.h"
 #include "Input/LHInputGlyphs.h"
 #include "Widgets/Layout/SBorder.h"
@@ -146,6 +147,11 @@ FText SLHFrontendWidget::Label(FName Id) const
     if (P->FocusedControl() == Id && ModalAction.IsNone()) S = TEXT("> ") + S;
     return FText::FromString(S);
 }
+FName SLHFrontendWidget::IconIdentity(FName Id) const
+{
+    if(Id=="Items") {const auto& Items=P->Snapshot().Character.Inventory; return Items.IsValidIndex(ItemIndex)?Items[ItemIndex].Definition.Value:NAME_None;}
+    return P->ControlIconId(Id);
+}
 void SLHFrontendWidget::AddControl(FName Id)
 {
     TSharedPtr<SWidget> W;
@@ -160,8 +166,12 @@ void SLHFrontendWidget::AddControl(FName Id)
     {
         W = SNew(SButton).ButtonStyle(&ButtonStyle).IsFocusable(true).IsEnabled_Lambda([this,Id]() { return P->IsControlEnabled(Id); })
             .OnClicked_Lambda([this,Id]() { Activate(Id); return FReply::Handled(); })
-            [ SNew(STextBlock).Text_Lambda([this,Id]() { return Label(Id); })
-                .ColorAndOpacity(Style.TextPrimary).Font(LHFrontendWidgetPrivate::Font(Style.Control)).AutoWrapText(true) ];
+            [ SNew(SHorizontalBox)
+                +SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0,0,Style.IconGap,0)
+                [SNew(SLHPropIcon).Identity_Lambda([this,Id](){ return IconIdentity(Id);})]
+                +SHorizontalBox::Slot().FillWidth(1).VAlign(VAlign_Center)
+                [SNew(STextBlock).Text_Lambda([this,Id]() { return Label(Id); })
+                .ColorAndOpacity(Style.TextPrimary).Font(LHFrontendWidgetPrivate::Font(Style.Control)).AutoWrapText(true)] ];
     }
     TSharedPtr<SHorizontalBox> Group;
     SAssignNew(Group,SHorizontalBox);
@@ -199,6 +209,13 @@ void SLHFrontendWidget::Build()
     // Detailed gear/growth records share the scroll area so they cannot crowd out controls.
     Rows->AddSlot().AutoHeight().Padding(0,0,0,Style.Gutter)
     [ SNew(STextBlock).Text_Lambda([this]() { return Summary(); }).Font(LHFrontendWidgetPrivate::Font(Style.Body)).ColorAndOpacity(Style.TextPrimary).AutoWrapText(true) ];
+    if(ModalAction.IsNone() && P->Screen()==ELHUIScreen::Inventory)
+        for(const auto& Item:P->Snapshot().Character.Inventory)
+            Rows->AddSlot().AutoHeight().Padding(Style.FocusGap,Style.RowGap/2)
+            [SNew(SHorizontalBox)
+                +SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0,0,Style.IconGap,0)[SNew(SLHPropIcon).Identity(Item.Definition.Value)]
+                +SHorizontalBox::Slot().FillWidth(1).VAlign(VAlign_Center)
+                [SNew(STextBlock).Text(FText::FromString(FLHUIPresenter::ItemName(Item.Definition)+TEXT(" | Quantity ")+FLHUIPresenter::Format(Item.Quantity))).Font(LHFrontendWidgetPrivate::Font(Style.Body)).ColorAndOpacity(Style.TextPrimary).AutoWrapText(true)]];
     if (ModalAction.IsNone()) for (FName Id : P->FocusOrder()) AddControl(Id);
     else if (ModalAction == "Keyboard")
     {

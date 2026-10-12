@@ -1,4 +1,5 @@
 #include "UI/LHUIPresenter.h"
+#include "Services/LHServiceCatalog.h"
 #include "Data/Items/LHItemCatalog.h"
 
 FLHUIPresenter::FLHUIPresenter(ILHCommandHandler& C, ILHUIReadOwner& R, ILHUISessionOwner& S)
@@ -219,6 +220,41 @@ FString FLHUIPresenter::GameplaySummary() const
     if(ActiveScreen==ELHUIScreen::Death) S+=TEXT("\nYou have fallen. Return to the church.");
     if(ActiveScreen==ELHUIScreen::Pause) S+=TEXT("\nPaused");
     return S;
+}
+FName FLHUIPresenter::ItemDefinition(const FLHEntityId& Item) const
+{
+    if(!Item.InstanceId.IsValid()) return NAME_None;
+    if(const auto* Row=View.Character.Inventory.FindByPredicate([&](const auto& R){return R.Id.InstanceId==Item.InstanceId;})) return Row->Definition.Value;
+    for(const auto& Area:View.World.Areas)
+    {
+        for(const auto& Corpse:Area.Corpses) if(const auto* Row=Corpse.RemainingItems.FindByPredicate([&](const auto& R){return R.Id.InstanceId==Item.InstanceId;})) return Row->Definition.Value;
+        for(const auto& Object:Area.Objects) if(const auto* Row=Object.RemainingItems.FindByPredicate([&](const auto& R){return R.Id.InstanceId==Item.InstanceId;})) return Row->Definition.Value;
+    }
+    return NAME_None;
+}
+FName FLHUIPresenter::ControlIconId(FName Control) const
+{
+    const FString S=Control.ToString();
+    if(S.StartsWith(TEXT("Ability")))
+    {
+        const int32 I=FCString::Atoi(*S.Mid(7))-1; if(I<0 || I>=6) return NAME_None;
+        if(const auto* Binding=AbilityBindings.Find(I)) return Binding->Value;
+        const auto H=Hud(); return H.Abilities.IsValidIndex(I)?H.Abilities[I].Id.Value:NAME_None;
+    }
+    if(S.StartsWith(TEXT("Spell"))) { const auto C=Read.AbilityCatalog(); const int32 I=FCString::Atoi(*S.Mid(5)); return C.IsValidIndex(I)?C[I].Id.Value:NAME_None; }
+    if(S.StartsWith(TEXT("Offer")))
+    {
+        const auto O=Read.ServiceOffers(InteractionTarget); const int32 I=FCString::Atoi(*S.Mid(5));
+        if(O.IsValidIndex(I)) { if(O[I].Kind==ELHUIOfferKind::Sell) return ItemDefinition(O[I].Item); if(O[I].Kind==ELHUIOfferKind::Buy) if(const auto* Offer=LHServices::Catalog().FindByPredicate([&](const auto& R){return R.Id.Value==O[I].Id.Value;})) return Offer->Subject.Value; return O[I].Id.Value; }
+    }
+    if(S.StartsWith(TEXT("Loot")))
+    {
+        const auto L=Read.CorpseContents(InteractionTarget); const int32 I=FCString::Atoi(*S.Mid(4));
+        if(L.IsValidIndex(I)) return ItemDefinition(L[I].Item);
+    }
+    static const TMap<FName,ELHEquipmentSlot> Slots={{"Head",ELHEquipmentSlot::Head},{"Torso",ELHEquipmentSlot::Torso},{"MainHand",ELHEquipmentSlot::MainHand},{"OffHand",ELHEquipmentSlot::OffHand},{"Legs",ELHEquipmentSlot::Legs},{"Feet",ELHEquipmentSlot::Feet},{"Accessory",ELHEquipmentSlot::Accessory},{"Quiver",ELHEquipmentSlot::Quiver}};
+    if(const auto* Slot=Slots.Find(Control)) if(const auto* Binding=View.Character.Equipment.FindByPredicate([&](const auto& B){return B.Slot==*Slot;})) return ItemDefinition(Binding->Item);
+    return NAME_None;
 }
 FString FLHUIPresenter::GameplayLabel(FName Control) const
 {

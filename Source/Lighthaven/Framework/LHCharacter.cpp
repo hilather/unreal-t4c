@@ -1,4 +1,5 @@
 #include "Framework/LHCharacter.h"
+#include "Visual/Effects/LHMeshEffects.h"
 #include "Visual/Player/LHPlayerVisual.h"
 #include "Framework/LHPlayerState.h"
 #include "Framework/LHSessionSubsystem.h"
@@ -11,6 +12,7 @@
 #include "Abilities/LHCombatComponent.h"
 ALHCharacter::ALHCharacter()
 {
+    CreateDefaultSubobject<ULHMeshEffects>(TEXT("MeshEffects"));
     PlayerVisual=CreateDefaultSubobject<ULHPlayerVisualComponent>(TEXT("PlayerVisual"));
     PlayerVisual->SetupAttachment(RootComponent);
     SpellLight=CreateDefaultSubobject<UPointLightComponent>(TEXT("SpellLight"));
@@ -19,6 +21,7 @@ ALHCharacter::ALHCharacter()
     SpellLight->SetAttenuationRadius(600.f); // R-03 missing radius: Prototype 600cm.
     SpellLight->SetIntensity(3000.f); // Prototype presentation intensity; host visual review.
     SpellLight->SetVisibility(false);
+    SpellLight->SetCastShadows(false);
     GetCapsuleComponent()->InitCapsuleSize(35.f,90.f);
     bUseControllerRotationYaw=false;
     GetCharacterMovement()->bOrientRotationToMovement=true;
@@ -56,6 +59,7 @@ void ALHCharacter::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
     const auto* State=GetPlayerState<ALHPlayerState>();
+    FindComponentByClass<ULHMeshEffects>()->Bind(State?State->GetCombatComponent():nullptr);
     SpellLight->SetVisibility(State && State->GetCombatComponent()->GetLightRemainingSeconds()>0);
     FLHCharacterRecord Appearance;
     bool bHasAppearance=false;

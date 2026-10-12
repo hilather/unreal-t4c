@@ -105,6 +105,8 @@ public:
     TArray<FLHUIAbility> AbilityCatalog() const { return Read.AbilityCatalog(); }
     FString GameplaySummary() const;
     FString GameplayLabel(FName Control) const;
+    FName ControlIconId(FName Control) const;
+    FName ItemDefinition(const FLHEntityId& Item) const;
     bool ActivateGameplay(FName Control);
     void SelectAbility(int32 Slot);
     FLHContentId SelectedAbility() const;
