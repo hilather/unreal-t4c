@@ -1,0 +1,8 @@
+/output*/
+/.config/
+/__pycache__/
+*.blend
+*.blend1
+*.glb
+*.png
+*.log
