@@ -375,3 +375,8 @@ Findings: (1) the default is already native Wayland, so the earlier XWayland hyp
   - **Not judged yet:** icons in the UI and the effects. `HighResShot` excludes Slate, so `--keep-hud` captures show no HUD.
   - **Open:** `build/build-art.sh` does not call `build/build-props-art.sh` yet (one line, for the next code task).
 - **W5-26 (sol; showcase and UI captures): launch went `ambiguous` (lease expired) at 06:25Z, host load only ~6–13.** Third launch failure of this kind today. Stopped; reported to the steward in chat; waiting.
+- **W5-26 cleared by the steward 10:01Z** (lease expired, never launched; ROOT-LOCK-FAIRNESS-1). Relaunched as **W5-26b** (sol, supersedes W5-26), submitted 11:18Z, candidate `4a6ac98`, accepted by farm policy.
+  - **Delivered:** `build/capture-showcase.sh` (62 UI-inclusive shots: 20 UI, 8 weapon, 1 corpse, 33 effect), `--keep-hud` map captures include Slate, `build/build-art.sh` calls the props import last.
+  - **Host (12:32Z), not merged:** build OK; art build all stages unchanged, props included, 0 changed Content; self-test OK; arrivals 9/9; package OK; showcase 61/62.
+  - **Blocking:** `Lighthaven.Integration.G4.DeathAndChurchRespawn` fails on host and worker (passes on main); the tiling window manager made the capture window 941×1030 so the UI is letterboxed and tiny; the HUD covers the subject in every weapon, corpse and effect shot; `ui spells` timed out three times. Icons and effects are still not judged.
+  - **Next:** fix task W5-26c (brief written). **Not launched: `/home` is at 100 % (about 4 GB free)**; the host check pushed it to 3.3 GB. No launches or host checks until space is freed (owner/steward decision).
