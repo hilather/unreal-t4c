@@ -70,6 +70,7 @@ inline bool Apply(UWorld* World, ELHVisualStyle Style)
         for(const FVector& P:Outside) if(!Add(P,true)) return false;
         for(TActorIterator<ADirectionalLight> It(World);It;++It)
         {
+            if(It->Tags.Contains(TEXT("LH.Church.ExteriorMoon"))) continue;
             auto* C=CastChecked<UDirectionalLightComponent>(It->GetLightComponent());
             C->SetIntensity(12.f); C->SetTemperature(6500.f);
             C->SetLightColor(FLinearColor(.74f,.84f,1.f));

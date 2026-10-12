@@ -38,7 +38,7 @@ bool FLHLightingAuditTest::RunTest(const FString& Parameters)
         if(!TestNotNull(*Area.Map.ToString(),World)) { ++Index; continue; }
         int32 Local=0,Sun=0,Sky=0,Exposure=0,Coverage=0,Atmosphere=0,Fixtures=0;
         const auto* Profile=LHFloorLighting::FindProfile(Styles[Index]);
-        int32 FloorAtmospheres=0, FloorFixtures=0;
+        int32 FloorAtmospheres=0, FloorFixtures=0, Sigils=0,ExteriorMoon=0;
         TArray<FVector> CoveragePositions;
         for(TActorIterator<AActor> It(World);It;++It)
         {
@@ -82,6 +82,13 @@ bool FLHLightingAuditTest::RunTest(const FString& Parameters)
                 if(auto* P=Cast<UPointLightComponent>(C))
                 {
                     ++Local;
+                    if(Cast<ULHRitualSigilLightComponent>(P))
+                    {
+                        ++Sigils;
+                        TestEqual(TEXT("Sigil glow only in B4"),Index,4);
+                        TestEqual(TEXT("Sigil local radius"),P->AttenuationRadius,360.f);
+                        TestEqual(TEXT("Entrance has gentler sigil reflection than deep halls"),P->Intensity,P->GetComponentLocation().Y<2000.?325.f:650.f);
+                    }
                     const bool bCoverage=It->Tags.Contains(TEXT("LH.Lighting.RoomFill")) || It->Tags.Contains(TEXT("LH.Lighting.ExteriorFill"));
                     if(bCoverage) { ++Coverage; CoveragePositions.Add(It->GetActorLocation()); }
                     // Fixture lights attach to existing visual props. In particular,
@@ -113,7 +120,18 @@ bool FLHLightingAuditTest::RunTest(const FString& Parameters)
                         }
                     }
                 }
-                else if(Cast<UDirectionalLightComponent>(C)) { ++Sun; TestEqual(TEXT("Church subdued daylight lux"),C->Intensity,12.f); }
+                else if(Cast<UDirectionalLightComponent>(C))
+                {
+                    if(It->Tags.Contains(TEXT("LH.Church.ExteriorMoon")))
+                    {
+                        ++ExteriorMoon;
+                        TestEqual(TEXT("Exterior moon only on Church"),Index,0);
+                        TestEqual(TEXT("Exterior moon lux"),C->Intensity,4.f);
+                        TestFalse(TEXT("Exterior moon excludes interior channel0"),C->LightingChannels.bChannel0);
+                        TestTrue(TEXT("Exterior moon uses apron channel1"),C->LightingChannels.bChannel1);
+                    }
+                    else {++Sun;TestEqual(TEXT("Church subdued daylight lux"),C->Intensity,12.f);}
+                }
             }
             TArray<USkyLightComponent*> Skies; It->GetComponents(Skies);
             for(auto* C:Skies)
@@ -165,7 +183,7 @@ bool FLHLightingAuditTest::RunTest(const FString& Parameters)
             TestEqual(TEXT("One floor atmosphere"),FloorAtmospheres,1);
             TestTrue(TEXT("Fixture pools present"),FloorFixtures>0);
             TestTrue(TEXT("Static room fills present"),Coverage>0);
-            TestEqual(TEXT("Only fixture, room and player point lights"),Local,FloorFixtures+Coverage+1);
+            TestEqual(TEXT("Only fixture, room and player point lights"),Local,FloorFixtures+Coverage+Sigils+1);
         }
         if(Index>1)
         {
@@ -178,6 +196,8 @@ bool FLHLightingAuditTest::RunTest(const FString& Parameters)
                 TestTrue(*FString::Printf(TEXT("Fill reaches entrance %s"),*Entry.Id.LocalId.ToString()),
                     CoveragePositions.ContainsByPredicate([&](const FVector& P){return FVector::DistSquared2D(P,Entry.SafeTransform.GetLocation())<=FMath::Square(double(Profile->FillRadius)); }));
         }
+        TestEqual(TEXT("Exterior moon inventory"),ExteriorMoon,Index==0?1:0);
+        TestTrue(TEXT("B4 local sigil inventory distinct from torch fixtures"),Index==4?Sigils>0:Sigils==0);
         TestEqual(TEXT("Directional inventory"),Sun,Index==0?1:0);
         TestEqual(TEXT("One sky"),Sky,1); TestEqual(TEXT("One exposure"),Exposure,1);
         ++Index;
@@ -623,7 +643,7 @@ bool FLHFloorLoadedLightingAuditTest::RunTest(const FString& Parameters)
         World->UpdateWorldComponents(true,false);
         World->InitializeActorsForPlay(FURL());
         for(TActorIterator<AActor> It(World);It;++It) if(!It->HasActorBegunPlay()) It->DispatchBeginPlay();
-        TArray<UPointLightComponent*> Fixtures,Fills;
+        TArray<UPointLightComponent*> Fixtures,Fills,Sigils;
         int32 Atmospheres=0;
         for(TActorIterator<AActor> It(World);It;++It)
         {
@@ -636,7 +656,8 @@ bool FLHFloorLoadedLightingAuditTest::RunTest(const FString& Parameters)
             TArray<UPointLightComponent*> Lights; It->GetComponents(Lights);
             for(auto* Light:Lights)
             {
-                if(Cast<ULHFloorFixtureLightComponent>(Light)) Fixtures.Add(Light);
+                if(Cast<ULHRitualSigilLightComponent>(Light)) Sigils.Add(Light);
+                else if(Cast<ULHFloorFixtureLightComponent>(Light)) Fixtures.Add(Light);
                 else if(It->Tags.Contains(TEXT("LH.Lighting.RoomFill")) || It->Tags.Contains(TEXT("LH.Lighting.ExteriorFill"))) Fills.Add(Light);
                 else continue;
                 TestTrue(TEXT("Lighting registered after game initialization"),Light->IsRegistered() && Light->GetWorld()==World && World->Scene!=nullptr);
@@ -648,6 +669,18 @@ bool FLHFloorLoadedLightingAuditTest::RunTest(const FString& Parameters)
         TestEqual(TEXT("One loaded atmosphere"),Atmospheres,1);
         TestEqual(TEXT("No fixtures lost across initialization"),Fixtures.Num(),PreInit);
         TestTrue(TEXT("Actual room fills audited"),Fills.Num()>0);
+        TestTrue(TEXT("Loaded local sigil glow is B4 only"),Index==4?!Sigils.IsEmpty():Sigils.IsEmpty());
+        if(Index==4) for(const auto* Light:Fixtures)
+        {
+            const auto* Piece=Cast<ALHVisualPiece>(Light->GetOwner());
+            const bool Altar=Piece && Piece->GetRecipe().Id.ToString().EndsWith(TEXT(".Altar"));
+            if(!Altar)
+            {
+                TestEqual(TEXT("B4 torch field preserves1800lm"),Light->Intensity,1800.f);
+                TestEqual(TEXT("B4 torch field preserves375cm radius"),Light->AttenuationRadius,375.f);
+                TestEqual(TEXT("B4 torch field preserves2300K"),Light->Temperature,2300.f);
+            }
+        }
         auto Lux=[&](const TArray<UPointLightComponent*>& Lights,FVector Surface,FVector Normal)
         {
             double Result=0.;
@@ -733,15 +766,15 @@ bool FLHFloorLoadedLightingAuditTest::RunTest(const FString& Parameters)
                 if(bFill)
                 {
                     Position.Z=Index==3?800.:750.;
-                    Lumens=Index==3?4500.:14000.; Radius=Index==3?1450.:1500.;
+                    Lumens=Index==3?4500.:6500.; Radius=Index==3?1450.:1400.;
                     // Match SetLightColor's packed sRGB component representation.
-                    Color=FLinearColor((Index==3?FLinearColor(.63f,.74f,1.f):FLinearColor(.82f,.49f,.32f)).ToFColor(true));
+                    Color=FLinearColor((Index==3?FLinearColor(.63f,.74f,1.f):FLinearColor(.62f,.44f,.38f)).ToFColor(true));
                 }
                 else if(Index==4)
                 {
                     const auto* Piece=Cast<ALHVisualPiece>(Light->GetOwner());
                     const bool Altar=Piece && Piece->GetRecipe().Id.ToString().EndsWith(TEXT(".Altar"));
-                    Lumens=Altar?3000.:1500.; Radius=Altar?650.:450.;
+                    Lumens=Altar?3000.:1800.; Radius=Altar?500.:375.;
                 }
                 const double Weight=.2126*Color.R+.7152*Color.G+.0722*Color.B;
                 Result+=DirectLux(Position,Surface,Normal,Lumens,Radius)*Weight;
@@ -754,10 +787,11 @@ bool FLHFloorLoadedLightingAuditTest::RunTest(const FString& Parameters)
             Values.Sort();
             return Values[FMath::FloorToInt((Values.Num()-1)*.1)];
         };
-        const double PriorEV=Index==4?1.5:Profile->EV100;
+        const double PriorEV=Profile->EV100; // B4 frozen W5-22c; B3 retains W5-19 comparator.
         const double ExposureWeight=FMath::Pow(2.,-double(Profile->EV100));
         const double PriorExposureWeight=FMath::Pow(2.,-PriorEV);
         int32 Candidates=0,Samples=0,Gaps=0,Pools=0;
+        double SigilTotal=0.,SigilGapTotal=0.;
         double Total=0.,PriorTotal=0.,GapTotal=0.,PriorGapTotal=0.,PoolMean=0.,PriorPoolTotal=0.,Minimum=DBL_MAX,PriorMinimum=DBL_MAX;
         TArray<double> FloorValues,PriorFloorValues;
         int32 RoomNumber=0;
@@ -777,7 +811,10 @@ bool FLHFloorLoadedLightingAuditTest::RunTest(const FString& Parameters)
                     || Hit.bStartPenetrating || Hit.ImpactNormal.Z<.7 || FMath::Abs(Hit.ImpactPoint.Z)>5.) continue;
                 const double Warm=Lux(Fixtures,Hit.ImpactPoint,Hit.ImpactNormal);
                 const double PriorWarm=PriorLux(Fixtures,Hit.ImpactPoint,Hit.ImpactNormal,false);
-                const double Combined=Warm+Lux(Fills,Hit.ImpactPoint,Hit.ImpactNormal);
+                const double Sigil=Lux(Sigils,Hit.ImpactPoint,Hit.ImpactNormal);
+                SigilTotal+=Sigil;
+                if(PriorWarm<.25) SigilGapTotal+=Sigil;
+                const double Combined=Warm+Lux(Fills,Hit.ImpactPoint,Hit.ImpactNormal)+Sigil;
                 const double Prior=PriorWarm+PriorLux(Fills,Hit.ImpactPoint,Hit.ImpactNormal,true);
                 ++Samples; ++RoomSamples; Total+=Combined; RoomTotal+=Combined; PriorTotal+=Prior; RoomPrior+=Prior;
                 Minimum=FMath::Min(Minimum,Combined); PriorMinimum=FMath::Min(PriorMinimum,Prior);
@@ -815,8 +852,12 @@ bool FLHFloorLoadedLightingAuditTest::RunTest(const FString& Parameters)
         }
         if(Index==4)
         {
-            TestTrue(TEXT("B4 exposure-weighted direct floor mean decreases"),Total*ExposureWeight<PriorTotal*PriorExposureWeight);
-            TestTrue(TEXT("B4 pool to gap contrast increases on identical receivers"),Contrast>PriorContrast);
+            TestEqual(TEXT("B4 preserves W5-22c manual EV100"),Profile->EV100,2.25f);
+            TestTrue(TEXT("B4 lowest decile improves over frozen W5-22c"),P10(FloorValues)>P10(PriorFloorValues));
+            TestTrue(TEXT("B4 torch-classified gaps improve over frozen W5-22c"),GapTotal>PriorGapTotal);
+            TestTrue(TEXT("Existing B4 sigils contribute measurable local direct light"),SigilTotal>0.);
+            AddInfo(FString::Printf(TEXT("B4 separate sigil inventory=%d mean direct contribution %.4f lux; torch-classified gap contribution %.4f lux. B4 comparator is frozen W5-22c EV2.25 fill6500lm/1400cm/.62,.44,.38 torches1800lm/375cm altar3000lm/500cm. Emissive pixel readability is capture-only."),
+                Sigils.Num(),SigilTotal/FMath::Max(1,Samples),SigilGapTotal/FMath::Max(1,Gaps)));
         }
         AddInfo(FString::Printf(TEXT("%s registered fixtures=%d fills=%d candidates=%d walkable=%d fixture floor pool=%.4f vertical wall key=%.4f lux; current/prior grid mean %.4f/%.4f min %.4f/%.4f p10 %.4f/%.4f gap %.4f/%.4f pool %.4f/%.4f contrast %.3f/%.3f; EV100 %.2f/%.2f exposure-weighted mean %.5f/%.5f"),
             *Map,Fixtures.Num(),Fills.Num(),Candidates,Samples,PoolTotal/FMath::Max(1,PoolReceivers),WallTotal/FMath::Max(1,WallReceivers),

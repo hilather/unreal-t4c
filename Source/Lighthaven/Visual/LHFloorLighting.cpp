@@ -1,5 +1,8 @@
 #include "Visual/LHFloorLighting.h"
 #include "Visual/LHB1Lighting.h"
+#include "Visual/LHEnvArtBinding.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Components/ExponentialHeightFogComponent.h"
 #include "Engine/Scene.h"
 #include "Engine/World.h"
@@ -13,7 +16,7 @@ const LHFloorLighting::FProfile* LHFloorLighting::FindProfile(ELHVisualStyle Sty
     static const FProfile Church={4.f,.2f,{.65f,.75f,1.f},2400.f,500.f,2800.f,20000.f,1800.f,650.f,{1.f,.78f,.52f},900.f,{1.f,.82f,.62f},{.18f,.145f,.10f},.10f};
     static const FProfile B2={2.5f,.16f,{.56f,.76f,.72f},1000.f,400.f,2900.f,6500.f,1500.f,800.f,{.55f,.76f,.72f},450.f,{.68f,.85f,.82f},{.08f,.14f,.13f},.12f};
     static const FProfile B3={4.f,.12f,{.62f,.72f,1.f},900.f,375.f,3100.f,3500.f,1600.f,750.f,{.63f,.74f,1.f},600.f,{.76f,.83f,1.f},{1.4f,1.8f,2.5f},.12f};
-    static const FProfile B4={2.25f,.10f,{.62f,.67f,.83f},1800.f,375.f,2300.f,6500.f,1400.f,750.f,{.62f,.44f,.38f},650.f,{.9f,.7f,.52f},{.16f,.095f,.065f},.15f};
+    static const FProfile B4={2.25f,.12f,{.55f,.65f,.90f},1800.f,375.f,2300.f,7500.f,1400.f,750.f,{.48f,.54f,.72f},650.f,{.9f,.7f,.52f},{.40f,.55f,.85f},.10f};
     switch(Style)
     {
     case ELHVisualStyle::Church: return &Church;
@@ -71,6 +74,8 @@ ULHFloorFixtureLightComponent::ULHFloorFixtureLightComponent()
 ULHFloorFixtureLightComponent* ULHFloorFixtureLightComponent::Configure(ALHVisualPiece* Piece,FVector FlameLocal)
 {
     if(!Piece) return nullptr;
+    LHFloorLighting::ConfigureChurchExterior(Piece);
+    ULHRitualSigilLightComponent::Configure(Piece);
     const auto& R=Piece->GetRecipe(); const auto* P=LHFloorLighting::FindProfile(R.Style);
     const FString Id=R.Id.ToString();
     const bool Fixture=Id.EndsWith(TEXT(".Torch")) || Id.EndsWith(TEXT(".Sconce"));
@@ -80,9 +85,9 @@ ULHFloorFixtureLightComponent* ULHFloorFixtureLightComponent::Configure(ALHVisua
     auto* Light=Existing?Existing:NewObject<ULHFloorFixtureLightComponent>(Piece,NAME_None,RF_Transient);
     if(!Existing) { Piece->AddInstanceComponent(Light); Light->SetupAttachment(Piece->GetRootComponent()); }
     Light->bFlicker=Fixture;
-    Light->BaseLumens=Altar?(R.Style==ELHVisualStyle::Church?4000.f:3000.f):P->FixtureLumens;
+    Light->BaseLumens=Altar?(R.Style==ELHVisualStyle::Church?4000.f:3800.f):P->FixtureLumens;
     Light->SetIntensity(Light->BaseLumens);
-    Light->SetAttenuationRadius(Altar?(R.Style==ELHVisualStyle::Church?700.f:500.f):P->FixtureRadius);
+    Light->SetAttenuationRadius(Altar?(R.Style==ELHVisualStyle::Church?700.f:600.f):P->FixtureRadius);
     Light->SetRelativeLocation(Altar?FVector(0,0,180):FlameLocal);
     Light->SetUseTemperature(!(Altar && R.Style==ELHVisualStyle::B4Ritual));
     Light->SetTemperature(P->FixtureKelvin);
@@ -94,6 +99,66 @@ ULHFloorFixtureLightComponent* ULHFloorFixtureLightComponent::Configure(ALHVisua
     if(UWorld* World=Piece->GetWorld(); World && World->IsInitialized() && !Light->IsRegistered()) Light->RegisterComponent();
     if(!Existing) Light->LogRuntimeState(TEXT("ConfigureCreated"));
     return Light;
+}
+
+ULHRitualSigilLightComponent::ULHRitualSigilLightComponent()
+{
+    PrimaryComponentTick.bCanEverTick=false;
+    SetMobility(EComponentMobility::Movable);
+    SetCastShadows(false); SetCanEverAffectNavigation(false);
+    SetIntensityUnits(ELightUnits::Lumens); bUseInverseSquaredFalloff=true;
+    SetUseTemperature(false); SetLightColor(FLinearColor(1.f,.32f,.10f));
+    SetIntensity(650.f); SetAttenuationRadius(360.f); SetSpecularScale(0.f);
+    SourceRadius=35.f; SoftSourceRadius=55.f;
+}
+void ULHRitualSigilLightComponent::Configure(ALHVisualPiece* Piece)
+{
+    if(!Piece) return;
+    TArray<ULHRitualSigilLightComponent*> Existing; Piece->GetComponents(Existing);
+    const auto& R=Piece->GetRecipe();
+    const bool Ritual=R.Style==ELHVisualStyle::B4Ritual;
+    const bool Floor=Ritual && R.Id.ToString().EndsWith(TEXT(".Floor400"));
+    const bool Altar=Ritual && R.Id.ToString().EndsWith(TEXT(".Altar"));
+    auto* Imported=Piece->GetImportedMesh();
+    TArray<FVector> Positions;
+    if((Floor || Altar) && Imported && Imported->IsVisible() && Imported->GetStaticMesh())
+    {
+        // The kit maps ONLY the carved inlay slot to oxide. Its existing
+        // cooked master exposes Flame/FlameColor, so no new asset or shader is
+        // needed. Basalt, wood, and the other floors retain their materials.
+        bool Inlay=false;
+        for(int32 Slot=0;Slot<Imported->GetNumMaterials();++Slot)
+        {
+            auto* Material=Cast<UMaterialInstanceDynamic>(Imported->GetMaterial(Slot));
+            if(!Material || !Material->Parent || Material->Parent->GetName()!=TEXT("MI_B4Ritual_oxide")) continue;
+            Material->SetScalarParameterValue(TEXT("Flame"),1.f);
+            Material->SetVectorParameterValue(TEXT("FlameColor"),Altar?FLinearColor(5.f,1.2f,.16f):FLinearColor(3.2f,.72f,.12f));
+            Inlay=true;
+        }
+        LHEnvArt::FFit Fit;
+        if(Floor && Inlay && LHEnvArt::Resolve(R,Fit))
+            for(const auto& Instance:Fit.Instances)
+            {
+                // Imported Floor400 inlay is centered at (200,200), radius66.
+                // Reject clipped medallions instead of lighting empty space.
+                const FVector Center=Instance.TransformPosition(FVector(200,200,0));
+                if(Center.X-68<Fit.ClipBounds.Min.X || Center.X+68>Fit.ClipBounds.Max.X ||
+                    Center.Y-68<Fit.ClipBounds.Min.Y || Center.Y+68>Fit.ClipBounds.Max.Y) continue;
+                Positions.Add(Center+FVector(0,0,120));
+            }
+    }
+    for(int32 Index=Existing.Num()-1;Index>=Positions.Num();--Index) Existing[Index]->DestroyComponent();
+    for(int32 Index=0;Index<Positions.Num();++Index)
+    {
+        auto* Light=Existing.IsValidIndex(Index)?Existing[Index]:NewObject<ULHRitualSigilLightComponent>(Piece,NAME_None,RF_Transient);
+        if(!Existing.IsValidIndex(Index)) {Piece->AddInstanceComponent(Light); Light->SetupAttachment(Piece->GetRootComponent());}
+        Light->SetRelativeLocation(Positions[Index]);
+        // The entrance already has the desired warm pools. Its sigils receive
+        // half the reflected light of the deeper ritual halls; no fixture moves.
+        const double Y=Piece->GetActorTransform().TransformPosition(Positions[Index]).Y;
+        Light->SetIntensity(Y<2000.?325.f:650.f);
+        if(UWorld* World=Piece->GetWorld(); World && World->IsInitialized() && !Light->IsRegistered()) Light->RegisterComponent();
+    }
 }
 void ULHFloorFixtureLightComponent::LogRuntimeState(const TCHAR* Stage) const
 {
@@ -127,7 +192,7 @@ void ALHFloorAtmosphere::Configure(ELHVisualStyle InStyle)
     // Prototype depth-targeted crypt haze: keep nearby gameplay receivers out
     // of fog, tint distant cutaway void. HeightFogCommon.ush integrates along
     // the depth ray and caps opacity; HeightFogPixelShader.usf applies exposure.
-    Haze->SetStartDistance(Style==ELHVisualStyle::B3Crypt?4000.f:0.f);
+    Haze->SetStartDistance(Style==ELHVisualStyle::B3Crypt || Style==ELHVisualStyle::B4Ritual?4000.f:0.f);
     Haze->MarkRenderStateDirty();
     ReadabilityFill->SetIntensity(P->PlayerLumens); ReadabilityFill->SetAttenuationRadius(750.f);
     ReadabilityFill->SetUseTemperature(false); ReadabilityFill->SetLightColor(P->PlayerColor);

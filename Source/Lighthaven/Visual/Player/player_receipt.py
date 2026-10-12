@@ -22,15 +22,16 @@ def native_helpers(path, names):
 
 
 def signature(root, engine_version):
-    source = root/'artsource/player/output'
-    paths = [root/'Source/Lighthaven/Visual/Player/import_player.py',
-             Path(__file__), root/'artsource/player/appearances.json',
-             root/'Source/Lighthaven/Visual/Player/LHPlayerVisual.h']
-    paths += [source/(kind+suffix) for kind in ('player_a', 'player_b')
-              for suffix in ('.glb', '_base.png', '_normal.png', '_orm.png')]
-    digest = hashlib.sha256(engine_version.encode())
+    # Versioned authored-input scheme: exports contain bake/export variability and
+    # are disposable. Never use generated GLBs, PNGs or packages as input identity.
+    paths = sorted((root/'artsource/player').glob('*.py'))
+    paths += [root/'artsource/player/appearances.json',
+              root/'Source/Lighthaven/Visual/Player/import_player.py',
+              root/'Source/Lighthaven/Visual/Player/player_receipt.py',
+              root/'Source/Lighthaven/Visual/Player/LHPlayerVisual.h']
+    digest = hashlib.sha256(b'player-authored-v2\0' + engine_version.encode())
     for path in paths:
-        digest.update(path.name.encode()); digest.update(path.read_bytes())
+        digest.update(str(path.relative_to(root)).encode()); digest.update(path.read_bytes())
     digest.update(native_helpers(root/'Source/Lighthaven/Visual/Player/LHPlayerVisual.cpp',
         ('ULHPlayerVisualComponent::ConfigureImportedMesh', 'ULHPlayerVisualComponent::CompactImportedMesh')))
     return digest.hexdigest()

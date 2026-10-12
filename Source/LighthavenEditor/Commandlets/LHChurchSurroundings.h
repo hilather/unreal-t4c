@@ -1,6 +1,10 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Visual/LHVisualKit.h"
+#include "Visual/LHFloorLighting.h"
+#include "Engine/DirectionalLight.h"
+#include "Components/DirectionalLightComponent.h"
+#include "EngineUtils.h"
 
 // Imported catalog pieces only. The apron fills presentation void, never the
 // footprint of a playable slab (including the descending wing ramp).
@@ -38,16 +42,20 @@ inline bool Apply(UWorld* World,const TArray<FBox>& WalkableFloors,
     auto Admit=[&](ALHVisualPiece* Piece,bool Apron)
     {
         if(!Piece) return false;
+        Piece->Tags.Append({TEXT("LH.Church.Surroundings"),Apron?FName(TEXT("LH.Church.Apron")):FName(TEXT("LH.Church.Outline"))});
+        auto ExteriorRecipe=Piece->GetRecipe();
+        ExteriorRecipe.Colors[0]=FLinearColor(.061f,.081f,.11f,1.f);
+        if(!Piece->Build(ExteriorRecipe)) { Piece->Destroy(); return false; }
+        LHFloorLighting::ConfigureChurchExterior(Piece);
         TArray<ALHVisualPiece*> Single{Piece};
         const auto Budget=LHVisual::ValidatePlacedSet(Single);
-        if(!Budget.Errors.IsEmpty() || Triangles+Budget.Triangles>400000)
+        if(!Budget.Errors.IsEmpty() || Triangles+Budget.Triangles>240000)
         {
             for(const auto& Error:Budget.Errors) UE_LOG(LogTemp,Error,TEXT("Church surroundings: %s"),*Error);
-            UE_LOG(LogTemp,Error,TEXT("Church surroundings cannot fit imported budget: added=%d candidate=%d cap=400000"),Triangles,Budget.Triangles);
+            UE_LOG(LogTemp,Error,TEXT("Church surroundings cannot fit imported budget: added=%d candidate=%d cap=240000"),Triangles,Budget.Triangles);
             Piece->Destroy(); return false;
         }
         Triangles+=Budget.Triangles; Added.Add(Piece);
-        Piece->Tags.Append({TEXT("LH.Church.Surroundings"),Apron?FName(TEXT("LH.Church.Apron")):FName(TEXT("LH.Church.Outline"))});
         Piece->SetActorLabel(FString::Printf(TEXT("Dressing.Church.Surroundings.%s.%03d"),Apron?TEXT("Apron"):TEXT("Outline"),Apron?Aprons++:Walls++));
         return true;
     };
@@ -99,7 +107,30 @@ inline bool Apply(UWorld* World,const TArray<FBox>& WalkableFloors,
             }
         }
     }
-    UE_LOG(LogTemp,Display,TEXT("Church surroundings: imported apron pieces=%d outline pieces=%d added triangles=%d /400000; playable footprints excluded with 8cm margin"),Aprons,Walls,Triangles);
+    // This channel is received only by tagged exterior surfaces. Existing
+    // chapel keys, room fills, sky and haze retain their authored settings.
+    bool HasExteriorMoon=false;
+    for(TActorIterator<ADirectionalLight> It(World);It;++It)
+        HasExteriorMoon|=It->Tags.Contains(TEXT("LH.Church.ExteriorMoon"));
+    if(!HasExteriorMoon)
+    {
+        auto* Moon=World->SpawnActor<ADirectionalLight>(FVector(0,0,1200),FRotator(-55,-35,0));
+        if(!Moon) { Rollback(); return false; }
+        Moon->Tags.Add(TEXT("LH.Church.ExteriorMoon"));
+        Moon->SetActorLabel(TEXT("Dressing.Church.ExteriorMoon"));
+        auto* Light=CastChecked<UDirectionalLightComponent>(Moon->GetLightComponent());
+        Light->SetMobility(EComponentMobility::Movable);
+        Light->SetIntensity(4.f);
+        Light->SetUseTemperature(false);
+        Light->SetLightColor(FLinearColor(.35f,.52f,1.f));
+        Light->SetLightingChannels(false,true,false);
+        Light->SetCastShadows(false);
+        Light->SetCanEverAffectNavigation(false);
+        Light->SetIndirectLightingIntensity(0.f);
+        Light->SetVolumetricScatteringIntensity(0.f);
+        Light->SetAtmosphereSunLight(false);
+    }
+    UE_LOG(LogTemp,Display,TEXT("Church surroundings: imported apron pieces=%d outline pieces=%d added triangles=%d /240000; playable footprints excluded with 8cm margin"),Aprons,Walls,Triangles);
     return Aprons>0 && Walls>0;
 }
 }
