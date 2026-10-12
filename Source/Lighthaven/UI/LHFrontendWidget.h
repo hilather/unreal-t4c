@@ -19,6 +19,7 @@ public:
     void Back();
     void EditName(const FString& Name);
     FString FieldName() const;
+    FName IconIdentity(FName Id) const;
     bool HasControl(FName Id) const { return Targets.Contains(Id); }
     bool IsModal() const { return !ModalAction.IsNone(); }
     virtual bool SupportsKeyboardFocus() const override { return true; }

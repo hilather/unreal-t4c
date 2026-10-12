@@ -1,4 +1,5 @@
 #include "UI/LHGameplayHud.h"
+#include "UI/LHPropIcon.h"
 #include "Input/LHInputGlyphs.h"
 #include "Engine/Engine.h"
 #include "UObject/UObjectIterator.h"
@@ -38,7 +39,9 @@ void SLHGameplayHud::Construct(const FArguments& A)
     +SVerticalBox::Slot().AutoHeight()[Text(TAttribute<FText>::CreateLambda([](){return FText::FromString(FLHInputGlyphs::GameplayHints());}))]]];
     for(int32 I=0; I<6; ++I) Slots->AddSlot().AutoWidth().Padding(12,12)
     [SNew(SBox).WidthOverride(180)[SNew(SBorder).BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush")).BorderBackgroundColor_Lambda([](){return FLHPresentationSettings::Get().HighContrast?FLinearColor::Black:FLHUIStyle().Panel;}).Padding(12)
-    [Text(TAttribute<FText>::CreateLambda([this,I](){return FText::FromString(P->GameplayLabel(FName(*FString::Printf(TEXT("Ability%d"),I+1))));}))]]];
+    [SNew(SVerticalBox)
+    +SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)[SNew(SLHPropIcon).Identity_Lambda([this,I](){return P->ControlIconId(FName(*FString::Printf(TEXT("Ability%d"),I+1)));})]
+    +SVerticalBox::Slot().AutoHeight()[Text(TAttribute<FText>::CreateLambda([this,I](){return FText::FromString(P->GameplayLabel(FName(*FString::Printf(TEXT("Ability%d"),I+1))));}))]]]];
 }
 
 void SLHGameplayHud::Tick(const FGeometry& G,double Time,float Delta)

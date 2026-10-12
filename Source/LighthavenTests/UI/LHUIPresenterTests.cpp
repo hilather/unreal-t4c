@@ -2,6 +2,8 @@
 #include "UI/LHUIPresenter.h"
 #include "UI/LHUIStyle.h"
 #include "UI/LHUIWidgetHarness.h"
+#include "Visual/Props/LHPropsCatalog.h"
+#include "Engine/Texture2D.h"
 #include "InputCoreTypes.h"
 #if WITH_DEV_AUTOMATION_TESTS
 namespace LHUIPresenterTestsPrivate
@@ -262,6 +264,48 @@ bool FLHUIAsyncSaveStatus::RunTest(const FString&)
     TestTrue(TEXT("Async owner durability clears copied retry failure"),W->MessageText().IsEmpty());
     O.SaveStatus=TEXT("Arrival refused; save retained: fixture");
     TestTrue(TEXT("Transition failure remains visible"),W->MessageText().Contains(TEXT("Arrival refused")));
+    return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHUIPropBrushTest,"Lighthaven.UI.Props.BrushFallback",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FLHUIPropBrushTest::RunTest(const FString&)
+{
+    for(FName Id:ULHPropsCatalog::ItemIds()) TestEqual(*Id.ToString(),ILHUIWidgetHarness::IconResource(Id),static_cast<UObject*>(ULHPropsCatalog::Icon(Id)));
+    for(FName Id:ULHPropsCatalog::AbilityIds()) TestEqual(*Id.ToString(),ILHUIWidgetHarness::IconResource(Id),static_cast<UObject*>(ULHPropsCatalog::Icon(Id)));
+    TestNull(TEXT("Missing brush text fallback"),ILHUIWidgetHarness::IconResource("Missing"));
+    TestNull(TEXT("Empty slot text fallback"),ILHUIWidgetHarness::IconResource(NAME_None));
+    auto* Catalog=GetMutableDefault<ULHPropsCatalog>(); auto* Saved=Catalog->Assets.Get();
+    Catalog->Assets=nullptr;
+    TestNull(TEXT("Known ID missing packages fallback"),ILHUIWidgetHarness::IconResource("Item.RustedDirk"));
+    Catalog->Assets=Saved;
+    return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHUIPropIdsTest,"Lighthaven.UI.Props.RowAndSlotIds",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FLHUIPropIdsTest::RunTest(const FString&)
+{
+    struct FIconOwners : LHUIPresenterTestsPrivate::FOwners
+    {
+        TArray<FLHUIAbility> Abilities; TArray<FLHUIServiceOffer> Offers; TArray<FLHUILootRow> Loot;
+        FLHUIHud HudState() const override {FLHUIHud H; H.Abilities=Abilities; return H;}
+        TArray<FLHUIServiceOffer> ServiceOffers(const FLHEntityId&) const override {return Offers;}
+        TArray<FLHUILootRow> CorpseContents(const FLHEntityId&) const override {return Loot;}
+    } O;
+    for(FName Id:ULHPropsCatalog::ItemIds()) {FLHItemInstance Item; Item.Id.InstanceId=FGuid::NewGuid(); Item.Definition.Value=Id; O.State.Character.Inventory.Add(Item);}
+    for(FName Id:ULHPropsCatalog::AbilityIds()) {FLHUIAbility A; A.Id.Value=Id; A.bAvailable=true; O.Abilities.Add(A);}
+    FLHEquipmentBinding B; B.Slot=ELHEquipmentSlot::MainHand; B.Item=O.State.Character.Inventory[0].Id; O.State.Character.Equipment.Add(B);
+    FLHUIServiceOffer Sell; Sell.Kind=ELHUIOfferKind::Sell; Sell.Item=B.Item; O.Offers.Add(Sell);
+    FLHUILootRow Loot; Loot.Item.InstanceId=FGuid::NewGuid(); O.Loot.Add(Loot);
+    FLHAreaRecord Area; FLHCorpseLootRecord Corpse; FLHItemInstance Drop; Drop.Id=Loot.Item; Drop.Definition.Value="Item.IronKey"; Corpse.RemainingItems.Add(Drop); Area.Corpses.Add(Corpse); O.State.World.Areas.Add(Area);
+    FLHUIPresenter P(O,O,O); auto W=ILHUIWidgetHarness::Create(P);
+    W->Open(ELHUIScreen::Inventory); W->Activate("Items");
+    TestEqual(TEXT("Selected inventory icon"),W->ControlIconId("Items"),FName("Item.RustedDirk"));
+    TestEqual(TEXT("Equipment icon"),W->ControlIconId("MainHand"),FName("Item.RustedDirk"));
+    TestTrue(TEXT("Empty equipment fallback"),W->ControlIconId("Head").IsNone());
+    TestEqual(TEXT("Sell row definition"),P.ControlIconId("Offer0"),FName("Item.RustedDirk"));
+    TestEqual(TEXT("World loot definition"),P.ControlIconId("Loot0"),FName("Item.IronKey"));
+    for(int32 I=0;I<6;++I) TestEqual(TEXT("HUD assignment"),P.ControlIconId(FName(*FString::Printf(TEXT("Ability%d"),I+1))),O.Abilities[I].Id.Value);
+    P.SelectAbility(0); P.ActivateGameplay("Spell6"); P.ActivateGameplay("AssignAbility");
+    TestEqual(TEXT("Reassigned HUD brush identity"),P.ControlIconId("Ability1"),FName("Attack.Ranged.Bow"));
+    TestTrue(TEXT("Missing row fallback"),P.ControlIconId("Loot99").IsNone());
     return true;
 }
 #endif
