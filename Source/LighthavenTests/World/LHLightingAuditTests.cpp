@@ -718,12 +718,57 @@ bool FLHFloorLoadedLightingAuditTest::RunTest(const FString& Parameters)
         }
         TestTrue(TEXT("Real fixture floor receivers sampled"),PoolReceivers>0);
         TestTrue(TEXT("Vertical wall receivers sampled"),WallReceivers>0);
+        // Frozen W5-19 component values, evaluated at the same receivers and
+        // light XY positions as the loaded game. This compares point-light
+        // coverage only; sky, AO and tone mapping require rendered captures.
+        auto PriorLux=[&](const TArray<UPointLightComponent*>& Lights,FVector Surface,FVector Normal,bool bFill)
+        {
+            if(Index!=3 && Index!=4) return Lux(Lights,Surface,Normal);
+            double Result=0.;
+            for(const auto* Light:Lights)
+            {
+                FVector Position=Light->GetComponentLocation();
+                double Lumens=Light->Intensity,Radius=Light->AttenuationRadius;
+                FLinearColor Color(Light->LightColor);
+                if(bFill)
+                {
+                    Position.Z=Index==3?800.:750.;
+                    Lumens=Index==3?4500.:14000.; Radius=Index==3?1450.:1500.;
+                    // Match SetLightColor's packed sRGB component representation.
+                    Color=FLinearColor((Index==3?FLinearColor(.63f,.74f,1.f):FLinearColor(.82f,.49f,.32f)).ToFColor(true));
+                }
+                else if(Index==4)
+                {
+                    const auto* Piece=Cast<ALHVisualPiece>(Light->GetOwner());
+                    const bool Altar=Piece && Piece->GetRecipe().Id.ToString().EndsWith(TEXT(".Altar"));
+                    Lumens=Altar?3000.:1500.; Radius=Altar?650.:450.;
+                }
+                const double Weight=.2126*Color.R+.7152*Color.G+.0722*Color.B;
+                Result+=DirectLux(Position,Surface,Normal,Lumens,Radius)*Weight;
+            }
+            return Result;
+        };
+        auto P10=[](TArray<double> Values)
+        {
+            if(Values.IsEmpty()) return 0.;
+            Values.Sort();
+            return Values[FMath::FloorToInt((Values.Num()-1)*.1)];
+        };
+        const double PriorEV=Index==4?1.5:Profile->EV100;
+        const double ExposureWeight=FMath::Pow(2.,-double(Profile->EV100));
+        const double PriorExposureWeight=FMath::Pow(2.,-PriorEV);
         int32 Candidates=0,Samples=0,Gaps=0,Pools=0;
-        double Total=0.,GapTotal=0.,PoolMean=0.,Minimum=DBL_MAX;
+        double Total=0.,PriorTotal=0.,GapTotal=0.,PriorGapTotal=0.,PoolMean=0.,PriorPoolTotal=0.,Minimum=DBL_MAX,PriorMinimum=DBL_MAX;
+        TArray<double> FloorValues,PriorFloorValues;
+        int32 RoomNumber=0;
         for(const auto& Grid:Grids)
         {
             if(Grid.Area!=Index) continue;
-            int32 RoomSamples=0; double RoomTotal=0.;
+            ++RoomNumber;
+            int32 RoomSamples=0,RoomGaps=0,RoomPools=0,EdgeSamples=0;
+            double RoomTotal=0.,RoomPrior=0.,RoomMin=DBL_MAX,RoomPriorMin=DBL_MAX;
+            double RoomGap=0.,RoomPriorGap=0.,RoomPool=0.,RoomPriorPool=0.,EdgeTotal=0.,PriorEdgeTotal=0.;
+            TArray<double> RoomValues,RoomPriorValues;
             for(int32 X=Grid.X0;X<=Grid.X1;X+=100) for(int32 Y=Grid.Y0;Y<=Grid.Y1;Y+=100)
             {
                 ++Candidates;
@@ -731,22 +776,54 @@ bool FLHFloorLoadedLightingAuditTest::RunTest(const FString& Parameters)
                 if(!World->LineTraceSingleByChannel(Hit,FVector(X,Y,80),FVector(X,Y,-100),ECC_Visibility)
                     || Hit.bStartPenetrating || Hit.ImpactNormal.Z<.7 || FMath::Abs(Hit.ImpactPoint.Z)>5.) continue;
                 const double Warm=Lux(Fixtures,Hit.ImpactPoint,Hit.ImpactNormal);
-                const double Ambient=Lux(Fills,Hit.ImpactPoint,Hit.ImpactNormal);
-                const double Combined=Warm+Ambient;
-                ++Samples; ++RoomSamples; Total+=Combined; RoomTotal+=Combined;
-                Minimum=FMath::Min(Minimum,Combined);
-                if(Warm<.25) {++Gaps; GapTotal+=Combined;}
-                if(Warm>=1.) {++Pools; PoolMean+=Combined;}
+                const double PriorWarm=PriorLux(Fixtures,Hit.ImpactPoint,Hit.ImpactNormal,false);
+                const double Combined=Warm+Lux(Fills,Hit.ImpactPoint,Hit.ImpactNormal);
+                const double Prior=PriorWarm+PriorLux(Fills,Hit.ImpactPoint,Hit.ImpactNormal,true);
+                ++Samples; ++RoomSamples; Total+=Combined; RoomTotal+=Combined; PriorTotal+=Prior; RoomPrior+=Prior;
+                Minimum=FMath::Min(Minimum,Combined); PriorMinimum=FMath::Min(PriorMinimum,Prior);
+                RoomMin=FMath::Min(RoomMin,Combined); RoomPriorMin=FMath::Min(RoomPriorMin,Prior);
+                FloorValues.Add(Combined); PriorFloorValues.Add(Prior); RoomValues.Add(Combined); RoomPriorValues.Add(Prior);
+                // Freeze gap/pool membership to the prior fixture illumination
+                // so a changed radius cannot improve contrast by reclassifying samples.
+                if(PriorWarm<.25) {++Gaps; ++RoomGaps; GapTotal+=Combined; PriorGapTotal+=Prior; RoomGap+=Combined; RoomPriorGap+=Prior;}
+                if(PriorWarm>=1.) {++Pools; ++RoomPools; PoolMean+=Combined; PriorPoolTotal+=Prior; RoomPool+=Combined; RoomPriorPool+=Prior;}
+                if(X==Grid.X0 || X==Grid.X1 || Y==Grid.Y0 || Y==Grid.Y1)
+                {++EdgeSamples; EdgeTotal+=Combined; PriorEdgeTotal+=Prior;}
             }
+            const double RoomContrast=RoomPools>0 && RoomGaps>0 && RoomGap>0.? (RoomPool/RoomPools)/(RoomGap/RoomGaps):0.;
+            const double PriorContrast=RoomPools>0 && RoomGaps>0 && RoomPriorGap>0.? (RoomPriorPool/RoomPools)/(RoomPriorGap/RoomGaps):0.;
             TestTrue(TEXT("Fixed authored room yields walkable samples"),RoomSamples>0);
-            AddInfo(FString::Printf(TEXT("%s fixed room [%d,%d]x[%d,%d]: walkable=%d predicted direct colored floor mean=%.4f lux"),*Map,Grid.X0,Grid.X1,Grid.Y0,Grid.Y1,RoomSamples,RoomTotal/FMath::Max(1,RoomSamples)));
+            AddInfo(FString::Printf(TEXT("%s room%d [%d,%d]x[%d,%d] walkable=%d direct colored lux current/prior: mean %.4f/%.4f min %.4f/%.4f p10 %.4f/%.4f gap %.4f/%.4f pool %.4f/%.4f contrast %.3f/%.3f grid perimeter %.4f/%.4f (%d probes); exposure-weighted mean %.5f/%.5f (lux*2^-EV, not pixel luma)"),
+                *Map,RoomNumber,Grid.X0,Grid.X1,Grid.Y0,Grid.Y1,RoomSamples,
+                RoomTotal/FMath::Max(1,RoomSamples),RoomPrior/FMath::Max(1,RoomSamples),RoomMin,RoomPriorMin,P10(RoomValues),P10(RoomPriorValues),
+                RoomGap/FMath::Max(1,RoomGaps),RoomPriorGap/FMath::Max(1,RoomGaps),RoomPool/FMath::Max(1,RoomPools),RoomPriorPool/FMath::Max(1,RoomPools),RoomContrast,PriorContrast,
+                EdgeTotal/FMath::Max(1,EdgeSamples),PriorEdgeTotal/FMath::Max(1,EdgeSamples),EdgeSamples,
+                RoomTotal/FMath::Max(1,RoomSamples)*ExposureWeight,RoomPrior/FMath::Max(1,RoomSamples)*PriorExposureWeight));
         }
         TestTrue(TEXT("Substantial independent geometry sampling"),Samples>=Candidates*.7);
-        TestTrue(TEXT("Sparse warm lighting retains gaps"),Gaps>Samples*.05);
+        TestTrue(TEXT("Sparse warm lighting retains prior-classified gaps"),Gaps>Samples*.05);
         TestTrue(TEXT("Room fill keeps sampled unoccupied gaps readable"),Gaps>0 && GapTotal/Gaps>=.25);
-        TestTrue(TEXT("Fixed room grid detects warm pools"),Pools>0);
-        AddInfo(FString::Printf(TEXT("%s actual registered fixtures=%d fills=%d candidates=%d walkable=%d fixture floor pool=%.4f vertical wall key=%.4f lux; fixed grid mean=%.4f minimum=%.4f gap mean=%.4f pool mean=%.4f warm gaps=%.3f warm pools=%.3f; EV100=%.2f"),*Map,Fixtures.Num(),Fills.Num(),Candidates,Samples,PoolTotal/FMath::Max(1,PoolReceivers),WallTotal/FMath::Max(1,WallReceivers),Total/FMath::Max(1,Samples),Minimum,GapTotal/FMath::Max(1,Gaps),PoolMean/FMath::Max(1,Pools),double(Gaps)/FMath::Max(1,Samples),double(Pools)/FMath::Max(1,Samples),Profile->EV100));
-        AddInfo(TEXT("Unoccluded direct-lux estimate excludes temperature, finite-source integration, materials, sky, fog, exposure and tone mapping; does not verify rendered pixel means or near-black share."));
+        TestTrue(TEXT("Fixed room grid detects prior-classified warm pools"),Pools>0);
+        const double Contrast=Pools>0 && Gaps>0 && GapTotal>0.? (PoolMean/Pools)/(GapTotal/Gaps):0.;
+        const double PriorContrast=Pools>0 && Gaps>0 && PriorGapTotal>0.? (PriorPoolTotal/Pools)/(PriorGapTotal/Gaps):0.;
+        if(Index==3)
+        {
+            TestEqual(TEXT("B3 gap lift preserves manual EV100"),Profile->EV100,4.f);
+            TestTrue(TEXT("B3 sampled floor minimum rises over prior narrow fill"),Minimum>PriorMinimum);
+            TestTrue(TEXT("B3 floor lowest decile rises over prior narrow fill"),P10(FloorValues)>P10(PriorFloorValues));
+            TestTrue(TEXT("B3 coverage lift keeps direct floor mean within ten percent of prior"),Total<=PriorTotal*1.10);
+        }
+        if(Index==4)
+        {
+            TestTrue(TEXT("B4 exposure-weighted direct floor mean decreases"),Total*ExposureWeight<PriorTotal*PriorExposureWeight);
+            TestTrue(TEXT("B4 pool to gap contrast increases on identical receivers"),Contrast>PriorContrast);
+        }
+        AddInfo(FString::Printf(TEXT("%s registered fixtures=%d fills=%d candidates=%d walkable=%d fixture floor pool=%.4f vertical wall key=%.4f lux; current/prior grid mean %.4f/%.4f min %.4f/%.4f p10 %.4f/%.4f gap %.4f/%.4f pool %.4f/%.4f contrast %.3f/%.3f; EV100 %.2f/%.2f exposure-weighted mean %.5f/%.5f"),
+            *Map,Fixtures.Num(),Fills.Num(),Candidates,Samples,PoolTotal/FMath::Max(1,PoolReceivers),WallTotal/FMath::Max(1,WallReceivers),
+            Total/FMath::Max(1,Samples),PriorTotal/FMath::Max(1,Samples),Minimum,PriorMinimum,P10(FloorValues),P10(PriorFloorValues),
+            GapTotal/FMath::Max(1,Gaps),PriorGapTotal/FMath::Max(1,Gaps),PoolMean/FMath::Max(1,Pools),PriorPoolTotal/FMath::Max(1,Pools),Contrast,PriorContrast,
+            Profile->EV100,PriorEV,Total/FMath::Max(1,Samples)*ExposureWeight,PriorTotal/FMath::Max(1,Samples)*PriorExposureWeight));
+        AddInfo(TEXT("Unoccluded point-light estimates exclude temperature, finite-source integration, materials, sky, fog, AO and tone mapping. EV weighting is a relative photometric proxy; rendered pixel mean and near-black share remain capture-only checks."));
         World->DestroyWorld(false); GEngine->DestroyWorldContext(World); Package->ClearFlags(RF_Standalone);
         TestTrue(TEXT("Isolated floor world context released"),GEngine->GetWorldContextFromWorld(World)==nullptr);
         ++Audited;

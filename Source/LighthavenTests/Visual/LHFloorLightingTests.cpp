@@ -3,6 +3,7 @@
 #include "Visual/LHVisualKit.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
+#include "Engine/Scene.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Pawn.h"
 #include "Components/SceneComponent.h"
@@ -115,7 +116,42 @@ bool FLHFloorReadabilityLifecycleTest::RunTest(const FString& Parameters)
         TestEqual(TEXT("Haze never follows pawn"),Atmosphere->Haze->GetComponentLocation(),FogOrigin);
         TestEqual(TEXT("Style resets player fill"),Atmosphere->ReadabilityFill->Intensity,Profile->PlayerLumens);
         TestFalse(TEXT("Player fill has no shadows"),Atmosphere->ReadabilityFill->CastShadows);
+        TestFalse(TEXT("Haze remains nonvolumetric"),Atmosphere->Haze->bEnableVolumetricFog);
+        TestEqual(TEXT("Haze opacity is profile bounded"),Atmosphere->Haze->FogMaxOpacity,Profile->HazeOpacity);
+        TestEqual(TEXT("Crypt distant haze resets when switching to ritual"),Atmosphere->Haze->StartDistance,Style==ELHVisualStyle::B3Crypt?4000.f:0.f);
     }
     World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
+    return true;
+}
+
+// Guard the W5-22c intent in the settings actually delivered to the scene:
+// ritual ambient delivery falls while local keys and the player remain readable;
+// crypt exposure stays fixed while its diffuse footprint reaches floor gaps.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLHFloorPolishContrastTest,"Lighthaven.Visual.FloorPolishContrast",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FLHFloorPolishContrastTest::RunTest(const FString& Parameters)
+{
+    const auto* Ritual=LHFloorLighting::FindProfile(ELHVisualStyle::B4Ritual);
+    const auto* Crypt=LHFloorLighting::FindProfile(ELHVisualStyle::B3Crypt);
+    if(!TestNotNull(TEXT("Ritual profile"),Ritual) || !TestNotNull(TEXT("Crypt profile"),Crypt)) return false;
+    const float RitualAmbient=Ritual->FillLumens*Ritual->FillColor.GetLuminance()/FMath::Pow(2.f,Ritual->EV100);
+    const float PriorRitualAmbient=14000.f*FLinearColor(.82f,.49f,.32f).GetLuminance()/FMath::Pow(2.f,1.5f);
+    TestTrue(TEXT("Ritual ambient exposure falls by at least half"),RitualAmbient<PriorRitualAmbient*.5f);
+    TestTrue(TEXT("Ritual sky contribution reduced"),Ritual->SkyIntensity<=.10f);
+    TestTrue(TEXT("Ritual fixture pools contract"),Ritual->FixtureRadius<450.f);
+    TestTrue(TEXT("Ritual fixture keys retained"),Ritual->FixtureLumens>=1500.f);
+    TestEqual(TEXT("Ritual player fill retained"),Ritual->PlayerLumens,650.f);
+    TestEqual(TEXT("Crypt exposure retained"),Crypt->EV100,4.f);
+    TestTrue(TEXT("Crypt diffuse radius reaches strip gaps"),Crypt->FillRadius>1450.f);
+    TestTrue(TEXT("Crypt diffuse energy restrained"),Crypt->FillLumens<4500.f);
+    TestEqual(TEXT("Crypt player fill retained"),Crypt->PlayerLumens,600.f);
+    FPostProcessSettings RitualSettings,CryptSettings;
+    LHFloorLighting::ConfigurePostProcess(RitualSettings,ELHVisualStyle::B4Ritual);
+    LHFloorLighting::ConfigurePostProcess(CryptSettings,ELHVisualStyle::B3Crypt);
+    TestTrue(TEXT("Ritual exposure is manual"),RitualSettings.bOverride_AutoExposureMethod && RitualSettings.AutoExposureMethod==EAutoExposureMethod::AEM_Manual);
+    TestEqual(TEXT("Ritual shutter delivers requested exposure"),RitualSettings.CameraShutterSpeed,FMath::Pow(2.f,Ritual->EV100)/4.f);
+    TestTrue(TEXT("Crypt AO shadow reduction is active"),CryptSettings.bOverride_AmbientOcclusionIntensity && CryptSettings.AmbientOcclusionIntensity<.65f);
+    TestEqual(TEXT("Ritual AO contrast retained"),RitualSettings.AmbientOcclusionIntensity,.55f);
+    TestTrue(TEXT("Ritual shadow grade favors cold basalt"),RitualSettings.ColorGainShadows.X<RitualSettings.ColorGainShadows.Z);
+    TestEqual(TEXT("Polish uses no Lumen GI"),RitualSettings.DynamicGlobalIlluminationMethod,EDynamicGlobalIlluminationMethod::None);
     return true;
 }

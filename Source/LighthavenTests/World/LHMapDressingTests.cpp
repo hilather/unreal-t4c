@@ -282,12 +282,45 @@ bool FLHB1PerimeterClutterTest::RunTest(const FString&)
             if(It->Tags.Contains(TEXT("LH.B1.FloorFixture"))) FloorFlames.Add(Light->GetComponentLocation());
         }
     TestTrue(TEXT("Actual fixture flames exist for clearance checks"),Flames.Num()>0);
-    int32 Clutter=0;
+    int32 Clutter=0,LowRetries=0,AlignedStructuralArches=0;
     TSet<FName> Kinds;
     for(TActorIterator<ALHVisualPiece> It(World);It;++It)
     {
+        const auto& ArchRecipe=It->GetRecipe();
+        if(ArchRecipe.Style==ELHVisualStyle::B1Cellar && ArchRecipe.Id.ToString().Contains(TEXT(".Arch")))
+        {
+            AStaticMeshActor* Lintel=nullptr;
+            for(TActorIterator<AStaticMeshActor> Source(World);Source;++Source)
+            {
+                const FVector Size=Source->GetActorScale3D().GetAbs()*100;
+                if(!Source->Tags.Contains(TEXT("LH.Dressing.RetainedCollider")) ||
+                    !FMath::IsNearlyEqual(Source->GetActorLocation().Z,350.,.1) || !FMath::IsNearlyEqual(Size.Z,100.,.1)) continue;
+                if(FVector::DistSquared2D(Source->GetActorLocation(),It->GetActorLocation())<=101.) { Lintel=*Source; break; }
+            }
+            if(Lintel)
+            {
+                ++AlignedStructuralArches;
+                const FVector VisualMid=It->GetActorTransform().TransformPosition(FVector(0,-10,0));
+                TestTrue(TEXT("B1 structural arch thickness centered on source wall"),FVector::DistSquared2D(VisualMid,Lintel->GetActorLocation())<.01);
+                TestEqual(TEXT("B1 structural arch still meets floor"),It->GetActorLocation().Z,0.);
+            }
+            else if(ArchRecipe.Id.ToString().EndsWith(TEXT("Arch320")))
+            {
+                const FVector Mid=It->GetActorTransform().TransformPosition(FVector(0,-10,0));
+                bool Joined=false;
+                for(const FBox& W:Walls)
+                    if(W.GetSize().X>W.GetSize().Y && FMath::Abs(W.GetCenter().Y-Mid.Y)<.01
+                        && W.Min.X<=1100 && W.Max.X>=700) Joined=true;
+                TestTrue(TEXT("B1 baffle frame centered on adjacent actual wall thickness"),Joined);
+            }
+        }
         if(!It->Tags.Contains(TEXT("LH.B1.PerimeterClutter"))) continue;
         ++Clutter;
+        if(It->Tags.Contains(TEXT("LH.B1.PolishLowRetry")))
+        {
+            ++LowRetries;
+            TestTrue(TEXT("Fixture retry uses existing low rubble kit"),It->GetRecipe().Id.ToString().EndsWith(TEXT("Debris")));
+        }
         const auto& Recipe=It->GetRecipe();
         Kinds.Add(Recipe.Id);
         const FString Id=Recipe.Id.ToString();
@@ -362,9 +395,12 @@ bool FLHB1PerimeterClutterTest::RunTest(const FString&)
         Occupied.Add(Foot);
     }
     TestTrue(TEXT("B1 contains multiple perimeter clusters"),Clutter>=12);
+    TestTrue(TEXT("B1 adds low dressing at previously discarded fixture sites"),LowRetries>0);
+    TestTrue(TEXT("B1 clutter count exceeds measured20-piece baseline"),Clutter>20);
+    TestTrue(TEXT("B1 structural arch wall alignment was audited"),AlignedStructuralArches>0);
     TestTrue(TEXT("At least three existing kit kinds provide varied silhouettes"),Kinds.Num()>=3);
     TestTrue(TEXT("Clutter stays within bounded presentation budget"),Clutter<=90);
-    AddInfo(FString::Printf(TEXT("B1 perimeter clutter: %d pieces, %d kinds"),Clutter,Kinds.Num()));
+    AddInfo(FString::Printf(TEXT("B1 perimeter clutter: %d pieces, %d kinds, %d added low retries, %d aligned structural arches"),Clutter,Kinds.Num(),LowRetries,AlignedStructuralArches));
     return true;
 }
 
@@ -395,7 +431,7 @@ bool FLHGameplayDressingSightTest::RunTest(const FString& Parameters)
             Carpets+=Id.EndsWith(TEXT(".Carpet"))?1:0;
             Pillars+=Id.EndsWith(TEXT(".Pillar"))?1:0;
             Leaves+=Id.EndsWith(TEXT(".DoorLeafPreview"))?1:0;
-            const bool New=P->Tags.Contains(TEXT("LH.Dressing.FullHeight")) || Id.EndsWith(TEXT(".Pillar")) || Id.EndsWith(TEXT(".DoorLeafPreview"));
+            const bool New=P->Tags.Contains(TEXT("LH.Dressing.FullHeight")) || P->Tags.Contains(TEXT("LH.B1.PolishLowRetry")) || Id.EndsWith(TEXT(".Pillar")) || Id.EndsWith(TEXT(".DoorLeafPreview"));
             const FString SightLabel=P->GetActorLabel()+TEXT("/")+Id;
             if(Id.Contains(TEXT(".Floor")) || Id.Contains(TEXT(".Stair")) || Id.EndsWith(TEXT(".Carpet"))) continue;
             LHEnvArt::FFit Fit;
