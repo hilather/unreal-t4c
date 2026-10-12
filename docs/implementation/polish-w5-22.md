@@ -108,3 +108,92 @@ Known defects or remaining decisions:
 Remaining visual uncertainty: Image predictions remain unverified, including whether B4 is perceptually the darkest floor and B3 meets the near-black target. The B1 clutter increase is modest. B1 sight rays cover the existing 50cm grid and default 1200cm camera; they do not prove every continuous pawn position, every zoom, or animation silhouette. Church exclusions use conservative continuous floor envelopes at the same camera orientation. Shadowless fixtures can leak through walls; target-GPU light/geometry cost is not measured here. Distant B3 geometry beyond 4000cm receives haze as well as the cutaway void.
 
 Next task and integration notes: coordinator reviews the submitted source, regenerates and commits its own maps, reruns arrival review and LHValidateWorld, and captures the same three rooms per floor in the Linux package. Compare both mean and near-black metrics, inspect player/enemy/loot readability and camera-side dressing. No push, merge, release of capacity or gate acceptance is performed by this worker.
+
+# W5-22d — ritual readability and church exterior
+
+Task ID: W5-22d. Contract revision: 1. Base revision: `15c11efa5809be99a456bcf2d580c29c65c1be38`. Result revision is recorded with the final validation below. This is worker evidence for coordinator review, not rendered acceptance or an integration decision.
+
+Owned paths / binary assets: `LHFloorLighting.cpp/.h`, `LHEnvArtBinding.cpp`, lighting/dressing authoring headers under `Source/LighthavenEditor/Commandlets/`, corresponding World and floor-lighting tests, `lighting.md`, and this appended section. No binary assets are delivered. Gameplay geometry, navigation, registry transforms, spawns and services are not edited. All tuning below is **Prototype presentation**, based on the supplied host captures and existing imported kit; no source-backed mechanics change or authenticity claim.
+
+## Capture calibration
+
+The real packaged-session images at `/home/brewerm/.herdr-projects/unreal-t4c/scratch/captures/{w5-19,w5-22c}/rooms/` were inspected and measured on 2026-10-12 UTC. The existing ImageMagick-backed measurement function computes the full exported sRGB frame, Rec.709 channel weights, near-black strictly below .02; no crop, mask or gamma-linearization. Measurements reproduced the supplied values:
+
+| B4 view | W5-19 mean / near-black | W5-22c mean / near-black | Mean ratio | Fitted exponent p | Proxy gain to mean .15 |
+|---|---|---|---|---|---|
+| room1 | .324140 / .131713 | .116730 / .246115 | .360122 | .697076 | 1.43297 |
+| room2 | .274559 / .136032 | .072440 / .242228 | .263841 | .909408 | 2.22640 |
+| room3 | .295933 / .047399 | .073548 / .127754 | .248529 | .950214 | 2.11708 |
+
+The previous audit's exposure-weighted direct-light mean ratio was `1.95677 / 8.46917 = .231046`. Fit `p = log(image_mean_ratio) / log(.231046)` independently for each view; a follow-up hypothesis is `mean_d = mean_c * (proxy_d / proxy_c)^p`. This replaces the unsupported W5-22c prediction: its expected means .18/.15/.16 were actually .1167/.0724/.0735. The correction requires roughly 1.43× entrance energy but 2.1–2.2× deeper-room energy to approach .15, under this limited model.
+
+This is a descriptive calibration to three measured pairs, **not a universal light-to-pixel conversion**. The earlier proxy averaged four independent floor grids, not the image's visible surfaces. There are only two observations per camera, no held-out validation, and exposure/sky/fill/grade changed together. New emissive strokes, distant fog, material response, UI and player framing are not represented by the proxy. Near-black shares cannot be inferred from these means. The .12–.18 mean and <.15 near-black targets remain same-camera host-capture checks.
+
+## Source behavior and visual assumptions
+
+B4 retains the accepted entry's EV2.25, 1800lm/375cm/2300K fixtures, 650lm player fill, AO and grading. A modest cool ambient increase (fill6500→7500lm, brown RGB .62/.44/.38→blue-grey .48/.54/.72, unchanged1400cm radius/750cm height; sky .10→.12) provides a dim floor baseline. The main readability addition is the existing carved inlay: only `MI_B4Ritual_oxide` on floor and altar recipes receives emission through the existing cooked `M_B1` master. Basalt stays nonemissive. Floor emission is linear RGB(3.2,.72,.12), altar(5,1.2,.16); `Flame=1` enables the existing emissive branch. No texture or mesh is fabricated or modified.
+
+Full 400cm floor medallions receive local, diffuse red-amber reflection from +120cm, radius360cm. Entry medallions with world Y<2000 use325lm; deeper halls use650lm. No light is created for a clipped-off medallion. The altar key increases3000→3800lm and500→600cm radius. Every new light is movable, shadowless, non-navigation-affecting; sigils do not tick or flicker. Build/PostLoad/BeginPlay restore material overrides and reuse/remove transient components without changing actor or gameplay transforms. The 2000cm boundary is an authored regional tuning boundary, not an inferred image-space mask.
+
+To address room1/2 cutaway void separately, B4 nonvolumetric haze begins at4000cm, cool radiance(.40,.55,.85), opacity cap .10. Nearby floor and torch receivers are before that start distance. This follows the existing B3 distant-haze mechanism; B3 itself, B2 and church interior profiles remain unchanged. No Lumen or shadow-casting fixture lights are enabled.
+
+Church apron/outline actors retain their exact original bounds, ramp exclusions and 8cm floor margins. The existing Church Floor400 mesh repeats in800cm units instead of400cm; no different outdoor paving mesh exists in the imported catalog. The saved recipe palette selects this exterior fit without changing interior floor recipes. All tagged exterior primitive components receive channel1 only, excluding every existing warm chapel key/fill. A dedicated4lux movable blue moon uses channel1 only and zero indirect intensity; existing interior lights remain unchanged. The exterior master-material blend is .82 in the inner apron to .96 near the edge, with low cool emission (.035,.055,.095)→(.11,.17,.28), retaining some texture and normal relief while fading into blue haze color. This taper is **per assembly**, not a continuous world-position shader; possible seams remain a visual-review limitation. Global Church exposure/haze/sky are untouched. Rebuilding a former exterior piece as interior also resets its channel and emission overrides.
+
+First generated church audit: unchanged64 apron and14 outline assemblies; added triangles313,676→205,676 (−108,000, −34.4%). Whole-hub triangles1,768,108→1,660,108,441 pieces/1,010 sections/zero dressing blockers. The apron/outline cap is tightened400k→240k. This is a CPU geometry count, not GPU timing.
+
+## Loaded lighting evidence
+
+The first focused run completed8/8 successfully with warnings, exit0. It loaded fresh Game worlds, rebuilt actual imported materials/lights, checked components before/after scene initialization, and sampled real traced floor receivers. B4 has87 original fixtures,74 room fills and120 new local sigil lights. The point-source estimate excludes finite source integration, temperature, sky, AO, haze, emission and tone mapping; it is not rendered luminance. The B4 comparator now freezes W5-22c, while B3 retains its earlier W5-19 comparator.
+
+| B4 fixed receiver grid | Samples | Mean lux c→d | Lowest decile c→d | Minimum c→d | Direct-light gain |
+|---|---:|---|---|---|---|
+| entry X100–1100/Y100–1100 |115|13.4641→18.8435|8.7281→12.8247|5.2328→8.7242|1.3995×|
+| west X−2700–−900/Y2500–2900 |95|8.8684→14.4903|4.9950→9.2713|3.4298→6.9165|1.6339×|
+| middle X100–2100/Y3500–4100 |147|10.0782→16.7765|5.3288→11.3722|2.9785→4.3522|1.6646×|
+| south arena X100–4100/Y5500–6700 |533|8.2772→14.3679|5.2298→9.2778|2.8196→3.8164|1.7359×|
+| aggregate |890|9.3080→15.3571|5.2952→9.6933|2.8196→3.8164|1.6499×|
+
+New sigils contribute3.8318lux to the aggregate mean,63.3% of its6.0491lux increase, and4.0008lux at the frozen torch-gap samples. Those gaps rise6.8856→13.0622lux, pools13.1643→18.9644lux; composite pool/gap ratio decreases1.912→1.452 as sigil pools light previously dark gaps. This explicitly does **not** claim the composite field preserves its old contrast; it preserves the individual torch field and adds localized floor-identity pools rather than increasing torch radii or flattening the scene through exposure. Actual perceptual separation needs the capture.
+
+Applying the calibrated exponents to the entry/middle/south-arena gains gives rough direct-light-only mean hypotheses around .147/.115/.124. The second and third are conservative incomplete estimates: emissive inlay pixels and the new distant haze are omitted. The third grid is south of the actual altar camera view and does not include its stronger key. Do not count these as meeting the .12–.18 band; the host must measure all three views. No numerical near-black prediction is claimed from lux. Room1's former .246 near-black share includes distant cutaway void and cannot be fixed by floor lights alone.
+
+Unchanged comparison checks: Church interior grid mean20.4842lux; B2 aggregate11.2922lux; B3 aggregate11.0111lux, all matching the W5-22c audit. B3 profile/exposure/haze source is unchanged. The glow lifecycle tests cover component reuse, clipped-medallion removal, recipe switching, emission restricted to inlay, nonemissive basalt, preserved clip parameters, and no collision/navigation changes.
+
+## Optional B1 infill outcome
+
+No new B1 clutter is delivered. Two bounded trials used existing crates/barrels/benches with the original padded footprint,600cm room-depth support,350cm protected-anchor, stair and fixture clearances, plus the strict imported-triangle camera-to-foot/head rule. The first tried34 wall sites and admitted0;4 member placements across3 sites reached and failed sight. The denser trial swept at100cm along walls, used55cm inset and bench-led groups with a central crate/barrel trial:202 sites/606 member attempts,0 admitted groups,0 admitted members. Member vetoes were183 geometry/occupied footprint,110 protected anchor,257 unsupported footprint/depth strip,36 fixture clearance,20 sight. Those20 sight failures occurred at17 distinct rejected sites, listed in `library/b1-candidate-sites-2.txt`; reason counts are member counts, not mutually exclusive site counts.
+
+The tested tall silhouettes and benches would interrupt existing camera-to-feet/head rays on the walkable lattice. These sampled candidates do not prove that every possible placement is impossible. No successful site was found under the preserved rule, so the failed exploratory infill and its nonzero-admission test were removed completely. `LHMapDressing.h` and `LHMapDressingTests.cpp` retain their exact W5-22c bytes. No sight threshold or collision rule was relaxed to admit clutter; the existing seven small rubble retries remain.
+
+
+## W5-22d validation and handoff
+
+Task ID: **W5-22d**. Base revision: **15c11efa5809be99a456bcf2d580c29c65c1be38**. Result revision: the candidate commit containing this section, recorded exactly in the canonical attempt `report.md` and submission receipt. Contract revision: **1**. This is worker evidence for coordinator review; rendered acceptance is outstanding.
+
+Owned paths delivered: `Source/Lighthaven/Visual/LHFloorLighting.{h,cpp}`, `Source/Lighthaven/Visual/LHEnvArtBinding.cpp`, `Source/LighthavenEditor/Commandlets/LHChurchSurroundings.h`, `Source/LighthavenEditor/Commandlets/LHFloorLightingAuthoring.h`, `Source/LighthavenTests/Visual/LHFloorLightingTests.cpp`, `Source/LighthavenTests/World/LHChurchSurroundingsTests.cpp`, `Source/LighthavenTests/World/LHLightingAuditTests.cpp`, `docs/implementation/lighting.md`, and this appended section. No binary assets, shared gameplay schemas, collision/nav/spawn definitions or gameplay transforms are delivered. Source-backed mechanics: none changed. All new light, color, haze and paving settings are **Prototype presentation tuning** against the supplied host captures and existing imported kit.
+
+| Check actually run | Observed result | Wall seconds |
+|---|---|---:|
+| Final `LighthavenEditor Linux Development` | `Result: Succeeded`, exit0 |99.23|
+| `Lighthaven Linux Development` with final runtime source | `Result: Succeeded`, exit0 |355.29|
+| `LHGenerateHubMap` after final moon isolation | exit0 |48.73|
+| `LHGenerateBasementAMaps` after reverting unsuccessful B1 infill | exit0 |118.73|
+| `LHGenerateBasementBMaps` with final B4 lighting | exit0 |43.57|
+| Focused lighting/exterior suite |8 total:0 clean successes,8 successes with warnings,0 failures,0 not run/in process; exit0 |140.82|
+| Final full `Lighthaven` suite |**243 total:0 clean successes,242 successes with warnings,1 failure,0 not run/in process**; exit255 with report |734.86|
+| Arrival safety inside the full suite |1 successful automation test; **9/9 entrances PASS**, all hashes unchanged |1.707 test execution|
+| `LHValidateWorld` |**five maps,0 errors,18 warnings**, exit0 |102.70|
+
+Full-suite test execution time was652.493s. The243 expected tests are the previous241 plus the two new rebuild regressions. The sole full-suite failure is **`Lighthaven.Visual.Monsters.CreatureImportedAssets`**, with11 errors for absent `artsource/creatures/output/*-validation.json` receipts: rat, bat, slime, goblin, giant_spider, balork, goblin_warrior, atrocity, dungeon_bat, giant_bat, undead_bat. This existing missing local prerequisite is outside task ownership; no receipts were fabricated. `Lighthaven.Integration.G4.DeathAndChurchRespawn` passed this full run. A green full suite is not claimed.
+
+All final lighting/dressing tests passed. Gameplay sight retains Church/B1/B2/B3/B4 blocked-ray counts **78/81/93/55/99**, with **zero new blocked rays and zero fully hidden points** in each map. Church also passes its separate continuous envelope check including the apron, floor/ramp exclusions, channel isolation and zero moon indirect/volumetric/atmospheric contribution. The final triangle/piece/section counts are Church1,660,108/441/1,010; B1 635,476/271/489; B2 1,824,516/833/1,472; B3 1,421,816/405/628; B4 996,928/215/434. All have zero dressing collision blockers.
+
+The first editor build failed on an unavailable directional-light field; replacing it with `SetIndirectLightingIntensity(0)` fixed the compile before subsequent successful builds. The farm recipe used both required XML files, non-adaptive unity, `-DisableAdaptiveUnity -UBASharedMemoryTempFile=true -NoUBA`, and checkout-local XDG/DDC/UBA paths. UE5.8.3 named its executor wrapper UBA while actions reported `[NoUba]`; the final results above are observed. HOME was preserved. Observed uid was1000. Nonfatal environment warnings include unwritable HOME configuration, netlink monitoring and headless Wayland queries. Exact commands, exits and timing are retained in `library/commands.jsonl`.
+
+442 LFS assets were hydrated solely from existing verified local objects for validation, with no download. All **451 tracked Content files**, including every `.umap` and all442 pointers, plus the reviewed-arrival file were restored at **2026-10-12 04:40:31 UTC**. Every raw blob hash matches the base, well before the final20-minute budget window. Content/Config diffs and nonignored untracked files are empty; `git diff --check` passed. Only the ten owned source/test/document files are submitted.
+
+Results and evidence: canonical attempt `attempt-60dce82d541435ad18d46fbf3e093657997ed0b8d6c34ae9ed222b72484bfc5b` output `report.md` and trimmed `library/`, including full-suite counts/failure details, final visual audit, arrival TSV, world validation, calibration inputs and B1 rejected-site logs. Local expanded logs are in ignored `Saved/W522d/`.
+
+Checks not run and concrete missing prerequisite: the worker cannot render Unreal; new screenshots, packaged visual review and GPU timings require the coordinator's host package/display session. Cook/package creation was not run in this source-only lane. Windows packaging/launch remain deferred under Linux-first policy. The120 extra local shadowless lights have no measured GPU cost. Near-black shares, actual B4 means, basalt/torch separation and the church's per-assembly edge-tint seams remain visual-review items. The direct-light-only room2 hypothesis is still below .12 before omitted emission/haze; this is explicitly an unverified tuning candidate, not a target-band claim. Optional B1 additions remain unfulfilled after the bounded strict-sight search.
+
+Next task and integration notes: coordinator reviews this candidate, regenerates and commits the five maps, repeats host validation, then captures the same three B4 and Church room1/3 views. Measure each B4 mean against.12–.18 and near-black<.15, inspect entry character and clear indoor/outdoor separation, and profile local-light cost. Retune only from that observed result if needed; do not infer rendered acceptance from the NullRHI proxy. This worker neither pushes nor merges and does not mark the task externally verified.

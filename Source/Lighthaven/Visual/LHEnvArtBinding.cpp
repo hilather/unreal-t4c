@@ -1,4 +1,8 @@
 #include "Visual/LHEnvArtBinding.h"
+#include "Visual/LHFloorLighting.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Components/PrimitiveComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 FString LHEnvArt::Folder(ELHVisualStyle Style)
 {
@@ -54,6 +58,19 @@ static bool ResolveUnclipped(const FLHVisualRecipe& R, LHEnvArt::FFit& Out)
 bool LHEnvArt::Resolve(const FLHVisualRecipe& R, FFit& Out)
 {
     if(!ResolveUnclipped(R,Out)) return false;
+    // Saved marker belongs only to the exterior apron, never the chapel kit.
+    if(R.Style==ELHVisualStyle::Church && R.Id==TEXT("Presentation.Environment.Shared.Floor400")
+        && R.Colors[0].Equals(FLinearColor(.061f,.081f,.11f,1.f),.00001f))
+    {
+        const FBox Bounds=Out.ClipBounds;
+        const FVector Size=Bounds.GetSize();
+        const double Thickness=Size.Z/20.;
+        const FVector Origin(Bounds.Min.X,Bounds.Min.Y,Bounds.Max.Z);
+        Out.Instances.Reset();
+        for(int32 X=0;X<FMath::CeilToInt(Size.X/800.);++X)
+        for(int32 Y=0;Y<FMath::CeilToInt(Size.Y/800.);++Y)
+            Out.Instances.Add(FTransform(FQuat::Identity,Origin+FVector(X*800.,Y*800.,0),FVector(2,2,Thickness)));
+    }
     if(R.Id.ToString().Contains(TEXT(".Arch")))
     {
         double Top=-DBL_MAX;
@@ -102,4 +119,45 @@ TArray<FLHVisualBox> LHEnvArt::MasonryCaps(const FLHVisualRecipe& R, const FFit&
         return Caps;
     }
     return LHB1Art::MasonryCaps(Canonical,Fit);
+}
+
+void LHFloorLighting::ConfigureChurchExterior(ALHVisualPiece* Piece)
+{
+    if(!Piece) return;
+    const bool Exterior=Piece->GetRecipe().Style==ELHVisualStyle::Church
+        && Piece->Tags.Contains(TEXT("LH.Church.Surroundings"));
+    TArray<UPrimitiveComponent*> Surfaces;
+    Piece->GetComponents(Surfaces);
+    for(auto* Surface:Surfaces)
+    {
+        if(Exterior)
+        {
+            Surface->SetLightingChannels(false,true,false);
+            Surface->ComponentTags.AddUnique(TEXT("LH.Church.ExteriorSurface"));
+        }
+        else if(Surface->ComponentTags.Remove(TEXT("LH.Church.ExteriorSurface"))>0)
+            Surface->SetLightingChannels(true,false,false);
+    }
+    if(!Exterior) return;
+    auto* Imported=Piece->GetImportedMesh();
+    if(!Imported) return;
+    const FVector Position=Piece->GetActorLocation();
+    const bool Mage=Position.Y>4000.;
+    const FVector2D Low=Mage?FVector2D(-5200,5600):FVector2D(-1800,-1600);
+    const FVector2D High=Mage?FVector2D(-1200,8800):FVector2D(2400,3000);
+    const double EdgeDistance=FMath::Min(FMath::Min(Position.X-Low.X,High.X-Position.X),
+        FMath::Min(Position.Y-Low.Y,High.Y-Position.Y));
+    // The existing imported master blends texture albedo and adds the same
+    // low-energy color as emission. Retain textured relief in the inner apron,
+    // then soften its outer band into blue haze without touching global fog.
+    const float Edge=1.f-FMath::Clamp(float(EdgeDistance/1000.),0.f,1.f);
+    const float Smooth=Edge*Edge*(3.f-2.f*Edge);
+    const FLinearColor Color=FMath::Lerp(FLinearColor(.035f,.055f,.095f,1.f),
+        FLinearColor(.11f,.17f,.28f,1.f),Smooth);
+    for(int32 Slot=0;Slot<Imported->GetNumMaterials();++Slot)
+        if(auto* Material=Cast<UMaterialInstanceDynamic>(Imported->GetMaterial(Slot)))
+        {
+            Material->SetScalarParameterValue(TEXT("Flame"),FMath::Lerp(.82f,.96f,Smooth));
+            Material->SetVectorParameterValue(TEXT("FlameColor"),Color);
+        }
 }

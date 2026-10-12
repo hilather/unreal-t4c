@@ -156,3 +156,15 @@ Run `bash build/capture-map-screenshots.sh --self-test` without a binary, displa
 or ImageMagick to test normal/nonzero exits, missing executables, hangs, ignored
 SIGTERM, retries and continuation. A SIGKILL survivor is simulated in this test;
 a real driver-stuck process and rendered captures still require the host check.
+
+## W5-22d — ritual glow and cool church apron (2026-10-12)
+
+Prototype presentation tuning, calibrated to the three real W5-22c B4 captures. The previous exposure-weighted direct-light proxy fell to .2310 of W5-19, while image means fell to .3601/.2638/.2485. A descriptive two-point power fit `mean_new / mean_old = (proxy_new / proxy_old)^p` gives per-view exponents .6971/.9094/.9502. Reaching mean .15 from W5-22c would require proxy gains approximately 1.43/2.23/2.12 under that model. These use one aggregate light proxy and three different camera views, not camera-matched irradiance; material emission and haze are outside its scope. Do not reuse W5-22c's optimistic brightness predictions or treat this fit as rendered acceptance.
+
+B4 keeps EV100 2.25, torch 1800lm/375cm/2300K, player fill650lm, AO and grading. Diffuse fill changes from6500lm brown to7500lm cool (.48,.54,.72), with its radius/height unchanged. Sky moves .10→.12 with (.55,.65,.90). The imported floor/altar oxide inlay slots use existing cooked `Flame`/`FlameColor` parameters, making the carved strokes emit red amber while basalt remains nonemissive. Complete floor medallions also get shadowless diffuse point reflection at +120cm, radius360cm,650lm; entry-side medallions below world Y2000 use325lm to retain room1's pools. Partial medallions at clipped slab edges get no light. The altar key changes3000→3800lm and radius500→600cm. Transient glow components and MID overrides are restored by the normal recipe Build/PostLoad/BeginPlay path.
+
+B4 distant nonvolumetric haze now begins4000cm away, radiance(.40,.55,.85), maximum opacity .10. It addresses cutaway void separately from nearby receivers; light cannot illuminate absent geometry. B3 keeps its W5-22c profile and haze unchanged. B2 and Church interior lighting/post-process also retain their settings.
+
+Church surroundings retain the existing imported stone meshes and exact exclusions but use800cm paving units instead of400cm. Exterior-tagged surfaces receive lighting channel1 only, excluding all existing warm chapel lights. A dedicated shadowless4lux blue moon on channel1 cannot illuminate channel0 interior receivers. Existing master material parameters desaturate/darken the surface and increase cool emission toward region edges. This is a coarse per-assembly haze-colored taper, not a continuous fog shader: seams and perceived darkness need the same-camera host capture. No global church haze/exposure changes are made.
+
+See the appended W5-22d section of [polish-w5-22.md](polish-w5-22.md) for actual numeric audits, builds, map/sight/arrival checks, calibration inputs and remaining capture requirements. NullRHI cannot establish the requested .12–.18 B4 means or <.15 near-black shares.

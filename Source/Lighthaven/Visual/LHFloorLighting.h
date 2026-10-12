@@ -24,7 +24,20 @@ namespace LHFloorLighting
     };
     LIGHTHAVEN_API const FProfile* FindProfile(ELHVisualStyle Style);
     LIGHTHAVEN_API void ConfigurePostProcess(FPostProcessSettings& Settings, ELHVisualStyle Style);
+    // Reapplied after imported materials rebuild, including PostLoad/BeginPlay.
+    LIGHTHAVEN_API void ConfigureChurchExterior(ALHVisualPiece* Piece);
 }
+
+// Low, local reflected glow at the existing imported floor inlays. Separate
+// from fixture lights so audits can retain the original torch pool inventory.
+UCLASS()
+class LIGHTHAVEN_API ULHRitualSigilLightComponent : public UPointLightComponent
+{
+    GENERATED_BODY()
+public:
+    ULHRitualSigilLightComponent();
+    static void Configure(ALHVisualPiece* Piece);
+};
 
 UCLASS()
 class LIGHTHAVEN_API ULHFloorFixtureLightComponent : public UPointLightComponent
