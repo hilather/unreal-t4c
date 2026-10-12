@@ -653,3 +653,86 @@ established. Rendered captures and montage output remain untested without a host
 display/new packaged Development executable. All Content and map pointers and
 the reviewed-arrivals file were restored before submission; no binaries or art
 receipts are part of this result.
+
+## W5-21b — authored character identity across fresh clones
+
+The reproduced player trigger is generated glTF tangent noise, not a runtime
+C++ edit or a module rebuild. Two fresh clones of the assigned farm baseline
+`17243bc` at different absolute paths initially produced identical exports.
+A normal `LH_ART_CHARACTER_ONLY=1 LH_ART_REIMPORT=1 build/build-art.sh` regeneration
+then changed **one float** in `player_b.glb`'s TANGENT accessor (accessor 3,
+VEC4/FLOAT, buffer view 3), by approximately `0.00009996`. Its glTF JSON and
+other player inputs remained identical. The original signature changed from
+`32a384b8…` to `55102f60…`, exactly matching the committed and failing fresh-clone
+receipts supplied in the task. Generated output bytes therefore are not a safe
+identity for unchanged authored inputs.
+
+NPC invalidation then cascaded through its serialized player-package dependency.
+With canonical regenerated NPC exports and the original receipt code, substituting
+committed player packages restores the exact committed NPC signature
+`376312e0…`. Substituting locally refreshed player packages changes that signature
+(`38e606ab…`) while all other inputs stay fixed. This isolates the dependency;
+the refreshed package bytes need not match another machine's reimport bytes.
+The controlled three-thread NPC exports also differed from the normal
+eight-thread wrapper exports, so generated NPC kits/manifest are unsuitable
+identity inputs independently of the cascade.
+
+`player_receipt.py` now keys a versioned `player-authored-v2` signature on the
+player source Python scripts, appearances JSON, importer/receipt scripts, schema
+header, existing explicit native import hooks and engine identity. Source labels
+are relative to the supplied checkout root; the receipt helper itself is read
+from that root. `npc_receipt.py` uses `npc-authored-v2`, the NPC authored scripts,
+roster, importer/helpers/header/hooks and Build.version, plus the **authored player
+signature** for its shared rig. Neither identity reads output GLBs/PNGs/manifests,
+player packages, full runtime C++, compiled modules, clocks or absolute paths.
+Importers still require nonempty, exact package size/SHA-256 inventories before
+skipping. Export validation/cache behavior and importer settings are unchanged.
+No authored geometry, shading or animation source changed.
+
+**Both committed import receipts must be regenerated once by the coordinator.**
+Do not rewrite old signatures to bless existing packages: the old format lacks
+complete original-input evidence. Run the normal pinned Blender/engine pipeline,
+commit its imported packages and receipts through the established host/LFS path,
+and then repeat from a fresh hydrated clone. This worker submits no packages or
+art receipts. Manual replacement of generated sources alone intentionally does
+not request reimport; change authored inputs/import semantics to invalidate.
+
+Observed proof uses two separate disposable clones, local LFS hydration (no
+asset download), and the single built editor module via a Binaries symlink.
+After a local receipt refresh in clone A, its package/receipt fixture was copied
+into clone B, modeling the required coordinator commit. B's outputs were deleted
+and both clones ran the normal character-only build/export path without
+`LH_ART_SKIP_EXPORT`. Both exited 0 and logged PLAYER_IMPORT_UNCHANGED,
+NPC_PACKAGES_UNCHANGED and NPC_IMPORT_UNCHANGED. Both signatures matched, and
+all **205 files** (49 player packages, 154 NPC packages, two receipts) retained
+identical SHA-256 values across paths. The fixture migration itself changed
+38 player packages and all 154 NPC packages; it is not a clean checkout of the
+old receipt baseline. Clean `git status` against a newly committed host migration
+remains a coordinator integration check. The local three-thread control migration
+changed four NPC bounds entries by at most 0.008622 cm versus the committed
+canonical export; those experimental packages are discarded, not delivered.
+
+Run the engine-free regression with:
+
+```sh
+python3 Source/Lighthaven/Visual/Player/test_import_receipts.py
+```
+
+It passes with no Unreal/Blender/output prerequisites and tests missing/recreated
+exports, approximately 0.0001 float-byte variation, serialized package changes,
+relocation, unrelated runtime/module edits, authored source changes, import-hook
+changes and engine changes. Both non-adaptive-unity Linux Development targets
+built successfully (editor 344.31 s, game 273.01 s). The full-suite attempt and
+exact completed counts/failures are recorded in the W5-21b attempt report rather
+than inferred from build/import results. Disposable clones and experimental
+packages are removed before submission; deliverable Content pointers stay at
+baseline.
+
+The optional full-suite run reached its explicit 600-second timeout (exit 124):
+241 tests discovered, 82 completed, 81 Success and one Fail,
+`Lighthaven.Integration.G4.DeathAndChurchRespawn` (session-descent assertion).
+`Lighthaven.Integration.Wave4.ServicesThroughSession` had started but not completed;
+159 tests therefore have no completed result in this attempt. This is not a full
+suite pass. The death/respawn assertion also appears in the prior W5-21 evidence;
+its transient cause remains outside this receipt task. Library evidence is trimmed
+logs, receipt/signature/inventory JSON and build logs, totaling less than 1 MiB.
