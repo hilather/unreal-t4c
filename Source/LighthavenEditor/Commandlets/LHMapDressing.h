@@ -1,6 +1,9 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Visual/LHVisualKit.h"
+#include "Visual/LHEnvArtBinding.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "StaticMeshResources.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/PointLight.h"
 #include "Components/PointLightComponent.h"
@@ -10,6 +13,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
+#include "LHChurchSurroundings.h"
 
 // Presentation only: retain the original smooth colliders and their nav contribution.
 // Recipe customization keeps unit actor scale and kit per-assembly budgets.
@@ -131,7 +135,12 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
         {
             const double Width = FMath::Max(Size.X,Size.Y);
             const FName Id = Width >= 500 ? TEXT("Presentation.Environment.Basement.ArchBoss500") : TEXT("Presentation.Environment.Shared.Arch240");
-            auto* Arch = Piece(World,Id,Style,FVector(A->GetActorLocation().X,A->GetActorLocation().Y,0),FRotator(0,Size.Y>Size.X?90:0,0));
+            const FRotator ArchRotation(0,Size.Y>Size.X?90:0,0);
+            FVector ArchPosition(A->GetActorLocation().X,A->GetActorLocation().Y,0);
+            // Imported frames span local Y[-20,0]; structural walls are centered.
+            // Align only the presentation thickness, retaining its floor and aperture.
+            if(Style==ELHVisualStyle::B1Cellar) ArchPosition+=ArchRotation.RotateVector(FVector(0,10,0));
+            auto* Arch = Piece(World,Id,Style,ArchPosition,ArchRotation);
             if (!Arch) return false;
             // Structural lintel tests identify the retained actors by label.
             Arch->SetActorLabel(TEXT("Dressing.Arch.")+Label.Replace(TEXT("Lintel"),TEXT("Arch")));
@@ -239,6 +248,7 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
             if(!Pillar) return false;
             Pillar->SetActorLabel(TEXT("Dressing.Temple.BackPillar")); Pieces.Add(Pillar);
         }
+        if(!LHChurchSurroundings::Apply(World,WalkableFloors,Piece,CanRaise)) return false;
     }
     TMap<ALHVisualPiece*,FBox> B1ClutterFootprints;
     if(Style==ELHVisualStyle::B1Cellar)
@@ -425,28 +435,157 @@ inline bool Dress(UWorld* World, ELHVisualStyle Style, const TArray<FVector>& Va
             Fixture->Tags.Add(FixtureId.ToString().EndsWith(TEXT("Sconce"))?TEXT("LH.B1.WallFixture"):TEXT("LH.B1.FloorFixture"));
         Pieces.Add(Fixture);
     }
+    // Audit only newly rescued rubble against the same 50cm playable lattice,
+    // capsule padding and default camera used by GameplayDressingSight.
+    // Existing dressing remains untouched; imported triangles avoid treating the
+    // hollow rubble bounding box as a solid obstacle.
+    TArray<FVector> B1SightPoints;
+    if(Style==ELHVisualStyle::B1Cellar)
+    {
+        TArray<FBox> Blockers;
+        for(auto* A:Surfaces)
+        {
+            const auto* C=A->GetStaticMeshComponent();
+            if(!C->GetStaticMesh() || C->GetStaticMesh()->GetName()!=TEXT("Cube")) continue;
+            const FVector Size=A->GetActorScale3D().GetAbs()*100;
+            if(!(Size.Z<=20 && Size.X>=5 && Size.Y>=5) && C->GetCollisionEnabled()!=ECollisionEnabled::NoCollision)
+                Blockers.Add(C->Bounds.GetBox());
+        }
+        for(auto* A:Surfaces)
+        {
+            const auto* C=A->GetStaticMeshComponent();
+            if(!C->GetStaticMesh() || C->GetStaticMesh()->GetName()!=TEXT("Cube")) continue;
+            const FVector Size=A->GetActorScale3D().GetAbs()*100;
+            const FString Label=A->GetActorLabel();
+            if(Size.Z>20 || Size.X<5 || Size.Y<5 || A->IsHidden()
+                || (!C->IsVisible() && !A->Tags.Contains(TEXT("LH.Dressing.RetainedCollider")))
+                || Label.StartsWith(TEXT("Scenic.")) || Label.StartsWith(TEXT("NPC."))
+                || Label.Contains(TEXT("Arrow")) || Label.Contains(TEXT("Tread")) || Label.Contains(TEXT("RedAisle"))) continue;
+            const FTransform Transform=C->GetComponentTransform();
+            const FBox Local=C->GetStaticMesh()->GetBoundingBox(),Bounds=Local.TransformBy(Transform);
+            const FVector Normal=Transform.GetRotation().RotateVector(FVector::UpVector);
+            if(Normal.Z<.5) continue;
+            const FVector Top=Transform.TransformPosition(FVector(0,0,Local.Max.Z));
+            for(double X=Bounds.Min.X+25;X<Bounds.Max.X;X+=50)
+            for(double Y=Bounds.Min.Y+25;Y<Bounds.Max.Y;Y+=50)
+            {
+                const double Z=Top.Z-(Normal.X*(X-Top.X)+Normal.Y*(Y-Top.Y))/Normal.Z;
+                const FVector Feet(X,Y,Z+2),Sample=Transform.InverseTransformPosition(Feet-FVector(0,0,2));
+                if(Sample.X<Local.Min.X || Sample.X>Local.Max.X || Sample.Y<Local.Min.Y || Sample.Y>Local.Max.Y) continue;
+                if(Blockers.ContainsByPredicate([&](const FBox& B)
+                    {return B.Max.Z>Z+5 && B.Min.Z<Z+175 && X>B.Min.X-36 && X<B.Max.X+36 && Y>B.Min.Y-36 && Y<B.Max.Y+36;})) continue;
+                B1SightPoints.Add(Feet);
+            }
+        }
+    }
+    auto RetryHasClearSight=[&](ALHVisualPiece* Prop)
+    {
+        LHEnvArt::FFit Fit;
+        auto* Imported=Prop->GetImportedMesh();
+        const UStaticMesh* Mesh=Imported->GetStaticMesh();
+        const bool UseImported=Imported->IsVisible() && Mesh && LHEnvArt::Resolve(Prop->GetRecipe(),Fit);
+        const auto* Data=UseImported?Mesh->GetRenderData():nullptr;
+        if(UseImported && (!Data || Data->LODResources.IsEmpty())) return false;
+        const FVector CameraOffset=-FRotator(-55,45,0).Vector()*1200+FVector(0,0,90);
+        const FTransform Actor=Prop->GetActorTransform();
+        for(const FVector& Feet:B1SightPoints)
+        for(double Height:{0.,178.})
+        {
+            const FVector Start=Actor.InverseTransformPosition(Feet+CameraOffset),End=Actor.InverseTransformPosition(Feet+FVector(0,0,Height));
+            if(UseImported)
+            {
+                const auto& LOD=Data->LODResources[0];
+                const auto Indices=LOD.IndexBuffer.GetArrayView();
+                for(const auto& Instance:Fit.Instances)
+                {
+                    const FBox Box=Mesh->GetBoundingBox().TransformBy(Instance).Overlap(Fit.ClipBounds);
+                    if(!Box.IsValid || !FMath::LineBoxIntersection(Box,Start,End,End-Start)) continue;
+                    const FVector A=Instance.InverseTransformPosition(Start),B=Instance.InverseTransformPosition(End);
+                    for(int32 I=0;I+2<Indices.Num();I+=3)
+                    {
+                        FVector Point,Normal;
+                        if(FMath::SegmentTriangleIntersection(A,B,
+                            FVector(LOD.VertexBuffers.PositionVertexBuffer.VertexPosition(Indices[I])),
+                            FVector(LOD.VertexBuffers.PositionVertexBuffer.VertexPosition(Indices[I+1])),
+                            FVector(LOD.VertexBuffers.PositionVertexBuffer.VertexPosition(Indices[I+2])),Point,Normal)
+                            && Box.IsInsideOrOn(Instance.TransformPosition(Point))) return false;
+                    }
+                }
+            }
+            else for(const auto& Box:Prop->GetRecipe().Geometry)
+            {
+                const FTransform Transform(Box.Rotation,Box.Center);
+                const FVector A=Transform.InverseTransformPosition(Start),B=Transform.InverseTransformPosition(End);
+                if(FMath::LineBoxIntersection(FBox(-Box.Size/2,Box.Size/2),A,B,B-A)) return false;
+            }
+        }
+        return !B1SightPoints.IsEmpty();
+    };
     // Preserve fixture/light transforms. Remove only conflicting presentation
     // clutter once actual wall mounting/floor placement has established flames.
+    int32 B1RetryEligible=0,B1RetryRejected=0,B1RetrySafe=0;
     for(const auto& Pair:B1ClutterFootprints)
     {
         const FBox& Foot=Pair.Value;
-        if(!B1FixtureFlames.ContainsByPredicate([&](const FVector& Flame)
+        auto Conflicts=[&](bool Low)
         {
-            const FVector Nearest(FMath::Clamp(Flame.X,Foot.Min.X,Foot.Max.X),FMath::Clamp(Flame.Y,Foot.Min.Y,Foot.Max.Y),0);
-            // Low rubble/benches can dress below wall sconces. Keep the full
-            // clearance for tall silhouettes and every freestanding floor bowl.
-            const FString Id=Pair.Key->GetRecipe().Id.ToString();
-            const bool Low=Id.EndsWith(TEXT("Debris")) || Id.EndsWith(TEXT("Bench"));
-            const bool FloorFixture=B1FloorFixtureFlames.Contains(Flame);
-            return FVector::DistSquared2D(Flame,Nearest)<FMath::Square(Low && !FloorFixture?40.:120.);
-        })) continue;
+            return B1FixtureFlames.ContainsByPredicate([&](const FVector& Flame)
+            {
+                const FVector Nearest(FMath::Clamp(Flame.X,Foot.Min.X,Foot.Max.X),FMath::Clamp(Flame.Y,Foot.Min.Y,Foot.Max.Y),0);
+                const bool FloorFixture=B1FloorFixtureFlames.Contains(Flame);
+                return FVector::DistSquared2D(Flame,Nearest)<FMath::Square(Low && !FloorFixture?40.:120.);
+            });
+        };
+        const FString Id=Pair.Key->GetRecipe().Id.ToString();
+        const bool Low=Id.EndsWith(TEXT("Debris")) || Id.EndsWith(TEXT("Bench"));
+        if(!Conflicts(Low)) continue;
+        // Retry a tall candidate with the existing low rubble kit, retaining
+        // its original (possibly larger) padded footprint and all seed vetoes.
+        // No candidate survives a freestanding-bowl clearance violation.
+        if(!Low && !Conflicts(true))
+        {
+            FLHVisualRecipe Rubble;
+            if(!LHVisual::MakeRecipe(TEXT("Presentation.Environment.Shared.Debris"),Style,Rubble)) return false;
+            Rubble.Collision.Reset();
+            if(!Pair.Key->Build(Rubble)) return false;
+            ++B1RetryEligible;
+            const FVector OriginalPosition=Pair.Key->GetActorLocation();
+            const FRotator OriginalRotation=Pair.Key->GetActorRotation();
+            const bool Long=Id.EndsWith(TEXT("Table")) || Id.EndsWith(TEXT("Bench"));
+            const FVector Tangent=FMath::IsNearlyZero(OriginalRotation.Yaw)?FVector(1,0,0):FVector(0,1,0);
+            bool Clear=false;
+            // Quarter-turns change the existing rubble silhouette. A former
+            // furniture footprint also contains a 25cm tangent shift plus the
+            // rubble's 55cm padding (80cm fits within the original 88cm).
+            for(double Shift:{0.,-25.,25.})
+            {
+                if(Shift!=0 && !Long) continue;
+                for(double Turn:{0.,90.,180.,270.})
+                {
+                    Pair.Key->SetActorLocation(OriginalPosition+Tangent*Shift);
+                    Pair.Key->SetActorRotation(OriginalRotation+FRotator(0,Turn,0));
+                    if(RetryHasClearSight(Pair.Key)) { Clear=true; break; }
+                }
+                if(Clear) break;
+            }
+            if(Clear)
+            {
+                ++B1RetrySafe;
+                Pair.Key->Tags.Add(TEXT("LH.B1.PolishLowRetry"));
+                Pair.Key->SetActorLabel(Pair.Key->GetActorLabel()+TEXT(".RubbleRetry"));
+                continue;
+            }
+            ++B1RetryRejected;
+        }
         Pieces.Remove(Pair.Key);
         World->DestroyActor(Pair.Key);
     }
+    if(Style==ELHVisualStyle::B1Cellar)
+        UE_LOG(LogTemp,Display,TEXT("B1 polish retry eligible=%d sight_rejected=%d safe=%d"),B1RetryEligible,B1RetryRejected,B1RetrySafe);
     if (Style == ELHVisualStyle::B1Cellar || Style == ELHVisualStyle::B2Damp)
     {
         // The A generator's open 320cm baffle mouths have no named lintel actors.
-        const FVector Mouth=Style==ELHVisualStyle::B1Cellar?FVector(900,-1000,0):FVector(1000,-4600,0);
+        const FVector Mouth=Style==ELHVisualStyle::B1Cellar?FVector(900,-980,0):FVector(1000,-4600,0);
         auto* Arch=Piece(World,TEXT("Presentation.Environment.Shared.Arch320"),Style,Mouth,FRotator::ZeroRotator);
         if (!Arch) return false;
         Pieces.Add(Arch);

@@ -12,8 +12,8 @@ const LHFloorLighting::FProfile* LHFloorLighting::FindProfile(ELHVisualStyle Sty
 {
     static const FProfile Church={4.f,.2f,{.65f,.75f,1.f},2400.f,500.f,2800.f,20000.f,1800.f,650.f,{1.f,.78f,.52f},900.f,{1.f,.82f,.62f},{.18f,.145f,.10f},.10f};
     static const FProfile B2={2.5f,.16f,{.56f,.76f,.72f},1000.f,400.f,2900.f,6500.f,1500.f,800.f,{.55f,.76f,.72f},450.f,{.68f,.85f,.82f},{.08f,.14f,.13f},.12f};
-    static const FProfile B3={4.f,.12f,{.62f,.72f,1.f},900.f,375.f,3100.f,4500.f,1450.f,800.f,{.63f,.74f,1.f},600.f,{.76f,.83f,1.f},{.28f,.36f,.50f},.12f};
-    static const FProfile B4={1.5f,.20f,{.62f,.67f,.83f},1500.f,450.f,2400.f,14000.f,1500.f,750.f,{.82f,.49f,.32f},650.f,{.9f,.7f,.52f},{.16f,.095f,.065f},.15f};
+    static const FProfile B3={4.f,.12f,{.62f,.72f,1.f},900.f,375.f,3100.f,3500.f,1600.f,750.f,{.63f,.74f,1.f},600.f,{.76f,.83f,1.f},{1.4f,1.8f,2.5f},.12f};
+    static const FProfile B4={2.25f,.10f,{.62f,.67f,.83f},1800.f,375.f,2300.f,6500.f,1400.f,750.f,{.62f,.44f,.38f},650.f,{.9f,.7f,.52f},{.16f,.095f,.065f},.15f};
     switch(Style)
     {
     case ELHVisualStyle::Church: return &Church;
@@ -37,7 +37,7 @@ void LHFloorLighting::ConfigurePostProcess(FPostProcessSettings& S,ELHVisualStyl
     S.bOverride_DynamicGlobalIlluminationMethod=true; S.DynamicGlobalIlluminationMethod=EDynamicGlobalIlluminationMethod::None;
     S.bOverride_ReflectionMethod=true; S.ReflectionMethod=EReflectionMethod::None;
     S.bOverride_AmbientOcclusionIntensity=true;
-    S.AmbientOcclusionIntensity=(Style==ELHVisualStyle::B2Damp || Style==ELHVisualStyle::B3Crypt)?.65f:.55f;
+    S.AmbientOcclusionIntensity=Style==ELHVisualStyle::B3Crypt?.50f:(Style==ELHVisualStyle::B2Damp?.65f:.55f);
     S.bOverride_AmbientOcclusionRadius=true; S.AmbientOcclusionRadius=100.f;
     S.bOverride_AmbientOcclusionRadiusInWS=true; S.AmbientOcclusionRadiusInWS=true;
     S.bOverride_MotionBlurAmount=true; S.MotionBlurAmount=0.f;
@@ -56,7 +56,7 @@ void LHFloorLighting::ConfigurePostProcess(FPostProcessSettings& S,ELHVisualStyl
     case ELHVisualStyle::B3Crypt:
         S.ColorGainHighlights=FVector4(1.f,1.01f,1.03f,1.f); S.ColorGainShadows=FVector4(.99f,1.f,1.03f,1.f); break;
     case ELHVisualStyle::B4Ritual:
-        S.ColorGainHighlights=FVector4(1.03f,1.f,.98f,1.f); S.ColorGainShadows=FVector4(1.02f,.99f,.98f,1.f); break;
+        S.ColorGainHighlights=FVector4(1.03f,1.f,.98f,1.f); S.ColorGainShadows=FVector4(.88f,.92f,1.02f,1.f); break;
     default: break;
     }
 }
@@ -82,7 +82,7 @@ ULHFloorFixtureLightComponent* ULHFloorFixtureLightComponent::Configure(ALHVisua
     Light->bFlicker=Fixture;
     Light->BaseLumens=Altar?(R.Style==ELHVisualStyle::Church?4000.f:3000.f):P->FixtureLumens;
     Light->SetIntensity(Light->BaseLumens);
-    Light->SetAttenuationRadius(Altar?(R.Style==ELHVisualStyle::Church?700.f:650.f):P->FixtureRadius);
+    Light->SetAttenuationRadius(Altar?(R.Style==ELHVisualStyle::Church?700.f:500.f):P->FixtureRadius);
     Light->SetRelativeLocation(Altar?FVector(0,0,180):FlameLocal);
     Light->SetUseTemperature(!(Altar && R.Style==ELHVisualStyle::B4Ritual));
     Light->SetTemperature(P->FixtureKelvin);
@@ -124,6 +124,10 @@ void ALHFloorAtmosphere::Configure(ELHVisualStyle InStyle)
     if(!P) return;
     Haze->FogDensity=.008f; Haze->FogHeightFalloff=.25f; Haze->FogMaxOpacity=P->HazeOpacity;
     Haze->FogInscatteringLuminance=P->HazeColor; Haze->bEnableVolumetricFog=false;
+    // Prototype depth-targeted crypt haze: keep nearby gameplay receivers out
+    // of fog, tint distant cutaway void. HeightFogCommon.ush integrates along
+    // the depth ray and caps opacity; HeightFogPixelShader.usf applies exposure.
+    Haze->SetStartDistance(Style==ELHVisualStyle::B3Crypt?4000.f:0.f);
     Haze->MarkRenderStateDirty();
     ReadabilityFill->SetIntensity(P->PlayerLumens); ReadabilityFill->SetAttenuationRadius(750.f);
     ReadabilityFill->SetUseTemperature(false); ReadabilityFill->SetLightColor(P->PlayerColor);

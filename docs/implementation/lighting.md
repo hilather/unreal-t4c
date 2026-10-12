@@ -1,6 +1,17 @@
 # Lighting and native capture camera
 
-## W5-19 current chapel / B2 / B3 / B4 profiles (2026-10-11)
+## W5-22c room polish (2026-10-12)
+
+B4 reduces broad fill and exposure (EV2.25), keeps the player-area light, and
+contracts warmer fixture/altar pools. B3 retains EV4 and its player fill, uses
+broader but lower-energy cold diffuse lights and lighter AO, and confines stronger
+cold haze to camera depths beyond 4000cm. All values are Prototype presentation
+tuning. No fixture shadows or Lumen are enabled. The prior profiles and measured
+W5-19 host captures are the baseline; host recapture is required to evaluate the
+new pixel means and near-black shares. See [W5-22c report](polish-w5-22.md) for
+source changes, numeric audit and checks actually run.
+
+## W5-19 prior chapel / B2 / B3 / B4 profiles (2026-10-11)
 
 The four non-B1 floors now use `Visual/LHFloorLighting.*` and the generator-only
 `LHFloorLightingAuthoring.h` pass after dressing. It attaches short warm fixture
